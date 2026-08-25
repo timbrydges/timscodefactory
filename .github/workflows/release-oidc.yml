@@ -8,12 +8,27 @@ on:
         required: true
         type: string
       source_commit:
-        description: "Exact 40-character commit SHA being released"
+        description: "Exact 40-character main commit SHA being released"
         required: true
         type: string
-      rollback_object_version:
-        description: "Previous S3 version ID, or INITIAL_RELEASE for the first publication"
+      rollback_source_commit:
+        description: "Current release commit, or INITIAL_RELEASE for the first publication"
         required: true
+        type: string
+      task_id:
+        description: "Factory task ID; Tim uses OWNER_OVERRIDE"
+        required: true
+        default: OWNER_OVERRIDE
+        type: string
+      lease_id:
+        description: "Active release lease ID; Tim uses OWNER_OVERRIDE"
+        required: true
+        default: OWNER_OVERRIDE
+        type: string
+      owner_authorization_event_sk:
+        description: "Commit-specific owner event SK for agent releases; Tim uses OWNER_OVERRIDE"
+        required: true
+        default: OWNER_OVERRIDE
         type: string
 
 permissions:
@@ -35,26 +50,41 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_commit }}
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install --require-hashes -r requirements-ci.txt
-      - name: Validate immutable release inputs
+      - name: Validate protected controls and immutable inputs
         shell: bash
         env:
           BUILD_RUN_ID: ${{ inputs.build_run_id }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
-          ROLLBACK_VERSION: ${{ inputs.rollback_object_version }}
+          ROLLBACK_SOURCE_COMMIT: ${{ inputs.rollback_source_commit }}
         run: |
+          test "$GITHUB_REF" = "refs/heads/main"
           [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
-          [[ "$ROLLBACK_VERSION" == "INITIAL_RELEASE" || "$ROLLBACK_VERSION" =~ ^[A-Za-z0-9._~+/=-]+$ ]]
+          [[ "$ROLLBACK_SOURCE_COMMIT" == "INITIAL_RELEASE" || "$ROLLBACK_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$SOURCE_COMMIT" != "$ROLLBACK_SOURCE_COMMIT"
+          git cat-file -e "${SOURCE_COMMIT}^{commit}"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" origin/main
           python scripts/build_manifest.py --check
           python scripts/validate_registry.py
           python scripts/validate_workflows.py
+      - name: Bind artifact request to successful main build
+        shell: bash
+        env:
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BUILD_RUN_ID}" > "$RUNNER_TEMP/build-run.json"
+          python scripts/release_control.py verify-build-run \
+            --run "$RUNNER_TEMP/build-run.json" \
+            --source-commit "$SOURCE_COMMIT"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: factory-control-plane-${{ inputs.source_commit }}
@@ -72,22 +102,135 @@ jobs:
           role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: factory-release-${{ github.run_id }}
-      - name: Publish immutable release and deployment record
+      - name: Verify owner or leased agent release authority
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          TASK_ID: ${{ inputs.task_id }}
+          LEASE_ID: ${{ inputs.lease_id }}
+          OWNER_EVENT_SK: ${{ inputs.owner_authorization_event_sk }}
+          ACTOR_ID: ${{ github.actor_id }}
+        run: |
+          if [[ "$ACTOR_ID" == "214414801" ]]; then
+            test "$OWNER_EVENT_SK" = "OWNER_OVERRIDE"
+            printf '{}\n' > "$RUNNER_TEMP/task-state.json"
+            printf '{}\n' > "$RUNNER_TEMP/owner-event.json"
+          else
+            [[ "$TASK_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+            [[ "$LEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+            [[ "$OWNER_EVENT_SK" =~ ^EVENT#[0-9TZ:+.-]+#[A-Za-z0-9._-]+$ ]]
+            TASK_PK="FACTORY#tims-software-factory#TASK#${TASK_ID}"
+            aws dynamodb get-item \
+              --table-name "$STATE_TABLE" \
+              --consistent-read \
+              --key "{\"PK\":{\"S\":\"${TASK_PK}\"},\"SK\":{\"S\":\"STATE\"}}" \
+              > "$RUNNER_TEMP/task-state.json"
+            aws dynamodb get-item \
+              --table-name "$STATE_TABLE" \
+              --consistent-read \
+              --key "{\"PK\":{\"S\":\"${TASK_PK}\"},\"SK\":{\"S\":\"${OWNER_EVENT_SK}\"}}" \
+              > "$RUNNER_TEMP/owner-event.json"
+          fi
+          AUTHORITY_MODE="$(python scripts/release_control.py verify-authority \
+            --actor "$GITHUB_ACTOR" \
+            --actor-id "$ACTOR_ID" \
+            --task-id "$TASK_ID" \
+            --lease-id "$LEASE_ID" \
+            --source-commit "$SOURCE_COMMIT" \
+            --state-item "$RUNNER_TEMP/task-state.json" \
+            --owner-event-item "$RUNNER_TEMP/owner-event.json")"
+          printf 'AUTHORITY_MODE=%s\n' "$AUTHORITY_MODE" >> "$GITHUB_ENV"
+      - name: Verify current release and rollback object
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          ROLLBACK_SOURCE_COMMIT: ${{ inputs.rollback_source_commit }}
+        run: |
+          RELEASE_PK="FACTORY#tims-software-factory#RELEASE"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/current-release.json"
+          if [[ "$ROLLBACK_SOURCE_COMMIT" == "INITIAL_RELEASE" ]]; then
+            printf '{}\n' > "$RUNNER_TEMP/previous-release.json"
+            printf '{}\n' > "$RUNNER_TEMP/previous-head.json"
+          else
+            aws dynamodb get-item \
+              --table-name "$STATE_TABLE" \
+              --consistent-read \
+              --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"DEPLOYMENT#${ROLLBACK_SOURCE_COMMIT}\"}}" \
+              > "$RUNNER_TEMP/previous-release.json"
+            mapfile -t PREVIOUS_LOCATION < <(python scripts/release_control.py deployment-location \
+              --item "$RUNNER_TEMP/previous-release.json" \
+              --source-commit "$ROLLBACK_SOURCE_COMMIT")
+            test "${#PREVIOUS_LOCATION[@]}" -eq 3
+            aws s3api head-object \
+              --bucket "$RELEASE_BUCKET" \
+              --key "${PREVIOUS_LOCATION[0]}" \
+              --version-id "${PREVIOUS_LOCATION[1]}" \
+              --checksum-mode ENABLED \
+              > "$RUNNER_TEMP/previous-head.json"
+          fi
+      - name: Publish versioned object and atomically record release
         shell: bash
         env:
           RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
           STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
-          ROLLBACK_VERSION: ${{ inputs.rollback_object_version }}
+          ROLLBACK_SOURCE_COMMIT: ${{ inputs.rollback_source_commit }}
+          ACTOR_ID: ${{ github.actor_id }}
         run: |
-          DIGEST="$(cut -d' ' -f1 factory-control-plane.tar.gz.sha256)"
+          RAW_DIGEST="$(cut -d' ' -f1 factory-control-plane.tar.gz.sha256)"
+          [[ "$RAW_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          DIGEST="sha256:${RAW_DIGEST}"
           KEY="releases/${SOURCE_COMMIT}/factory-control-plane.tar.gz"
+          CHECKSUM_B64="$(python -c 'import base64,sys; print(base64.b64encode(bytes.fromhex(sys.argv[1])).decode())' "$RAW_DIGEST")"
           aws s3api put-object \
             --bucket "$RELEASE_BUCKET" \
             --key "$KEY" \
             --body factory-control-plane.tar.gz \
-            --metadata "sha256=${DIGEST},source-commit=${SOURCE_COMMIT},rollback-version=${ROLLBACK_VERSION}"
-          aws dynamodb put-item \
+            --checksum-sha256 "$CHECKSUM_B64" \
+            --server-side-encryption AES256 \
+            --metadata "sha256=${DIGEST},source-commit=${SOURCE_COMMIT}" \
+            > "$RUNNER_TEMP/put-object.json"
+          VERSION_ID="$(python scripts/release_control.py object-version --response "$RUNNER_TEMP/put-object.json")"
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$KEY" \
+            --version-id "$VERSION_ID" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/uploaded-head.json"
+          RELEASED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python scripts/release_control.py prepare-release \
             --table-name "$STATE_TABLE" \
-            --condition-expression "attribute_not_exists(PK) AND attribute_not_exists(SK)" \
-            --item "{\"PK\":{\"S\":\"FACTORY#tims-software-factory#DEPLOYMENT\"},\"SK\":{\"S\":\"DEPLOYMENT#${SOURCE_COMMIT}\"},\"artifact_sha256\":{\"S\":\"${DIGEST}\"},\"release_key\":{\"S\":\"${KEY}\"},\"rollback_object_version\":{\"S\":\"${ROLLBACK_VERSION}\"},\"workflow_run\":{\"S\":\"${GITHUB_RUN_ID}\"}}"
+            --source-commit "$SOURCE_COMMIT" \
+            --artifact-digest "$DIGEST" \
+            --release-key "$KEY" \
+            --object-version-id "$VERSION_ID" \
+            --rollback-source-commit "$ROLLBACK_SOURCE_COMMIT" \
+            --actor "$GITHUB_ACTOR" \
+            --actor-id "$ACTOR_ID" \
+            --authority-mode "$AUTHORITY_MODE" \
+            --workflow-run "$GITHUB_RUN_ID" \
+            --released-at "$RELEASED_AT" \
+            --current-item "$RUNNER_TEMP/current-release.json" \
+            --previous-item "$RUNNER_TEMP/previous-release.json" \
+            --previous-head "$RUNNER_TEMP/previous-head.json" \
+            --uploaded-head "$RUNNER_TEMP/uploaded-head.json" \
+            --output "$RUNNER_TEMP/release-transaction.json"
+          aws dynamodb transact-write-items \
+            --transact-items "file://$RUNNER_TEMP/release-transaction.json" \
+            --client-request-token "rel-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"FACTORY#tims-software-factory#RELEASE\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/persisted-current.json"
+          python scripts/release_control.py verify-current \
+            --item "$RUNNER_TEMP/persisted-current.json" \
+            --source-commit "$SOURCE_COMMIT" \
+            --object-version-id "$VERSION_ID" \
+            --artifact-digest "$DIGEST"

@@ -1,7 +1,7 @@
 schema_version: "1.0"
 role_id: engineering_agent
 contract_version: "1.1"
-allowed_states: [IMPLEMENTATION]
+allowed_states: [IMPLEMENTATION, REMEDIATION]
 gate_authority:
   may_approve: []
   may_reject: []
@@ -23,4 +23,3 @@ identity_constraints:
   lease_required: true
   evidence_provenance_required: true
   must_differ_from: [independent_inspector]
-
