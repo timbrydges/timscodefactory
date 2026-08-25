@@ -10,6 +10,7 @@ import os
 import tempfile
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -171,6 +172,20 @@ def _json_contains(actual: object, expected: object) -> bool:
     return actual == expected
 
 
+def _same_timestamp(left: object, right: object) -> bool:
+    if not isinstance(left, str) or not isinstance(right, str):
+        return False
+    try:
+        left_time = datetime.fromisoformat(left.replace("Z", "+00:00"))
+        right_time = datetime.fromisoformat(right.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return (
+        left_time.astimezone(timezone.utc).replace(microsecond=0)
+        == right_time.astimezone(timezone.utc).replace(microsecond=0)
+    )
+
+
 def _ruleset_matches_expected(
     ruleset: object,
     expected: object,
@@ -214,7 +229,10 @@ def _ruleset_matches_expected(
         owner_observation.get("repository") == "timbrydges/timscodefactory"
         and owner_observation.get("ruleset_id") == ruleset.get("id")
         and owner_observation.get("ruleset_name") == ruleset.get("name")
-        and owner_observation.get("ruleset_updated_at") == ruleset.get("updated_at")
+        and _same_timestamp(
+            owner_observation.get("ruleset_updated_at"),
+            ruleset.get("updated_at"),
+        )
         and owner_observation.get("owner_login") == "timbrydges"
         and owner_observation.get("owner_bypass") == owner_bypass
         and owner_observation.get("current_user_can_bypass") == "always"

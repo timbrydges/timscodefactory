@@ -40,6 +40,11 @@ class LiveRulesetPreflightTests(unittest.TestCase):
         self.live.pop("bypass_actors")
         self.assertTrue(_ruleset_matches_expected(self.live, self.expected, self.observation))
 
+    def test_pf19_accepts_equivalent_utc_timestamp(self):
+        self.live.pop("bypass_actors")
+        self.live["updated_at"] = "2026-08-25T17:46:42Z"
+        self.assertTrue(_ruleset_matches_expected(self.live, self.expected, self.observation))
+
     def test_pf19_rejects_redaction_with_stale_owner_observation(self):
         self.live.pop("bypass_actors")
         stale = copy.deepcopy(self.observation)
