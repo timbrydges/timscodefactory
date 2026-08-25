@@ -1,0 +1,98 @@
+schema_version: "1.0"
+registry_version: "F3.1-live.2"
+constitution_version: "1.2"
+gate_contract_version: "1.2"
+state_transition_contract_version: "1.1"
+agent_contract_version: "1.2"
+mode: PAUSED
+
+owner_authority:
+  identity: tim_brydges
+  human_owner: true
+  ultimate_authority: true
+  approval_required: false
+  may_approve_own_changes: true
+  may_bypass_all_gates: true
+  may_intervene_at_any_stage: true
+  may_pause_or_stop: true
+  may_resume: true
+  may_override_all_agents: true
+  owner_actions_audited: true
+  authority_delegable: false
+
+repository:
+  provider: github
+  full_name: timbrydges/timscodefactory
+  visibility: public
+  default_branch: main
+  protected_environment: production
+  ruleset_name: factory-main-protected
+  owner_bypass_actor_id: 214414801
+  owner_bypass_mode: always
+  durable_system_of_record: true
+
+runtime_state:
+  provider: aws_dynamodb
+  table_variable: FACTORY_STATE_TABLE
+  region_variable: AWS_REGION
+  authoritative_writers:
+    - factory_controller
+    - factory_owner
+  agent_direct_write: false
+  lease_ttl_attribute: expires_at
+  optimistic_lock_attribute: version
+
+release:
+  identity: release_oidc_workflow
+  workflow: .github/workflows/release-oidc.yml
+  environment: production
+  role_variable: AWS_RELEASE_ROLE_ARN
+  bucket_variable: FACTORY_RELEASE_BUCKET
+  require_artifact_sha256: true
+  require_manifest: true
+  require_owner_approval_for_agent_release: true
+  owner_may_self_approve: true
+  owner_may_bypass_approval: true
+  unsigned_deployment: deny
+
+invariants:
+  dispatch_authorities: [factory_controller, factory_owner]
+  agents_cannot_mutate_authoritative_state: true
+  distinct_author_reviewer_identities: true
+  provenance_bound_evidence: true
+  expired_lease_invalidates_authority: true
+  agent_self_approval_prohibited: true
+  owner_self_approval_permitted: true
+  owner_bypass_is_absolute: true
+  owner_stop_is_immediate: true
+  pilot_engineering_inspector_provider_diversity: true
+  provider_swap_cannot_change_authority: true
+  deterministic_ai_independent_rollback: true
+  default_deny_transitions: true
+
+profiles:
+  providers: profiles/providers.yaml
+  credentials: profiles/credentials.yaml
+  networks: profiles/networks.yaml
+  trusted_evidence: profiles/trusted-evidence.yaml
+  controller_integrity: profiles/controller-integrity.yaml
+
+roles:
+  - roles/deep_security_reviewer.yaml
+  - roles/engineering_agent.yaml
+  - roles/factory_controller.yaml
+  - roles/factory_owner.yaml
+  - roles/independent_inspector.yaml
+  - roles/product_spec_author.yaml
+  - roles/product_spec_reviewer.yaml
+  - roles/qa_engineer.yaml
+  - roles/release_automation.yaml
+  - roles/software_architect.yaml
+  - roles/specialist_reviewer.yaml
+
+preflight:
+  definition: tests/f3-preflight.yaml
+  required_before_pilot: true
+  adversarial_required: true
+  failure_recovery_required: true
+  all_required_must_pass: true

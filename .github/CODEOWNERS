@@ -1,0 +1,7 @@
+/factory/ @timbrydges
+/.github/ @timbrydges
+/infra/ @timbrydges
+/config/github/ @timbrydges
+/scripts/apply_github_controls.py @timbrydges
+/MANIFEST.sha256 @timbrydges
+

@@ -1,0 +1,45 @@
+name: preflight
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Also verify live ruleset and environment"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+  deployments: read
+
+jobs:
+  static:
+    name: preflight / static
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - run: python scripts/preflight.py --mode static
+
+  live:
+    name: preflight / live controls
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - run: python scripts/preflight.py --mode live
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: software_architect
+contract_version: "1.1"
+allowed_states: [ARCHITECTURE, REMEDIATION]
+gate_authority:
+  may_approve: []
+  may_reject: []
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_architecture_write, design_analysis, threat_model_read, evidence_submit]
+github_permissions: {contents: write, pull_requests: write, checks: read}
+writable_paths: ["architecture/**", "docs/adr/**"]
+prohibited_paths: ["factory/**", ".github/**", "infra/**", "src/**", "tests/**", "MANIFEST.sha256"]
+credential_profile: gh_architecture_writer
+provider_profile: reasoning_architect
+network_policy: provider_restricted
+secret_policy: brokered_ephemeral_only
+authoritative_outputs: [architecture_decision_record, implementation_plan]
+stop_conditions: [specification_not_approved, protected_path_requested, expired_lease, unresolved_critical_risk]
+identity_constraints:
+  authoritative_identity: software_architect_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [engineering_agent]
+

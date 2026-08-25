@@ -1,0 +1,28 @@
+schema_version: "1.0"
+default: deny
+profiles:
+  controller_egress:
+    allow:
+      - api.github.com:443
+      - github.com:443
+      - provider-broker.internal:443
+      - sts.amazonaws.com:443
+      - dynamodb.*.amazonaws.com:443
+  provider_restricted:
+    allow:
+      - api.github.com:443
+      - github.com:443
+      - provider-broker.internal:443
+  github_readonly:
+    allow:
+      - api.github.com:443
+      - github.com:443
+  release_aws:
+    allow:
+      - token.actions.githubusercontent.com:443
+      - sts.amazonaws.com:443
+      - s3.*.amazonaws.com:443
+      - dynamodb.*.amazonaws.com:443
+  human_owner:
+    allow: ["interactive_owner_session"]
+

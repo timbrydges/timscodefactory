@@ -1,0 +1,32 @@
+schema_version: "1.0"
+authoritative_state_writers: [factory_controller, factory_owner]
+default_transition: deny
+owner_pause_state: PAUSED
+rules:
+  dispatch_authorities: [factory_controller, factory_owner]
+  agents_submit_proposals_only: true
+  owner_authority_is_ultimate: true
+  owner_can_override_any_gate: true
+  owner_can_stop_at_any_stage: true
+  owner_override_requires_audit: true
+  compare_and_swap_required: true
+  active_lease_required: true
+  append_only_audit_events: true
+  deterministic_remediation_fields_required: true
+  deterministic_stall_fields_required: true
+  provider_change_cannot_change_authority: true
+  rollback_must_not_require_ai: true
+failure_response:
+  transition_to: PAUSED
+  revoke_active_leases: true
+  block_dispatch: true
+  require_owner_resolution: true
+protected_registry_paths:
+  - factory/registry.yaml
+  - factory/roles/**
+  - factory/profiles/**
+  - factory/schemas/**
+  - factory/tests/**
+  - MANIFEST.sha256
+  - .github/workflows/**
+  - infra/**

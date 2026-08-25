@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: qa_engineer
+contract_version: "1.1"
+allowed_states: [QA, REMEDIATION]
+gate_authority:
+  may_approve: [qa_gate]
+  may_reject: [qa_gate]
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_qa_write, sandbox_exec, integration_test, evidence_submit]
+github_permissions: {contents: write, pull_requests: write, checks: read}
+writable_paths: ["tests/**", "qa/**"]
+prohibited_paths: ["factory/**", ".github/**", "infra/**", "src/**", "MANIFEST.sha256"]
+credential_profile: gh_qa_writer
+provider_profile: qa_validation
+network_policy: provider_restricted
+secret_policy: isolated_test_credentials_only
+authoritative_outputs: [signed_test_report, qa_verdict]
+stop_conditions: [test_environment_untrusted, expired_lease, nondeterministic_failure, protected_path_requested]
+identity_constraints:
+  authoritative_identity: qa_engineer_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [engineering_agent]
+
