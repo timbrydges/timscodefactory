@@ -23,4 +23,6 @@ python scripts/preflight.py --mode static
 python -m unittest discover -s tests -v
 ```
 
-Run `preflight` manually in GitHub with `live=true` only after the ruleset and environment exist. Pilot mode is forbidden until PF-01 through PF-20 all pass.
+The complete preflight runs automatically after every push to `main`. It can also
+be dispatched manually with `live=true`. Pilot mode is forbidden until PF-01
+through PF-20 all pass.

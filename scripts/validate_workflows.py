@@ -50,6 +50,17 @@ def validate(root: Path) -> list[str]:
     if "pull_request:" in release or "push:" in release:
         errors.append("release-oidc.yml: production release must be explicitly dispatched")
 
+    preflight = (workflow_dir / "preflight.yml").read_text(encoding="utf-8")
+    required_preflight_fragments = [
+        "push:",
+        "branches: [main]",
+        "github.event_name == 'push'",
+        "python scripts/preflight.py --mode live",
+    ]
+    for fragment in required_preflight_fragments:
+        if fragment not in preflight:
+            errors.append(f"preflight.yml: missing automatic live control: {fragment}")
+
     return errors
 
 
