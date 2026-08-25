@@ -1,5 +1,6 @@
 {
   "wait_timer": 0,
+  "can_admins_bypass": true,
   "prevent_self_review": false,
   "reviewers": [],
   "deployment_branch_policy": {

@@ -63,7 +63,8 @@ class LiveRulesetPreflightTests(unittest.TestCase):
     def test_pf20_accepts_approval_free_owner_environment_with_main_only(self):
         environment = {
             "name": "production",
-            "protection_rules": [],
+            "can_admins_bypass": True,
+            "protection_rules": [{"id": 1, "type": "branch_policy"}],
             "deployment_branch_policy": {
                 "protected_branches": False,
                 "custom_branch_policies": True,
@@ -79,13 +80,30 @@ class LiveRulesetPreflightTests(unittest.TestCase):
     def test_pf20_rejects_owner_approval_gate_or_tag_policy(self):
         environment = {
             "name": "production",
-            "protection_rules": [{"type": "required_reviewers"}],
+            "can_admins_bypass": True,
+            "protection_rules": [
+                {"type": "branch_policy"},
+                {"type": "required_reviewers"},
+            ],
             "deployment_branch_policy": {
                 "protected_branches": False,
                 "custom_branch_policies": True,
             },
         }
         policies = {"branch_policies": [{"name": "main", "type": "tag"}]}
+        self.assertFalse(_environment_matches_expected(environment, policies))
+
+    def test_pf20_rejects_disabled_owner_bypass(self):
+        environment = {
+            "name": "production",
+            "can_admins_bypass": False,
+            "protection_rules": [{"type": "branch_policy"}],
+            "deployment_branch_policy": {
+                "protected_branches": False,
+                "custom_branch_policies": True,
+            },
+        }
+        policies = {"branch_policies": [{"name": "main", "type": "branch"}]}
         self.assertFalse(_environment_matches_expected(environment, policies))
 
     def test_pf21_requires_exact_immutable_oidc_prefix(self):

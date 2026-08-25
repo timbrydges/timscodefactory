@@ -124,6 +124,8 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     else:
         if environment.get("wait_timer") != 0:
             errors.append("production environment wait timer must be disabled")
+        if environment.get("can_admins_bypass") is not True:
+            errors.append("production environment must preserve Tim's administrator bypass")
         if environment.get("prevent_self_review") is not False:
             errors.append("Tim must be permitted to approve his own production workflow")
         if environment.get("reviewers") != []:

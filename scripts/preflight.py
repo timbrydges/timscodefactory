@@ -443,7 +443,15 @@ def _environment_matches_expected(environment: object, policies_response: object
         return False
     if environment.get("name") != "production":
         return False
-    if environment.get("protection_rules", []) != []:
+    protection_rules = environment.get("protection_rules", [])
+    if (
+        not isinstance(protection_rules, list)
+        or len(protection_rules) != 1
+        or not isinstance(protection_rules[0], dict)
+        or protection_rules[0].get("type") != "branch_policy"
+    ):
+        return False
+    if environment.get("can_admins_bypass") is not True:
         return False
     if environment.get("deployment_branch_policy") != {
         "protected_branches": False,
