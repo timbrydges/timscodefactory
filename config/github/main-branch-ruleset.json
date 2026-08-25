@@ -2,7 +2,13 @@
   "name": "factory-main-protected",
   "target": "branch",
   "enforcement": "active",
-  "bypass_actors": [],
+  "bypass_actors": [
+    {
+      "actor_id": 214414801,
+      "actor_type": "User",
+      "bypass_mode": "always"
+    }
+  ],
   "conditions": {
     "ref_name": {
       "include": ["~DEFAULT_BRANCH"],
@@ -37,4 +43,3 @@
     }
   ]
 }
-

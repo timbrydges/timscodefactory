@@ -16,10 +16,9 @@ provider_profile: null
 network_policy: release_aws
 secret_policy: oidc_only_no_long_lived_cloud_keys
 authoritative_outputs: [signed_release_record, deployment_record]
-stop_conditions: [owner_approval_missing, unsigned_artifact, digest_mismatch, oidc_subject_mismatch, rollback_plan_missing]
+stop_conditions: [agent_release_owner_approval_missing, unsigned_artifact, digest_mismatch, oidc_subject_mismatch, rollback_plan_missing]
 identity_constraints:
   authoritative_identity: github_actions_production_environment
   cannot_review_own_work: true
   lease_required: true
   evidence_provenance_required: true
-

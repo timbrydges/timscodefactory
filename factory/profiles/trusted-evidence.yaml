@@ -21,7 +21,7 @@ verification:
   bind_to_source_commit: true
   bind_to_artifact_digest: true
   reject_expired_lease: true
-  reject_self_approval: true
+  reject_agent_self_approval: true
+  allow_owner_self_approval: true
   reject_unknown_signer: true
   reject_replay: true
-

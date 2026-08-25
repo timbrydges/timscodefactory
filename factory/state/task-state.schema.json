@@ -13,7 +13,7 @@
     "state": {"enum": ["PAUSED", "INTAKE", "SPECIFICATION", "SPEC_REVIEW", "ARCHITECTURE", "IMPLEMENTATION", "INSPECTION", "QA", "SECURITY_REVIEW", "RELEASE_READY", "RELEASING", "RELEASED", "STALLED", "REMEDIATION"]},
     "version": {"type": "integer", "minimum": 0},
     "updated_at": {"type": "string", "format": "date-time"},
-    "updated_by": {"const": "factory_controller_service"},
+    "updated_by": {"enum": ["factory_controller_service", "tim_brydges"]},
     "active_lease_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
     "consumed_evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
     "remediation": {
@@ -36,4 +36,3 @@
     }
   }
 }
-

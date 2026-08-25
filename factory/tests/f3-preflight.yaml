@@ -10,17 +10,16 @@ cases:
   - {id: PF-05, mode: adversarial, assertion: unknown_role_fails_closed}
   - {id: PF-06, mode: adversarial, assertion: missing_profile_fails_closed}
   - {id: PF-07, mode: adversarial, assertion: provider_diversity_violation_fails_closed}
-  - {id: PF-08, mode: adversarial, assertion: self_approval_fails_closed}
+  - {id: PF-08, mode: adversarial, assertion: agent_self_approval_fails_closed}
   - {id: PF-09, mode: adversarial, assertion: expired_lease_invalidates_authority}
   - {id: PF-10, mode: adversarial, assertion: forged_evidence_fails_closed}
   - {id: PF-11, mode: adversarial, assertion: protected_path_write_fails_closed}
   - {id: PF-12, mode: adversarial, assertion: registry_tamper_fails_closed}
   - {id: PF-13, mode: adversarial, assertion: unsigned_deployment_fails_closed}
   - {id: PF-14, mode: adversarial, assertion: provider_swap_cannot_change_authority}
-  - {id: PF-15, mode: adversarial, assertion: non_controller_state_write_fails_closed}
+  - {id: PF-15, mode: adversarial, assertion: unauthorized_dispatch_fails_closed}
   - {id: PF-16, mode: recovery, assertion: owner_pause_revokes_leases_and_blocks_dispatch}
   - {id: PF-17, mode: recovery, assertion: rollback_is_deterministic_and_ai_independent}
-  - {id: PF-18, mode: static, assertion: oidc_subject_exact}
-  - {id: PF-19, mode: live, assertion: main_branch_ruleset_active}
-  - {id: PF-20, mode: live, assertion: production_environment_protected}
-
+  - {id: PF-18, mode: static, assertion: oidc_subject_and_owner_authority_exact}
+  - {id: PF-19, mode: live, assertion: main_branch_ruleset_active_with_tim_bypass}
+  - {id: PF-20, mode: live, assertion: production_environment_owner_controlled}

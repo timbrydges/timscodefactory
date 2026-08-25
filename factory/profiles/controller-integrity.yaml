@@ -1,10 +1,14 @@
 schema_version: "1.0"
-authoritative_state_writer: factory_controller
+authoritative_state_writers: [factory_controller, factory_owner]
 default_transition: deny
 owner_pause_state: PAUSED
 rules:
-  controller_only_dispatch: true
+  dispatch_authorities: [factory_controller, factory_owner]
   agents_submit_proposals_only: true
+  owner_authority_is_ultimate: true
+  owner_can_override_any_gate: true
+  owner_can_stop_at_any_stage: true
+  owner_override_requires_audit: true
   compare_and_swap_required: true
   active_lease_required: true
   append_only_audit_events: true

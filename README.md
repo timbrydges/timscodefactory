@@ -1,10 +1,12 @@
 # Tim's Software Factory
 
-Governed, fail-closed automation for building and releasing software with multiple independent AI roles.
+Owner-controlled, fail-closed automation for building and releasing software with multiple independent AI roles.
 
 This repository is the durable system of record. Runtime coordination data lives in the adjacent AWS state store defined under `infra/aws`; agents never mutate authoritative state directly.
 
 The control-plane repository is intentionally public so GitHub can enforce the required ruleset and production-approval gates without Enterprise Cloud. Product repositories may remain private; secrets, runtime state, customer data, and proprietary application code do not belong here.
+
+Tim Brydges is the sole human Factory Owner and ultimate authority. He may approve his own work, bypass any gate, intervene at any stage, and pause, stop, resume, or override the Factory without outside approval. Agent independence rules remain mandatory for agents and are never authority over Tim. See [`docs/OWNER_AUTHORITY.md`](docs/OWNER_AUTHORITY.md).
 
 ## Control plane
 
@@ -26,4 +28,4 @@ python scripts/preflight.py --mode static
 python -m unittest discover -s tests -v
 ```
 
-Production releases remain disabled until the protected `production` environment and the AWS outputs are bound to GitHub variables. The environment permits deployment only from `main`, requires Tim's approval, prevents self-review, and leaves administrator bypass disabled. Tim is the required human approval authority for Pilot #1 production deployment.
+Production releases remain disabled until the protected `production` environment and the AWS outputs are bound to GitHub variables. The environment permits deployment only from `main`. Agent-initiated releases require Tim's approval; Tim may approve his own run or use the administrator bypass. No other actor may bypass the release gate.

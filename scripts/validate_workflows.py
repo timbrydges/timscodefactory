@@ -48,7 +48,7 @@ def validate(root: Path) -> list[str]:
         if fragment not in release:
             errors.append(f"release-oidc.yml: missing fail-closed control: {fragment}")
     if "pull_request:" in release or "push:" in release:
-        errors.append("release-oidc.yml: production release must be owner-dispatched only")
+        errors.append("release-oidc.yml: production release must be explicitly dispatched")
 
     return errors
 
@@ -68,4 +68,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

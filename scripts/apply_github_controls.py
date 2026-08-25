@@ -77,6 +77,7 @@ def main() -> int:
             deployment_branch,
         )
     print("GitHub main ruleset and production environment with main-only deployment applied")
+    print("Manual UI control: keep 'Allow administrators to bypass configured protection rules' enabled")
     return 0
 
 

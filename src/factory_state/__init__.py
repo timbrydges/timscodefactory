@@ -7,6 +7,7 @@ from .model import (
     InvalidTransition,
     Lease,
     LeaseError,
+    OWNER_IDENTITY,
     StaleVersion,
     TaskState,
 )
@@ -18,7 +19,7 @@ __all__ = [
     "InvalidTransition",
     "Lease",
     "LeaseError",
+    "OWNER_IDENTITY",
     "StaleVersion",
     "TaskState",
 ]
-

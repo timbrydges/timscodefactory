@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from .model import CONTROLLER_IDENTITY, AuthorityError, TaskState
+from .model import CONTROLLER_IDENTITY, OWNER_IDENTITY, AuthorityError, TaskState
 
 
 class DynamoDBStateStore:
@@ -19,8 +19,10 @@ class DynamoDBStateStore:
         self.client = client
 
     def persist_transition(self, before: TaskState, after: TaskState, *, caller_identity: str, event_id: str) -> None:
-        if caller_identity != CONTROLLER_IDENTITY:
-            raise AuthorityError("only the controller may persist authoritative state")
+        if caller_identity not in {CONTROLLER_IDENTITY, OWNER_IDENTITY}:
+            raise AuthorityError("only the controller or Tim, the Factory Owner, may persist authoritative state")
+        if after.updated_by != caller_identity:
+            raise AuthorityError("persisted state actor must match the authoritative caller")
         state_item = self._serialize_state(after)
         event_item = {
             "PK": {"S": f"FACTORY#{after.factory_id}#TASK#{after.task_id}"},
@@ -30,7 +32,7 @@ class DynamoDBStateStore:
             "to_version": {"N": str(after.version)},
             "from_state": {"S": before.state},
             "to_state": {"S": after.state},
-            "controller_identity": {"S": caller_identity},
+            "actor_identity": {"S": caller_identity},
         }
         self.client.transact_write_items(
             TransactItems=[
@@ -78,4 +80,3 @@ class DynamoDBStateStore:
             "updated_at": {"S": state.updated_at.isoformat()},
             "payload": {"S": json.dumps(payload, sort_keys=True)},
         }
-

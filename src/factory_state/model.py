@@ -1,7 +1,8 @@
 """Fail-closed state-transition model.
 
-Agents return proposals and evidence to the controller. Only the controller
-identity may call mutation methods on this model or its durable adapter.
+Agents return proposals and evidence to the controller. The controller handles
+normal orchestration; Tim, the human Factory Owner, retains explicit authority
+to override gates, change state, dispatch, pause, or stop the Factory.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from typing import Any, Iterable
 
 
 CONTROLLER_IDENTITY = "factory_controller_service"
+OWNER_IDENTITY = "tim_brydges"
 
 ALLOWED_TRANSITIONS = {
     "PAUSED": {"INTAKE"},
@@ -113,6 +115,11 @@ class FactoryStateMachine:
         if caller_identity != CONTROLLER_IDENTITY:
             raise AuthorityError("only the authoritative controller may mutate state")
 
+    @staticmethod
+    def _require_owner(caller_identity: str) -> None:
+        if caller_identity != OWNER_IDENTITY:
+            raise AuthorityError("only Tim, the Factory Owner, may issue an owner override")
+
     def issue_lease(self, caller_identity: str, lease: Lease, *, expected_version: int) -> TaskState:
         self._require_controller(caller_identity)
         self._require_version(expected_version)
@@ -120,7 +127,11 @@ class FactoryStateMachine:
             raise LeaseError("cannot issue leases while PAUSED")
         if any(item.lease_id == lease.lease_id for item in self._state.leases):
             raise LeaseError("lease id replay")
-        return self._commit(replace(self._state, leases=self._state.leases + (lease,)), "LEASE_ISSUED")
+        return self._commit(
+            replace(self._state, leases=self._state.leases + (lease,)),
+            "LEASE_ISSUED",
+            caller_identity,
+        )
 
     def transition(
         self,
@@ -160,13 +171,59 @@ class FactoryStateMachine:
             remediation=remediation if target == "REMEDIATION" else None,
             stall=stall if target == "STALLED" else None,
         )
-        return self._commit(updated, "STATE_TRANSITION")
+        return self._commit(updated, "STATE_TRANSITION", caller_identity)
+
+    def owner_override(
+        self,
+        caller_identity: str,
+        target: str,
+        *,
+        expected_version: int,
+        reason: str,
+        remediation: dict[str, Any] | None = None,
+        stall: dict[str, Any] | None = None,
+    ) -> TaskState:
+        """Apply Tim's unilateral, audited override without an approval gate."""
+
+        self._require_owner(caller_identity)
+        self._require_version(expected_version)
+        if target not in ALLOWED_TRANSITIONS:
+            raise InvalidTransition(f"unknown target state: {target}")
+        if not reason.strip():
+            raise InvalidTransition("owner override requires an audit reason")
+        if target == "REMEDIATION":
+            required = {"return_state", "required_actions", "failure_code"}
+            if not remediation or not required.issubset(remediation) or not remediation["required_actions"]:
+                raise InvalidTransition("REMEDIATION requires deterministic return fields")
+        if target == "STALLED":
+            required = {"reason_code", "resume_condition", "owner_action_required"}
+            if not stall or not required.issubset(stall):
+                raise InvalidTransition("STALLED requires deterministic resume fields")
+        leases = self._state.leases
+        if target == "PAUSED":
+            leases = tuple(replace(lease, revoked=True) for lease in leases)
+        updated = replace(
+            self._state,
+            state=target,
+            leases=leases,
+            remediation=remediation if target == "REMEDIATION" else None,
+            stall=stall if target == "STALLED" else None,
+        )
+        return self._commit(
+            updated,
+            "OWNER_OVERRIDE",
+            caller_identity,
+            details={"reason": reason},
+        )
 
     def assert_dispatch_allowed(self, caller_identity: str, lease_id: str, *, now: datetime | None = None) -> None:
-        self._require_controller(caller_identity)
+        if caller_identity not in {CONTROLLER_IDENTITY, OWNER_IDENTITY}:
+            raise AuthorityError("dispatch is limited to the controller or Tim, the Factory Owner")
         now = now or datetime.now(timezone.utc)
         if self._state.state == "PAUSED":
             raise AuthorityError("dispatch is blocked while PAUSED")
+        if caller_identity == OWNER_IDENTITY:
+            return
         lease = next((item for item in self._state.leases if item.lease_id == lease_id), None)
         if lease is None or not lease.active_at(now):
             raise LeaseError("dispatch requires an active lease")
@@ -190,22 +247,32 @@ class FactoryStateMachine:
             if item.reviewer_identity is not None and item.reviewer_identity == item.producer_identity:
                 raise EvidenceError("self approval denied")
 
-    def _commit(self, updated: TaskState, event_type: str) -> TaskState:
+    def _commit(
+        self,
+        updated: TaskState,
+        event_type: str,
+        caller_identity: str,
+        *,
+        details: dict[str, Any] | None = None,
+    ) -> TaskState:
         now = datetime.now(timezone.utc)
         updated = replace(
             updated,
             version=self._state.version + 1,
             updated_at=now,
-            updated_by=CONTROLLER_IDENTITY,
+            updated_by=caller_identity,
         )
-        self._audit.append({
+        event = {
             "event_type": event_type,
             "task_id": updated.task_id,
             "from_version": self._state.version,
             "to_version": updated.version,
             "state": updated.state,
+            "actor_identity": caller_identity,
             "at": now.isoformat(),
-        })
+        }
+        if details:
+            event["details"] = details
+        self._audit.append(event)
         self._state = updated
         return updated
-

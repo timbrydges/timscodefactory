@@ -51,7 +51,28 @@
         "evidence_provenance_required": {"type": "boolean"},
         "must_differ_from": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
       }
+    },
+    "owner_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ultimate_authority", "approval_required", "may_approve_own_changes",
+        "may_bypass_all_gates", "may_intervene_at_any_stage", "may_pause_or_stop",
+        "may_resume", "may_override_all_agents", "owner_actions_audited",
+        "authority_delegable"
+      ],
+      "properties": {
+        "ultimate_authority": {"const": true},
+        "approval_required": {"const": false},
+        "may_approve_own_changes": {"const": true},
+        "may_bypass_all_gates": {"const": true},
+        "may_intervene_at_any_stage": {"const": true},
+        "may_pause_or_stop": {"const": true},
+        "may_resume": {"const": true},
+        "may_override_all_agents": {"const": true},
+        "owner_actions_audited": {"const": true},
+        "authority_delegable": {"const": false}
+      }
     }
   }
 }
-

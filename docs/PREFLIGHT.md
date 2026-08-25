@@ -3,9 +3,9 @@
 The preflight suite has four layers:
 
 - **Static:** schema, registry, profile, manifest, repository, and OIDC bindings.
-- **Adversarial:** unknown authority, missing profiles, provider collision, self-approval, expired lease, forged evidence, protected-path writes, registry tampering, unsigned releases, authority-changing provider swaps, and controller bypass.
+- **Adversarial:** unknown authority, missing profiles, provider collision, agent self-approval, expired lease, forged evidence, protected-path writes, registry tampering, unsigned releases, authority-changing provider swaps, and unauthorized dispatch.
 - **Recovery:** owner pause behavior and deterministic AI-independent rollback.
-- **Live:** active GitHub main ruleset plus a production environment requiring Tim's independent approval and an explicit main-only deployment policy.
+- **Live:** active GitHub main ruleset with Tim's always-on bypass plus a main-only production environment that Tim may approve, self-approve, or administratively bypass.
 
 Run locally:
 

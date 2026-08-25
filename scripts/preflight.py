@@ -55,7 +55,13 @@ def static_checks() -> dict[str, bool]:
             and registry["repository"]["visibility"] == "public"
         ),
         "PF-04": result.ok,
-        "PF-18": registry["release"]["environment"] == "production",
+        "PF-18": (
+            registry["release"]["environment"] == "production"
+            and registry["owner_authority"]["ultimate_authority"] is True
+            and registry["owner_authority"]["approval_required"] is False
+            and registry["owner_authority"]["may_approve_own_changes"] is True
+            and registry["owner_authority"]["may_bypass_all_gates"] is True
+        ),
     }
 
 
@@ -76,7 +82,7 @@ def adversarial_checks() -> dict[str, bool]:
         p = root / "factory/roles/engineering_agent.yaml"
         d = load_yaml(p); d["writable_paths"].append("factory/**"); p.write_text(yaml.safe_dump(d, sort_keys=False), encoding="utf-8")
 
-    def controller_bypass(root: Path):
+    def unauthorized_dispatch(root: Path):
         p = root / "factory/roles/engineering_agent.yaml"
         d = load_yaml(p); d["gate_authority"]["may_dispatch"] = True; p.write_text(yaml.safe_dump(d, sort_keys=False), encoding="utf-8")
 
@@ -99,7 +105,7 @@ def adversarial_checks() -> dict[str, bool]:
         "PF-12": _mutation_fails(registry_tamper),
         "PF-13": release_is_rejected(signed=False, digest_matches=True, owner_approved=True, rollback_present=True),
         "PF-14": provider_swap_preserves_authority(),
-        "PF-15": _mutation_fails(controller_bypass),
+        "PF-15": _mutation_fails(unauthorized_dispatch),
     }
 
 
@@ -155,15 +161,36 @@ def live_checks() -> dict[str, bool]:
     status_policies, policies_response = _github_get(
         "environments/production/deployment-branch-policies?per_page=100"
     )
-    ruleset_active = status_rules == 200 and any(
-        item.get("name") == "factory-main-protected" and item.get("enforcement") == "active"
-        for item in rulesets if isinstance(rulesets, list)
+    ruleset_summary = next(
+        (
+            item
+            for item in rulesets
+            if isinstance(rulesets, list)
+            and item.get("name") == "factory-main-protected"
+            and item.get("enforcement") == "active"
+        ),
+        None,
+    )
+    status_ruleset, ruleset = (
+        _github_get(f"rulesets/{ruleset_summary['id']}")
+        if ruleset_summary
+        else (0, {})
+    )
+    owner_bypass = {
+        "actor_id": 214414801,
+        "actor_type": "User",
+        "bypass_mode": "always",
+    }
+    ruleset_active = (
+        status_rules == 200
+        and status_ruleset == 200
+        and owner_bypass in ruleset.get("bypass_actors", [])
     )
     protection_rules = environment.get("protection_rules", []) if isinstance(environment, dict) else []
     reviewer_rules = [rule for rule in protection_rules if rule.get("type") == "required_reviewers"]
-    reviewer_protected = (
+    reviewer_configured = (
         len(reviewer_rules) == 1
-        and reviewer_rules[0].get("prevent_self_review") is True
+        and reviewer_rules[0].get("prevent_self_review") is False
         and any(
             item.get("type") == "User"
             and item.get("reviewer", {}).get("login") == "timbrydges"
@@ -177,7 +204,7 @@ def live_checks() -> dict[str, bool]:
         status_env == 200
         and environment.get("name") == "production"
         and branch_policy == {"protected_branches": False, "custom_branch_policies": True}
-        and reviewer_protected
+        and reviewer_configured
         and main_only
     )
     return {"PF-19": ruleset_active, "PF-20": environment_protected}
