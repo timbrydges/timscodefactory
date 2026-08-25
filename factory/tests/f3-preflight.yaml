@@ -23,3 +23,4 @@ cases:
   - {id: PF-18, mode: static, assertion: oidc_subject_and_owner_authority_exact}
   - {id: PF-19, mode: live, assertion: main_branch_ruleset_active_with_tim_bypass}
   - {id: PF-20, mode: live, assertion: production_environment_owner_controlled}
+  - {id: PF-21, mode: live, assertion: immutable_github_oidc_prefix_exact}

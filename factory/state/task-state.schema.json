@@ -5,28 +5,45 @@
   "additionalProperties": false,
   "required": [
     "factory_id", "task_id", "state", "version", "updated_at",
-    "updated_by", "active_lease_ids", "consumed_evidence_ids"
+    "updated_by", "active_lease_ids", "leases", "consumed_evidence_ids"
   ],
   "properties": {
-    "factory_id": {"type": "string", "minLength": 1},
-    "task_id": {"type": "string", "minLength": 1},
+    "factory_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "state": {"enum": ["PAUSED", "INTAKE", "SPECIFICATION", "SPEC_REVIEW", "ARCHITECTURE", "IMPLEMENTATION", "INSPECTION", "QA", "SECURITY_REVIEW", "RELEASE_READY", "RELEASING", "RELEASED", "STALLED", "REMEDIATION"]},
     "version": {"type": "integer", "minimum": 0},
     "updated_at": {"type": "string", "format": "date-time"},
     "updated_by": {"enum": ["factory_controller_service", "tim_brydges"]},
-    "active_lease_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
-    "consumed_evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "active_lease_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}},
+    "leases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lease_id", "role_id", "authoritative_identity", "expires_at", "revoked"],
+        "properties": {
+          "lease_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+          "role_id": {"enum": ["deep_security_reviewer", "engineering_agent", "independent_inspector", "product_spec_author", "product_spec_reviewer", "qa_engineer", "release_automation", "software_architect", "specialist_reviewer"]},
+          "authoritative_identity": {"type": "string", "minLength": 1},
+          "expires_at": {"type": "string", "format": "date-time"},
+          "revoked": {"type": "boolean"}
+        }
+      }
+    },
+    "consumed_evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}},
     "remediation": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["return_state", "required_actions", "failure_code"],
       "properties": {
-        "return_state": {"type": "string"},
-        "required_actions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "return_state": {"enum": ["SPECIFICATION", "ARCHITECTURE", "IMPLEMENTATION", "INSPECTION", "QA", "SECURITY_REVIEW"]},
+        "required_actions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "failure_code": {"type": "string", "minLength": 1}
       }
     },
     "stall": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["reason_code", "resume_condition", "owner_action_required"],
       "properties": {
         "reason_code": {"type": "string", "minLength": 1},

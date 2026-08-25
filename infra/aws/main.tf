@@ -1,10 +1,31 @@
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
+data "aws_iam_openid_connect_provider" "existing_github" {
+  count = var.existing_github_oidc_provider_arn == null ? 0 : 1
+  arn   = var.existing_github_oidc_provider_arn
+}
+
 locals {
-  name_prefix = "tims-software-factory"
-  oidc_subject = "repo:${var.github_repository}:environment:${var.github_environment}"
+  name_prefix       = "tims-software-factory"
+  repository_parts  = split("/", var.github_repository)
+  repository_owner  = local.repository_parts[0]
+  repository_name   = local.repository_parts[1]
+  oidc_subject      = "repo:${local.repository_owner}@${var.github_repository_owner_id}/${local.repository_name}@${var.github_repository_id}:environment:${var.github_environment}"
   oidc_provider_arn = var.existing_github_oidc_provider_arn != null ? var.existing_github_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn
+}
+
+check "existing_github_oidc_provider" {
+  assert {
+    condition = var.existing_github_oidc_provider_arn == null ? true : (
+      contains(
+        ["token.actions.githubusercontent.com", "https://token.actions.githubusercontent.com"],
+        data.aws_iam_openid_connect_provider.existing_github[0].url
+      ) &&
+      contains(data.aws_iam_openid_connect_provider.existing_github[0].client_id_list, "sts.amazonaws.com")
+    )
+    error_message = "The existing OIDC provider must be GitHub Actions with the AWS STS audience."
+  }
 }
 
 resource "aws_dynamodb_table" "factory_state" {
@@ -116,15 +137,36 @@ data "aws_iam_policy_document" "release" {
   }
 
   statement {
-    sid       = "RecordDeployment"
-    effect    = "Allow"
-    actions   = ["dynamodb:PutItem"]
+    sid    = "ReadReleaseAuthorization"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem"
+    ]
     resources = [aws_dynamodb_table.factory_state.arn]
 
     condition {
       test     = "ForAllValues:StringLike"
       variable = "dynamodb:LeadingKeys"
-      values   = ["FACTORY#tims-software-factory#DEPLOYMENT"]
+      values   = ["FACTORY#tims-software-factory#TASK#*"]
+    }
+  }
+
+  statement {
+    sid    = "ManageReleaseRecords"
+    effect = "Allow"
+    actions = [
+      "dynamodb:ConditionCheckItem",
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:TransactWriteItems",
+      "dynamodb:UpdateItem"
+    ]
+    resources = [aws_dynamodb_table.factory_state.arn]
+
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "dynamodb:LeadingKeys"
+      values   = ["FACTORY#tims-software-factory#RELEASE"]
     }
   }
 }

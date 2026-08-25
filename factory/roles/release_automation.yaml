@@ -1,13 +1,13 @@
 schema_version: "1.0"
 role_id: release_automation
-contract_version: "1.1"
+contract_version: "1.2"
 allowed_states: [RELEASE_READY, RELEASING]
 gate_authority:
   may_approve: []
   may_reject: []
   may_dispatch: false
   may_pause: false
-allowed_tools: [github_actions_oidc, artifact_verify, aws_s3_release, deployment_record_write]
+allowed_tools: [github_actions_oidc, artifact_verify, aws_s3_release, aws_s3_version_verify, deployment_record_transaction, deterministic_rollback]
 github_permissions: {contents: read, id_token: write, attestations: read}
 writable_paths: []
 prohibited_paths: ["**"]
@@ -15,8 +15,8 @@ credential_profile: release_oidc_workflow
 provider_profile: null
 network_policy: release_aws
 secret_policy: oidc_only_no_long_lived_cloud_keys
-authoritative_outputs: [signed_release_record, deployment_record]
-stop_conditions: [agent_release_owner_approval_missing, unsigned_artifact, digest_mismatch, oidc_subject_mismatch, rollback_plan_missing]
+authoritative_outputs: [signed_release_record, deployment_record, current_release_pointer, rollback_record]
+stop_conditions: [agent_release_owner_authorization_missing, unsigned_artifact, digest_mismatch, oidc_subject_mismatch, rollback_object_unverified, release_chain_changed]
 identity_constraints:
   authoritative_identity: github_actions_production_environment
   cannot_review_own_work: true

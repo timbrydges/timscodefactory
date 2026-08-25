@@ -1,0 +1,121 @@
+name: rollback-oidc
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_source_commit:
+        description: "Previously released commit to restore"
+        required: true
+        type: string
+      expected_current_source_commit:
+        description: "Current release commit; prevents racing a newer release"
+        required: true
+        type: string
+      reason:
+        description: "Owner audit reason for this rollback"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: factory-production-release
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: rollback / production OIDC
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Validate Tim's direct rollback authority and controls
+        shell: bash
+        env:
+          TARGET_SOURCE_COMMIT: ${{ inputs.target_source_commit }}
+          EXPECTED_CURRENT_SOURCE_COMMIT: ${{ inputs.expected_current_source_commit }}
+          ROLLBACK_REASON: ${{ inputs.reason }}
+          ACTOR_ID: ${{ github.actor_id }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$ACTOR_ID" = "214414801"
+          [[ "$TARGET_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_CURRENT_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$TARGET_SOURCE_COMMIT" != "$EXPECTED_CURRENT_SOURCE_COMMIT"
+          test -n "$ROLLBACK_REASON"
+          python scripts/build_manifest.py --check
+          python scripts/validate_registry.py
+          python scripts/validate_workflows.py
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: factory-rollback-${{ github.run_id }}
+      - name: Verify exact rollback object and atomically move current pointer
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          TARGET_SOURCE_COMMIT: ${{ inputs.target_source_commit }}
+          EXPECTED_CURRENT_SOURCE_COMMIT: ${{ inputs.expected_current_source_commit }}
+          ROLLBACK_REASON: ${{ inputs.reason }}
+          ACTOR_ID: ${{ github.actor_id }}
+        run: |
+          RELEASE_PK="FACTORY#tims-software-factory#RELEASE"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/current-release.json"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"DEPLOYMENT#${TARGET_SOURCE_COMMIT}\"}}" \
+            > "$RUNNER_TEMP/target-release.json"
+          mapfile -t TARGET_LOCATION < <(python scripts/release_control.py deployment-location \
+            --item "$RUNNER_TEMP/target-release.json" \
+            --source-commit "$TARGET_SOURCE_COMMIT")
+          test "${#TARGET_LOCATION[@]}" -eq 3
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "${TARGET_LOCATION[0]}" \
+            --version-id "${TARGET_LOCATION[1]}" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/target-head.json"
+          ROLLED_BACK_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python scripts/release_control.py prepare-rollback \
+            --table-name "$STATE_TABLE" \
+            --target-source-commit "$TARGET_SOURCE_COMMIT" \
+            --expected-current-source-commit "$EXPECTED_CURRENT_SOURCE_COMMIT" \
+            --reason "$ROLLBACK_REASON" \
+            --actor "$GITHUB_ACTOR" \
+            --actor-id "$ACTOR_ID" \
+            --workflow-run "$GITHUB_RUN_ID" \
+            --rolled-back-at "$ROLLED_BACK_AT" \
+            --current-item "$RUNNER_TEMP/current-release.json" \
+            --target-item "$RUNNER_TEMP/target-release.json" \
+            --target-head "$RUNNER_TEMP/target-head.json" \
+            --output "$RUNNER_TEMP/rollback-transaction.json"
+          aws dynamodb transact-write-items \
+            --transact-items "file://$RUNNER_TEMP/rollback-transaction.json" \
+            --client-request-token "rb-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/persisted-current.json"
+          python scripts/release_control.py verify-current \
+            --item "$RUNNER_TEMP/persisted-current.json" \
+            --source-commit "$TARGET_SOURCE_COMMIT" \
+            --object-version-id "${TARGET_LOCATION[1]}" \
+            --artifact-digest "${TARGET_LOCATION[2]}"

@@ -25,7 +25,7 @@ def request(method: str, path: str, token: str, payload=None):
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
-            "X-GitHub-Api-Version": "2022-11-28",
+            "X-GitHub-Api-Version": "2026-03-10",
             "Content-Type": "application/json",
             "User-Agent": "tims-software-factory-bootstrap",
         },
@@ -48,6 +48,7 @@ def main() -> int:
         return 2
     ruleset = json.loads((ROOT / "config/github/main-branch-ruleset.json").read_text(encoding="utf-8"))
     environment = json.loads((ROOT / "config/github/production-environment.json").read_text(encoding="utf-8"))
+    oidc_subject = json.loads((ROOT / "config/github/oidc-subject.json").read_text(encoding="utf-8"))
     deployment_branch = json.loads(
         (ROOT / "config/github/production-deployment-branch-policy.json").read_text(encoding="utf-8")
     )
@@ -61,6 +62,7 @@ def main() -> int:
     else:
         request("POST", "rulesets", token, ruleset)
     request("PUT", "environments/production", token, environment)
+    request("PUT", "actions/oidc/customization/sub", token, oidc_subject)
     _, policies_response = request(
         "GET", "environments/production/deployment-branch-policies?per_page=100", token
     )
@@ -76,8 +78,8 @@ def main() -> int:
             token,
             deployment_branch,
         )
-    print("GitHub main ruleset and production environment with main-only deployment applied")
-    print("Manual UI control: keep 'Allow administrators to bypass configured protection rules' enabled")
+    print("GitHub ruleset, approval-free owner environment, and immutable OIDC subject applied")
+    print("Agent releases remain gated by a commit-specific Tim authorization event in DynamoDB")
     return 0
 
 

@@ -89,6 +89,10 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     repository = registry.get("repository", {})
     if repository.get("full_name") != "timbrydges/timscodefactory":
         errors.append("repository binding must be timbrydges/timscodefactory")
+    if repository.get("owner_id") != 214414801:
+        errors.append("repository binding must use Tim's immutable GitHub owner ID")
+    if repository.get("repository_id") != 1345656137:
+        errors.append("repository binding must use the immutable timscodefactory repository ID")
     if repository.get("visibility") != "public":
         errors.append("control-plane repository visibility must be public")
     if repository.get("default_branch") != "main":
@@ -112,6 +116,9 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
                 encoding="utf-8"
             )
         )
+        oidc_subject = json.loads(
+            (root / "config/github/oidc-subject.json").read_text(encoding="utf-8")
+        )
     except Exception as exc:
         errors.append(f"GitHub production environment configuration is invalid: {exc}")
     else:
@@ -119,8 +126,8 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
             errors.append("production environment wait timer must be disabled")
         if environment.get("prevent_self_review") is not False:
             errors.append("Tim must be permitted to approve his own production workflow")
-        if environment.get("reviewers") != [{"type": "User", "id": 214414801}]:
-            errors.append("production environment reviewer must be timbrydges")
+        if environment.get("reviewers") != []:
+            errors.append("production environment must not impose an approval step on Tim")
         if environment.get("deployment_branch_policy") != {
             "protected_branches": False,
             "custom_branch_policies": True,
@@ -132,6 +139,8 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
             {"actor_id": 214414801, "actor_type": "User", "bypass_mode": "always"}
         ]:
             errors.append("main ruleset must grant Tim an always-on personal bypass")
+        if oidc_subject != {"use_default": True, "use_immutable_subject": True}:
+            errors.append("repository OIDC configuration must explicitly use the immutable default subject")
 
     owner_registry = registry.get("owner_authority", {})
     if owner_registry != {"identity": "tim_brydges", "human_owner": True, **OWNER_AUTHORITY}:
@@ -157,12 +166,20 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     release = registry.get("release", {})
     if not (
         release.get("require_owner_approval_for_agent_release") is True
+        and release.get("owner_direct_release_requires_approval") is False
         and release.get("owner_may_self_approve") is True
         and release.get("owner_may_bypass_approval") is True
     ):
         errors.append("release policy must distinguish agent gates from Tim's owner authority")
 
-    schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
+    try:
+        schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
+        state_schema = json.loads((factory / "state/task-state.schema.json").read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.Draft202012Validator.check_schema(state_schema)
+    except Exception as exc:
+        errors.append(f"Factory JSON schema is invalid: {exc}")
+        return ValidationResult(tuple(errors))
     roles: dict[str, dict[str, Any]] = {}
     referenced_paths = registry.get("roles", [])
     for relative in referenced_paths:
@@ -272,8 +289,8 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     owner_credential = credentials.get("owner_human", {})
     if owner_credential.get("ruleset_bypass") != "always":
         errors.append("owner_human credential must retain the ruleset bypass")
-    if owner_credential.get("production_approval") != "approve_self_or_bypass":
-        errors.append("owner_human credential must permit self-approval or bypass")
+    if owner_credential.get("production_approval") != "not_required_for_owner":
+        errors.append("owner_human credential must not impose a production approval step on Tim")
 
     pairs = [
         ("engineering_agent", "independent_inspector"),
@@ -292,14 +309,18 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
             errors.append("Pilot #1 engineering and inspector provider families must differ")
 
     release_credential = credentials.get("release_oidc_workflow", {})
+    repository_owner, _, repository_name = repository.get("full_name", "").partition("/")
     expected_subject = (
-        f"repo:{repository.get('full_name')}:environment:"
+        f"repo:{repository_owner}@{repository.get('owner_id')}/"
+        f"{repository_name}@{repository.get('repository_id')}:environment:"
         f"{repository.get('protected_environment')}"
     )
     if release_credential.get("cloud_subject") != expected_subject:
         errors.append("OIDC release subject is not bound to repository and production environment")
     if release_credential.get("long_lived_cloud_secret") != "prohibited":
         errors.append("release identity must prohibit long-lived cloud secrets")
+    if release_credential.get("state_store_access") != "release_records_and_task_authorization":
+        errors.append("release identity state access must remain limited to release records and task authorization")
 
     integrity = profile_docs.get("controller_integrity", {})
     if integrity.get("authoritative_state_writers") != ["factory_controller", "factory_owner"]:

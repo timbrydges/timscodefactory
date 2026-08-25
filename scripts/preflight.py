@@ -4,13 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import json
 import os
+import sys
 import tempfile
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -24,6 +26,35 @@ except ModuleNotFoundError:  # direct `python scripts/preflight.py`
 
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_OIDC_PREFIX = "repo:timbrydges@214414801/timscodefactory@1345656137"
+sys.path.insert(0, str(ROOT / "src"))
+
+try:
+    from scripts.release_control import (
+        Deployment,
+        ReleaseControlError,
+        prepare_rollback_transaction,
+        validate_s3_head,
+    )
+    from scripts.validate_workflows import validate as validate_workflows
+except ModuleNotFoundError:  # direct `python scripts/preflight.py`
+    from release_control import (
+        Deployment,
+        ReleaseControlError,
+        prepare_rollback_transaction,
+        validate_s3_head,
+    )
+    from validate_workflows import validate as validate_workflows
+
+from factory_state.model import (  # noqa: E402
+    AuthorityError,
+    Evidence,
+    EvidenceError,
+    FactoryStateMachine,
+    Lease,
+    LeaseError,
+    TaskState,
+)
 
 
 def _copy_control_plane(destination: Path) -> None:
@@ -99,36 +130,203 @@ def adversarial_checks() -> dict[str, bool]:
         "PF-05": _mutation_fails(unknown_role),
         "PF-06": _mutation_fails(missing_profile),
         "PF-07": _mutation_fails(provider_collision),
-        "PF-08": evidence_is_rejected(author="engineering_agent_service", reviewer="engineering_agent_service", lease_expired=False, signature_valid=True),
-        "PF-09": evidence_is_rejected(author="engineering_agent_service", reviewer="independent_inspector_service", lease_expired=True, signature_valid=True),
-        "PF-10": evidence_is_rejected(author="engineering_agent_service", reviewer="independent_inspector_service", lease_expired=False, signature_valid=False),
+        "PF-08": model_rejects_evidence(self_approval=True),
+        "PF-09": model_rejects_expired_lease(),
+        "PF-10": model_rejects_evidence(signature_valid=False),
         "PF-11": _mutation_fails(protected_write),
         "PF-12": _mutation_fails(registry_tamper),
-        "PF-13": release_is_rejected(signed=False, digest_matches=True, owner_approved=True, rollback_present=True),
+        "PF-13": release_path_rejects_invalid_artifact(),
         "PF-14": provider_swap_preserves_authority(),
         "PF-15": _mutation_fails(unauthorized_dispatch),
     }
 
 
 def recovery_checks() -> dict[str, bool]:
-    integrity = load_yaml(ROOT / "factory/profiles/controller-integrity.yaml")
     return {
-        "PF-16": integrity["failure_response"] == {
-            "transition_to": "PAUSED",
-            "revoke_active_leases": True,
-            "block_dispatch": True,
-            "require_owner_resolution": True,
-        },
-        "PF-17": integrity["rules"]["rollback_must_not_require_ai"] is True,
+        "PF-16": pause_path_revokes_and_blocks(),
+        "PF-17": rollback_path_is_deterministic(),
     }
 
 
-def evidence_is_rejected(*, author: str, reviewer: str, lease_expired: bool, signature_valid: bool) -> bool:
-    return author == reviewer or lease_expired or not signature_valid
+def _state(state: str, now: datetime) -> TaskState:
+    return TaskState(
+        "tims-software-factory",
+        "preflight-task",
+        state,
+        0,
+        now,
+        "factory_controller_service",
+    )
 
 
-def release_is_rejected(*, signed: bool, digest_matches: bool, owner_approved: bool, rollback_present: bool) -> bool:
-    return not all((signed, digest_matches, owner_approved, rollback_present))
+def model_rejects_evidence(*, self_approval: bool = False, signature_valid: bool = True) -> bool:
+    now = datetime.now(timezone.utc)
+    machine = FactoryStateMachine(_state("IMPLEMENTATION", now))
+    lease = Lease(
+        "preflight-lease",
+        "engineering_agent",
+        "engineering_agent_service",
+        now + timedelta(minutes=5),
+    )
+    machine.issue_lease("factory_controller_service", lease, expected_version=0, now=now)
+    evidence = Evidence(
+        "preflight-evidence",
+        "engineering_agent",
+        "engineering_agent_service",
+        "preflight-task",
+        "preflight-lease",
+        "a" * 40,
+        "sha256:" + "b" * 64,
+        now,
+        signature_valid,
+        "engineering_agent_service" if self_approval else "independent_inspector_service",
+    )
+    try:
+        machine.transition(
+            "factory_controller_service",
+            "INSPECTION",
+            expected_version=1,
+            evidence=[evidence],
+            now=now,
+        )
+    except EvidenceError:
+        return True
+    return False
+
+
+def model_rejects_expired_lease() -> bool:
+    now = datetime.now(timezone.utc)
+    machine = FactoryStateMachine(_state("IMPLEMENTATION", now))
+    try:
+        machine.issue_lease(
+            "factory_controller_service",
+            Lease(
+                "expired-preflight-lease",
+                "engineering_agent",
+                "engineering_agent_service",
+                now - timedelta(seconds=1),
+            ),
+            expected_version=0,
+            now=now,
+        )
+    except LeaseError:
+        return True
+    return False
+
+
+def release_path_rejects_invalid_artifact() -> bool:
+    release_workflow = (ROOT / ".github/workflows/release-oidc.yml").read_text(encoding="utf-8")
+    deployment = Deployment(
+        "a" * 40,
+        "sha256:" + "b" * 64,
+        f"releases/{'a' * 40}/factory-control-plane.tar.gz",
+        "version-1",
+        "INITIAL_RELEASE",
+    )
+    invalid_head = {
+        "VersionId": "version-1",
+        "ContentLength": 1,
+        "ServerSideEncryption": "AES256",
+        "Metadata": {
+            "source-commit": "a" * 40,
+            "sha256": deployment.artifact_digest,
+        },
+        "ChecksumSHA256": base64.b64encode(bytes.fromhex("c" * 64)).decode(),
+    }
+    try:
+        validate_s3_head(invalid_head, deployment)
+    except ReleaseControlError:
+        return "gh attestation verify" in release_workflow and not validate_workflows(ROOT)
+    return False
+
+
+def pause_path_revokes_and_blocks() -> bool:
+    now = datetime.now(timezone.utc)
+    machine = FactoryStateMachine(_state("IMPLEMENTATION", now))
+    machine.issue_lease(
+        "factory_controller_service",
+        Lease(
+            "pause-preflight-lease",
+            "engineering_agent",
+            "engineering_agent_service",
+            now + timedelta(minutes=5),
+        ),
+        expected_version=0,
+        now=now,
+    )
+    machine.transition("factory_controller_service", "PAUSED", expected_version=1, now=now)
+    try:
+        machine.assert_dispatch_allowed("factory_controller_service", "pause-preflight-lease", now=now)
+    except AuthorityError:
+        return all(lease.revoked for lease in machine.state.leases)
+    return False
+
+
+def rollback_path_is_deterministic() -> bool:
+    current_commit = "a" * 40
+    target_commit = "c" * 40
+    digest = "sha256:" + "b" * 64
+    version = "target-version"
+
+    def s(value: str) -> dict[str, str]:
+        return {"S": value}
+
+    current = {
+        "Item": {
+            "PK": s("FACTORY#tims-software-factory#RELEASE"),
+            "SK": s("CURRENT"),
+            "record_type": s("CURRENT"),
+            "source_commit": s(current_commit),
+            "artifact_sha256": s("sha256:" + "d" * 64),
+            "release_key": s(f"releases/{current_commit}/factory-control-plane.tar.gz"),
+            "object_version_id": s("current-version"),
+            "updated_by": s("timbrydges"),
+            "actor_id": s("214414801"),
+            "authority_mode": s("owner"),
+            "workflow_run": s("100"),
+            "updated_at": s("2026-08-25T11:00:00Z"),
+        }
+    }
+    target = {
+        "Item": {
+            "PK": s("FACTORY#tims-software-factory#RELEASE"),
+            "SK": s(f"DEPLOYMENT#{target_commit}"),
+            "record_type": s("DEPLOYMENT"),
+            "source_commit": s(target_commit),
+            "artifact_sha256": s(digest),
+            "release_key": s(f"releases/{target_commit}/factory-control-plane.tar.gz"),
+            "object_version_id": s(version),
+            "previous_source_commit": s("INITIAL_RELEASE"),
+            "actor": s("timbrydges"),
+            "actor_id": s("214414801"),
+            "authority_mode": s("owner"),
+            "workflow_run": s("100"),
+            "released_at": s("2026-08-25T10:00:00Z"),
+        }
+    }
+    head = {
+        "VersionId": version,
+        "ContentLength": 1,
+        "ServerSideEncryption": "AES256",
+        "Metadata": {"source-commit": target_commit, "sha256": digest},
+        "ChecksumSHA256": base64.b64encode(bytes.fromhex("b" * 64)).decode(),
+    }
+    arguments = {
+        "table_name": "factory-state",
+        "target_source_commit": target_commit,
+        "expected_current_source_commit": current_commit,
+        "reason": "preflight deterministic rollback",
+        "actor": "timbrydges",
+        "actor_id": "214414801",
+        "workflow_run": "123",
+        "rolled_back_at": "2026-08-25T12:00:00Z",
+        "current_response": current,
+        "target_response": target,
+        "target_head": head,
+    }
+    first = prepare_rollback_transaction(**arguments)
+    second = prepare_rollback_transaction(**arguments)
+    return first == second and not validate_workflows(ROOT)
 
 
 def provider_swap_preserves_authority() -> bool:
@@ -145,7 +343,7 @@ def _github_get(path: str) -> tuple[int, object]:
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
-            "X-GitHub-Api-Version": "2022-11-28",
+            "X-GitHub-Api-Version": "2026-03-10",
             "User-Agent": "tims-software-factory-preflight",
         },
     )
@@ -240,12 +438,42 @@ def _ruleset_matches_expected(
     )
 
 
+def _environment_matches_expected(environment: object, policies_response: object) -> bool:
+    if not isinstance(environment, dict) or not isinstance(policies_response, dict):
+        return False
+    if environment.get("name") != "production":
+        return False
+    if environment.get("protection_rules", []) != []:
+        return False
+    if environment.get("deployment_branch_policy") != {
+        "protected_branches": False,
+        "custom_branch_policies": True,
+    }:
+        return False
+    policies = policies_response.get("branch_policies", [])
+    return (
+        isinstance(policies, list)
+        and len(policies) == 1
+        and isinstance(policies[0], dict)
+        and policies[0].get("name") == "main"
+        and policies[0].get("type") == "branch"
+    )
+
+
+def _oidc_prefix_matches(configuration: object) -> bool:
+    return (
+        isinstance(configuration, dict)
+        and configuration.get("sub_claim_prefix") == EXPECTED_OIDC_PREFIX
+    )
+
+
 def live_checks() -> dict[str, bool]:
     status_rules, rulesets = _github_get("rulesets")
     status_env, environment = _github_get("environments/production")
     status_policies, policies_response = _github_get(
         "environments/production/deployment-branch-policies?per_page=100"
     )
+    status_oidc, oidc_configuration = _github_get("actions/oidc/customization/sub")
     ruleset_summary = next(
         (
             item
@@ -272,28 +500,20 @@ def live_checks() -> dict[str, bool]:
         and status_ruleset == 200
         and _ruleset_matches_expected(ruleset, expected_ruleset, owner_observation)
     )
-    protection_rules = environment.get("protection_rules", []) if isinstance(environment, dict) else []
-    reviewer_rules = [rule for rule in protection_rules if rule.get("type") == "required_reviewers"]
-    reviewer_configured = (
-        len(reviewer_rules) == 1
-        and reviewer_rules[0].get("prevent_self_review") is False
-        and any(
-            item.get("type") == "User"
-            and item.get("reviewer", {}).get("login") == "timbrydges"
-            for item in reviewer_rules[0].get("reviewers", [])
-        )
-    )
-    branch_policy = environment.get("deployment_branch_policy") if isinstance(environment, dict) else None
-    policies = policies_response.get("branch_policies", []) if isinstance(policies_response, dict) else []
-    main_only = status_policies == 200 and len(policies) == 1 and policies[0].get("name") == "main"
     environment_protected = (
         status_env == 200
-        and environment.get("name") == "production"
-        and branch_policy == {"protected_branches": False, "custom_branch_policies": True}
-        and reviewer_configured
-        and main_only
+        and status_policies == 200
+        and _environment_matches_expected(environment, policies_response)
     )
-    return {"PF-19": ruleset_active, "PF-20": environment_protected}
+    oidc_prefix_bound = (
+        status_oidc == 200
+        and _oidc_prefix_matches(oidc_configuration)
+    )
+    return {
+        "PF-19": ruleset_active,
+        "PF-20": environment_protected,
+        "PF-21": oidc_prefix_bound,
+    }
 
 
 def main() -> int:
