@@ -42,13 +42,21 @@ def validate(root: Path) -> list[str]:
         "cancel-in-progress: false",
         "gh attestation verify",
         "rollback_object_version",
+        "INITIAL_RELEASE",
         "AWS_RELEASE_ROLE_ARN",
+        "GH_TOKEN: ${{ github.token }}",
     ]
     for fragment in required_release_fragments:
         if fragment not in release:
             errors.append(f"release-oidc.yml: missing fail-closed control: {fragment}")
     if "pull_request:" in release or "push:" in release:
         errors.append("release-oidc.yml: production release must be explicitly dispatched")
+
+    build_attest = (workflow_dir / "build-attest.yml").read_text(encoding="utf-8")
+    if "sha256sum factory-control-plane.tar.gz > factory-control-plane.tar.gz.sha256" not in build_attest:
+        errors.append("build-attest.yml: checksum must use a portable relative artifact path")
+    if 'sha256sum "$RUNNER_TEMP/factory-control-plane.tar.gz"' in build_attest:
+        errors.append("build-attest.yml: absolute checksum paths are prohibited")
 
     preflight = (workflow_dir / "preflight.yml").read_text(encoding="utf-8")
     required_preflight_fragments = [
