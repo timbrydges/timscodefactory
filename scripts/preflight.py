@@ -155,6 +155,73 @@ def _github_get(path: str) -> tuple[int, object]:
         return exc.code, {"error": exc.reason}
 
 
+def _json_contains(actual: object, expected: object) -> bool:
+    """Return whether actual contains the expected JSON structure."""
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(
+            key in actual and _json_contains(actual[key], value)
+            for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return (
+            isinstance(actual, list)
+            and len(actual) == len(expected)
+            and all(_json_contains(actual_item, expected_item) for actual_item, expected_item in zip(actual, expected))
+        )
+    return actual == expected
+
+
+def _ruleset_matches_expected(
+    ruleset: object,
+    expected: object,
+    owner_observation: object,
+) -> bool:
+    if not all(isinstance(item, dict) for item in (ruleset, expected, owner_observation)):
+        return False
+
+    expected_rules = expected.get("rules", [])
+    actual_rules = ruleset.get("rules", [])
+    if not isinstance(expected_rules, list) or not isinstance(actual_rules, list):
+        return False
+    expected_by_type = {rule.get("type"): rule for rule in expected_rules if isinstance(rule, dict)}
+    actual_by_type = {rule.get("type"): rule for rule in actual_rules if isinstance(rule, dict)}
+    core_matches = (
+        ruleset.get("name") == expected.get("name")
+        and ruleset.get("target") == expected.get("target")
+        and ruleset.get("enforcement") == expected.get("enforcement")
+        and ruleset.get("conditions") == expected.get("conditions")
+        and set(actual_by_type) == set(expected_by_type)
+        and all(
+            _json_contains(actual_by_type[rule_type], expected_rule)
+            for rule_type, expected_rule in expected_by_type.items()
+        )
+    )
+    if not core_matches:
+        return False
+
+    expected_bypass_actors = expected.get("bypass_actors", [])
+    if len(expected_bypass_actors) != 1:
+        return False
+    owner_bypass = expected_bypass_actors[0]
+    if "bypass_actors" in ruleset:
+        return owner_bypass in ruleset.get("bypass_actors", [])
+
+    # GitHub redacts bypass_actors unless the caller can write the ruleset.
+    # GITHUB_TOKEN cannot receive that permission, so bind the owner-authenticated
+    # observation to the live ruleset ID and updated_at value. Any ruleset edit
+    # invalidates the observation and fails closed until Tim verifies it again.
+    return (
+        owner_observation.get("repository") == "timbrydges/timscodefactory"
+        and owner_observation.get("ruleset_id") == ruleset.get("id")
+        and owner_observation.get("ruleset_name") == ruleset.get("name")
+        and owner_observation.get("ruleset_updated_at") == ruleset.get("updated_at")
+        and owner_observation.get("owner_login") == "timbrydges"
+        and owner_observation.get("owner_bypass") == owner_bypass
+        and owner_observation.get("current_user_can_bypass") == "always"
+        and owner_observation.get("verified_via") == "owner-authenticated GitHub REST API"
+    )
+
+
 def live_checks() -> dict[str, bool]:
     status_rules, rulesets = _github_get("rulesets")
     status_env, environment = _github_get("environments/production")
@@ -176,15 +243,16 @@ def live_checks() -> dict[str, bool]:
         if ruleset_summary
         else (0, {})
     )
-    owner_bypass = {
-        "actor_id": 214414801,
-        "actor_type": "User",
-        "bypass_mode": "always",
-    }
+    expected_ruleset = json.loads(
+        (ROOT / "config/github/main-branch-ruleset.json").read_text(encoding="utf-8")
+    )
+    owner_observation = json.loads(
+        (ROOT / "config/github/main-branch-ruleset-observation.json").read_text(encoding="utf-8")
+    )
     ruleset_active = (
         status_rules == 200
         and status_ruleset == 200
-        and owner_bypass in ruleset.get("bypass_actors", [])
+        and _ruleset_matches_expected(ruleset, expected_ruleset, owner_observation)
     )
     protection_rules = environment.get("protection_rules", []) if isinstance(environment, dict) else []
     reviewer_rules = [rule for rule in protection_rules if rule.get("type") == "required_reviewers"]

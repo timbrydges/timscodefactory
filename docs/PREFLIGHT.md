@@ -7,6 +7,12 @@ The preflight suite has four layers:
 - **Recovery:** owner pause behavior and deterministic AI-independent rollback.
 - **Live:** active GitHub main ruleset with Tim's always-on bypass plus a main-only production environment that Tim may approve, self-approve, or administratively bypass.
 
+GitHub only returns `bypass_actors` to a caller that can write the ruleset. The
+workflow `GITHUB_TOKEN` cannot receive that permission. PF-19 therefore validates
+the complete live ruleset exposed to the workflow and binds Tim's owner-authenticated
+bypass observation to the live ruleset ID and `updated_at` value. Any ruleset change
+invalidates that observation and fails closed until Tim verifies it again.
+
 Run locally:
 
 ```bash

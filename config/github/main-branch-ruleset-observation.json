@@ -1,0 +1,15 @@
+{
+  "repository": "timbrydges/timscodefactory",
+  "ruleset_id": 21456155,
+  "ruleset_name": "factory-main-protected",
+  "ruleset_updated_at": "2026-08-25T11:46:42.980-06:00",
+  "owner_login": "timbrydges",
+  "owner_bypass": {
+    "actor_id": 214414801,
+    "actor_type": "User",
+    "bypass_mode": "always"
+  },
+  "current_user_can_bypass": "always",
+  "verified_via": "owner-authenticated GitHub REST API",
+  "verified_at": "2026-08-25T18:01:24Z"
+}
