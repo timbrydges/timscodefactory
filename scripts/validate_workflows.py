@@ -61,6 +61,24 @@ def validate(root: Path) -> list[str]:
         if fragment not in preflight:
             errors.append(f"preflight.yml: missing automatic live control: {fragment}")
 
+    aws_versions = (root / "infra/aws/versions.tf").read_text(encoding="utf-8")
+    if 'backend "s3" {}' not in aws_versions:
+        errors.append("infra/aws/versions.tf: encrypted remote state backend is required")
+
+    bootstrap = (root / "scripts/aws-bootstrap-cloudshell.sh").read_text(encoding="utf-8")
+    required_bootstrap_fragments = [
+        "put-bucket-versioning",
+        "put-bucket-encryption",
+        "put-public-access-block",
+        'use_lockfile=true',
+        "existing_github_oidc_provider_arn",
+    ]
+    for fragment in required_bootstrap_fragments:
+        if fragment not in bootstrap:
+            errors.append(f"aws-bootstrap-cloudshell.sh: missing bootstrap control: {fragment}")
+    if re.search(r"AWS_(ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN)", bootstrap):
+        errors.append("aws-bootstrap-cloudshell.sh: long-lived AWS credentials are prohibited")
+
     return errors
 
 

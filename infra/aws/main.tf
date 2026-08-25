@@ -56,7 +56,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "factory_releases"
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
     }
-    bucket_key_enabled = true
   }
 }
 
@@ -158,4 +157,3 @@ resource "aws_iam_policy" "controller_state" {
   name   = "${local.name_prefix}-controller-state"
   policy = data.aws_iam_policy_document.controller_state.json
 }
-
