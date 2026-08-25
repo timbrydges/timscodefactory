@@ -26,8 +26,47 @@ jobs:
           python scripts/validate_registry.py
           python scripts/validate_workflows.py
           python scripts/preflight.py --mode static
-      - run: |
-          tar --exclude=.git -C "$GITHUB_WORKSPACE" -czf "$RUNNER_TEMP/factory-control-plane.tar.gz" .
+      - name: Package manifest-bound control plane
+        shell: bash
+        env:
+          ARCHIVE_PATH: ${{ runner.temp }}/factory-control-plane.tar.gz
+          FILE_LIST: ${{ runner.temp }}/factory-control-plane.files
+          VERIFY_DIR: ${{ runner.temp }}/factory-control-plane-verify
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          paths = []
+          for line in (root / "MANIFEST.sha256").read_text(encoding="utf-8").splitlines():
+              _, relative = line.split("  ", 1)
+              candidate = Path(relative)
+              if candidate.is_absolute() or ".." in candidate.parts:
+                  raise SystemExit(f"unsafe manifest path: {relative}")
+              paths.append(relative)
+          paths.append("MANIFEST.sha256")
+          payload = b"\0".join(os.fsencode(path) for path in paths) + b"\0"
+          Path(os.environ["FILE_LIST"]).write_bytes(payload)
+          PY
+          tar --create \
+            --format=gnu \
+            --file "$ARCHIVE_PATH" \
+            --use-compress-program="gzip -n" \
+            --directory "$GITHUB_WORKSPACE" \
+            --null \
+            --verbatim-files-from \
+            --no-recursion \
+            --files-from "$FILE_LIST" \
+            --sort=name \
+            --mtime=@0 \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner
+          mkdir "$VERIFY_DIR"
+          tar --extract --gzip --file "$ARCHIVE_PATH" --directory "$VERIFY_DIR" --no-same-owner
+          cd "$VERIFY_DIR"
+          sha256sum --check MANIFEST.sha256
           cd "$RUNNER_TEMP"
           sha256sum factory-control-plane.tar.gz > factory-control-plane.tar.gz.sha256
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
