@@ -29,6 +29,7 @@ def _copy_control_plane(destination: Path) -> None:
     import shutil
 
     shutil.copytree(ROOT / "factory", destination / "factory")
+    shutil.copytree(ROOT / "config", destination / "config")
     shutil.copytree(ROOT / "scripts", destination / "scripts")
     for filename in ("requirements-dev.txt", "pyproject.toml", "README.md"):
         shutil.copy2(ROOT / filename, destination / filename)
@@ -151,11 +152,34 @@ def _github_get(path: str) -> tuple[int, object]:
 def live_checks() -> dict[str, bool]:
     status_rules, rulesets = _github_get("rulesets")
     status_env, environment = _github_get("environments/production")
+    status_policies, policies_response = _github_get(
+        "environments/production/deployment-branch-policies?per_page=100"
+    )
     ruleset_active = status_rules == 200 and any(
         item.get("name") == "factory-main-protected" and item.get("enforcement") == "active"
         for item in rulesets if isinstance(rulesets, list)
     )
-    environment_protected = status_env == 200 and environment.get("name") == "production"
+    protection_rules = environment.get("protection_rules", []) if isinstance(environment, dict) else []
+    reviewer_rules = [rule for rule in protection_rules if rule.get("type") == "required_reviewers"]
+    reviewer_protected = (
+        len(reviewer_rules) == 1
+        and reviewer_rules[0].get("prevent_self_review") is True
+        and any(
+            item.get("type") == "User"
+            and item.get("reviewer", {}).get("login") == "timbrydges"
+            for item in reviewer_rules[0].get("reviewers", [])
+        )
+    )
+    branch_policy = environment.get("deployment_branch_policy") if isinstance(environment, dict) else None
+    policies = policies_response.get("branch_policies", []) if isinstance(policies_response, dict) else []
+    main_only = status_policies == 200 and len(policies) == 1 and policies[0].get("name") == "main"
+    environment_protected = (
+        status_env == 200
+        and environment.get("name") == "production"
+        and branch_policy == {"protected_branches": False, "custom_branch_policies": True}
+        and reviewer_protected
+        and main_only
+    )
     return {"PF-19": ruleset_active, "PF-20": environment_protected}
 
 

@@ -48,6 +48,9 @@ def main() -> int:
         return 2
     ruleset = json.loads((ROOT / "config/github/main-branch-ruleset.json").read_text(encoding="utf-8"))
     environment = json.loads((ROOT / "config/github/production-environment.json").read_text(encoding="utf-8"))
+    deployment_branch = json.loads(
+        (ROOT / "config/github/production-deployment-branch-policy.json").read_text(encoding="utf-8")
+    )
     _, existing = request("GET", "rulesets", token)
     match = next((item for item in existing if item.get("name") == ruleset["name"]), None)
     if match:
@@ -58,10 +61,24 @@ def main() -> int:
     else:
         request("POST", "rulesets", token, ruleset)
     request("PUT", "environments/production", token, environment)
-    print("GitHub main ruleset and production environment applied")
+    _, policies_response = request(
+        "GET", "environments/production/deployment-branch-policies?per_page=100", token
+    )
+    policies = policies_response.get("branch_policies", [])
+    unexpected = [policy for policy in policies if policy.get("name") != deployment_branch["name"]]
+    if unexpected:
+        names = ", ".join(sorted(str(policy.get("name")) for policy in unexpected))
+        raise RuntimeError(f"unexpected production deployment branch policies exist: {names}")
+    if not any(policy.get("name") == deployment_branch["name"] for policy in policies):
+        request(
+            "POST",
+            "environments/production/deployment-branch-policies",
+            token,
+            deployment_branch,
+        )
+    print("GitHub main ruleset and production environment with main-only deployment applied")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

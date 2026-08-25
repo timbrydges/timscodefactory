@@ -26,4 +26,4 @@ python scripts/preflight.py --mode static
 python -m unittest discover -s tests -v
 ```
 
-Production releases remain disabled until the protected `production` environment and the AWS outputs are bound to GitHub variables. Tim is the required human approval authority for Pilot #1 production deployment.
+Production releases remain disabled until the protected `production` environment and the AWS outputs are bound to GitHub variables. The environment permits deployment only from `main`, requires Tim's approval, prevents self-review, and leaves administrator bypass disabled. Tim is the required human approval authority for Pilot #1 production deployment.

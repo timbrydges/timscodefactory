@@ -84,6 +84,32 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     if registry.get("mode") not in {"PAUSED", "PILOT", "ACTIVE"}:
         errors.append("registry mode is unknown")
 
+    try:
+        environment = json.loads(
+            (root / "config/github/production-environment.json").read_text(encoding="utf-8")
+        )
+        deployment_branch = json.loads(
+            (root / "config/github/production-deployment-branch-policy.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    except Exception as exc:
+        errors.append(f"GitHub production environment configuration is invalid: {exc}")
+    else:
+        if environment.get("wait_timer") != 0:
+            errors.append("production environment wait timer must be disabled")
+        if environment.get("prevent_self_review") is not True:
+            errors.append("production environment must prevent self-review")
+        if environment.get("reviewers") != [{"type": "User", "id": 214414801}]:
+            errors.append("production environment reviewer must be timbrydges")
+        if environment.get("deployment_branch_policy") != {
+            "protected_branches": False,
+            "custom_branch_policies": True,
+        }:
+            errors.append("production environment must use custom deployment branch policies")
+        if deployment_branch != {"name": "main", "type": "branch"}:
+            errors.append("production deployment branch policy must match only main")
+
     schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
     roles: dict[str, dict[str, Any]] = {}
     referenced_paths = registry.get("roles", [])

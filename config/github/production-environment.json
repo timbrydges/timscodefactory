@@ -5,8 +5,7 @@
     {"type": "User", "id": 214414801}
   ],
   "deployment_branch_policy": {
-    "protected_branches": true,
-    "custom_branch_policies": false
+    "protected_branches": false,
+    "custom_branch_policies": true
   }
 }
-
