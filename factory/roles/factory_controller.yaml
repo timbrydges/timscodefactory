@@ -8,7 +8,7 @@ gate_authority:
   may_dispatch: true
   may_pause: true
 allowed_tools: [state_compare_and_swap, lease_issue, lease_revoke, dispatch, evidence_verify, github_read, audit_append]
-github_permissions: {contents: read, pull_requests: read, checks: read, actions: read}
+github_permissions: {contents: read, pull_requests: read, checks: read, actions: write}
 writable_paths: []
 prohibited_paths: ["**"]
 credential_profile: controller_service
@@ -22,4 +22,3 @@ identity_constraints:
   cannot_review_own_work: true
   lease_required: false
   evidence_provenance_required: true
-

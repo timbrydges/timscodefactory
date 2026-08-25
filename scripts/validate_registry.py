@@ -77,6 +77,8 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
     repository = registry.get("repository", {})
     if repository.get("full_name") != "timbrydges/timscodefactory":
         errors.append("repository binding must be timbrydges/timscodefactory")
+    if repository.get("visibility") != "public":
+        errors.append("control-plane repository visibility must be public")
     if repository.get("default_branch") != "main":
         errors.append("default branch must be main")
     if registry.get("mode") not in {"PAUSED", "PILOT", "ACTIVE"}:
@@ -148,6 +150,13 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
 
     if {r for r, v in roles.items() if v["gate_authority"]["may_dispatch"]} != {"factory_controller"}:
         errors.append("controller-only dispatch invariant failed")
+
+    controller = roles.get("factory_controller")
+    if controller and controller["github_permissions"].get("actions") != "write":
+        errors.append("factory_controller requires actions write to dispatch release workflows")
+    controller_credential = credentials.get("controller_service", {})
+    if controller_credential.get("github_actions") != "write":
+        errors.append("controller_service credential requires GitHub Actions write")
 
     pairs = [
         ("engineering_agent", "independent_inspector"),

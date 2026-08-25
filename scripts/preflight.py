@@ -49,7 +49,10 @@ def static_checks() -> dict[str, bool]:
     return {
         "PF-01": result.ok,
         "PF-02": (ROOT / "MANIFEST.sha256").exists() and (ROOT / "MANIFEST.sha256").read_text(encoding="utf-8") == render_manifest(ROOT),
-        "PF-03": registry["repository"]["full_name"] == "timbrydges/timscodefactory",
+        "PF-03": (
+            registry["repository"]["full_name"] == "timbrydges/timscodefactory"
+            and registry["repository"]["visibility"] == "public"
+        ),
         "PF-04": result.ok,
         "PF-18": registry["release"]["environment"] == "production",
     }

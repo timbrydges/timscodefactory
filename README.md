@@ -4,6 +4,8 @@ Governed, fail-closed automation for building and releasing software with multip
 
 This repository is the durable system of record. Runtime coordination data lives in the adjacent AWS state store defined under `infra/aws`; agents never mutate authoritative state directly.
 
+The control-plane repository is intentionally public so GitHub can enforce the required ruleset and production-approval gates without Enterprise Cloud. Product repositories may remain private; secrets, runtime state, customer data, and proprietary application code do not belong here.
+
 ## Control plane
 
 - `factory/registry.yaml` binds the F3.1 registry to `timbrydges/timscodefactory`.
@@ -25,4 +27,3 @@ python -m unittest discover -s tests -v
 ```
 
 Production releases remain disabled until the protected `production` environment and the AWS outputs are bound to GitHub variables. Tim is the required human approval authority for Pilot #1 production deployment.
-

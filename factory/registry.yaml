@@ -9,6 +9,7 @@ mode: PAUSED
 repository:
   provider: github
   full_name: timbrydges/timscodefactory
+  visibility: public
   default_branch: main
   protected_environment: production
   ruleset_name: factory-main-protected
@@ -73,4 +74,3 @@ preflight:
   adversarial_required: true
   failure_recovery_required: true
   all_required_must_pass: true
-
