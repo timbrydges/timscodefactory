@@ -57,6 +57,25 @@ def validate(root: Path) -> list[str]:
         errors.append("build-attest.yml: checksum must use a portable relative artifact path")
     if 'sha256sum "$RUNNER_TEMP/factory-control-plane.tar.gz"' in build_attest:
         errors.append("build-attest.yml: absolute checksum paths are prohibited")
+    required_archive_fragments = [
+        'line.split("  ", 1)',
+        'paths.append("MANIFEST.sha256")',
+        '--use-compress-program="gzip -n"',
+        "--null",
+        "--verbatim-files-from",
+        "--no-recursion",
+        '--files-from "$FILE_LIST"',
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "sha256sum --check MANIFEST.sha256",
+    ]
+    for fragment in required_archive_fragments:
+        if fragment not in build_attest:
+            errors.append(f"build-attest.yml: missing deterministic archive control: {fragment}")
+    if "tar --exclude=.git" in build_attest:
+        errors.append("build-attest.yml: broad workspace archives are prohibited")
 
     preflight = (workflow_dir / "preflight.yml").read_text(encoding="utf-8")
     required_preflight_fragments = [
