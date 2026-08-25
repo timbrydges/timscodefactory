@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       rollback_object_version:
-        description: "Previous S3 object version ID for deterministic rollback"
+        description: "Previous S3 version ID, or INITIAL_RELEASE for the first publication"
         required: true
         type: string
 
@@ -43,10 +43,15 @@ jobs:
       - run: python -m pip install --require-hashes -r requirements-ci.txt
       - name: Validate immutable release inputs
         shell: bash
+        env:
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          ROLLBACK_VERSION: ${{ inputs.rollback_object_version }}
         run: |
-          [[ "${{ inputs.source_commit }}" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "${{ inputs.source_commit }}"
-          test -n "${{ inputs.rollback_object_version }}"
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          [[ "$ROLLBACK_VERSION" == "INITIAL_RELEASE" || "$ROLLBACK_VERSION" =~ ^[A-Za-z0-9._~+/=-]+$ ]]
           python scripts/build_manifest.py --check
           python scripts/validate_registry.py
           python scripts/validate_workflows.py
@@ -57,6 +62,8 @@ jobs:
           github-token: ${{ github.token }}
       - name: Verify digest and GitHub provenance attestation
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           sha256sum --check factory-control-plane.tar.gz.sha256
           gh attestation verify factory-control-plane.tar.gz --repo "$GITHUB_REPOSITORY"
