@@ -1,0 +1,46 @@
+schema_version: "1.0"
+profiles:
+  coding_primary:
+    workload: coding
+    provider_family: openai
+    model_selector: FACTORY_CODING_MODEL
+    authority_effect: none
+  review_adversarial:
+    workload: independent_code_review
+    provider_family: anthropic
+    model_selector: FACTORY_REVIEW_MODEL
+    must_differ_from: coding_primary
+    authority_effect: none
+  reasoning_primary:
+    workload: product_specification
+    provider_family: openai
+    model_selector: FACTORY_REASONING_MODEL
+    authority_effect: none
+  reasoning_review:
+    workload: independent_spec_review
+    provider_family: anthropic
+    model_selector: FACTORY_SPEC_REVIEW_MODEL
+    must_differ_from: reasoning_primary
+    authority_effect: none
+  reasoning_architect:
+    workload: software_architecture
+    provider_family: openai
+    model_selector: FACTORY_ARCHITECT_MODEL
+    authority_effect: none
+  qa_validation:
+    workload: quality_assurance
+    provider_family: google
+    model_selector: FACTORY_QA_MODEL
+    authority_effect: none
+  security_adversarial:
+    workload: security_review
+    provider_family: anthropic
+    model_selector: FACTORY_SECURITY_MODEL
+    authority_effect: none
+  specialist_dynamic:
+    workload: domain_specialist_review
+    provider_family: dynamic_non_authoritative
+    model_selector: FACTORY_SPECIALIST_MODEL
+    selection_requires_controller_record: true
+    authority_effect: none
+

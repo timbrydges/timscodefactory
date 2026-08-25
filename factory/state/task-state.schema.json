@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/task-state.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "factory_id", "task_id", "state", "version", "updated_at",
+    "updated_by", "active_lease_ids", "consumed_evidence_ids"
+  ],
+  "properties": {
+    "factory_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["PAUSED", "INTAKE", "SPECIFICATION", "SPEC_REVIEW", "ARCHITECTURE", "IMPLEMENTATION", "INSPECTION", "QA", "SECURITY_REVIEW", "RELEASE_READY", "RELEASING", "RELEASED", "STALLED", "REMEDIATION"]},
+    "version": {"type": "integer", "minimum": 0},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "updated_by": {"const": "factory_controller_service"},
+    "active_lease_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "consumed_evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "remediation": {
+      "type": "object",
+      "required": ["return_state", "required_actions", "failure_code"],
+      "properties": {
+        "return_state": {"type": "string"},
+        "required_actions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "failure_code": {"type": "string", "minLength": 1}
+      }
+    },
+    "stall": {
+      "type": "object",
+      "required": ["reason_code", "resume_condition", "owner_action_required"],
+      "properties": {
+        "reason_code": {"type": "string", "minLength": 1},
+        "resume_condition": {"type": "string", "minLength": 1},
+        "owner_action_required": {"type": "boolean"}
+      }
+    }
+  }
+}
+

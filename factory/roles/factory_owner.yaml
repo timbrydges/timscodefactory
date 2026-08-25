@@ -1,0 +1,25 @@
+schema_version: "1.0"
+role_id: factory_owner
+contract_version: "1.1"
+allowed_states: [PAUSED, INTAKE, STALLED, RELEASE_READY]
+gate_authority:
+  may_approve: [pilot_scope, registry_change, production_release, exception_resolution]
+  may_reject: [pilot_scope, registry_change, production_release, exception_resolution]
+  may_dispatch: false
+  may_pause: true
+allowed_tools: [github_admin, owner_approval, emergency_pause, audit_read]
+github_permissions: {administration: write, contents: write, pull_requests: write, actions: write}
+writable_paths: ["**"]
+prohibited_paths: ["direct_main_push", "unsigned_release", "self_bypass_of_required_checks"]
+credential_profile: owner_human
+provider_profile: null
+network_policy: human_owner
+secret_policy: human_mfa_and_no_shared_credentials
+authoritative_outputs: [owner_approval, owner_rejection, pause_order, exception_resolution]
+stop_conditions: [identity_unverified, approval_context_incomplete, evidence_digest_mismatch]
+identity_constraints:
+  authoritative_identity: tim_brydges
+  cannot_review_own_work: true
+  lease_required: false
+  evidence_provenance_required: true
+

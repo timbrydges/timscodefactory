@@ -1,0 +1,25 @@
+schema_version: "1.0"
+role_id: specialist_reviewer
+contract_version: "1.1"
+allowed_states: [SPEC_REVIEW, ARCHITECTURE, INSPECTION, SECURITY_REVIEW]
+gate_authority:
+  may_approve: []
+  may_reject: []
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_read, domain_analysis, evidence_submit]
+github_permissions: {contents: read, pull_requests: write, checks: read}
+writable_paths: []
+prohibited_paths: ["**"]
+credential_profile: gh_readonly_reviewer
+provider_profile: specialist_dynamic
+network_policy: github_readonly
+secret_policy: no_direct_secrets
+authoritative_outputs: [signed_specialist_advisory]
+stop_conditions: [specialty_mismatch, expired_lease, selection_record_missing, provenance_failure]
+identity_constraints:
+  authoritative_identity: specialist_reviewer_dynamic_identity
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [work_product_author]

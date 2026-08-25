@@ -1,0 +1,27 @@
+schema_version: "1.0"
+default: untrusted
+required_fields:
+  - evidence_id
+  - producer_role
+  - producer_identity
+  - task_id
+  - lease_id
+  - source_commit
+  - artifact_digest
+  - created_at
+  - signature
+trusted_types:
+  - signed_test_report
+  - signed_review_verdict
+  - signed_security_report
+  - signed_build_attestation
+  - owner_approval
+verification:
+  bind_to_authoritative_identity: true
+  bind_to_source_commit: true
+  bind_to_artifact_digest: true
+  reject_expired_lease: true
+  reject_self_approval: true
+  reject_unknown_signer: true
+  reject_replay: true
+

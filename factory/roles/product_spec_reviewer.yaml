@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: product_spec_reviewer
+contract_version: "1.1"
+allowed_states: [SPEC_REVIEW]
+gate_authority:
+  may_approve: [specification_gate]
+  may_reject: [specification_gate]
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_read, specification_review, evidence_submit]
+github_permissions: {contents: read, pull_requests: write, checks: read}
+writable_paths: []
+prohibited_paths: ["**"]
+credential_profile: gh_readonly_reviewer
+provider_profile: reasoning_review
+network_policy: github_readonly
+secret_policy: no_direct_secrets
+authoritative_outputs: [signed_review_verdict]
+stop_conditions: [author_identity_collision, expired_lease, missing_acceptance_criteria, provenance_failure]
+identity_constraints:
+  authoritative_identity: product_spec_reviewer_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [product_spec_author]
+

@@ -1,0 +1,25 @@
+schema_version: "1.0"
+role_id: factory_controller
+contract_version: "1.1"
+allowed_states: [PAUSED, INTAKE, SPECIFICATION, SPEC_REVIEW, ARCHITECTURE, IMPLEMENTATION, INSPECTION, QA, SECURITY_REVIEW, RELEASE_READY, RELEASING, RELEASED, STALLED, REMEDIATION]
+gate_authority:
+  may_approve: []
+  may_reject: []
+  may_dispatch: true
+  may_pause: true
+allowed_tools: [state_compare_and_swap, lease_issue, lease_revoke, dispatch, evidence_verify, github_read, audit_append]
+github_permissions: {contents: read, pull_requests: read, checks: read, actions: read}
+writable_paths: []
+prohibited_paths: ["**"]
+credential_profile: controller_service
+provider_profile: null
+network_policy: controller_egress
+secret_policy: workload_identity_and_broker
+authoritative_outputs: [state_transition_record, lease_record, dispatch_record, audit_event]
+stop_conditions: [integrity_failure, owner_pause, unknown_role, invalid_transition, stale_version, evidence_failure]
+identity_constraints:
+  authoritative_identity: factory_controller_service
+  cannot_review_own_work: true
+  lease_required: false
+  evidence_provenance_required: true
+

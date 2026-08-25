@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: product_spec_author
+contract_version: "1.1"
+allowed_states: [SPECIFICATION, REMEDIATION]
+gate_authority:
+  may_approve: []
+  may_reject: []
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_docs_write, requirement_analysis, evidence_submit]
+github_permissions: {contents: write, pull_requests: write, checks: read}
+writable_paths: ["specs/**"]
+prohibited_paths: ["factory/**", ".github/**", "infra/**", "src/**", "tests/**", "MANIFEST.sha256"]
+credential_profile: gh_docs_writer
+provider_profile: reasoning_primary
+network_policy: provider_restricted
+secret_policy: brokered_ephemeral_only
+authoritative_outputs: [product_specification]
+stop_conditions: [scope_ambiguity, protected_path_requested, expired_lease, untestable_requirement]
+identity_constraints:
+  authoritative_identity: product_spec_author_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [product_spec_reviewer]
+

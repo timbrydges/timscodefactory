@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: deep_security_reviewer
+contract_version: "1.1"
+allowed_states: [SECURITY_REVIEW]
+gate_authority:
+  may_approve: [security_gate]
+  may_reject: [security_gate]
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_read, sast_read, dependency_audit, evidence_submit]
+github_permissions: {contents: read, pull_requests: write, checks: read}
+writable_paths: []
+prohibited_paths: ["**"]
+credential_profile: gh_readonly_reviewer
+provider_profile: security_adversarial
+network_policy: github_readonly
+secret_policy: no_direct_secrets
+authoritative_outputs: [signed_security_report]
+stop_conditions: [missing_provenance, expired_lease, self_review_detected, critical_finding]
+identity_constraints:
+  authoritative_identity: deep_security_reviewer_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [engineering_agent, independent_inspector]
+

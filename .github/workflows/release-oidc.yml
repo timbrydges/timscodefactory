@@ -1,0 +1,86 @@
+name: release-oidc
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Successful main-branch build-attest workflow run ID"
+        required: true
+        type: string
+      source_commit:
+        description: "Exact 40-character commit SHA being released"
+        required: true
+        type: string
+      rollback_object_version:
+        description: "Previous S3 object version ID for deterministic rollback"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: factory-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release / production OIDC
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_commit }}
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Validate immutable release inputs
+        shell: bash
+        run: |
+          [[ "${{ inputs.source_commit }}" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${{ inputs.source_commit }}"
+          test -n "${{ inputs.rollback_object_version }}"
+          python scripts/build_manifest.py --check
+          python scripts/validate_registry.py
+          python scripts/validate_workflows.py
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: factory-control-plane-${{ inputs.source_commit }}
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify digest and GitHub provenance attestation
+        shell: bash
+        run: |
+          sha256sum --check factory-control-plane.tar.gz.sha256
+          gh attestation verify factory-control-plane.tar.gz --repo "$GITHUB_REPOSITORY"
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: factory-release-${{ github.run_id }}
+      - name: Publish immutable release and deployment record
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          ROLLBACK_VERSION: ${{ inputs.rollback_object_version }}
+        run: |
+          DIGEST="$(cut -d' ' -f1 factory-control-plane.tar.gz.sha256)"
+          KEY="releases/${SOURCE_COMMIT}/factory-control-plane.tar.gz"
+          aws s3api put-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$KEY" \
+            --body factory-control-plane.tar.gz \
+            --metadata "sha256=${DIGEST},source-commit=${SOURCE_COMMIT},rollback-version=${ROLLBACK_VERSION}"
+          aws dynamodb put-item \
+            --table-name "$STATE_TABLE" \
+            --condition-expression "attribute_not_exists(PK) AND attribute_not_exists(SK)" \
+            --item "{\"PK\":{\"S\":\"FACTORY#tims-software-factory#DEPLOYMENT\"},\"SK\":{\"S\":\"DEPLOYMENT#${SOURCE_COMMIT}\"},\"artifact_sha256\":{\"S\":\"${DIGEST}\"},\"release_key\":{\"S\":\"${KEY}\"},\"rollback_object_version\":{\"S\":\"${ROLLBACK_VERSION}\"},\"workflow_run\":{\"S\":\"${GITHUB_RUN_ID}\"}}"

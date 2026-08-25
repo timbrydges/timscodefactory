@@ -1,0 +1,26 @@
+schema_version: "1.0"
+role_id: independent_inspector
+contract_version: "1.1"
+allowed_states: [INSPECTION, REMEDIATION]
+gate_authority:
+  may_approve: [implementation_gate]
+  may_reject: [implementation_gate]
+  may_dispatch: false
+  may_pause: false
+allowed_tools: [github_read, diff_review, sandbox_readonly_test, evidence_submit]
+github_permissions: {contents: read, pull_requests: write, checks: read}
+writable_paths: []
+prohibited_paths: ["**"]
+credential_profile: gh_readonly_reviewer
+provider_profile: review_adversarial
+network_policy: github_readonly
+secret_policy: no_direct_secrets
+authoritative_outputs: [signed_review_verdict]
+stop_conditions: [author_identity_collision, provider_family_collision, expired_lease, missing_test_evidence, provenance_failure]
+identity_constraints:
+  authoritative_identity: independent_inspector_service
+  cannot_review_own_work: true
+  lease_required: true
+  evidence_provenance_required: true
+  must_differ_from: [engineering_agent]
+
