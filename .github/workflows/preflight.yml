@@ -1,6 +1,8 @@
 name: preflight
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -31,7 +33,9 @@ jobs:
 
   live:
     name: preflight / live controls
-    if: github.event_name == 'workflow_dispatch' && inputs.live
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.live)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
