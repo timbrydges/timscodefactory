@@ -11,6 +11,7 @@ from .model import (
     StaleVersion,
     TaskState,
 )
+from .pilot import PilotActivationPolicy, PilotGateError
 
 __all__ = [
     "AuthorityError",
@@ -22,4 +23,6 @@ __all__ = [
     "OWNER_IDENTITY",
     "StaleVersion",
     "TaskState",
+    "PilotActivationPolicy",
+    "PilotGateError",
 ]
