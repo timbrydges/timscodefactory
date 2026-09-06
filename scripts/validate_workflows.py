@@ -138,6 +138,39 @@ def validate(root: Path) -> list[str]:
         if fragment not in preflight:
             errors.append(f"preflight.yml: missing automatic live control: {fragment}")
 
+    pilot_dry_run_path = workflow_dir / "pilot-dry-run.yml"
+    if not pilot_dry_run_path.is_file():
+        errors.append("pilot-dry-run.yml: non-release pilot simulation workflow is missing")
+    else:
+        pilot_dry_run = pilot_dry_run_path.read_text(encoding="utf-8")
+        required_pilot_fragments = [
+            "pilot / non-release simulation",
+            "permissions:\n  contents: read",
+            "python scripts/pilot_gate.py --mode validate",
+            "python scripts/pilot_gate.py --mode simulate",
+            "python -m unittest tests.test_pilot_gate -v",
+        ]
+        for fragment in required_pilot_fragments:
+            if fragment not in pilot_dry_run:
+                errors.append(f"pilot-dry-run.yml: missing dry-run control: {fragment}")
+        for prohibited in (
+            "id-token: write",
+            "environment: production",
+            "aws-actions/",
+            "AWS_RELEASE_ROLE_ARN",
+            "FACTORY_RELEASE_BUCKET",
+        ):
+            if prohibited in pilot_dry_run:
+                errors.append(f"pilot-dry-run.yml: release capability is prohibited: {prohibited}")
+
+    registry_ci = (workflow_dir / "registry-ci.yml").read_text(encoding="utf-8")
+    for fragment in (
+        "python scripts/pilot_gate.py --mode validate",
+        "python scripts/pilot_gate.py --mode simulate",
+    ):
+        if fragment not in registry_ci:
+            errors.append(f"registry-ci.yml: missing required pilot gate: {fragment}")
+
     aws_versions = (root / "infra/aws/versions.tf").read_text(encoding="utf-8")
     if 'backend "s3" {}' not in aws_versions:
         errors.append("infra/aws/versions.tf: encrypted remote state backend is required")

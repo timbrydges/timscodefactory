@@ -17,6 +17,8 @@ Tim Brydges is the sole human Factory Owner and ultimate authority. He may appro
 - `scripts/preflight.py` executes the static and live F3.1 preflight checks.
 - `infra/aws/` provisions the adjacent DynamoDB state store, immutable release bucket, and GitHub OIDC release role.
 - `.github/workflows/` enforces registry CI, preflight, deterministic production OIDC release, and owner-only rollback paths.
+- `factory/pilot/operating-contract.yaml` binds the staged Planner/Builder/Inspector pilot and its activation evidence.
+- `.github/workflows/pilot-dry-run.yml` exercises only non-release simulation while live prerequisites remain unverified.
 
 ## Fail-closed bootstrap
 
@@ -29,3 +31,11 @@ python -m unittest discover -s tests -v
 ```
 
 Production releases remain disabled until AWS verification completes, the `production` environment exists, and the Terraform outputs are bound to GitHub variables. The environment permits deployment only from `main` and imposes no approval step on Tim. Tim releases directly with the `OWNER_OVERRIDE` sentinels. Agent/controller releases additionally require an active release lease and Tim's persisted, commit-specific authorization event. Only Tim may dispatch the deterministic emergency rollback workflow.
+
+The first operational Factory exercise is a single private-repository,
+three-system pilot governed by [`docs/PILOT_OPERATING_CONTRACT.md`](docs/PILOT_OPERATING_CONTRACT.md).
+Its Planner, Builder, and Inspector remain disabled until their distinct
+identities, the deployed Controller/state path, OIDC trust, protected release
+storage, and a deliberate rollback drill are all verified. Until then, only
+allowlisted local or CI dry runs are permitted; they cannot write the pilot
+repository, transition live state, enter `production`, or release anything.

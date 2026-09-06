@@ -16,6 +16,9 @@ rules:
   deterministic_stall_fields_required: true
   provider_change_cannot_change_authority: true
   rollback_must_not_require_ai: true
+  pilot_operational_activation_requires_all_readiness_gates: true
+  pilot_merge_requires_inspector_and_ci: true
+  pilot_real_release_requires_owner_and_rollback_drill: true
 failure_response:
   transition_to: PAUSED
   revoke_active_leases: true
@@ -30,3 +33,6 @@ protected_registry_paths:
   - MANIFEST.sha256
   - .github/workflows/**
   - infra/**
+  - docs/PILOT_OPERATING_CONTRACT.md
+  - scripts/pilot_gate.py
+  - src/factory_state/pilot.py

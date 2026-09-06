@@ -1,0 +1,45 @@
+name: pilot-dry-run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "docs/PILOT_OPERATING_CONTRACT.md"
+      - "factory/pilot/**"
+      - "factory/schemas/pilot-operating-contract.schema.json"
+      - "src/factory_state/pilot.py"
+      - "scripts/pilot_gate.py"
+      - "tests/test_pilot_gate.py"
+      - ".github/workflows/pilot-dry-run.yml"
+      - "MANIFEST.sha256"
+  push:
+    branches: [main]
+    paths:
+      - "docs/PILOT_OPERATING_CONTRACT.md"
+      - "factory/pilot/**"
+      - "factory/schemas/pilot-operating-contract.schema.json"
+      - "src/factory_state/pilot.py"
+      - "scripts/pilot_gate.py"
+      - "tests/test_pilot_gate.py"
+      - ".github/workflows/pilot-dry-run.yml"
+      - "MANIFEST.sha256"
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    name: pilot / non-release simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - run: python scripts/build_manifest.py --check
+      - run: python scripts/pilot_gate.py --mode validate
+      - run: python scripts/pilot_gate.py --mode simulate
+      - run: python -m unittest tests.test_pilot_gate -v

@@ -24,3 +24,4 @@ cases:
   - {id: PF-19, mode: live, assertion: main_branch_ruleset_active_with_tim_bypass}
   - {id: PF-20, mode: live, assertion: production_environment_owner_controlled}
   - {id: PF-21, mode: live, assertion: immutable_github_oidc_prefix_exact}
+  - {id: PF-22, mode: static, assertion: staged_pilot_activation_fails_closed_until_verified}

@@ -3,5 +3,7 @@
 /infra/ @timbrydges
 /config/github/ @timbrydges
 /scripts/apply_github_controls.py @timbrydges
+/scripts/pilot_gate.py @timbrydges
+/src/factory_state/pilot.py @timbrydges
+/docs/PILOT_OPERATING_CONTRACT.md @timbrydges
 /MANIFEST.sha256 @timbrydges
-

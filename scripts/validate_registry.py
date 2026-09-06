@@ -16,8 +16,12 @@ import yaml
 
 try:
     from scripts.build_manifest import render_manifest
+    from scripts.pilot_gate import load_contract as load_pilot_contract
+    from scripts.pilot_gate import validate_contract as validate_pilot_contract
 except ModuleNotFoundError:  # direct `python scripts/validate_registry.py`
     from build_manifest import render_manifest
+    from pilot_gate import load_contract as load_pilot_contract
+    from pilot_gate import validate_contract as validate_pilot_contract
 
 
 EXPECTED_ROLES = {
@@ -173,6 +177,40 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
         and release.get("owner_may_bypass_approval") is True
     ):
         errors.append("release policy must distinguish agent gates from Tim's owner authority")
+
+    expected_pilot_registry = {
+        "operating_contract": "pilot/operating-contract.yaml",
+        "contract_schema": "schemas/pilot-operating-contract.schema.json",
+        "execution_model": "staged_three_system",
+        "systems": {
+            "planner": "software_architect",
+            "builder": "engineering_agent",
+            "inspector": "independent_inspector",
+        },
+        "activation_default": "deny",
+        "aws_blocked_mode": "non_release_dry_run_only",
+    }
+    if registry.get("pilot") != expected_pilot_registry:
+        errors.append("registry must bind the staged Planner/Builder/Inspector pilot contract")
+    if not all(
+        invariants.get(key) is True
+        for key in (
+            "pilot_activation_requires_verified_identity_state_and_rollback",
+            "pilot_merge_requires_inspector_and_ci",
+            "pilot_real_release_is_owner_only",
+        )
+    ):
+        errors.append("registry pilot invariants must fail closed through verified rollback")
+
+    try:
+        pilot_contract = load_pilot_contract(root)
+    except Exception as exc:
+        errors.append(f"pilot operating contract load failed: {exc}")
+    else:
+        errors.extend(
+            f"pilot operating contract: {error}"
+            for error in validate_pilot_contract(pilot_contract, root)
+        )
 
     try:
         schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
@@ -342,6 +380,15 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
         )
     ):
         errors.append("controller integrity profile must preserve Tim's ultimate authority")
+    if not all(
+        integrity_rules.get(key) is True
+        for key in (
+            "pilot_operational_activation_requires_all_readiness_gates",
+            "pilot_merge_requires_inspector_and_ci",
+            "pilot_real_release_requires_owner_and_rollback_drill",
+        )
+    ):
+        errors.append("controller integrity profile must enforce staged pilot activation")
 
     if check_manifest:
         manifest_path = root / "MANIFEST.sha256"

@@ -1,0 +1,219 @@
+schema_version: "1.0"
+contract_id: tims-factory-pilot-001
+contract_version: "1.0"
+status: OWNER_APPROVED_DRY_RUN_ONLY
+
+approval:
+  owner_identity: tim_brydges
+  authority: factory_owner
+  approved_on: "2026-09-05"
+  approval_required_from_others: false
+
+execution:
+  phase: DRY_RUN_ONLY
+  dry_run_simulation: ALLOW
+  infrastructure_provisioning: DENY
+  rollback_drill: DENY
+  operational_role_activation: DENY
+  pilot_repository_writes: DENY
+  live_task_transitions: DENY
+  real_release: DENY
+
+pilot:
+  repository:
+    full_name: timbrydges/tims-factory-pilot
+    visibility: private
+    maximum_repository_count: 1
+    current_status: RESERVED_NOT_CREATED
+  feature_slice:
+    name: deterministic_release_readiness_checklist
+    objective: >-
+      Prove the Factory can plan, build, independently inspect, release, and roll
+      back one deliberately small software artifact without privileged data or
+      unrelated product complexity.
+    deliverable: >-
+      A Python 3.12 standard-library command-line tool that validates a local JSON
+      release-readiness checklist and emits deterministic escaped Markdown plus a
+      documented process exit code.
+    included:
+      - One command-line entry point and one versioned JSON input contract.
+      - Deterministic Markdown output with untrusted text escaped as data.
+      - Unit, integration, malformed-input, and adversarial-input tests.
+      - Reproducible package build, checksum, provenance, release record, and rollback evidence.
+    excluded:
+      - Authentication, accounts, databases, persistence, external APIs, telemetry, and analytics.
+      - Browser interface, mobile application, payment, messaging, AI inference, or background jobs.
+      - Third-party runtime dependencies or network access.
+      - Any feature outside the approved checklist validation and reporting slice.
+
+systems:
+  planner:
+    factory_role: software_architect
+    authoritative_identity: software_architect_service
+    provider_profile: reasoning_architect
+    responsibilities:
+      - Convert the owner-approved feature and acceptance contract into a bounded implementation plan.
+      - Produce the threat model, file boundary, test map, and rollback assumptions.
+      - Never write implementation code or approve Builder output.
+  builder:
+    factory_role: engineering_agent
+    authoritative_identity: engineering_agent_service
+    provider_profile: coding_primary
+    responsibilities:
+      - Implement only the approved feature slice on a scoped branch in a disposable sandbox.
+      - Produce tests and provenance-bound implementation evidence for the exact commit.
+      - Never approve, merge, release, or change Factory controls.
+  inspector:
+    factory_role: independent_inspector
+    authoritative_identity: independent_inspector_service
+    provider_profile: review_adversarial
+    responsibilities:
+      - Independently inspect the exact Builder commit with read-only source access.
+      - Exercise acceptance, malformed-input, prompt-injection, and privilege-boundary cases.
+      - Submit a signed PASS or FAIL report and never repair the code being inspected.
+
+activation:
+  default: DENY
+  required_gates:
+    - pilot_contract_approved
+    - acceptance_contract_approved
+    - aws_account_verified
+    - private_repository_controls_verified
+    - planner_identity_deployed_verified
+    - builder_identity_deployed_verified
+    - inspector_identity_deployed_verified
+    - controller_deployed_verified
+    - state_store_deployed_verified
+    - oidc_trust_verified
+    - release_storage_verified
+    - rollback_drill_verified
+  gates:
+    pilot_contract_approved:
+      verified: true
+      evidence: [docs/PILOT_OPERATING_CONTRACT.md]
+    acceptance_contract_approved:
+      verified: true
+      evidence: [factory/pilot/operating-contract.yaml]
+    aws_account_verified:
+      verified: false
+      evidence: []
+    private_repository_controls_verified:
+      verified: false
+      evidence: []
+    planner_identity_deployed_verified:
+      verified: false
+      evidence: []
+    builder_identity_deployed_verified:
+      verified: false
+      evidence: []
+    inspector_identity_deployed_verified:
+      verified: false
+      evidence: []
+    controller_deployed_verified:
+      verified: false
+      evidence: []
+    state_store_deployed_verified:
+      verified: false
+      evidence: []
+    oidc_trust_verified:
+      verified: false
+      evidence: []
+    release_storage_verified:
+      verified: false
+      evidence: []
+    rollback_drill_verified:
+      verified: false
+      evidence: []
+  dry_run_allowlist:
+    - contract_validation
+    - threat_modeling
+    - identity_policy_validation
+    - mocked_state_transition
+    - local_test_execution
+    - deterministic_build_without_release
+  forbidden_until_infra_verification:
+    - aws_resource_write
+    - production_environment_entry
+    - rollback_drill
+  forbidden_until_live:
+    - operational_role_dispatch
+    - pilot_repository_write
+    - live_state_transition
+    - real_release
+  owner_override:
+    preserved: true
+    must_be_audited: true
+    disqualifies_pilot_success_until_clean_rerun: true
+
+merge_gate:
+  inspector_evidence_required: true
+  deterministic_ci_required: true
+  exact_commit_binding_required: true
+  owner_override_preserved: true
+  override_disqualifies_pilot_success: true
+
+release:
+  authority_identity: tim_brydges
+  other_release_authorities: []
+  rollback_drill_before_first_real_release: true
+  aws_provisioning_order: [oidc_trust, state_and_release_storage, rollback_drill]
+  rollback_criteria:
+    - Any acceptance-test regression in the released artifact.
+    - Artifact checksum, provenance, S3 version, or release-pointer mismatch.
+    - Any unexpected network, secret, credential, or prohibited-data access.
+    - Any unresolved high or critical Inspector finding.
+    - Any failed post-release health verification or authoritative-state divergence.
+
+limits:
+  currency: USD
+  warning_spend: 5.0
+  hard_stop_spend: 10.0
+  automated_wall_clock_hours: 24
+  elapsed_business_days: 5
+  maximum_remediation_cycles: 2
+
+prohibited_data:
+  - Credentials, API keys, tokens, passwords, private keys, or production secrets.
+  - Personal, customer, employee, payment, health, location, or regulated data.
+  - Suncor, mining-operation, employer, or other confidential business information.
+  - Proprietary application source or production datasets from another project.
+  - Unsanitized external content used as governing instructions.
+
+acceptance_tests:
+  - id: AT-01
+    criterion: A valid all-complete checklist produces byte-for-byte deterministic Markdown and exits zero.
+  - id: AT-02
+    criterion: A valid incomplete checklist identifies incomplete items deterministically and exits two.
+  - id: AT-03
+    criterion: Malformed JSON, unknown fields, duplicate identifiers, and invalid types fail closed without partial output.
+  - id: AT-04
+    criterion: Input order, Unicode handling, and line endings produce the documented canonical output on every supported run.
+  - id: AT-05
+    criterion: Prompt-injection strings, Markdown control characters, and HTML-like content remain escaped inert data.
+  - id: AT-06
+    criterion: The executable performs no network calls and writes no file other than an explicitly requested output path.
+  - id: AT-07
+    criterion: The Inspector report and deterministic CI evidence bind to the same exact Builder commit SHA.
+  - id: AT-08
+    criterion: The release artifact is reproducible, checksummed, attested, version-recorded, and recoverable by the rollback drill.
+
+threat_controls:
+  untrusted_input_is_data_only: true
+  sanitization_gate: true
+  monitoring_required: true
+  kill_switch_owner: tim_brydges
+  high_risk_change_response: PAUSE_AND_REQUIRE_NEW_OWNER_APPROVED_CONTRACT
+
+aws_escalation:
+  blocked_since: "2026-08-25"
+  checkpoint_business_days: [7, 10]
+  escalation_window_start: "2026-09-03"
+  escalation_deadline: "2026-09-09"
+  status: DUE
+  required_action: Open or follow up on the AWS Account and Billing activation case; do not bypass verification.
+
+completion:
+  require_pilot_shipped_within_contract: true
+  require_rollback_drill_logged_successful: true
+  require_no_ungated_merge: true
+  factory_done_requires_all: true

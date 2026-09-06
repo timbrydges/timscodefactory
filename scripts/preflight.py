@@ -30,6 +30,8 @@ EXPECTED_OIDC_PREFIX = "repo:timbrydges@214414801/timscodefactory@1345656137"
 sys.path.insert(0, str(ROOT / "src"))
 
 try:
+    from scripts.pilot_gate import load_contract as load_pilot_contract
+    from scripts.pilot_gate import simulate_current_policy, validate_contract as validate_pilot_contract
     from scripts.release_control import (
         Deployment,
         ReleaseControlError,
@@ -38,6 +40,8 @@ try:
     )
     from scripts.validate_workflows import validate as validate_workflows
 except ModuleNotFoundError:  # direct `python scripts/preflight.py`
+    from pilot_gate import load_contract as load_pilot_contract
+    from pilot_gate import simulate_current_policy, validate_contract as validate_pilot_contract
     from release_control import (
         Deployment,
         ReleaseControlError,
@@ -94,7 +98,16 @@ def static_checks() -> dict[str, bool]:
             and registry["owner_authority"]["may_approve_own_changes"] is True
             and registry["owner_authority"]["may_bypass_all_gates"] is True
         ),
+        "PF-22": pilot_activation_fails_closed(),
     }
+
+
+def pilot_activation_fails_closed() -> bool:
+    try:
+        contract = load_pilot_contract(ROOT)
+    except Exception:
+        return False
+    return not validate_pilot_contract(contract, ROOT) and not simulate_current_policy(contract)
 
 
 def adversarial_checks() -> dict[str, bool]:

@@ -23,4 +23,6 @@ jobs:
       - run: python scripts/build_manifest.py --check
       - run: python scripts/validate_registry.py
       - run: python scripts/validate_workflows.py
+      - run: python scripts/pilot_gate.py --mode validate
+      - run: python scripts/pilot_gate.py --mode simulate
       - run: python -m unittest discover -s tests -v

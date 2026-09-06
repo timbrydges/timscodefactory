@@ -1,5 +1,5 @@
 schema_version: "1.0"
-registry_version: "F3.1-live.3"
+registry_version: "F3.1-live.4"
 constitution_version: "1.2"
 gate_contract_version: "1.3"
 state_transition_contract_version: "1.2"
@@ -58,6 +58,17 @@ release:
   owner_may_bypass_approval: true
   unsigned_deployment: deny
 
+pilot:
+  operating_contract: pilot/operating-contract.yaml
+  contract_schema: schemas/pilot-operating-contract.schema.json
+  execution_model: staged_three_system
+  systems:
+    planner: software_architect
+    builder: engineering_agent
+    inspector: independent_inspector
+  activation_default: deny
+  aws_blocked_mode: non_release_dry_run_only
+
 invariants:
   dispatch_authorities: [factory_controller, factory_owner]
   agents_cannot_mutate_authoritative_state: true
@@ -72,6 +83,9 @@ invariants:
   provider_swap_cannot_change_authority: true
   deterministic_ai_independent_rollback: true
   default_deny_transitions: true
+  pilot_activation_requires_verified_identity_state_and_rollback: true
+  pilot_merge_requires_inspector_and_ci: true
+  pilot_real_release_is_owner_only: true
 
 profiles:
   providers: profiles/providers.yaml
