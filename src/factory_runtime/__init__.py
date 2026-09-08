@@ -177,6 +177,15 @@ from .repair import (
     RuntimePipelineFactory,
     VerifiedRepairCandidate,
 )
+from .runtime_supervisor import (
+    DockerRuntimeResourceHandle,
+    DockerRuntimeSupervisor,
+    DockerRuntimeSupervisorPolicy,
+    RuntimeResourceBindingError,
+    RuntimeSupervisorError,
+    RuntimeTerminationError,
+    RuntimeTerminationReceipt,
+)
 from .sandbox import (
     BoundSandboxReceipt,
     SandboxAdapter,
@@ -351,6 +360,13 @@ __all__ = [
     "RuntimePipelineError",
     "RuntimePipelineFactory",
     "RuntimeResult",
+    "DockerRuntimeResourceHandle",
+    "DockerRuntimeSupervisor",
+    "DockerRuntimeSupervisorPolicy",
+    "RuntimeResourceBindingError",
+    "RuntimeSupervisorError",
+    "RuntimeTerminationError",
+    "RuntimeTerminationReceipt",
     "SanitizedModelText",
     "SandboxAdapter",
     "SandboxContractError",

@@ -149,6 +149,17 @@ class DockerSandboxTests(unittest.TestCase):
             self.assertIn("--security-opt=no-new-privileges:true", create_argv)
             self.assertNotIn("--privileged", create_argv)
             self.assertFalse(any("docker.sock" in arg for arg in create_argv))
+            for expected_label in (
+                "factory.sandbox=true",
+                f"factory.runtime_session_id={req.request_id}",
+                f"factory.request_id={req.request_id}",
+                f"factory.task_id={req.task_id}",
+                f"factory.lease_id={req.lease_id}",
+                f"factory.role_id={req.role_id}",
+                f"factory.source_commit={req.source_commit}",
+                f"factory.runner_identity={policy.runner_identity}",
+            ):
+                self.assertIn(expected_label, create_argv)
             self.assertEqual(create_argv[-len(req.command) :], req.command)
             self.assertEqual(receipt.workspace_digest, req.workspace_digest)
             self.assertEqual(receipt.exit_code, 0)
