@@ -10,7 +10,8 @@
     "allowed_edit_paths",
     "forbidden_edit_paths",
     "hidden_test_ref",
-    "expected_escalation_reason"
+    "expected_escalation_reason",
+    "gold_replacements"
   ],
   "properties": {
     "schema_version": {"const": "1.0"},
@@ -43,6 +44,20 @@
         "factory_control_change_required",
         "lockfile_change_required"
       ]
+    },
+    "gold_replacements": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "old_text", "new_text"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1, "maxLength": 256},
+          "old_text": {"type": "string", "minLength": 1, "maxLength": 16384},
+          "new_text": {"type": "string", "maxLength": 32768}
+        }
+      }
     }
   }
 }
