@@ -19,6 +19,7 @@ from factory_runtime.sandbox import (  # noqa: E402
 
 NOW = datetime(2026, 9, 8, 5, 0, 0, tzinfo=timezone.utc)
 COMMIT = "a" * 40
+WORKSPACE_DIGEST = "sha256:" + "9" * 64
 ENV_DIGEST = "sha256:" + "b" * 64
 STDOUT_DIGEST = "sha256:" + "c" * 64
 STDERR_DIGEST = "sha256:" + "d" * 64
@@ -31,6 +32,7 @@ def request() -> SandboxRequest:
         lease_id="lease-1",
         role_id="engineering_agent",
         source_commit=COMMIT,
+        workspace_digest=WORKSPACE_DIGEST,
         command=("python", "-m", "unittest", "discover", "-s", "tests", "-v"),
         environment_digest=ENV_DIGEST,
         timeout_seconds=300,
@@ -46,6 +48,7 @@ def receipt(req: SandboxRequest | None = None) -> SandboxReceipt:
         lease_id=req.lease_id,
         role_id=req.role_id,
         source_commit=req.source_commit,
+        workspace_digest=req.workspace_digest,
         command_digest=req.command_digest,
         environment_digest=req.environment_digest,
         runner_identity=req.expected_runner_identity,
@@ -94,6 +97,15 @@ class SandboxAdapterContractTests(unittest.TestCase):
         req = request()
         with self.assertRaises(SandboxContractError):
             validate_sandbox_receipt(req, replace(receipt(req), source_commit="f" * 40), now=NOW)
+
+    def test_wrong_workspace_binding_is_denied(self):
+        req = request()
+        with self.assertRaises(SandboxContractError):
+            validate_sandbox_receipt(
+                req,
+                replace(receipt(req), workspace_digest="sha256:" + "8" * 64),
+                now=NOW,
+            )
 
     def test_wrong_command_binding_is_denied(self):
         req = request()
@@ -158,6 +170,11 @@ class SandboxAdapterContractTests(unittest.TestCase):
     def test_request_digest_changes_when_authority_binding_changes(self):
         req = request()
         changed = replace(req, lease_id="lease-2")
+        self.assertNotEqual(req.request_digest, changed.request_digest)
+
+    def test_request_digest_changes_when_workspace_changes(self):
+        req = request()
+        changed = replace(req, workspace_digest="sha256:" + "7" * 64)
         self.assertNotEqual(req.request_digest, changed.request_digest)
 
 
