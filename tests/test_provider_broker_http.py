@@ -15,6 +15,7 @@ from factory_runtime.provider_broker import (  # noqa: E402
     BrokerHTTPResponse,
     EphemeralBrokerCredential,
     ProviderBrokerBudget,
+    ProviderBrokerProtocolError,
     ProviderBrokerRepairModel,
     load_provider_broker_binding,
 )
@@ -341,7 +342,7 @@ class ProviderBrokerHTTPEdgeTests(unittest.TestCase):
                 max_total_cost_usd=Decimal("0.20"),
             ),
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(ProviderBrokerProtocolError):
             asyncio.run(model.decide(turn()))
         response = transport.responses[-1]
         self.assertEqual(response.status_code, 502)
