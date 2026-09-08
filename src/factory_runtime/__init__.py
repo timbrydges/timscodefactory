@@ -93,6 +93,17 @@ from .provider_broker_service import (
     ResolvedProviderTarget,
     StaticProviderSelectorResolver,
 )
+from .provider_targets import (
+    CatalogProviderSelectorResolver,
+    DryRunDecisionEngine,
+    DryRunProviderInvoker,
+    ProviderSelectorValueSource,
+    ProviderTargetCatalogEntry,
+    ProviderTargetConfigError,
+    ScriptedDryRunDecisionEngine,
+    StaticProviderSelectorValueSource,
+    build_dry_run_provider_backend,
+)
 from .repair import (
     BoundedCIRepairController,
     DockerRuntimePipelineFactory,
@@ -156,6 +167,15 @@ __all__ = [
     "BrokerTokenRejected",
     "BrokerTransport",
     "BrokeredCIRepairRuntime",
+    "CatalogProviderSelectorResolver",
+    "DryRunDecisionEngine",
+    "DryRunProviderInvoker",
+    "ProviderSelectorValueSource",
+    "ProviderTargetCatalogEntry",
+    "ProviderTargetConfigError",
+    "ScriptedDryRunDecisionEngine",
+    "StaticProviderSelectorValueSource",
+    "build_dry_run_provider_backend",
     "DetectionResult",
     "DiagnosticCapture",
     "DiagnosticCaptureError",
