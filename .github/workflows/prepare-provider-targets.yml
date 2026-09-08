@@ -1,0 +1,84 @@
+name: prepare-provider-targets
+
+on:
+  push:
+    branches:
+      - feat/dry-run-provider-selector-invoker
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.repository == 'timbrydges/timscodefactory' && github.actor == 'timbrydges'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/dry-run-provider-selector-invoker
+          fetch-depth: 1
+      - name: Finalize provider target exports and tests
+        shell: python
+        run: |
+          from pathlib import Path
+
+          test = Path('tests/test_provider_targets.py')
+          text = test.read_text(encoding='utf-8')
+          text = text.replace('import json\nimport shutil\n', '')
+          text = text.replace(
+              '    ReferenceProviderBrokerService,\n)',
+              '    ProviderBrokerInvocationError,\n    ReferenceProviderBrokerService,\n    ResolvedProviderTarget,\n)',
+          )
+          text = text.replace(
+              '        from factory_runtime.provider_broker_service import ResolvedProviderTarget\n\n        with self.assertRaises(Exception):',
+              '        with self.assertRaises(ProviderBrokerInvocationError):',
+          )
+          test.write_text(text, encoding='utf-8')
+
+          init = Path('src/factory_runtime/__init__.py')
+          text = init.read_text(encoding='utf-8')
+          marker = 'from .repair import (\n'
+          block = '''from .provider_targets import (\n    CatalogProviderSelectorResolver,\n    DryRunDecisionEngine,\n    DryRunProviderInvoker,\n    ProviderSelectorValueSource,\n    ProviderTargetCatalogEntry,\n    ProviderTargetConfigError,\n    ScriptedDryRunDecisionEngine,\n    StaticProviderSelectorValueSource,\n    build_dry_run_provider_backend,\n)\n'''
+          if block not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('repair import marker not unique')
+              text = text.replace(marker, block + marker, 1)
+          additions = [
+              '    "CatalogProviderSelectorResolver",\n',
+              '    "DryRunDecisionEngine",\n',
+              '    "DryRunProviderInvoker",\n',
+              '    "ProviderSelectorValueSource",\n',
+              '    "ProviderTargetCatalogEntry",\n',
+              '    "ProviderTargetConfigError",\n',
+              '    "ScriptedDryRunDecisionEngine",\n',
+              '    "StaticProviderSelectorValueSource",\n',
+              '    "build_dry_run_provider_backend",\n',
+          ]
+          anchor = '    "DetectionResult",\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('__all__ anchor not unique')
+          missing = ''.join(item for item in additions if item not in text)
+          if missing:
+              text = text.replace(anchor, missing + anchor, 1)
+          init.write_text(text, encoding='utf-8')
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install locked CI dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Generate exact manifest and self-delete helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-provider-targets.yml
+          python3 scripts/build_manifest.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: refresh provider-target manifest [skip ci]"
+          git push origin HEAD:feat/dry-run-provider-selector-invoker
