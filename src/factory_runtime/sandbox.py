@@ -141,8 +141,22 @@ class SandboxReceipt:
 
 
 @dataclass(frozen=True)
+class BoundSandboxReceipt:
+    """A receipt whose provenance and request binding are trusted.
+
+    A bound receipt is an observation, not proof of success. It may represent a
+    non-zero exit or timeout and is useful for diagnosis/repair loops. It remains
+    non-authoritative and is not Factory Evidence.
+    """
+
+    receipt: SandboxReceipt
+    request_digest: str
+    observed_at: datetime
+
+
+@dataclass(frozen=True)
 class ValidatedSandboxReceipt:
-    """A receipt that passed deterministic binding checks.
+    """A successful bound receipt.
 
     This is still not Factory Evidence. In particular it intentionally contains
     no signature-valid flag, no Controller authority, and no state transition
@@ -162,13 +176,13 @@ class SandboxAdapter(Protocol):
         ...
 
 
-def validate_sandbox_receipt(
+def bind_sandbox_receipt(
     request: SandboxRequest,
     receipt: SandboxReceipt,
     *,
     now: datetime | None = None,
-) -> ValidatedSandboxReceipt:
-    """Fail closed unless a successful receipt is exactly bound to its request."""
+) -> BoundSandboxReceipt:
+    """Bind a success or failure observation to the exact authorized request."""
 
     now = now or datetime.now(timezone.utc)
     _require_aware("now", now)
@@ -196,13 +210,34 @@ def validate_sandbox_receipt(
     elapsed = (receipt.finished_at - receipt.started_at).total_seconds()
     if elapsed > request.timeout_seconds:
         raise SandboxContractError("sandbox execution exceeded the authorized timeout")
-    if receipt.timed_out:
+    if receipt.timed_out and receipt.exit_code is not None:
+        raise SandboxContractError("timed-out sandbox receipt must not claim an exit code")
+    if not receipt.timed_out and receipt.exit_code is None:
+        raise SandboxContractError("completed sandbox receipt must include an exit code")
+
+    return BoundSandboxReceipt(
+        receipt=receipt,
+        request_digest=request.request_digest,
+        observed_at=now,
+    )
+
+
+def validate_sandbox_receipt(
+    request: SandboxRequest,
+    receipt: SandboxReceipt,
+    *,
+    now: datetime | None = None,
+) -> ValidatedSandboxReceipt:
+    """Fail closed unless a successful receipt is exactly bound to its request."""
+
+    bound = bind_sandbox_receipt(request, receipt, now=now)
+    if bound.receipt.timed_out:
         raise SandboxContractError("timed-out sandbox execution cannot verify work")
-    if receipt.exit_code != 0:
+    if bound.receipt.exit_code != 0:
         raise SandboxContractError("sandbox execution must exit zero to verify work")
 
     return ValidatedSandboxReceipt(
-        receipt=receipt,
-        request_digest=request.request_digest,
-        verified_at=now,
+        receipt=bound.receipt,
+        request_digest=bound.request_digest,
+        verified_at=bound.observed_at,
     )

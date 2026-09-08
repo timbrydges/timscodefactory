@@ -39,17 +39,20 @@ from .pipeline import (
     build_docker_runtime_pipeline,
 )
 from .sandbox import (
+    BoundSandboxReceipt,
     SandboxAdapter,
     SandboxContractError,
     SandboxReceipt,
     SandboxRequest,
     ValidatedSandboxReceipt,
+    bind_sandbox_receipt,
     command_digest,
     validate_sandbox_receipt,
 )
 
 __all__ = [
     "BaseImagePolicy",
+    "BoundSandboxReceipt",
     "DetectionResult",
     "DockerEnvironmentProvisioner",
     "DockerProvisioningPolicy",
@@ -78,6 +81,7 @@ __all__ = [
     "ValidatedSandboxReceipt",
     "VerificationBinding",
     "VerificationFactory",
+    "bind_sandbox_receipt",
     "build_docker_runtime_pipeline",
     "command_digest",
     "detect_environment",
