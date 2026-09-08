@@ -76,14 +76,17 @@ def _digest_bytes(value: bytes) -> str:
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
-def _normalize_text(value: bytes) -> str:
-    text = value.decode("utf-8", errors="replace")
+def _normalize_string(text: str) -> str:
     return "".join(
         ch
         if ch in "\n\t" or ord(ch) >= 32
         else "\ufffd"
         for ch in text
     )
+
+
+def _normalize_text(value: bytes) -> str:
+    return _normalize_string(value.decode("utf-8", errors="replace"))
 
 
 def _redact(text: str) -> tuple[str, int]:
@@ -104,6 +107,34 @@ def _truncate(text: str, max_chars: int) -> tuple[str, bool]:
         head = max(64, (max_chars - len(marker)) // 2)
         tail = max_chars - head - len(marker)
     return text[:head] + marker + text[-tail:], True
+
+
+@dataclass(frozen=True)
+class SanitizedModelText:
+    """Bounded text safe enough for model context; never authoritative evidence."""
+
+    text: str
+    redaction_count: int
+    truncated: bool
+    sanitizer_version: str = _SANITIZER_VERSION
+
+
+def sanitize_text_for_model(text: str, *, max_chars: int = 32768) -> SanitizedModelText:
+    """Redact common secret forms and bound arbitrary text before model exposure."""
+
+    if not isinstance(text, str):
+        raise TypeError("model context text must be a string")
+    if isinstance(max_chars, bool) or not isinstance(max_chars, int):
+        raise ValueError("max_chars must be an integer")
+    if max_chars < 512 or max_chars > 131072:
+        raise ValueError("max_chars must be between 512 and 131072")
+    redacted, count = _redact(_normalize_string(text))
+    bounded, truncated = _truncate(redacted, max_chars)
+    return SanitizedModelText(
+        text=bounded,
+        redaction_count=count,
+        truncated=truncated,
+    )
 
 
 @dataclass(frozen=True)
