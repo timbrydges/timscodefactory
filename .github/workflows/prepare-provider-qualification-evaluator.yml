@@ -1,0 +1,75 @@
+name: prepare-provider-qualification-evaluator
+
+on:
+  push:
+    branches:
+      - feat/provider-qualification-evaluator
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.repository == 'timbrydges/timscodefactory' && github.actor == 'timbrydges'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/provider-qualification-evaluator
+          fetch-depth: 1
+      - name: Export evaluator API
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/factory_runtime/__init__.py')
+          text = path.read_text(encoding='utf-8')
+          import_block = '''from .provider_qualification_evaluator import (\n    BrokeredQualificationCandidateFactory,\n    BrokeredQualificationCandidateRuntime,\n    OracleBackedProviderQualificationCaseRunner,\n    ProviderQualificationEvaluatorPolicy,\n    ProviderQualificationOracle,\n    QualificationBrokerTransportSelector,\n    QualificationCandidateFactory,\n    QualificationCandidateRuntime,\n    QualificationModelTrace,\n    TracingRepairModel,\n    load_provider_qualification_oracle,\n)\n'''
+          marker = 'from .provider_targets import (\n'
+          if import_block not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('provider_targets import marker missing')
+              text = text.replace(marker, import_block + marker, 1)
+
+          names = [
+              'BrokeredQualificationCandidateFactory',
+              'BrokeredQualificationCandidateRuntime',
+              'OracleBackedProviderQualificationCaseRunner',
+              'ProviderQualificationEvaluatorPolicy',
+              'ProviderQualificationOracle',
+              'QualificationBrokerTransportSelector',
+              'QualificationCandidateFactory',
+              'QualificationCandidateRuntime',
+              'QualificationModelTrace',
+              'TracingRepairModel',
+              'load_provider_qualification_oracle',
+          ]
+          all_marker = '    "ProviderSelectorValueSource",\n'
+          if any(f'    "{name}",\n' not in text for name in names):
+              if text.count(all_marker) != 1:
+                  raise SystemExit('__all__ marker missing')
+              exports = ''.join(f'    "{name}",\n' for name in names)
+              text = text.replace(all_marker, exports + all_marker, 1)
+          path.write_text(text, encoding='utf-8')
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install locked CI dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Generate exact manifest and self-delete helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-provider-qualification-evaluator.yml
+          python scripts/build_manifest.py
+          python scripts/build_manifest.py --check
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: refresh qualification-evaluator manifest [skip ci]"
+          git push origin HEAD:feat/provider-qualification-evaluator
