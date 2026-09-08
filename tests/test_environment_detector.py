@@ -31,10 +31,7 @@ def write(root: Path, name: str, content: str) -> None:
 
 
 def hashed_requirements() -> str:
-    return (
-        "jsonschema==4.26.0 \\\n"
-        "    --hash=sha256:" + "a" * 64 + "\n"
-    )
+    return "jsonschema==4.26.0 --hash=sha256:" + "a" * 64 + "\n"
 
 
 class EnvironmentDetectorTests(unittest.TestCase):
@@ -60,6 +57,14 @@ class EnvironmentDetectorTests(unittest.TestCase):
                 ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements-ci.txt"),
             )
             self.assertEqual(result.spec.network_policy_id, NETWORK)
+
+    def test_networked_provisioning_without_policy_is_denied(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write(root, "pyproject.toml", '[project]\nname="x"\nrequires-python=">=3.12"\ndependencies=[]\n')
+            write(root, "requirements-ci.txt", hashed_requirements())
+            with self.assertRaises(EnvironmentDetectionError):
+                detect_environment(root, policy(("python:3.12", PY312), network=None))
 
     def test_workflow_runtime_overrides_project_lower_bound(self):
         with tempfile.TemporaryDirectory() as tmp:
