@@ -214,7 +214,79 @@ def _validate_attributes(
         raise RuntimeTelemetryPayloadError(
             f"telemetry {event_type.value} missing required attributes: {sorted(missing)}"
         )
+    _validate_event_semantics(event_type, normalized)
     return normalized
+
+
+def _require_string(attributes: dict[str, object], key: str) -> None:
+    if not isinstance(attributes.get(key), str):
+        raise RuntimeTelemetryPayloadError(f"telemetry attribute {key} must be a string")
+
+
+def _require_bool(attributes: dict[str, object], key: str) -> None:
+    if not isinstance(attributes.get(key), bool):
+        raise RuntimeTelemetryPayloadError(f"telemetry attribute {key} must be boolean")
+
+
+def _require_nonnegative_int(
+    attributes: dict[str, object],
+    key: str,
+    *,
+    minimum: int = 0,
+) -> None:
+    value = attributes.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise RuntimeTelemetryPayloadError(
+            f"telemetry attribute {key} must be an integer >= {minimum}"
+        )
+
+
+def _require_exit_code(attributes: dict[str, object]) -> None:
+    value = attributes.get("exit_code")
+    if value is not None and (isinstance(value, bool) or not isinstance(value, int)):
+        raise RuntimeTelemetryPayloadError(
+            "telemetry attribute exit_code must be an integer or null"
+        )
+
+
+def _validate_event_semantics(
+    event_type: RuntimeTraceEventType,
+    attributes: dict[str, object],
+) -> None:
+    if event_type == RuntimeTraceEventType.SESSION_STARTED:
+        _require_string(attributes, "component")
+    elif event_type == RuntimeTraceEventType.DETECTION_COMPLETED:
+        _require_string(attributes, "stack")
+        _require_string(attributes, "runtime_version")
+    elif event_type in {
+        RuntimeTraceEventType.PROVISIONING_COMPLETED,
+        RuntimeTraceEventType.VERIFICATION_OBSERVED,
+    }:
+        _require_string(attributes, "request_id")
+        _require_exit_code(attributes)
+        _require_bool(attributes, "timed_out")
+    elif event_type == RuntimeTraceEventType.DIAGNOSTIC_REDACTED:
+        _require_nonnegative_int(attributes, "redaction_count")
+        _require_bool(attributes, "truncated")
+    elif event_type == RuntimeTraceEventType.REPAIR_MODEL_CALL:
+        _require_string(attributes, "request_id")
+        _require_string(attributes, "provider_profile")
+        _require_string(attributes, "model_selector")
+        _require_nonnegative_int(attributes, "input_tokens")
+        _require_nonnegative_int(attributes, "output_tokens")
+        _require_string(attributes, "cost_usd")
+    elif event_type == RuntimeTraceEventType.REPAIR_ACTION:
+        _require_nonnegative_int(attributes, "attempt_number", minimum=1)
+    elif event_type == RuntimeTraceEventType.LIVENESS_EVALUATED:
+        for key in ("status", "reason_code", "controller_request", "runtime_action"):
+            _require_string(attributes, key)
+    elif event_type == RuntimeTraceEventType.TERMINATION_COMPLETED:
+        _require_string(attributes, "reason_code")
+    elif event_type == RuntimeTraceEventType.ESCALATED:
+        _require_string(attributes, "reason_code")
+        _require_nonnegative_int(attributes, "attempts")
+    elif event_type == RuntimeTraceEventType.SESSION_FINISHED:
+        _require_string(attributes, "outcome")
 
 
 @dataclass(frozen=True)
