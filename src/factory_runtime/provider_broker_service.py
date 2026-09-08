@@ -14,6 +14,7 @@ network listener and not a live provider integration.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from dataclasses import dataclass
@@ -146,6 +147,7 @@ class BrokerServicePolicy:
     max_response_bytes: int = 64 * 1024
     max_cost_usd_per_request: Decimal = Decimal("1.00")
     max_auth_ttl_seconds: int = 900
+    provider_timeout_seconds: int = 90
 
     def __post_init__(self) -> None:
         if not self.allowed_subjects or any(
@@ -159,6 +161,7 @@ class BrokerServicePolicy:
             ("max_request_bytes", self.max_request_bytes, 1024, 1024 * 1024),
             ("max_response_bytes", self.max_response_bytes, 1024, 1024 * 1024),
             ("max_auth_ttl_seconds", self.max_auth_ttl_seconds, 30, 3600),
+            ("provider_timeout_seconds", self.provider_timeout_seconds, 1, 300),
         ):
             if isinstance(value, bool) or not isinstance(value, int) or value < low or value > high:
                 raise ValueError(f"{name} must be between {low} and {high}")
@@ -321,6 +324,8 @@ class ReferenceProviderBrokerService:
             raise ProviderBrokerAuthenticationError("broker caller subject is not allowed")
         if auth.audience != _EXPECTED_AUDIENCE:
             raise ProviderBrokerAuthenticationError("broker caller audience is invalid")
+        if not isinstance(auth.issued_at, datetime) or not isinstance(auth.expires_at, datetime):
+            raise ProviderBrokerAuthenticationError("broker auth timestamps must be datetimes")
         if (
             auth.issued_at.tzinfo is None
             or auth.issued_at.utcoffset() is None
@@ -404,12 +409,18 @@ class ReferenceProviderBrokerService:
         if target.provider_family != self.binding.provider_family:
             raise ProviderBrokerInvocationError("resolved provider family does not match Factory binding")
 
-        result = await self.provider_invoker.invoke(
-            target=target,
-            turn=payload["turn"],
-            max_cost_usd=granted_cost,
-            decision_schema_version=payload["decision_schema_version"],
-        )
+        try:
+            result = await asyncio.wait_for(
+                self.provider_invoker.invoke(
+                    target=target,
+                    turn=payload["turn"],
+                    max_cost_usd=granted_cost,
+                    decision_schema_version=payload["decision_schema_version"],
+                ),
+                timeout=self.policy.provider_timeout_seconds,
+            )
+        except asyncio.TimeoutError as exc:
+            raise ProviderBrokerInvocationError("provider invocation exceeded broker timeout") from exc
         if result.cost_usd > granted_cost:
             raise ProviderBrokerInvocationError("provider result cost exceeded caller grant")
         if result.cost_usd > self.policy.max_cost_usd_per_request:
