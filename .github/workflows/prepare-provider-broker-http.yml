@@ -1,0 +1,56 @@
+name: prepare-provider-broker-http
+
+on:
+  push:
+    branches:
+      - feat/provider-broker-http-edge
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.repository == 'timbrydges/timscodefactory' && github.actor == 'timbrydges'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/provider-broker-http-edge
+          fetch-depth: 1
+      - name: Tighten HTTP edge test assertion
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("tests/test_provider_broker_http.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''    ProviderBrokerBudget,\n    ProviderBrokerRepairModel,\n    load_provider_broker_binding,\n'''
+          new = '''    ProviderBrokerBudget,\n    ProviderBrokerProtocolError,\n    ProviderBrokerRepairModel,\n    load_provider_broker_binding,\n'''
+          if text.count(old) != 1:
+              raise SystemExit("provider broker import patch target missing")
+          text = text.replace(old, new, 1)
+          old = '        with self.assertRaises(Exception):\n            asyncio.run(model.decide(turn()))\n'
+          new = '        with self.assertRaises(ProviderBrokerProtocolError):\n            asyncio.run(model.decide(turn()))\n'
+          if text.count(old) != 1:
+              raise SystemExit("HTTP 502 assertion patch target missing")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install locked CI dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Generate exact manifest and self-delete helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-provider-broker-http.yml
+          python3 scripts/build_manifest.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: refresh provider-broker-http manifest [skip ci]"
+          git push origin HEAD:feat/provider-broker-http-edge
