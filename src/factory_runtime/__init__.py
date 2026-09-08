@@ -6,6 +6,11 @@ from .detector import (
     EnvironmentDetectionError,
     detect_environment,
 )
+from .docker_provisioner import (
+    DockerEnvironmentProvisioner,
+    DockerProvisioningPolicy,
+    ProvisioningExecutionError,
+)
 from .docker_sandbox import (
     DockerSandboxAdapter,
     DockerSandboxPolicy,
@@ -36,6 +41,8 @@ from .sandbox import (
 __all__ = [
     "BaseImagePolicy",
     "DetectionResult",
+    "DockerEnvironmentProvisioner",
+    "DockerProvisioningPolicy",
     "DockerSandboxAdapter",
     "DockerSandboxPolicy",
     "EnvironmentDetectionError",
@@ -44,6 +51,7 @@ __all__ = [
     "ProvisionStep",
     "ProvisionerAdapter",
     "ProvisioningContractError",
+    "ProvisioningExecutionError",
     "ProvisioningReceipt",
     "ProvisioningRequest",
     "SandboxAdapter",
