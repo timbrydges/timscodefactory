@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from factory_runtime.openai_provider import (  # noqa: E402
+    OpenAIProviderCredentialError,
     OpenAIProviderDisabledError,
     OpenAIProviderPolicy,
     OpenAIProviderPricingError,
@@ -264,7 +265,7 @@ class OpenAIProviderTests(unittest.TestCase):
             live_enabled=True,
             credential_source=credentials,
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(OpenAIProviderCredentialError):
             asyncio.run(
                 invoker.invoke(
                     target=TARGET,
