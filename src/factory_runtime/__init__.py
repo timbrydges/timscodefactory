@@ -31,6 +31,7 @@ from .environment import (
 from .pipeline import (
     DockerVerificationFactory,
     RuntimeInvocation,
+    RuntimeObservation,
     RuntimePipeline,
     RuntimePipelineError,
     RuntimeResult,
@@ -69,6 +70,7 @@ __all__ = [
     "ProvisioningReceipt",
     "ProvisioningRequest",
     "RuntimeInvocation",
+    "RuntimeObservation",
     "RuntimePipeline",
     "RuntimePipelineError",
     "RuntimeResult",
