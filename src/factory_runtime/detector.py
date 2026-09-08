@@ -109,13 +109,8 @@ def _existing_workflows(root: Path) -> tuple[Path, ...]:
 def _detect_root_stack(root: Path) -> str:
     hits: list[str] = []
     for stack, markers in _STACK_MARKERS.items():
-        found = False
         for marker in markers:
-            if marker.startswith("*."):
-                found = any(root.glob(marker))
-            else:
-                found = (root / marker).exists()
-            if found:
+            if (root / marker).exists():
                 hits.append(stack)
                 break
     if not hits:
@@ -263,19 +258,37 @@ def _node_declared_version(package: dict) -> str | None:
     return match.group(1)
 
 
+def _logical_requirements(text: str) -> tuple[str, ...]:
+    entries: list[str] = []
+    current = ""
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if current:
+            current += " " + line
+        else:
+            current = line
+        if current.endswith("\\"):
+            current = current[:-1].rstrip()
+            continue
+        entries.append(current)
+        current = ""
+    if current:
+        entries.append(current)
+    return tuple(entries)
+
+
 def _hashed_requirements(path: Path) -> bool:
-    text = path.read_text(encoding="utf-8")
-    requirement_lines = [
-        line.strip()
-        for line in text.splitlines()
-        if line.strip() and not line.lstrip().startswith("#") and not line.lstrip().startswith("--hash")
-    ]
-    if not requirement_lines:
-        return True
-    return "--hash=sha256:" in text and all(
-        ("==" in line) or line.endswith("\\") or line.startswith("-")
-        for line in requirement_lines
-    )
+    entries = _logical_requirements(path.read_text(encoding="utf-8"))
+    for entry in entries:
+        if entry.startswith("--require-hashes"):
+            continue
+        if entry.startswith(("-r ", "--requirement ", "-c ", "--constraint ", "--index-url", "--extra-index-url")):
+            return False
+        if "==" not in entry or "--hash=sha256:" not in entry:
+            return False
+    return True
 
 
 def _python_steps(root: Path, project: dict) -> tuple[ProvisionStep, ...]:
@@ -284,7 +297,7 @@ def _python_steps(root: Path, project: dict) -> tuple[ProvisionStep, ...]:
         if path.exists():
             if not _hashed_requirements(path):
                 raise EnvironmentDetectionError(
-                    f"{name} is not hash-locked; refusing non-reproducible Python provisioning"
+                    f"{name} is not fully hash-locked; refusing non-reproducible Python provisioning"
                 )
             return (
                 ProvisionStep(
@@ -399,7 +412,12 @@ def detect_environment(root: Path | str, policy: BaseImagePolicy) -> DetectionRe
         steps = _node_steps(root, package)
 
     image = policy.resolve(stack, runtime_version)
-    network_policy_id = policy.network_policy_id if any(step.network_required for step in steps) else None
+    requires_network = any(step.network_required for step in steps)
+    if requires_network and policy.network_policy_id is None:
+        raise EnvironmentDetectionError(
+            "detected provisioning requires network access but no approved network policy is configured"
+        )
+    network_policy_id = policy.network_policy_id if requires_network else None
     spec = EnvironmentSpec(
         stack=stack,
         base_image_ref=image,
