@@ -22,6 +22,7 @@ from factory_runtime.environment import (  # noqa: E402
 NOW = datetime(2026, 9, 8, 5, 30, 0, tzinfo=timezone.utc)
 BASE_IMAGE = "python@sha256:" + "a" * 64
 RESULT_IMAGE = "factory-python-env@sha256:" + "b" * 64
+LOCAL_RESULT_IMAGE = "sha256:" + "2" * 64
 COMMIT = "c" * 40
 WORKSPACE = "sha256:" + "d" * 64
 INPUT_DIGEST = "sha256:" + "e" * 64
@@ -87,6 +88,9 @@ class EnvironmentProvisioningContractTests(unittest.TestCase):
         with self.assertRaises(ProvisioningContractError):
             replace(spec(), base_image_ref="python:3.12-slim")
 
+    def test_bare_local_sha256_image_is_accepted(self):
+        self.assertEqual(replace(spec(), base_image_ref=LOCAL_RESULT_IMAGE).base_image_ref, LOCAL_RESULT_IMAGE)
+
     def test_provision_step_rejects_shell_execution(self):
         with self.assertRaises(ProvisioningContractError):
             ProvisionStep("bad", ("sh", "-c", "pip install -r requirements.txt"))
@@ -131,6 +135,17 @@ class EnvironmentProvisioningContractTests(unittest.TestCase):
         self.assertFalse(hasattr(validated, "signature_valid"))
         self.assertFalse(hasattr(validated, "producer_identity"))
 
+    def test_successful_local_image_id_validates(self):
+        environment = spec()
+        req = request(environment)
+        validated = validate_provisioning_receipt(
+            req,
+            environment,
+            replace(receipt(req), result_image_ref=LOCAL_RESULT_IMAGE),
+            now=NOW,
+        )
+        self.assertEqual(validated.receipt.result_image_ref, LOCAL_RESULT_IMAGE)
+
     def test_request_rejects_spec_mismatch(self):
         environment = spec()
         req = replace(request(environment), environment_spec_digest="sha256:" + "3" * 64)
@@ -159,27 +174,34 @@ class EnvironmentProvisioningContractTests(unittest.TestCase):
                 now=NOW,
             )
 
-    def test_result_image_must_be_digest_pinned(self):
+    def test_result_image_must_be_content_addressed(self):
         req = request()
         with self.assertRaises(ProvisioningContractError):
             replace(receipt(req), result_image_ref="factory-python-env:latest")
 
+    def test_success_requires_result_image(self):
+        req = request()
+        with self.assertRaises(ProvisioningContractError):
+            replace(receipt(req), result_image_ref=None)
+
+    def test_failure_must_not_claim_result_image(self):
+        req = request()
+        with self.assertRaises(ProvisioningContractError):
+            replace(receipt(req), exit_code=1)
+
     def test_nonzero_exit_is_denied(self):
         environment = spec()
         req = request(environment)
+        failed = replace(receipt(req), exit_code=1, result_image_ref=None)
         with self.assertRaises(ProvisioningContractError):
-            validate_provisioning_receipt(req, environment, replace(receipt(req), exit_code=1), now=NOW)
+            validate_provisioning_receipt(req, environment, failed, now=NOW)
 
     def test_timeout_is_denied(self):
         environment = spec()
         req = request(environment)
+        timed_out = replace(receipt(req), exit_code=None, timed_out=True, result_image_ref=None)
         with self.assertRaises(ProvisioningContractError):
-            validate_provisioning_receipt(
-                req,
-                environment,
-                replace(receipt(req), exit_code=None, timed_out=True),
-                now=NOW,
-            )
+            validate_provisioning_receipt(req, environment, timed_out, now=NOW)
 
     def test_future_dated_receipt_is_denied(self):
         environment = spec()
