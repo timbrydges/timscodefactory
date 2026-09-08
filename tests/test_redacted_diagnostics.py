@@ -5,6 +5,7 @@ import hashlib
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -138,14 +139,17 @@ class RedactedDiagnosticsTests(unittest.TestCase):
         stderr = b"boom\n"
         req = request()
         rec = receipt(req, stdout, stderr)
-        bad = SandboxReceipt(
-            **{
-                **rec.__dict__,
-                "stdout_digest": "sha256:" + "f" * 64,
-            }
-        )
+        bad = replace(rec, stdout_digest="sha256:" + "f" * 64)
         with self.assertRaises(DiagnosticCaptureError):
             RedactedDiagnosticCapture().capture(req, bad, stdout, stderr)
+
+    def test_capture_rejects_input_above_its_own_byte_cap(self):
+        stdout = b"x" * 1025
+        stderr = b""
+        req = request()
+        rec = receipt(req, stdout, stderr)
+        with self.assertRaises(DiagnosticCaptureError):
+            RedactedDiagnosticCapture(max_input_bytes=1024).capture(req, rec, stdout, stderr)
 
     def test_diagnostics_are_one_shot(self):
         stdout = b"failure\n"
