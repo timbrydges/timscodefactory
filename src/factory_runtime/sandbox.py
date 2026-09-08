@@ -57,6 +57,7 @@ class SandboxRequest:
     lease_id: str
     role_id: str
     source_commit: str
+    workspace_digest: str
     command: tuple[str, ...]
     environment_digest: str
     timeout_seconds: int
@@ -70,6 +71,7 @@ class SandboxRequest:
         _require_identifier("expected_runner_identity", self.expected_runner_identity)
         if not isinstance(self.source_commit, str) or not COMMIT_SHA.fullmatch(self.source_commit):
             raise SandboxContractError("source_commit must be an exact 40-character commit SHA")
+        _require_digest("workspace_digest", self.workspace_digest)
         command_digest(self.command)
         _require_digest("environment_digest", self.environment_digest)
         if isinstance(self.timeout_seconds, bool) or not isinstance(self.timeout_seconds, int):
@@ -89,6 +91,7 @@ class SandboxRequest:
             self.lease_id,
             self.role_id,
             self.source_commit,
+            self.workspace_digest,
             self.command_digest,
             self.environment_digest,
             str(self.timeout_seconds),
@@ -107,6 +110,7 @@ class SandboxReceipt:
     lease_id: str
     role_id: str
     source_commit: str
+    workspace_digest: str
     command_digest: str
     environment_digest: str
     runner_identity: str
@@ -123,6 +127,7 @@ class SandboxReceipt:
             _require_identifier(name, getattr(self, name))
         if not isinstance(self.source_commit, str) or not COMMIT_SHA.fullmatch(self.source_commit):
             raise SandboxContractError("receipt source_commit is invalid")
+        _require_digest("workspace_digest", self.workspace_digest)
         _require_digest("command_digest", self.command_digest)
         _require_digest("environment_digest", self.environment_digest)
         _require_digest("stdout_digest", self.stdout_digest)
@@ -174,6 +179,7 @@ def validate_sandbox_receipt(
         "lease_id": (receipt.lease_id, request.lease_id),
         "role_id": (receipt.role_id, request.role_id),
         "source_commit": (receipt.source_commit, request.source_commit),
+        "workspace_digest": (receipt.workspace_digest, request.workspace_digest),
         "command_digest": (receipt.command_digest, request.command_digest),
         "environment_digest": (receipt.environment_digest, request.environment_digest),
         "runner_identity": (receipt.runner_identity, request.expected_runner_identity),
