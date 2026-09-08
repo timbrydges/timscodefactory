@@ -1,5 +1,11 @@
 """Factory-owned runtime interfaces below the authoritative control plane."""
 
+from .detector import (
+    BaseImagePolicy,
+    DetectionResult,
+    EnvironmentDetectionError,
+    detect_environment,
+)
 from .docker_sandbox import (
     DockerSandboxAdapter,
     DockerSandboxPolicy,
@@ -28,8 +34,11 @@ from .sandbox import (
 )
 
 __all__ = [
+    "BaseImagePolicy",
+    "DetectionResult",
     "DockerSandboxAdapter",
     "DockerSandboxPolicy",
+    "EnvironmentDetectionError",
     "EnvironmentSpec",
     "ProvisionInput",
     "ProvisionStep",
@@ -45,6 +54,7 @@ __all__ = [
     "ValidatedProvisioningReceipt",
     "ValidatedSandboxReceipt",
     "command_digest",
+    "detect_environment",
     "validate_provisioning_receipt",
     "validate_sandbox_receipt",
     "workspace_tree_digest",
