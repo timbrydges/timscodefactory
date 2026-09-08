@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 from pathlib import Path
 
@@ -40,8 +41,18 @@ def main() -> int:
     manifest_path = args.root / "MANIFEST.sha256"
     expected = render_manifest(args.root)
     if args.check:
-        if not manifest_path.exists() or manifest_path.read_text(encoding="utf-8") != expected:
+        actual = manifest_path.read_text(encoding="utf-8") if manifest_path.exists() else ""
+        if actual != expected:
             print("MANIFEST.sha256 is missing or stale")
+            diff = difflib.unified_diff(
+                actual.splitlines(),
+                expected.splitlines(),
+                fromfile="MANIFEST.sha256",
+                tofile="expected MANIFEST.sha256",
+                lineterm="",
+            )
+            for line in diff:
+                print(line)
             return 1
         print("MANIFEST.sha256 verified")
         return 0
@@ -52,4 +63,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
