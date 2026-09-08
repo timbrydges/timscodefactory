@@ -440,7 +440,16 @@ class ReferenceProviderBrokerService:
                 "cost_usd": format(result.cost_usd, "f"),
             },
         }
-        _validate_with_schema(self._response_validator, response_payload, context="broker response")
+        try:
+            _validate_with_schema(
+                self._response_validator,
+                response_payload,
+                context="broker response",
+            )
+        except ProviderBrokerRequestError as exc:
+            raise ProviderBrokerInvocationError(
+                "provider returned a decision that violates the broker response contract"
+            ) from exc
         response_body = _canonical_json(response_payload)
         if len(response_body) > self.policy.max_response_bytes:
             raise ProviderBrokerInvocationError("broker response exceeds server byte cap")

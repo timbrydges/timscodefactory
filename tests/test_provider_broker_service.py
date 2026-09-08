@@ -339,7 +339,7 @@ class ProviderBrokerServiceTests(unittest.TestCase):
     def test_invalid_provider_decision_is_rejected_by_response_schema(self):
         invoker = RecordingInvoker({"type": "launch_missiles", "target": "nope"})
         model, _ = self.client(self.service(invoker))
-        with self.assertRaises(ProviderBrokerRequestError):
+        with self.assertRaises(ProviderBrokerInvocationError):
             asyncio.run(model.decide(repair_turn()))
 
     def test_unresolvable_selector_fails_before_provider_invocation(self):
