@@ -1,0 +1,32 @@
+name: prepare-feature-manifest
+
+on:
+  push:
+    branches:
+      - feat/redacted-runtime-diagnostics
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.repository == 'timbrydges/timscodefactory' && github.actor == 'timbrydges'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/redacted-runtime-diagnostics
+          fetch-depth: 1
+      - name: Generate exact manifest and self-delete helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-feature-manifest.yml
+          python3 scripts/build_manifest.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: refresh feature manifest [skip ci]"
+          git push origin HEAD:feat/redacted-runtime-diagnostics
