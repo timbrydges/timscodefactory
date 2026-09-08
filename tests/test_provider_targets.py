@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
-import shutil
 import sys
 import tempfile
 import unittest
@@ -24,7 +22,9 @@ from factory_runtime.provider_broker import (  # noqa: E402
 from factory_runtime.provider_broker_service import (  # noqa: E402
     BrokerAuthContext,
     BrokerServicePolicy,
+    ProviderBrokerInvocationError,
     ReferenceProviderBrokerService,
+    ResolvedProviderTarget,
 )
 from factory_runtime.provider_targets import (  # noqa: E402
     CatalogProviderSelectorResolver,
@@ -198,9 +198,7 @@ class ProviderTargetTests(unittest.TestCase):
         self.assertEqual(result.decision["type"], "read_files")
         self.assertEqual(invoker.invocation_count, 1)
 
-        from factory_runtime.provider_broker_service import ResolvedProviderTarget
-
-        with self.assertRaises(Exception):
+        with self.assertRaises(ProviderBrokerInvocationError):
             asyncio.run(
                 invoker.invoke(
                     target=ResolvedProviderTarget(
