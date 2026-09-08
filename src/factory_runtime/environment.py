@@ -3,7 +3,7 @@
 Provisioning is intentionally separated from verification. Provisioners may use
 bounded network access to install dependencies and produce an immutable image,
 but they remain below the Factory trust boundary and cannot mutate Factory
-state. The verification sandbox consumes only digest-pinned images.
+state. The verification sandbox consumes only content-addressed images.
 """
 
 from __future__ import annotations
@@ -22,7 +22,9 @@ from .sandbox import SandboxContractError
 SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-PINNED_IMAGE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+IMMUTABLE_IMAGE = re.compile(
+    r"^(?:[^\s@]+@sha256:[0-9a-f]{64}|sha256:[0-9a-f]{64})$"
+)
 ALLOWED_STACKS = frozenset({"python", "node", "java", "csharp", "go", "rust", "unknown"})
 SHELL_EXECUTABLES = frozenset({"sh", "bash", "dash", "zsh", "fish", "cmd", "cmd.exe", "powershell", "pwsh"})
 
@@ -41,9 +43,9 @@ def _require_digest(name: str, value: str) -> None:
         raise ProvisioningContractError(f"{name} must be a sha256 digest")
 
 
-def _require_pinned_image(name: str, value: str) -> None:
-    if not isinstance(value, str) or not PINNED_IMAGE.fullmatch(value):
-        raise ProvisioningContractError(f"{name} must be pinned by sha256 digest")
+def _require_immutable_image(name: str, value: str) -> None:
+    if not isinstance(value, str) or not IMMUTABLE_IMAGE.fullmatch(value):
+        raise ProvisioningContractError(f"{name} must be content-addressed by sha256 digest")
 
 
 def _require_aware(name: str, value: datetime) -> None:
@@ -119,7 +121,7 @@ class EnvironmentSpec:
     def __post_init__(self) -> None:
         if self.stack not in ALLOWED_STACKS:
             raise ProvisioningContractError("environment stack is unsupported")
-        _require_pinned_image("base_image_ref", self.base_image_ref)
+        _require_immutable_image("base_image_ref", self.base_image_ref)
         input_paths = [item.path for item in self.inputs]
         if len(set(input_paths)) != len(input_paths):
             raise ProvisioningContractError("environment inputs contain duplicate paths")
@@ -203,7 +205,7 @@ class ProvisioningReceipt:
     workspace_digest: str
     environment_spec_digest: str
     provisioner_identity: str
-    result_image_ref: str
+    result_image_ref: str | None
     started_at: datetime
     finished_at: datetime
     exit_code: int | None
@@ -217,7 +219,8 @@ class ProvisioningReceipt:
             raise ProvisioningContractError("receipt source_commit is invalid")
         _require_digest("workspace_digest", self.workspace_digest)
         _require_digest("environment_spec_digest", self.environment_spec_digest)
-        _require_pinned_image("result_image_ref", self.result_image_ref)
+        if self.result_image_ref is not None:
+            _require_immutable_image("result_image_ref", self.result_image_ref)
         _require_aware("started_at", self.started_at)
         _require_aware("finished_at", self.finished_at)
         if self.exit_code is not None and (isinstance(self.exit_code, bool) or not isinstance(self.exit_code, int)):
@@ -225,6 +228,11 @@ class ProvisioningReceipt:
         if not isinstance(self.timed_out, bool):
             raise ProvisioningContractError("timed_out must be boolean")
         _require_digest("build_log_digest", self.build_log_digest)
+        successful = self.exit_code == 0 and not self.timed_out
+        if successful and self.result_image_ref is None:
+            raise ProvisioningContractError("successful provisioning requires a result image")
+        if not successful and self.result_image_ref is not None:
+            raise ProvisioningContractError("failed provisioning may not claim a result image")
 
 
 @dataclass(frozen=True)
@@ -284,6 +292,8 @@ def validate_provisioning_receipt(
         raise ProvisioningContractError("timed-out provisioning cannot produce a trusted environment")
     if receipt.exit_code != 0:
         raise ProvisioningContractError("provisioning must exit zero")
+    if receipt.result_image_ref is None:
+        raise ProvisioningContractError("successful provisioning receipt is missing result image")
 
     return ValidatedProvisioningReceipt(
         receipt=receipt,
