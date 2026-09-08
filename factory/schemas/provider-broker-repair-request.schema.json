@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/provider-broker-repair-request.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "binding_digest",
+    "role_id",
+    "provider_profile",
+    "provider_family",
+    "model_selector",
+    "task",
+    "decision_schema_version",
+    "turn",
+    "request_id",
+    "idempotency_key",
+    "budget"
+  ],
+  "properties": {
+    "protocol_version": {"const": "factory-repair-broker-v1"},
+    "binding_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "role_id": {"const": "engineering_agent"},
+    "provider_profile": {"const": "coding_primary"},
+    "provider_family": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"},
+    "model_selector": {"const": "FACTORY_CODING_MODEL"},
+    "task": {"const": "structured_ci_repair_decision"},
+    "decision_schema_version": {"const": "1"},
+    "request_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "idempotency_key": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_cost_usd"],
+      "properties": {
+        "max_cost_usd": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"}
+      }
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repair_id",
+        "attempt_number",
+        "turn_number",
+        "original_command",
+        "stdout_excerpt",
+        "stderr_excerpt",
+        "diagnostic_redaction_count",
+        "inventory",
+        "files"
+      ],
+      "properties": {
+        "repair_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"},
+        "attempt_number": {"type": "integer", "minimum": 1, "maximum": 8},
+        "turn_number": {"type": "integer", "minimum": 1, "maximum": 8},
+        "original_command": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {"type": "string", "minLength": 1, "maxLength": 4096}
+        },
+        "stdout_excerpt": {"type": "string", "maxLength": 32768},
+        "stderr_excerpt": {"type": "string", "maxLength": 32768},
+        "diagnostic_redaction_count": {"type": "integer", "minimum": 0},
+        "inventory": {
+          "type": "array",
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 512}
+        },
+        "files": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "content_digest",
+              "content",
+              "redaction_count",
+              "truncated"
+            ],
+            "properties": {
+              "path": {"type": "string", "minLength": 1, "maxLength": 512},
+              "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              "content": {"type": "string", "maxLength": 131072},
+              "redaction_count": {"type": "integer", "minimum": 0},
+              "truncated": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
