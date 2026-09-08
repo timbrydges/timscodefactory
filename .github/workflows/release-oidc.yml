@@ -97,7 +97,7 @@ jobs:
         run: |
           sha256sum --check factory-control-plane.tar.gz.sha256
           gh attestation verify factory-control-plane.tar.gz --repo "$GITHUB_REPOSITORY"
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
