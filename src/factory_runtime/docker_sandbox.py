@@ -1,11 +1,12 @@
 """Hardened Docker implementation of the Factory sandbox adapter.
 
 This runner is intentionally a *verification* sandbox, not a dependency
-provisioner. Images must already exist locally and be pinned by digest. The
-container runs with networking disabled, a read-only root filesystem, dropped
-capabilities, no-new-privileges, and bounded resources. The source workspace is
-copied to a disposable host directory before it is mounted read/write, so
-untrusted verification commands cannot mutate the authoritative checkout.
+provisioner. Images must already exist locally and be content-addressed by
+SHA-256. The container runs with networking disabled, a read-only root
+filesystem, dropped capabilities, no-new-privileges, and bounded resources. The
+source workspace is copied to a disposable host directory before it is mounted
+read/write, so untrusted verification commands cannot mutate the authoritative
+checkout.
 """
 
 from __future__ import annotations
@@ -26,7 +27,9 @@ from typing import Protocol
 from .sandbox import SandboxContractError, SandboxReceipt, SandboxRequest
 
 
-PINNED_IMAGE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+IMMUTABLE_IMAGE = re.compile(
+    r"^(?:[^\s@]+@sha256:[0-9a-f]{64}|sha256:[0-9a-f]{64})$"
+)
 CONTAINER_ID = re.compile(r"^[0-9a-f]{12,64}$")
 EXCLUDED_WORKSPACE_NAMES = {".git", ".pytest_cache", "__pycache__"}
 EMPTY_DIGEST = "sha256:" + hashlib.sha256(b"").hexdigest()
@@ -124,8 +127,8 @@ class DockerSandboxPolicy:
     tmpfs_size: str = "256m"
 
     def __post_init__(self) -> None:
-        if not PINNED_IMAGE.fullmatch(self.image_ref):
-            raise SandboxContractError("Docker sandbox image must be pinned by sha256 digest")
+        if not IMMUTABLE_IMAGE.fullmatch(self.image_ref):
+            raise SandboxContractError("Docker sandbox image must be content-addressed by sha256 digest")
         if not self.runner_identity or any(ch.isspace() for ch in self.runner_identity):
             raise SandboxContractError("runner_identity is invalid")
         if not self.docker_executable or any(ch.isspace() for ch in self.docker_executable):
@@ -242,7 +245,7 @@ class DockerSandboxAdapter:
             timeout_seconds=30,
         )
         if image_check.returncode != 0:
-            raise SandboxExecutionError("pinned sandbox image is not available locally")
+            raise SandboxExecutionError("content-addressed sandbox image is not available locally")
 
         with tempfile.TemporaryDirectory(prefix="factory-sandbox-") as temp_dir:
             copied_workspace = Path(temp_dir) / "workspace"
