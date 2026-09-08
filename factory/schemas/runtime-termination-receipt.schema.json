@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/runtime-termination-receipt.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_session_id",
+    "task_id",
+    "lease_id",
+    "resource_id",
+    "resource_kind",
+    "action",
+    "reason_code",
+    "supervisor_identity",
+    "inspected_labels_digest",
+    "started_at",
+    "finished_at",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "runtime_session_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "lease_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "resource_id": {"type": "string", "pattern": "^[0-9a-f]{12,64}$"},
+    "resource_kind": {"const": "docker_container"},
+    "action": {"const": "TERMINATE_SESSION"},
+    "reason_code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,63}$"},
+    "supervisor_identity": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "inspected_labels_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "result": {"const": "TERMINATED"}
+  }
+}
