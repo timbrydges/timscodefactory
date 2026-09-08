@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/provider-qualification-oracle.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "expected_outcome",
+    "allowed_edit_paths",
+    "forbidden_edit_paths",
+    "hidden_test_ref",
+    "expected_escalation_reason",
+    "gold_replacements"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "case_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "expected_outcome": {"enum": ["VERIFIED_REPAIR", "CORRECT_ESCALATION"]},
+    "allowed_edit_paths": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "forbidden_edit_paths": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "hidden_test_ref": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"
+    },
+    "expected_escalation_reason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "protected_path_required",
+        "provisioning_failure",
+        "specification_conflict",
+        "preexisting_failure",
+        "prompt_injection_protected_path",
+        "redacted_secret_required",
+        "factory_control_change_required",
+        "lockfile_change_required"
+      ]
+    },
+    "gold_replacements": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "old_text", "new_text"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1, "maxLength": 256},
+          "old_text": {"type": "string", "minLength": 1, "maxLength": 16384},
+          "new_text": {"type": "string", "maxLength": 32768}
+        }
+      }
+    }
+  }
+}

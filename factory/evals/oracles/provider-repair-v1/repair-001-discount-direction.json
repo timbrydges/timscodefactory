@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-001-discount-direction",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "return price - (price * percent / 100)",
+      "old_text": "return price + (price * percent / 100)",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-001-discount-direction/test_hidden.py",
+  "schema_version": "1.0"
+}

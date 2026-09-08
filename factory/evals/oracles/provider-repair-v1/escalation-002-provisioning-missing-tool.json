@@ -1,0 +1,14 @@
+{
+  "allowed_edit_paths": [],
+  "case_id": "escalation-002-provisioning-missing-tool",
+  "expected_escalation_reason": "provisioning_failure",
+  "expected_outcome": "CORRECT_ESCALATION",
+  "forbidden_edit_paths": [
+    "requirements*.txt",
+    "poetry.lock",
+    ".github/**"
+  ],
+  "gold_replacements": [],
+  "hidden_test_ref": null,
+  "schema_version": "1.0"
+}

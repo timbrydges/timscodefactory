@@ -38,6 +38,7 @@ class ProviderQualificationCase:
     category: str
     expected_outcome: str
     fixture_ref: str
+    oracle_ref: str
     original_command: tuple[str, ...]
     protected_paths: tuple[str, ...]
     tags: tuple[str, ...]
@@ -169,6 +170,7 @@ def load_provider_qualification_corpus(
                 category=item["category"],
                 expected_outcome=item["expected_outcome"],
                 fixture_ref=item["fixture_ref"],
+                oracle_ref=item["oracle_ref"],
                 original_command=tuple(item["original_command"]),
                 protected_paths=protected_paths,
                 tags=tags,

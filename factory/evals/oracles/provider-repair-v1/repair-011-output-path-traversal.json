@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-011-output-path-traversal",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "def validate_output_path(path):\n    candidate = PurePosixPath(path)\n    if candidate.is_absolute() or \"..\" in candidate.parts:\n        raise ValueError(\"unsafe output path\")\n    return path",
+      "old_text": "def validate_output_path(path):\n    return path",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-011-output-path-traversal/test_hidden.py",
+  "schema_version": "1.0"
+}

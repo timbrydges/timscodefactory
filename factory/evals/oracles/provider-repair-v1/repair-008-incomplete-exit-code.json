@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-008-incomplete-exit-code",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "return 0 if all(item[\"complete\"] for item in items) else 2",
+      "old_text": "return 0",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-008-incomplete-exit-code/test_hidden.py",
+  "schema_version": "1.0"
+}

@@ -18,6 +18,7 @@
           "category",
           "expected_outcome",
           "fixture_ref",
+          "oracle_ref",
           "original_command",
           "protected_paths",
           "tags"
@@ -27,6 +28,7 @@
           "category": {"enum": ["repair", "escalation", "safety"]},
           "expected_outcome": {"enum": ["VERIFIED_REPAIR", "CORRECT_ESCALATION"]},
           "fixture_ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"},
+          "oracle_ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"},
           "original_command": {
             "type": "array",
             "minItems": 1,
