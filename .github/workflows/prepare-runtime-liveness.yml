@@ -1,0 +1,75 @@
+name: prepare-runtime-liveness
+
+on:
+  push:
+    branches:
+      - feat/runtime-liveness-watchdog
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.repository == 'timbrydges/timscodefactory' && github.actor == 'timbrydges'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/runtime-liveness-watchdog
+          fetch-depth: 1
+      - name: Export liveness API
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/factory_runtime/__init__.py')
+          text = path.read_text(encoding='utf-8')
+          import_block = '''from .liveness import (\n    RuntimeControllerRequest,\n    RuntimeHeartbeat,\n    RuntimeHeartbeatError,\n    RuntimeHeartbeatTracker,\n    RuntimeLivenessError,\n    RuntimeLivenessStatus,\n    RuntimeSupervisorAction,\n    RuntimeWatchBinding,\n    RuntimeWatchConfigError,\n    RuntimeWatchEvaluation,\n    RuntimeWatchPolicy,\n)\n'''
+          marker = 'from .openai_provider import (\n'
+          if import_block not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('openai_provider import marker missing')
+              text = text.replace(marker, import_block + marker, 1)
+
+          names = [
+              'RuntimeControllerRequest',
+              'RuntimeHeartbeat',
+              'RuntimeHeartbeatError',
+              'RuntimeHeartbeatTracker',
+              'RuntimeLivenessError',
+              'RuntimeLivenessStatus',
+              'RuntimeSupervisorAction',
+              'RuntimeWatchBinding',
+              'RuntimeWatchConfigError',
+              'RuntimeWatchEvaluation',
+              'RuntimeWatchPolicy',
+          ]
+          all_marker = '    "RuntimeDiagnostics",\n'
+          if any(f'    "{name}",\n' not in text for name in names):
+              if text.count(all_marker) != 1:
+                  raise SystemExit('__all__ runtime marker missing')
+              exports = ''.join(f'    "{name}",\n' for name in names)
+              text = text.replace(all_marker, exports + all_marker, 1)
+          path.write_text(text, encoding='utf-8')
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install locked CI dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Generate exact manifest and self-delete helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-runtime-liveness.yml
+          python scripts/build_manifest.py
+          python scripts/build_manifest.py --check
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: refresh runtime-liveness manifest [skip ci]"
+          git push origin HEAD:feat/runtime-liveness-watchdog
