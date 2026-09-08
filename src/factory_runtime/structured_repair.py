@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import os
 import posixpath
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -165,20 +166,31 @@ def _is_denied(path: str, policy: StructuredRepairPolicy) -> bool:
 
 
 def _safe_file(workspace: Path, path: str, policy: StructuredRepairPolicy) -> Path:
+    workspace = workspace.resolve()
     normalized = _normalized_path(path)
     if _is_denied(normalized, policy):
         raise StructuredRepairError(f"repair path is denied by policy: {normalized}")
-    candidate = workspace / normalized
-    if candidate.is_symlink() or not candidate.is_file():
+
+    cursor = workspace
+    for part in Path(normalized).parts:
+        cursor = cursor / part
+        if cursor.is_symlink():
+            raise StructuredRepairError(f"repair path contains a symlink component: {normalized}")
+
+    if not cursor.is_file():
         raise StructuredRepairError(f"repair path is not a regular file: {normalized}")
     try:
-        candidate.relative_to(workspace)
-    except ValueError as exc:
+        resolved = cursor.resolve(strict=True)
+        resolved.relative_to(workspace)
+    except (OSError, ValueError) as exc:
         raise StructuredRepairError("repair path escaped workspace") from exc
-    return candidate
+    if resolved != cursor:
+        raise StructuredRepairError(f"repair path resolution is not direct: {normalized}")
+    return cursor
 
 
 def _inventory(workspace: Path, policy: StructuredRepairPolicy) -> tuple[str, ...]:
+    workspace = workspace.resolve()
     paths: list[str] = []
     for item in sorted(workspace.rglob("*"), key=lambda p: p.relative_to(workspace).as_posix()):
         if item.is_symlink() or not item.is_file():
@@ -187,8 +199,9 @@ def _inventory(workspace: Path, policy: StructuredRepairPolicy) -> tuple[str, ..
         if _is_denied(relative, policy):
             continue
         try:
+            _safe_file(workspace, relative, policy)
             size = item.stat().st_size
-        except OSError:
+        except (OSError, StructuredRepairError):
             continue
         if size > policy.max_file_bytes:
             continue
@@ -235,6 +248,30 @@ def _read_current_text(
         return raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise StructuredRepairError(f"source file is no longer UTF-8: {context.path}") from exc
+
+
+def _atomic_replace_text(target: Path, content: str, mode: int) -> None:
+    temp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=target.parent,
+            prefix=f".{target.name}.factory-repair-",
+            delete=False,
+        ) as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+            temp_name = handle.name
+        temp_path = Path(temp_name)
+        os.chmod(temp_path, mode & 0o777)
+        os.replace(temp_path, target)
+        temp_name = None
+    finally:
+        if temp_name is not None:
+            Path(temp_name).unlink(missing_ok=True)
 
 
 class StructuredAIRepairStrategy(RepairStrategy):
@@ -326,7 +363,7 @@ class StructuredAIRepairStrategy(RepairStrategy):
 
                 if path not in staged:
                     staged[path] = _read_current_text(workspace, read_files[path], self.policy)
-                    original_modes[path] = os.stat(workspace / path, follow_symlinks=False).st_mode
+                    original_modes[path] = os.stat(_safe_file(workspace, path, self.policy), follow_symlinks=False).st_mode
                 current = staged[path]
                 matches = current.count(edit.old_text)
                 if matches != 1:
@@ -341,14 +378,7 @@ class StructuredAIRepairStrategy(RepairStrategy):
             # All proposal checks complete before any workspace mutation.
             for path, new_content in staged.items():
                 target = _safe_file(workspace, path, self.policy)
-                temp = target.with_name(target.name + ".factory-repair-tmp")
-                try:
-                    temp.write_text(new_content, encoding="utf-8", newline="")
-                    os.chmod(temp, original_modes[path] & 0o777)
-                    os.replace(temp, target)
-                finally:
-                    if temp.exists():
-                        temp.unlink()
+                _atomic_replace_text(target, new_content, original_modes[path])
 
             return RepairAction(summary=decision.summary.strip())
 
