@@ -108,6 +108,14 @@ from .provider_broker_service import (
     ResolvedProviderTarget,
     StaticProviderSelectorResolver,
 )
+from .provider_qualification import (
+    ProviderQualificationDecision,
+    ProviderQualificationError,
+    ProviderQualificationMeasurement,
+    ProviderQualificationPolicy,
+    load_provider_qualification_policy,
+    qualify_provider,
+)
 from .provider_targets import (
     CatalogProviderSelectorResolver,
     DryRunDecisionEngine,
@@ -185,6 +193,12 @@ __all__ = [
     "CatalogProviderSelectorResolver",
     "DryRunDecisionEngine",
     "DryRunProviderInvoker",
+    "ProviderQualificationDecision",
+    "ProviderQualificationError",
+    "ProviderQualificationMeasurement",
+    "ProviderQualificationPolicy",
+    "load_provider_qualification_policy",
+    "qualify_provider",
     "ProviderSelectorValueSource",
     "ProviderTargetCatalogEntry",
     "ProviderTargetConfigError",
