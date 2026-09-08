@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/provisioning-receipt.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "task_id",
+    "lease_id",
+    "role_id",
+    "source_commit",
+    "workspace_digest",
+    "environment_spec_digest",
+    "provisioner_identity",
+    "result_image_ref",
+    "started_at",
+    "finished_at",
+    "exit_code",
+    "timed_out",
+    "build_log_digest"
+  ],
+  "properties": {
+    "request_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "lease_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "role_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "workspace_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "environment_spec_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "provisioner_identity": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "result_image_ref": {"type": "string", "pattern": "^[^\\s@]+@sha256:[0-9a-f]{64}$"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "exit_code": {"type": ["integer", "null"]},
+    "timed_out": {"type": "boolean"},
+    "build_log_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
