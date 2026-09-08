@@ -6,6 +6,13 @@ from .detector import (
     EnvironmentDetectionError,
     detect_environment,
 )
+from .diagnostics import (
+    DiagnosticCapture,
+    DiagnosticCaptureError,
+    DiagnosticSource,
+    RedactedDiagnosticCapture,
+    RuntimeDiagnostics,
+)
 from .docker_provisioner import (
     DockerEnvironmentProvisioner,
     DockerProvisioningPolicy,
@@ -71,6 +78,9 @@ __all__ = [
     "BoundSandboxReceipt",
     "BoundedCIRepairController",
     "DetectionResult",
+    "DiagnosticCapture",
+    "DiagnosticCaptureError",
+    "DiagnosticSource",
     "DockerEnvironmentProvisioner",
     "DockerProvisioningPolicy",
     "DockerRuntimePipelineFactory",
@@ -86,6 +96,7 @@ __all__ = [
     "ProvisioningExecutionError",
     "ProvisioningReceipt",
     "ProvisioningRequest",
+    "RedactedDiagnosticCapture",
     "RepairAction",
     "RepairContext",
     "RepairControllerError",
@@ -95,6 +106,7 @@ __all__ = [
     "RepairPolicy",
     "RepairRequest",
     "RepairStrategy",
+    "RuntimeDiagnostics",
     "RuntimeInvocation",
     "RuntimeObservation",
     "RuntimePipeline",

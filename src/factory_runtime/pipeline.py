@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .detector import BaseImagePolicy, DetectionResult, detect_environment
+from .diagnostics import DiagnosticSource, RedactedDiagnosticCapture, RuntimeDiagnostics
 from .docker_provisioner import DockerEnvironmentProvisioner, DockerProvisioningPolicy
 from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy, workspace_tree_digest
 from .environment import (
@@ -97,6 +98,7 @@ class VerificationBinding:
     adapter: SandboxAdapter
     environment_digest: str
     runner_identity: str
+    diagnostic_source: DiagnosticSource | None = None
 
 
 class VerificationFactory(Protocol):
@@ -138,10 +140,16 @@ class DockerVerificationFactory:
             user=self.user,
             tmpfs_size=self.tmpfs_size,
         )
+        diagnostic_capture = RedactedDiagnosticCapture()
         return VerificationBinding(
-            adapter=DockerSandboxAdapter(workspace, policy),
+            adapter=DockerSandboxAdapter(
+                workspace,
+                policy,
+                diagnostic_capture=diagnostic_capture,
+            ),
             environment_digest=policy.environment_digest,
             runner_identity=policy.runner_identity,
+            diagnostic_source=diagnostic_capture,
         )
 
 
@@ -151,7 +159,8 @@ class RuntimeObservation:
 
     The provisioning stage must still succeed, because there is no trustworthy
     verification environment otherwise. The verification outcome may be nonzero
-    or timed out, but its exact request binding is trusted.
+    or timed out, but its exact request binding is trusted. Diagnostics, when
+    present, are separately redacted and non-authoritative.
     """
 
     detection: DetectionResult
@@ -159,6 +168,7 @@ class RuntimeObservation:
     verification_request: SandboxRequest
     verification: BoundSandboxReceipt
     workspace_digest: str
+    diagnostics: RuntimeDiagnostics | None = None
 
 
 @dataclass(frozen=True)
@@ -251,6 +261,13 @@ class RuntimePipeline:
             verification_receipt,
         )
 
+        diagnostics = None
+        if verification_binding.diagnostic_source is not None:
+            diagnostics = verification_binding.diagnostic_source.take(
+                verification_request,
+                verification_receipt,
+            )
+
         self._assert_workspace_unchanged(workspace_digest, "verification")
 
         return RuntimeObservation(
@@ -259,6 +276,7 @@ class RuntimePipeline:
             verification_request=verification_request,
             verification=bound_verification,
             workspace_digest=workspace_digest,
+            diagnostics=diagnostics,
         )
 
     async def run(self, invocation: RuntimeInvocation) -> RuntimeResult:

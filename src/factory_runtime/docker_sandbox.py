@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
+from .diagnostics import DiagnosticCapture
 from .sandbox import SandboxContractError, SandboxReceipt, SandboxRequest
 
 
@@ -225,10 +226,12 @@ class DockerSandboxAdapter:
         policy: DockerSandboxPolicy,
         *,
         process_runner: ProcessRunner | None = None,
+        diagnostic_capture: DiagnosticCapture | None = None,
     ) -> None:
         self.workspace = workspace
         self.policy = policy
         self.process_runner = process_runner or AsyncioProcessRunner()
+        self.diagnostic_capture = diagnostic_capture
 
     async def execute(self, request: SandboxRequest) -> SandboxReceipt:
         if request.expected_runner_identity != self.policy.runner_identity:
@@ -300,7 +303,7 @@ class DockerSandboxAdapter:
                 finished_at = datetime.now(timezone.utc)
                 await self._cleanup(sandbox_id)
 
-        return SandboxReceipt(
+        receipt = SandboxReceipt(
             request_id=request.request_id,
             task_id=request.task_id,
             lease_id=request.lease_id,
@@ -318,6 +321,9 @@ class DockerSandboxAdapter:
             stdout_digest=_digest_bytes(stdout),
             stderr_digest=_digest_bytes(stderr),
         )
+        if self.diagnostic_capture is not None:
+            self.diagnostic_capture.capture(request, receipt, stdout, stderr)
+        return receipt
 
     def _create_args(
         self,
