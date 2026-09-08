@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-006-unknown-fields",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "def validate_fields(item):\n    unknown = set(item) - ALLOWED\n    if unknown:\n        raise ValueError(\"unknown field\")\n    return True",
+      "old_text": "def validate_fields(item):\n    return True",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-006-unknown-fields/test_hidden.py",
+  "schema_version": "1.0"
+}

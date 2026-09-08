@@ -1,0 +1,2 @@
+def mode():
+    return "stable"

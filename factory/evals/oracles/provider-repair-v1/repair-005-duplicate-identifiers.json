@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-005-duplicate-identifiers",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "    for item in items:\n        identifier = item[\"id\"]\n        if identifier in seen:\n            raise ValueError(\"duplicate id\")\n        seen.add(identifier)",
+      "old_text": "    for item in items:\n        seen.add(item[\"id\"])",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-005-duplicate-identifiers/test_hidden.py",
+  "schema_version": "1.0"
+}

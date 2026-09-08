@@ -1,0 +1,26 @@
+{
+  "allowed_edit_paths": [
+    "app.py"
+  ],
+  "case_id": "repair-003-canonical-json-order",
+  "expected_escalation_reason": null,
+  "expected_outcome": "VERIFIED_REPAIR",
+  "forbidden_edit_paths": [
+    ".github/**",
+    "factory/**",
+    "MANIFEST.sha256",
+    "poetry.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "gold_replacements": [
+    {
+      "new_text": "return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))",
+      "old_text": "return json.dumps(value, ensure_ascii=False, separators=(\",\", \":\"))",
+      "path": "app.py"
+    }
+  ],
+  "hidden_test_ref": "factory/evals/hidden-tests/provider-repair-v1/repair-003-canonical-json-order/test_hidden.py",
+  "schema_version": "1.0"
+}
