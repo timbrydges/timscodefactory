@@ -142,12 +142,22 @@ class DiagnosticCapture(DiagnosticSource, Protocol):
 class RedactedDiagnosticCapture:
     """In-memory one-shot capture that never retains raw process output."""
 
-    def __init__(self, *, max_chars_per_stream: int = 6000) -> None:
+    def __init__(
+        self,
+        *,
+        max_chars_per_stream: int = 6000,
+        max_input_bytes: int = 4 * 1024 * 1024,
+    ) -> None:
         if isinstance(max_chars_per_stream, bool) or not isinstance(max_chars_per_stream, int):
             raise ValueError("max_chars_per_stream must be an integer")
         if max_chars_per_stream < 512 or max_chars_per_stream > 32768:
             raise ValueError("max_chars_per_stream must be between 512 and 32768")
+        if isinstance(max_input_bytes, bool) or not isinstance(max_input_bytes, int):
+            raise ValueError("max_input_bytes must be an integer")
+        if max_input_bytes < 1024 or max_input_bytes > 16 * 1024 * 1024:
+            raise ValueError("max_input_bytes must be between 1024 and 16777216")
         self.max_chars_per_stream = max_chars_per_stream
+        self.max_input_bytes = max_input_bytes
         self._items: dict[str, RuntimeDiagnostics] = {}
 
     def capture(
@@ -157,6 +167,8 @@ class RedactedDiagnosticCapture:
         stdout: bytes,
         stderr: bytes,
     ) -> None:
+        if len(stdout) > self.max_input_bytes or len(stderr) > self.max_input_bytes:
+            raise DiagnosticCaptureError("diagnostic input exceeded configured byte cap")
         stdout_digest = _digest_bytes(stdout)
         stderr_digest = _digest_bytes(stderr)
         if stdout_digest != receipt.stdout_digest or stderr_digest != receipt.stderr_digest:
@@ -183,9 +195,10 @@ class RedactedDiagnosticCapture:
 
     def take(self, request: SandboxRequest, receipt: SandboxReceipt) -> RuntimeDiagnostics:
         key = request.request_digest
-        item = self._items.pop(key, None)
+        item = self._items.get(key)
         if item is None:
             raise DiagnosticCaptureError("no diagnostic bundle exists for this request")
         if item.stdout_digest != receipt.stdout_digest or item.stderr_digest != receipt.stderr_digest:
             raise DiagnosticCaptureError("diagnostic bundle no longer matches sandbox receipt")
+        del self._items[key]
         return item
