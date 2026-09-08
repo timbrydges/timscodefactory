@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/runtime-trace-event.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "event_index",
+    "event_type",
+    "runtime_session_id",
+    "task_id",
+    "lease_id",
+    "role_id",
+    "source_commit",
+    "occurred_at",
+    "attributes",
+    "previous_event_digest",
+    "event_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "trace_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "event_index": {"type": "integer", "minimum": 1, "maximum": 1000000},
+    "event_type": {
+      "enum": [
+        "SESSION_STARTED",
+        "DETECTION_COMPLETED",
+        "PROVISIONING_COMPLETED",
+        "VERIFICATION_OBSERVED",
+        "DIAGNOSTIC_REDACTED",
+        "REPAIR_MODEL_CALL",
+        "REPAIR_ACTION",
+        "LIVENESS_EVALUATED",
+        "TERMINATION_COMPLETED",
+        "ESCALATED",
+        "SESSION_FINISHED"
+      ]
+    },
+    "runtime_session_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "lease_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "role_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "attributes": {
+      "type": "object",
+      "maxProperties": 32,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
+      "additionalProperties": {
+        "anyOf": [
+          {"type": "string", "maxLength": 512},
+          {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807},
+          {"type": "boolean"},
+          {"type": "null"}
+        ]
+      }
+    },
+    "previous_event_digest": {
+      "anyOf": [
+        {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        {"type": "null"}
+      ]
+    },
+    "event_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
