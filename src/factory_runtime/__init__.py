@@ -105,6 +105,11 @@ from .structured_repair import (
     StructuredRepairModelEscalation,
     StructuredRepairPolicy,
 )
+from .brokered_repair import (
+    BrokeredCIRepairRuntime,
+    build_docker_brokered_ci_repair_runtime,
+    compose_brokered_ci_repair_runtime,
+)
 
 __all__ = [
     "ApplyEditsDecision",
@@ -114,6 +119,7 @@ __all__ = [
     "BrokerCredentialSource",
     "BrokerHTTPResponse",
     "BrokerTransport",
+    "BrokeredCIRepairRuntime",
     "DetectionResult",
     "DiagnosticCapture",
     "DiagnosticCaptureError",
@@ -184,8 +190,10 @@ __all__ = [
     "VerificationFactory",
     "VerifiedRepairCandidate",
     "bind_sandbox_receipt",
+    "build_docker_brokered_ci_repair_runtime",
     "build_docker_runtime_pipeline",
     "command_digest",
+    "compose_brokered_ci_repair_runtime",
     "detect_environment",
     "load_provider_broker_binding",
     "sanitize_text_for_model",
