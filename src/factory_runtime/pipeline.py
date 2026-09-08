@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .detector import BaseImagePolicy, DetectionResult, detect_environment
+from .docker_provisioner import DockerEnvironmentProvisioner, DockerProvisioningPolicy
 from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy, workspace_tree_digest
 from .environment import (
     ProvisionerAdapter,
@@ -238,3 +239,27 @@ class RuntimePipeline:
             verification=validated_verification,
             workspace_digest=workspace_digest,
         )
+
+
+def build_docker_runtime_pipeline(
+    workspace: Path,
+    image_policy: BaseImagePolicy,
+    provisioning_policy: DockerProvisioningPolicy,
+    *,
+    verification_factory: DockerVerificationFactory | None = None,
+) -> RuntimePipeline:
+    """Build the concrete Docker-backed non-authoritative runtime chain."""
+
+    verifier = verification_factory or DockerVerificationFactory(
+        docker_executable=provisioning_policy.docker_executable,
+    )
+    provisioner = DockerEnvironmentProvisioner(
+        workspace,
+        provisioning_policy,
+    )
+    return RuntimePipeline(
+        workspace,
+        image_policy,
+        provisioner,
+        verifier,
+    )
