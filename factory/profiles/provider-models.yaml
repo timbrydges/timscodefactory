@@ -1,0 +1,18 @@
+schema_version: "1.0"
+selectors:
+  FACTORY_CODING_MODEL:
+    provider_profile: coding_primary
+    provider_family: openai
+    allowed_targets: [coding_primary_dry_run]
+    default_target: coding_primary_dry_run
+    authority_effect: none
+
+targets:
+  coding_primary_dry_run:
+    provider_family: openai
+    model_id: "dry-run://coding-primary"
+    execution_mode: dry_run
+    enabled: true
+    live_credentials: prohibited
+    cost_mode: zero
+    selector_version: "dry-run-v1"
