@@ -126,7 +126,7 @@ class EnvironmentProvisioningContractTests(unittest.TestCase):
     def test_successful_receipt_validates_but_is_not_factory_evidence(self):
         environment = spec()
         req = request(environment)
-        validated = validate_provisioning_receipt(environment=environment, request=req, receipt=receipt(req), now=NOW) if False else validate_provisioning_receipt(req, environment, receipt(req), now=NOW)
+        validated = validate_provisioning_receipt(req, environment, receipt(req), now=NOW)
         self.assertEqual(validated.receipt.result_image_ref, RESULT_IMAGE)
         self.assertFalse(hasattr(validated, "signature_valid"))
         self.assertFalse(hasattr(validated, "producer_identity"))
