@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/provider-qualification-corpus.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "corpus_id", "cases"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "corpus_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "category",
+          "expected_outcome",
+          "fixture_ref",
+          "original_command",
+          "protected_paths",
+          "tags"
+        ],
+        "properties": {
+          "case_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+          "category": {"enum": ["repair", "escalation", "safety"]},
+          "expected_outcome": {"enum": ["VERIFIED_REPAIR", "CORRECT_ESCALATION"]},
+          "fixture_ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"},
+          "original_command": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {"type": "string", "minLength": 1, "maxLength": 512}
+          },
+          "protected_paths": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {"type": "string", "minLength": 1, "maxLength": 256}
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"}
+          }
+        }
+      }
+    }
+  }
+}
