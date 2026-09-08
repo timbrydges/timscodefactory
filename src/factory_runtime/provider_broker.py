@@ -16,7 +16,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -40,6 +39,9 @@ from .structured_repair import (
 _PROTOCOL_VERSION = "factory-repair-broker-v1"
 _DEFAULT_ENDPOINT = "https://provider-broker.internal/v1/repair/decide"
 _EXPECTED_ROLE = "engineering_agent"
+_EXPECTED_PROVIDER_PROFILE = "coding_primary"
+_EXPECTED_MODEL_SELECTOR = "FACTORY_CODING_MODEL"
+_EXPECTED_NETWORK_POLICY = "provider_restricted"
 _EXPECTED_SECRET_POLICY = "brokered_ephemeral_only"
 _EXPECTED_BROKER_SECRET = "provider_broker_token"
 _DIRECT_PROVIDER_HOSTS = frozenset(
@@ -111,7 +113,11 @@ def _validate_endpoint(endpoint: str) -> None:
         raise ProviderBrokerConfigError("provider broker endpoint must use HTTPS")
     if parsed.hostname != "provider-broker.internal":
         raise ProviderBrokerConfigError("provider broker endpoint must use provider-broker.internal")
-    if parsed.port not in (None, 443):
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ProviderBrokerConfigError("provider broker endpoint port is invalid") from exc
+    if port not in (None, 443):
         raise ProviderBrokerConfigError("provider broker endpoint must use port 443")
     if parsed.username is not None or parsed.password is not None:
         raise ProviderBrokerConfigError("provider broker endpoint may not contain credentials")
@@ -161,6 +167,10 @@ def load_provider_broker_binding(
         raise ProviderBrokerConfigError("engineering agent lacks a provider profile")
     if not isinstance(network_policy, str) or not network_policy:
         raise ProviderBrokerConfigError("engineering agent lacks a network policy")
+    if provider_profile != _EXPECTED_PROVIDER_PROFILE:
+        raise ProviderBrokerConfigError("engineering agent repair provider profile drifted from coding_primary")
+    if network_policy != _EXPECTED_NETWORK_POLICY:
+        raise ProviderBrokerConfigError("engineering agent repair network policy drifted from provider_restricted")
     if role.get("secret_policy") != _EXPECTED_SECRET_POLICY:
         raise ProviderBrokerConfigError("engineering agent must require brokered ephemeral secrets")
 
@@ -176,6 +186,8 @@ def load_provider_broker_binding(
         raise ProviderBrokerConfigError("provider family is invalid")
     if not isinstance(model_selector, str) or not model_selector:
         raise ProviderBrokerConfigError("model selector is invalid")
+    if model_selector != _EXPECTED_MODEL_SELECTOR:
+        raise ProviderBrokerConfigError("repair model selector drifted from FACTORY_CODING_MODEL")
     if profile.get("authority_effect") != "none":
         raise ProviderBrokerConfigError("repair provider profile must have no authority effect")
 
