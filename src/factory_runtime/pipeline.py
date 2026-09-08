@@ -24,9 +24,11 @@ from .environment import (
     validate_provisioning_receipt,
 )
 from .sandbox import (
+    BoundSandboxReceipt,
     SandboxAdapter,
     SandboxRequest,
     ValidatedSandboxReceipt,
+    bind_sandbox_receipt,
     command_digest,
     validate_sandbox_receipt,
 )
@@ -57,7 +59,7 @@ class RuntimeInvocation:
     verification_timeout_seconds: int = 600
 
     def __post_init__(self) -> None:
-        if not RUN_ID.fullmatch(self.run_id):
+        if not isinstance(self.run_id, str) or not RUN_ID.fullmatch(self.run_id):
             raise RuntimePipelineError("run_id is invalid or too long")
         for name in (
             "task_id",
@@ -69,7 +71,7 @@ class RuntimeInvocation:
             value = getattr(self, name)
             if not isinstance(value, str) or not SAFE_IDENTIFIER.fullmatch(value):
                 raise RuntimePipelineError(f"{name} is invalid")
-        if not COMMIT_SHA.fullmatch(self.source_commit):
+        if not isinstance(self.source_commit, str) or not COMMIT_SHA.fullmatch(self.source_commit):
             raise RuntimePipelineError("source_commit must be an exact 40-character commit SHA")
         command_digest(self.command)
         for name, value, upper in (
@@ -144,8 +146,24 @@ class DockerVerificationFactory:
 
 
 @dataclass(frozen=True)
+class RuntimeObservation:
+    """Bound runtime execution outcome that may represent failure.
+
+    The provisioning stage must still succeed, because there is no trustworthy
+    verification environment otherwise. The verification outcome may be nonzero
+    or timed out, but its exact request binding is trusted.
+    """
+
+    detection: DetectionResult
+    provisioning: ValidatedProvisioningReceipt
+    verification_request: SandboxRequest
+    verification: BoundSandboxReceipt
+    workspace_digest: str
+
+
+@dataclass(frozen=True)
 class RuntimeResult:
-    """Validated runtime receipts; intentionally not authoritative Factory Evidence."""
+    """Validated successful runtime receipts; not authoritative Factory Evidence."""
 
     detection: DetectionResult
     provisioning: ValidatedProvisioningReceipt
@@ -154,7 +172,7 @@ class RuntimeResult:
 
 
 class RuntimePipeline:
-    """Compose detect -> provision -> verify without acquiring state authority."""
+    """Compose detect -> provision -> observe/verify without state authority."""
 
     def __init__(
         self,
@@ -173,7 +191,9 @@ class RuntimePipeline:
         if actual != expected_digest:
             raise RuntimePipelineError(f"workspace changed during {boundary}")
 
-    async def run(self, invocation: RuntimeInvocation) -> RuntimeResult:
+    async def observe(self, invocation: RuntimeInvocation) -> RuntimeObservation:
+        """Execute the exact command and return a bound success/failure observation."""
+
         workspace_digest = workspace_tree_digest(self.workspace)
 
         detection = detect_environment(self.workspace, self.image_policy)
@@ -226,18 +246,34 @@ class RuntimePipeline:
             expected_runner_identity=invocation.expected_runner_identity,
         )
         verification_receipt = await verification_binding.adapter.execute(verification_request)
-        validated_verification = validate_sandbox_receipt(
+        bound_verification = bind_sandbox_receipt(
             verification_request,
             verification_receipt,
         )
 
         self._assert_workspace_unchanged(workspace_digest, "verification")
 
-        return RuntimeResult(
+        return RuntimeObservation(
             detection=detection,
             provisioning=validated_provisioning,
-            verification=validated_verification,
+            verification_request=verification_request,
+            verification=bound_verification,
             workspace_digest=workspace_digest,
+        )
+
+    async def run(self, invocation: RuntimeInvocation) -> RuntimeResult:
+        """Execute and require a successful exit-zero verification."""
+
+        observed = await self.observe(invocation)
+        validated_verification = validate_sandbox_receipt(
+            observed.verification_request,
+            observed.verification.receipt,
+        )
+        return RuntimeResult(
+            detection=observed.detection,
+            provisioning=observed.provisioning,
+            verification=validated_verification,
+            workspace_digest=observed.workspace_digest,
         )
 
 
