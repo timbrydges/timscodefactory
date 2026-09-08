@@ -26,6 +26,7 @@ from factory_runtime.sandbox import (  # noqa: E402
 
 
 IMAGE = "python@sha256:" + "a" * 64
+LOCAL_IMAGE = "sha256:" + "d" * 64
 COMMIT = "b" * 40
 CONTAINER_ID = "c" * 64
 
@@ -72,6 +73,9 @@ class DockerSandboxTests(unittest.TestCase):
     def test_policy_requires_immutable_image_digest(self):
         with self.assertRaises(SandboxContractError):
             DockerSandboxPolicy(image_ref="python:3.12-slim")
+
+    def test_policy_accepts_local_content_addressed_image_id(self):
+        self.assertEqual(DockerSandboxPolicy(image_ref=LOCAL_IMAGE).image_ref, LOCAL_IMAGE)
 
     def test_policy_digest_changes_when_security_environment_changes(self):
         first = DockerSandboxPolicy(image_ref=IMAGE)
