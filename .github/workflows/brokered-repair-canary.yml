@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   real-brokered-repair-canary:
-    name: runtime / real brokered repair canary
+    name: runtime / real broker HTTP-service repair canary
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
           echo "CANARY_IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
-      - name: Run real zero-cost brokered CI repair canary
+      - name: Run real zero-cost broker HTTP-service CI repair canary
         run: >-
           python scripts/brokered_repair_canary.py
           --workspace factory/canary/brokered-repair-v1
