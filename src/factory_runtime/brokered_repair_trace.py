@@ -21,6 +21,7 @@ from typing import Protocol
 from .pipeline import RuntimeObservation
 from .provider_broker import ProviderBrokerCallRecord
 from .repair import RepairEscalation, RepairOutcome, RepairRequest, VerifiedRepairCandidate
+from .sandbox import command_digest
 from .telemetry import (
     RuntimeTraceBinding,
     RuntimeTraceEvent,
@@ -63,11 +64,11 @@ class FailureFingerprint:
     version: str
     digest: str
     command_digest: str
-    environment_digest: str
-    stdout_digest: str
-    stderr_digest: str
+    environment_digest: str | None
+    stdout_digest: str | None
+    stderr_digest: str | None
     exit_code: int | None
-    timed_out: bool
+    timed_out: bool | None
 
 
 def fingerprint_runtime_failure(observation: RuntimeObservation) -> FailureFingerprint:
@@ -100,6 +101,34 @@ def fingerprint_runtime_failure(observation: RuntimeObservation) -> FailureFinge
         stderr_digest=receipt.stderr_digest,
         exit_code=receipt.exit_code,
         timed_out=receipt.timed_out,
+    )
+
+
+def fingerprint_repair_outcome(
+    request: RepairRequest,
+    outcome: RepairOutcome,
+) -> FailureFingerprint:
+    """Fingerprint either a bound runtime failure or an early infrastructure failure."""
+
+    if outcome.initial_failure is not None:
+        return fingerprint_runtime_failure(outcome.initial_failure)
+    if not isinstance(outcome, RepairEscalation):
+        raise BrokeredRepairTraceError("verified repair is missing its initial failure observation")
+    cmd_digest = command_digest(request.command)
+    material = {
+        "version": _FINGERPRINT_VERSION,
+        "command_digest": cmd_digest,
+        "unbound_failure_reason": outcome.reason.value,
+    }
+    return FailureFingerprint(
+        version=_FINGERPRINT_VERSION,
+        digest=_sha256(_canonical_json(material)),
+        command_digest=cmd_digest,
+        environment_digest=None,
+        stdout_digest=None,
+        stderr_digest=None,
+        exit_code=None,
+        timed_out=None,
     )
 
 
@@ -294,7 +323,7 @@ def _emit_actions(recorder: RuntimeTraceRecorder, outcome: RepairOutcome) -> Non
 def _emit_terminal_verification(
     recorder: RuntimeTraceRecorder,
     outcome: RepairOutcome,
-    initial: RuntimeObservation,
+    initial: RuntimeObservation | None,
 ) -> None:
     if isinstance(outcome, VerifiedRepairCandidate):
         receipt = outcome.verification.receipt
@@ -314,7 +343,7 @@ def _emit_terminal_verification(
         return
     if isinstance(outcome, RepairEscalation) and outcome.last_failure is not None:
         last = outcome.last_failure
-        if last.verification.receipt.request_id != initial.verification.receipt.request_id:
+        if initial is None or last.verification.receipt.request_id != initial.verification.receipt.request_id:
             verification = last.verification.receipt
             recorder.emit(
                 RuntimeTraceEventType.VERIFICATION_OBSERVED,
@@ -381,9 +410,7 @@ def build_brokered_repair_trace(
         raise BrokeredRepairTraceError("trace start time must be timezone-aware")
 
     initial = outcome.initial_failure
-    if initial is None:
-        raise BrokeredRepairTraceError("brokered repair trace requires a bound initial observation")
-    fingerprint = fingerprint_runtime_failure(initial)
+    fingerprint = fingerprint_repair_outcome(request, outcome)
     trace_id = _trace_id(request, started_at)
     recorder = RuntimeTraceRecorder(
         RuntimeTraceBinding(
@@ -397,7 +424,8 @@ def build_brokered_repair_trace(
         )
     )
     recorder.emit(RuntimeTraceEventType.SESSION_STARTED, {"component": _TRACE_COMPONENT})
-    _emit_observation(recorder, initial)
+    if initial is not None:
+        _emit_observation(recorder, initial)
     _emit_model_calls(recorder, provider_calls)
     _emit_actions(recorder, outcome)
     _emit_terminal_verification(recorder, outcome, initial)

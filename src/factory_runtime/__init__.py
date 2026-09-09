@@ -226,6 +226,16 @@ from .structured_repair import (
     StructuredRepairModelEscalation,
     StructuredRepairPolicy,
 )
+from .brokered_repair_trace import (
+    BrokeredRepairTraceArtifact,
+    BrokeredRepairTraceError,
+    BrokeredRepairTraceStore,
+    FailureFingerprint,
+    InMemoryBrokeredRepairTraceStore,
+    build_brokered_repair_trace,
+    fingerprint_repair_outcome,
+    fingerprint_runtime_failure,
+)
 from .brokered_repair import (
     BrokeredCIRepairRuntime,
     build_docker_brokered_ci_repair_runtime,
@@ -248,6 +258,14 @@ __all__ = [
     "BrokerServicePolicy",
     "BrokerTokenRejected",
     "BrokerTransport",
+    "fingerprint_runtime_failure",
+    "fingerprint_repair_outcome",
+    "build_brokered_repair_trace",
+    "InMemoryBrokeredRepairTraceStore",
+    "FailureFingerprint",
+    "BrokeredRepairTraceStore",
+    "BrokeredRepairTraceError",
+    "BrokeredRepairTraceArtifact",
     "BrokeredCIRepairRuntime",
     "CatalogProviderSelectorResolver",
     "DryRunDecisionEngine",
