@@ -226,6 +226,11 @@ from .structured_repair import (
     StructuredRepairModelEscalation,
     StructuredRepairPolicy,
 )
+from .trace_store_sqlite import (
+    FailureFingerprintHistory,
+    SQLiteBrokeredRepairTraceStore,
+    SQLiteTraceStoreError,
+)
 from .brokered_repair_trace import (
     BrokeredRepairTraceArtifact,
     BrokeredRepairTraceError,
@@ -265,6 +270,9 @@ __all__ = [
     "FailureFingerprint",
     "BrokeredRepairTraceStore",
     "BrokeredRepairTraceError",
+    "SQLiteTraceStoreError",
+    "SQLiteBrokeredRepairTraceStore",
+    "FailureFingerprintHistory",
     "BrokeredRepairTraceArtifact",
     "BrokeredCIRepairRuntime",
     "CatalogProviderSelectorResolver",

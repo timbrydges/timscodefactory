@@ -137,6 +137,13 @@ class SQLiteBrokeredRepairTraceStore:
         if replay != artifact.replay:
             raise SQLiteTraceStoreError("trace artifact replay summary does not match JSONL")
         fingerprint = artifact.failure_fingerprint
+        first_attributes = artifact.events[0].attributes
+        if (
+            first_attributes.get("failure_fingerprint_digest") != fingerprint.digest
+            or first_attributes.get("failure_fingerprint_version") != fingerprint.version
+            or first_attributes.get("failure_command_digest") != fingerprint.command_digest
+        ):
+            raise SQLiteTraceStoreError("trace-bound fingerprint metadata disagrees with artifact")
         for value in (
             fingerprint.digest,
             fingerprint.command_digest,
@@ -288,21 +295,42 @@ class SQLiteBrokeredRepairTraceStore:
         return tuple(self._artifact_from_row(row) for row in rows)
 
     def summarize_fingerprint(self, fingerprint_digest: str) -> FailureFingerprintHistory | None:
-        artifacts = self.find_by_fingerprint(fingerprint_digest, limit=100)
-        if not artifacts:
+        if not isinstance(fingerprint_digest, str) or not _DIGEST.fullmatch(fingerprint_digest):
+            raise SQLiteTraceStoreError("fingerprint digest is invalid")
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    "SELECT trace_id, terminal_status, provider_cost_usd "
+                    "FROM repair_traces WHERE fingerprint_digest=? ORDER BY rowid DESC",
+                    (fingerprint_digest,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise SQLiteTraceStoreError("cannot summarize failure fingerprint history") from exc
+        if not rows:
             return None
-        successful = [item for item in artifacts if item.replay.terminal_status == "SUCCEEDED"]
-        escalated = [item for item in artifacts if item.replay.terminal_status == "ESCALATED"]
-        lowest = (
-            min(item.replay.total_provider_cost_usd for item in successful)
-            if successful
-            else None
-        )
+        successful_costs: list[Decimal] = []
+        successful_count = 0
+        escalated_count = 0
+        for row in rows:
+            status = row["terminal_status"]
+            if status == "SUCCEEDED":
+                successful_count += 1
+                try:
+                    cost = Decimal(row["provider_cost_usd"])
+                except Exception as exc:
+                    raise SQLiteTraceStoreError("persisted provider cost is invalid") from exc
+                if not cost.is_finite() or cost < 0:
+                    raise SQLiteTraceStoreError("persisted provider cost is invalid")
+                successful_costs.append(cost)
+            elif status == "ESCALATED":
+                escalated_count += 1
+            else:
+                raise SQLiteTraceStoreError("persisted terminal status is invalid")
         return FailureFingerprintHistory(
             fingerprint_digest=fingerprint_digest,
-            seen_count=len(artifacts),
-            successful_count=len(successful),
-            escalated_count=len(escalated),
-            lowest_success_cost_usd=lowest,
-            latest_trace_id=artifacts[0].trace_id,
+            seen_count=len(rows),
+            successful_count=successful_count,
+            escalated_count=escalated_count,
+            lowest_success_cost_usd=min(successful_costs) if successful_costs else None,
+            latest_trace_id=rows[0]["trace_id"],
         )
