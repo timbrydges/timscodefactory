@@ -423,7 +423,15 @@ def build_brokered_repair_trace(
             started_at=started_at,
         )
     )
-    recorder.emit(RuntimeTraceEventType.SESSION_STARTED, {"component": _TRACE_COMPONENT})
+    recorder.emit(
+        RuntimeTraceEventType.SESSION_STARTED,
+        {
+            "component": _TRACE_COMPONENT,
+            "failure_fingerprint_digest": fingerprint.digest,
+            "failure_fingerprint_version": fingerprint.version,
+            "failure_command_digest": fingerprint.command_digest,
+        },
+    )
     if initial is not None:
         _emit_observation(recorder, initial)
     _emit_model_calls(recorder, provider_calls)
