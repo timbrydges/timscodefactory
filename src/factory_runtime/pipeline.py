@@ -9,6 +9,7 @@ result.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -120,8 +121,19 @@ class DockerVerificationFactory:
     memory: str = "2g"
     cpus: str = "2"
     pids_limit: int = 256
-    user: str = "65532:65532"
+    user: str | None = None
     tmpfs_size: str = "256m"
+
+    def _resolved_user(self) -> str:
+        if self.user is not None:
+            return self.user
+        uid = os.geteuid()
+        gid = os.getegid()
+        if uid == 0:
+            raise RuntimePipelineError(
+                "automatic Docker verification user resolution refuses a root host process"
+            )
+        return f"{uid}:{gid}"
 
     def create(
         self,
@@ -137,7 +149,7 @@ class DockerVerificationFactory:
             memory=self.memory,
             cpus=self.cpus,
             pids_limit=self.pids_limit,
-            user=self.user,
+            user=self._resolved_user(),
             tmpfs_size=self.tmpfs_size,
         )
         diagnostic_capture = RedactedDiagnosticCapture()
