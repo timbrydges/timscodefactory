@@ -1,0 +1,86 @@
+name: prepare-brokered-repair-auto-trace
+
+on:
+  push:
+    branches: [feat/brokered-repair-auto-trace]
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Finalize unbound-failure tracing and public exports
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/factory_runtime/brokered_repair_trace.py')
+          text = p.read_text()
+          text = text.replace(
+              'from .repair import RepairEscalation, RepairOutcome, RepairRequest, VerifiedRepairCandidate\n',
+              'from .repair import RepairEscalation, RepairOutcome, RepairRequest, VerifiedRepairCandidate\nfrom .sandbox import command_digest\n',
+          )
+          text = text.replace(
+              '    environment_digest: str\n    stdout_digest: str\n    stderr_digest: str\n    exit_code: int | None\n    timed_out: bool\n',
+              '    environment_digest: str | None\n    stdout_digest: str | None\n    stderr_digest: str | None\n    exit_code: int | None\n    timed_out: bool | None\n',
+          )
+          marker = '\n\n@dataclass(frozen=True)\nclass BrokeredRepairTraceArtifact:'
+          insert = '''\n\ndef fingerprint_repair_outcome(\n    request: RepairRequest,\n    outcome: RepairOutcome,\n) -> FailureFingerprint:\n    """Fingerprint either a bound runtime failure or an early infrastructure failure."""\n\n    if outcome.initial_failure is not None:\n        return fingerprint_runtime_failure(outcome.initial_failure)\n    if not isinstance(outcome, RepairEscalation):\n        raise BrokeredRepairTraceError("verified repair is missing its initial failure observation")\n    cmd_digest = command_digest(request.command)\n    material = {\n        "version": _FINGERPRINT_VERSION,\n        "command_digest": cmd_digest,\n        "unbound_failure_reason": outcome.reason.value,\n    }\n    return FailureFingerprint(\n        version=_FINGERPRINT_VERSION,\n        digest=_sha256(_canonical_json(material)),\n        command_digest=cmd_digest,\n        environment_digest=None,\n        stdout_digest=None,\n        stderr_digest=None,\n        exit_code=None,\n        timed_out=None,\n    )\n'''
+          if 'def fingerprint_repair_outcome(' not in text:
+              text = text.replace(marker, insert + marker)
+          text = text.replace(
+              '    initial: RuntimeObservation,\n) -> None:\n',
+              '    initial: RuntimeObservation | None,\n) -> None:\n',
+          )
+          text = text.replace(
+              '        if last.verification.receipt.request_id != initial.verification.receipt.request_id:\n',
+              '        if initial is None or last.verification.receipt.request_id != initial.verification.receipt.request_id:\n',
+          )
+          text = text.replace(
+              '    initial = outcome.initial_failure\n    if initial is None:\n        raise BrokeredRepairTraceError("brokered repair trace requires a bound initial observation")\n    fingerprint = fingerprint_runtime_failure(initial)\n',
+              '    initial = outcome.initial_failure\n    fingerprint = fingerprint_repair_outcome(request, outcome)\n',
+          )
+          text = text.replace(
+              '    recorder.emit(RuntimeTraceEventType.SESSION_STARTED, {"component": _TRACE_COMPONENT})\n    _emit_observation(recorder, initial)\n',
+              '    recorder.emit(RuntimeTraceEventType.SESSION_STARTED, {"component": _TRACE_COMPONENT})\n    if initial is not None:\n        _emit_observation(recorder, initial)\n',
+          )
+          p.write_text(text)
+
+          init = Path('src/factory_runtime/__init__.py')
+          value = init.read_text()
+          import_block = '''from .brokered_repair_trace import (\n    BrokeredRepairTraceArtifact,\n    BrokeredRepairTraceError,\n    BrokeredRepairTraceStore,\n    FailureFingerprint,\n    InMemoryBrokeredRepairTraceStore,\n    build_brokered_repair_trace,\n    fingerprint_repair_outcome,\n    fingerprint_runtime_failure,\n)\n'''
+          if 'from .brokered_repair_trace import (' not in value:
+              value = value.replace('from .brokered_repair import (', import_block + 'from .brokered_repair import (')
+          exports = [
+              'BrokeredRepairTraceArtifact', 'BrokeredRepairTraceError', 'BrokeredRepairTraceStore',
+              'FailureFingerprint', 'InMemoryBrokeredRepairTraceStore', 'build_brokered_repair_trace',
+              'fingerprint_repair_outcome', 'fingerprint_runtime_failure',
+          ]
+          anchor = '    "BrokeredCIRepairRuntime",\n'
+          for item in reversed(exports):
+              if f'    "{item}",' not in value:
+                  value = value.replace(anchor, f'    "{item}",\n' + anchor)
+          init.write_text(value)
+          PY
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Generate exact manifest and self-delete helper
+        run: |
+          rm .github/workflows/prepare-brokered-repair-auto-trace.yml
+          python scripts/build_manifest.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: refresh brokered-repair trace manifest [skip ci]"
+          git push
