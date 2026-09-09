@@ -1,0 +1,74 @@
+name: prepare-live-provider-activation
+
+on:
+  push:
+    branches: [feat/live-provider-activation-prep]
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Validate workflow supply-chain policy
+        run: python scripts/validate_workflows.py
+      - name: Run full unit suite before PR
+        run: python -m unittest discover -s tests -v
+      - name: Validate disabled live-provider preparation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from factory_runtime.live_provider_activation import validate_live_provider_preparation
+          p = validate_live_provider_preparation(Path.cwd())
+          assert p.all_live_targets_disabled is True
+          assert p.max_cost_usd_per_qualification_session <= 5
+          print("PREPARED_DISABLED_NO_PROVIDER_CALL")
+          print(p.corpus_digest)
+          PY
+      - name: Prove live execution request fails before credentials
+        run: |
+          python - <<'PY'
+          from decimal import Decimal
+          from pathlib import Path
+          from factory_runtime.live_provider_activation import (
+              LiveProviderActivationError,
+              authorize_live_qualification,
+              validate_live_provider_preparation,
+          )
+          root = Path.cwd()
+          p = validate_live_provider_preparation(root)
+          try:
+              authorize_live_qualification(
+                  root,
+                  actor="timbrydges",
+                  target_alias=p.baseline_alias,
+                  corpus_digest=p.corpus_digest,
+                  source_commit="1" * 40,
+                  reserved_cost_usd=Decimal("1.00"),
+              )
+          except LiveProviderActivationError as exc:
+              if "prepared but disabled" not in str(exc):
+                  raise
+              print("LIVE_EXECUTION_BLOCKED_BEFORE_CREDENTIALS")
+          else:
+              raise SystemExit("live execution unexpectedly authorized")
+          PY
+      - name: Generate exact manifest and self-delete helper
+        run: |
+          rm .github/workflows/prepare-live-provider-activation.yml
+          python scripts/build_manifest.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: refresh live-provider activation manifest [skip ci]"
+          git push
