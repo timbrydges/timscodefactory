@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Run one real Docker-backed, zero-cost brokered CI repair canary.
+"""Run one real Docker-backed, zero-cost broker-service CI repair canary.
 
 The canary is deliberately non-authoritative and vendor-free. It reproduces a
-known failing command in the hardened Docker runtime, feeds sanitized context to
-a scripted provider-broker transport, applies one bounded edit in a disposable
-candidate workspace, re-runs the exact original command in Docker, persists the
-metadata-only trace in SQLite, reopens/replays it, and verifies the authoritative
-fixture never changed.
+known failing command in the hardened Docker runtime, routes the repair model
+through the real Factory HTTP edge, Bearer authenticator, broker service,
+registry-backed model selector and zero-cost dry-run provider, applies one
+bounded edit in a disposable candidate workspace, re-runs the exact original
+command in Docker, persists the metadata-only trace in SQLite, reopens/replays
+it, and verifies the authoritative fixture never changed.
+
+This exercises the broker HTTP application boundary in-process. It does not open
+a network socket or terminate TLS; those remain deployment concerns.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -32,6 +37,21 @@ from factory_runtime.provider_broker import (  # noqa: E402
     BrokerHTTPResponse,
     EphemeralBrokerCredential,
     ProviderBrokerBudget,
+    load_provider_broker_binding,
+)
+from factory_runtime.provider_broker_http import (  # noqa: E402
+    BrokerHTTPRequest,
+    ReferenceProviderBrokerHTTPApplication,
+)
+from factory_runtime.provider_broker_service import (  # noqa: E402
+    BrokerAuthContext,
+    ReferenceProviderBrokerService,
+)
+from factory_runtime.provider_targets import (  # noqa: E402
+    CatalogProviderSelectorResolver,
+    DryRunProviderInvoker,
+    ScriptedDryRunDecisionEngine,
+    StaticProviderSelectorValueSource,
 )
 from factory_runtime.repair import RepairPolicy, RepairRequest, VerifiedRepairCandidate  # noqa: E402
 from factory_runtime.structured_repair import StructuredRepairPolicy  # noqa: E402
@@ -41,10 +61,19 @@ from factory_runtime.trace_store_sqlite import SQLiteBrokeredRepairTraceStore  #
 PINNED_PYTHON_IMAGE = re.compile(r"^python@sha256:[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 CANARY_TOKEN = "factory-broker-canary-token-0001"
+BROKER_ENDPOINT = "https://provider-broker.internal/v1/repair/decide"
 
 
 class CanaryCredentialSource:
+    """Issue the client-side ephemeral canary credential."""
+
+    def __init__(self) -> None:
+        self.issue_count = 0
+
     async def issue(self, *, audience: str) -> EphemeralBrokerCredential:
+        if audience != "provider-broker.internal":
+            raise AssertionError("broker client requested an unexpected credential audience")
+        self.issue_count += 1
         now = datetime.now(timezone.utc)
         return EphemeralBrokerCredential(
             token=CANARY_TOKEN,
@@ -54,10 +83,83 @@ class CanaryCredentialSource:
         )
 
 
-class ScriptedZeroCostBrokerTransport:
+class CanaryBearerAuthenticator:
+    """Terminate and validate the raw canary token at the HTTP edge."""
+
     def __init__(self) -> None:
+        self.auth_count = 0
+
+    async def authenticate(self, token: str) -> BrokerAuthContext:
+        if token != CANARY_TOKEN:
+            raise AssertionError("broker HTTP edge received an unexpected Bearer token")
+        self.auth_count += 1
+        now = datetime.now(timezone.utc)
+        return BrokerAuthContext(
+            subject="engineering_agent_service",
+            audience="provider-broker.internal",
+            issued_at=now - timedelta(seconds=1),
+            expires_at=now + timedelta(minutes=5),
+        )
+
+
+class InProcessBrokerHTTPTransport:
+    """Bridge the client transport protocol to the real HTTP application edge.
+
+    This deliberately does not bypass the HTTP request model: client headers and
+    body are converted into BrokerHTTPRequest, authenticated and validated by
+    ReferenceProviderBrokerHTTPApplication, then normalized back into the
+    client's BrokerHTTPResponse type.
+    """
+
+    def __init__(self, application: ReferenceProviderBrokerHTTPApplication) -> None:
+        self.application = application
         self.calls: list[dict[str, object]] = []
-        self._decisions = [
+
+    async def post_json(self, *, endpoint, headers, body, timeout_seconds):
+        if endpoint != BROKER_ENDPOINT:
+            raise AssertionError("broker canary was routed to an unapproved endpoint")
+        parsed = urlparse(endpoint)
+        if parsed.scheme != "https" or parsed.hostname != "provider-broker.internal":
+            raise AssertionError("broker canary endpoint lost its approved HTTPS binding")
+        request = BrokerHTTPRequest(
+            method="POST",
+            path=parsed.path,
+            headers=tuple(headers.items()),
+            body=body,
+        )
+        response = await asyncio.wait_for(
+            self.application.handle(request),
+            timeout=timeout_seconds,
+        )
+        response_headers = {name.lower(): value for name, value in response.headers}
+        self.calls.append(
+            {
+                "status_code": response.status_code,
+                "cache_control": response_headers.get("cache-control"),
+                "content_type": response_headers.get("content-type"),
+            }
+        )
+        return BrokerHTTPResponse(status_code=response.status_code, body=response.body)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--workspace", required=True, type=Path)
+    parser.add_argument("--image-ref", required=True)
+    parser.add_argument("--source-commit", required=True)
+    return parser.parse_args()
+
+
+def build_broker_chain():
+    binding = load_provider_broker_binding(ROOT)
+    selector = CatalogProviderSelectorResolver(
+        ROOT,
+        StaticProviderSelectorValueSource(
+            {"FACTORY_CODING_MODEL": "coding_primary_dry_run"}
+        ),
+    )
+    decision_engine = ScriptedDryRunDecisionEngine(
+        decisions=[
             {"type": "read_files", "paths": ["app.py"]},
             {
                 "type": "apply_edits",
@@ -71,51 +173,26 @@ class ScriptedZeroCostBrokerTransport:
                 ],
             },
         ]
-
-    async def post_json(self, *, endpoint, headers, body, timeout_seconds):
-        if endpoint != "https://provider-broker.internal/v1/repair/decide":
-            raise AssertionError("broker canary was routed to an unapproved endpoint")
-        if headers.get("Authorization") != f"Bearer {CANARY_TOKEN}":
-            raise AssertionError("broker canary did not use the expected ephemeral credential")
-        payload = json.loads(body.decode("utf-8"))
-        if payload.get("provider_profile") != "coding_primary":
-            raise AssertionError("broker canary provider profile drifted")
-        if payload.get("model_selector") != "FACTORY_CODING_MODEL":
-            raise AssertionError("broker canary model selector drifted")
-        if not self._decisions:
-            raise AssertionError("broker canary made an unexpected extra model call")
-        self.calls.append(
-            {
-                "request_id": payload["request_id"],
-                "timeout_seconds": timeout_seconds,
-            }
-        )
-        response = {
-            "protocol_version": "factory-repair-broker-v1",
-            "request_id": payload["request_id"],
-            "binding_digest": payload["binding_digest"],
-            "provider_profile": payload["provider_profile"],
-            "provider_family": payload["provider_family"],
-            "model_selector": payload["model_selector"],
-            "decision": self._decisions.pop(0),
-            "usage": {
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "cost_usd": "0.00",
-            },
-        }
-        return BrokerHTTPResponse(
-            status_code=200,
-            body=json.dumps(response, sort_keys=True, separators=(",", ":")).encode("utf-8"),
-        )
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--workspace", required=True, type=Path)
-    parser.add_argument("--image-ref", required=True)
-    parser.add_argument("--source-commit", required=True)
-    return parser.parse_args()
+    )
+    provider_invoker = DryRunProviderInvoker(decision_engine)
+    service = ReferenceProviderBrokerService(
+        ROOT,
+        binding,
+        selector,
+        provider_invoker,
+    )
+    authenticator = CanaryBearerAuthenticator()
+    application = ReferenceProviderBrokerHTTPApplication(service, authenticator)
+    transport = InProcessBrokerHTTPTransport(application)
+    credential_source = CanaryCredentialSource()
+    return (
+        binding,
+        credential_source,
+        authenticator,
+        provider_invoker,
+        decision_engine,
+        transport,
+    )
 
 
 async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dict[str, object]:
@@ -134,7 +211,14 @@ async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dic
 
     image_policy = BaseImagePolicy(images=(("python:3.12", image_ref),))
     provisioning_policy = DockerProvisioningPolicy()
-    transport = ScriptedZeroCostBrokerTransport()
+    (
+        service_binding,
+        credential_source,
+        authenticator,
+        provider_invoker,
+        decision_engine,
+        transport,
+    ) = build_broker_chain()
     budget = ProviderBrokerBudget(
         max_cost_usd_per_call=Decimal("0.01"),
         max_total_cost_usd=Decimal("0.02"),
@@ -148,13 +232,16 @@ async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dic
             workspace,
             image_policy,
             provisioning_policy,
-            CanaryCredentialSource(),
+            credential_source,
             transport,
             budget,
             structured_policy=StructuredRepairPolicy(max_model_turns=3),
             repair_policy=RepairPolicy(max_attempts=2),
             trace_store=trace_store,
         )
+        if runtime.binding.binding_digest != service_binding.binding_digest:
+            raise RuntimeError("client and broker service resolved different Factory bindings")
+
         request = RepairRequest(
             repair_id="real-brokered-repair-canary-v1",
             task_id="real-brokered-repair-canary-task",
@@ -184,10 +271,22 @@ async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dic
                 raise RuntimeError("verified candidate did not pass the exact original command")
             if outcome.attempt_number != 1:
                 raise RuntimeError("brokered repair canary required an unexpected number of attempts")
+
             if len(runtime.provider_calls) != 2 or len(transport.calls) != 2:
                 raise RuntimeError("brokered repair canary did not use exactly two broker decisions")
+            if credential_source.issue_count != 2 or authenticator.auth_count != 2:
+                raise RuntimeError("broker credential issuance/authentication count is inconsistent")
+            if provider_invoker.invocation_count != 2 or decision_engine.decisions:
+                raise RuntimeError("dry-run provider service did not consume exactly two decisions")
+            if any(call["status_code"] != 200 for call in transport.calls):
+                raise RuntimeError("broker HTTP application returned a non-200 response")
+            if any(call["cache_control"] != "no-store" for call in transport.calls):
+                raise RuntimeError("broker HTTP response did not enforce no-store")
+            if any(call["content_type"] != "application/json" for call in transport.calls):
+                raise RuntimeError("broker HTTP response content type drifted")
             if runtime.spent_usd != Decimal("0.00"):
                 raise RuntimeError("zero-cost broker canary reported nonzero provider spend")
+
             if artifact.replay.terminal_status != "SUCCEEDED":
                 raise RuntimeError("repair trace replay did not reconstruct success")
             if artifact.replay.model_calls != 2 or artifact.replay.repair_actions != 1:
@@ -216,6 +315,10 @@ async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dic
                 "status": "PASS",
                 "provider_cost_usd": format(runtime.spent_usd, "f"),
                 "provider_calls": len(runtime.provider_calls),
+                "broker_http_calls": len(transport.calls),
+                "broker_authentications": authenticator.auth_count,
+                "provider_invocations": provider_invoker.invocation_count,
+                "provider_target": "coding_primary_dry_run",
                 "repair_attempt": outcome.attempt_number,
                 "trace_id": artifact.trace_id,
                 "trace_events": artifact.replay.event_count,
@@ -224,6 +327,8 @@ async def run_canary(workspace: Path, image_ref: str, source_commit: str) -> dic
                 "fingerprint_seen_count": history.seen_count,
                 "authoritative_workspace_unchanged": True,
                 "candidate_verified": True,
+                "http_application_edge_exercised": True,
+                "network_socket_opened": False,
                 "paid_provider_traffic": False,
                 "factory_state_mutation": False,
             }
