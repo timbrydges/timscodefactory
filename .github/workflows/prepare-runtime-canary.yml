@@ -15,6 +15,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fix live Docker no-new-privileges syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          runtime = Path("src/factory_runtime/docker_sandbox.py")
+          text = runtime.read_text(encoding="utf-8")
+          old = "--security-opt=no-new-privileges:true"
+          new = "--security-opt=no-new-privileges=true"
+          if old not in text:
+              raise SystemExit("expected Docker security option not found")
+          runtime.write_text(text.replace(old, new), encoding="utf-8")
+
+          test = Path("tests/test_docker_sandbox.py")
+          value = test.read_text(encoding="utf-8")
+          if old not in value:
+              raise SystemExit("expected Docker security option assertion not found")
+          test.write_text(value.replace(old, new), encoding="utf-8")
+          PY
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
