@@ -43,7 +43,9 @@ def escalation_artifact(*, offset_seconds: int = 0):
         request,
         outcome,
         (),
-        started_at=datetime.now(timezone.utc) + timedelta(seconds=offset_seconds),
+        # Keep distinct synthetic starts safely in the past; telemetry correctly
+        # rejects traces whose declared start is later than their first event.
+        started_at=datetime.now(timezone.utc) - timedelta(seconds=10 - offset_seconds),
     )
 
 
