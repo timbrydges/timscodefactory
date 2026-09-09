@@ -3,7 +3,10 @@ selectors:
   FACTORY_CODING_MODEL:
     provider_profile: coding_primary
     provider_family: openai
-    allowed_targets: [coding_primary_dry_run]
+    allowed_targets:
+      - coding_primary_dry_run
+      - coding_primary_sol_live
+      - coding_primary_terra_live
     default_target: coding_primary_dry_run
     authority_effect: none
 
@@ -16,3 +19,19 @@ targets:
     live_credentials: prohibited
     cost_mode: zero
     selector_version: "dry-run-v1"
+  coding_primary_sol_live:
+    provider_family: openai
+    model_id: "gpt-5.6-sol"
+    execution_mode: live
+    enabled: false
+    live_credentials: brokered_lease_only
+    cost_mode: metered
+    selector_version: "live-prep-v1"
+  coding_primary_terra_live:
+    provider_family: openai
+    model_id: "gpt-5.6-terra"
+    execution_mode: live
+    enabled: false
+    live_credentials: brokered_lease_only
+    cost_mode: metered
+    selector_version: "live-prep-v1"
