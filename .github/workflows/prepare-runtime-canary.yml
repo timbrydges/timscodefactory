@@ -15,23 +15,41 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fix live Docker no-new-privileges syntax
+      - name: Fix live Docker create syntax
         run: |
           python - <<'PY'
           from pathlib import Path
+
           runtime = Path("src/factory_runtime/docker_sandbox.py")
           text = runtime.read_text(encoding="utf-8")
-          old = "--security-opt=no-new-privileges:true"
-          new = "--security-opt=no-new-privileges=true"
-          if old not in text:
+          old_security = "--security-opt=no-new-privileges:true"
+          new_security = "--security-opt=no-new-privileges=true"
+          old_mount = 'mount = f"type=bind,src={copied_workspace},dst=/workspace,rw"'
+          new_mount = 'mount = f"type=bind,src={copied_workspace},dst=/workspace"'
+          if old_security not in text:
               raise SystemExit("expected Docker security option not found")
-          runtime.write_text(text.replace(old, new), encoding="utf-8")
+          if old_mount not in text:
+              raise SystemExit("expected Docker bind mount not found")
+          text = text.replace(old_security, new_security).replace(old_mount, new_mount)
+          runtime.write_text(text, encoding="utf-8")
 
           test = Path("tests/test_docker_sandbox.py")
           value = test.read_text(encoding="utf-8")
-          if old not in value:
+          if old_security not in value:
               raise SystemExit("expected Docker security option assertion not found")
-          test.write_text(value.replace(old, new), encoding="utf-8")
+          value = value.replace(old_security, new_security)
+          anchor = '            self.assertIn("--security-opt=no-new-privileges=true", create_argv)\n'
+          mount_assert = (
+              anchor
+              + '            mount_index = create_argv.index("--mount")\n'
+              + '            self.assertIn("type=bind,src=", create_argv[mount_index + 1])\n'
+              + '            self.assertIn(",dst=/workspace", create_argv[mount_index + 1])\n'
+              + '            self.assertNotIn(",rw", create_argv[mount_index + 1])\n'
+          )
+          if anchor not in value:
+              raise SystemExit("Docker security assertion anchor not found")
+          value = value.replace(anchor, mount_assert)
+          test.write_text(value, encoding="utf-8")
           PY
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -83,7 +101,7 @@ jobs:
               --ulimit nproc=512:512 \
               --user 65532:65532 \
               --tmpfs=/tmp:rw,nosuid,nodev,size=256m \
-              --mount "type=bind,src=$PROBE_DIR,dst=/workspace,rw" \
+              --mount "type=bind,src=$PROBE_DIR,dst=/workspace" \
               --workdir /workspace \
               --env HOME=/tmp \
               --env CI=true \
