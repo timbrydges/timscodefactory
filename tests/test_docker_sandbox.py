@@ -146,7 +146,12 @@ class DockerSandboxTests(unittest.TestCase):
             self.assertIn("--network=none", create_argv)
             self.assertIn("--read-only", create_argv)
             self.assertIn("--cap-drop=ALL", create_argv)
-            self.assertIn("--security-opt=no-new-privileges:true", create_argv)
+            self.assertIn("--security-opt=no-new-privileges=true", create_argv)
+            mount_index = create_argv.index("--mount")
+            self.assertIn("type=bind,src=", create_argv[mount_index + 1])
+            self.assertIn(",dst=/workspace", create_argv[mount_index + 1])
+            self.assertNotIn(",rw", create_argv[mount_index + 1])
+            self.assertIn("PYTHONDONTWRITEBYTECODE=1", create_argv)
             self.assertNotIn("--privileged", create_argv)
             self.assertFalse(any("docker.sock" in arg for arg in create_argv))
             for expected_label in (

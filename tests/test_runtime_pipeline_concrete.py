@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -19,6 +20,32 @@ from factory_runtime.pipeline import (  # noqa: E402
 
 
 class ConcreteRuntimePipelineTests(unittest.TestCase):
+    def test_default_verification_user_tracks_non_root_host_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            factory = DockerVerificationFactory()
+            with patch("factory_runtime.pipeline.os.geteuid", return_value=1234), patch(
+                "factory_runtime.pipeline.os.getegid", return_value=5678
+            ):
+                binding = factory.create(
+                    workspace=Path(tmp),
+                    image_ref="python@sha256:" + "a" * 64,
+                    expected_runner_identity="factory_docker_sandbox_v1",
+                )
+            self.assertEqual(binding.adapter.policy.user, "1234:5678")
+
+    def test_default_verification_user_refuses_root_host_process(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            factory = DockerVerificationFactory()
+            with patch("factory_runtime.pipeline.os.geteuid", return_value=0), patch(
+                "factory_runtime.pipeline.os.getegid", return_value=0
+            ):
+                with self.assertRaisesRegex(RuntimeError, "refuses a root host process"):
+                    factory.create(
+                        workspace=Path(tmp),
+                        image_ref="python@sha256:" + "a" * 64,
+                        expected_runner_identity="factory_docker_sandbox_v1",
+                    )
+
     def test_builder_wires_same_container_cli_across_provision_and_verify(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)

@@ -153,6 +153,12 @@ class DockerSandboxPolicy:
             "capabilities=drop-all",
             "no-new-privileges=true",
             "workspace=disposable-rw-copy",
+            "HOME=/tmp",
+            "CI=true",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "GIT_CONFIG_COUNT=1",
+            "GIT_CONFIG_KEY_0=safe.directory",
+            "GIT_CONFIG_VALUE_0=/workspace",
         )
         payload = b"\0".join(item.encode("utf-8") for item in fields)
         return "sha256:" + hashlib.sha256(payload).hexdigest()
@@ -331,7 +337,7 @@ class DockerSandboxAdapter:
         copied_workspace: Path,
         container_name: str,
     ) -> tuple[str, ...]:
-        mount = f"type=bind,src={copied_workspace},dst=/workspace,rw"
+        mount = f"type=bind,src={copied_workspace},dst=/workspace"
         return (
             self.policy.docker_executable,
             "create",
@@ -341,7 +347,7 @@ class DockerSandboxAdapter:
             "--network=none",
             "--read-only",
             "--cap-drop=ALL",
-            "--security-opt=no-new-privileges:true",
+            "--security-opt=no-new-privileges=true",
             "--memory",
             self.policy.memory,
             "--memory-swap",
@@ -365,6 +371,8 @@ class DockerSandboxAdapter:
             "HOME=/tmp",
             "--env",
             "CI=true",
+            "--env",
+            "PYTHONDONTWRITEBYTECODE=1",
             "--env",
             "GIT_CONFIG_COUNT=1",
             "--env",
