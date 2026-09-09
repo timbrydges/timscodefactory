@@ -1,0 +1,47 @@
+name: runtime-canary
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/factory_runtime/**"
+      - "factory/canary/runtime-v1/**"
+      - "scripts/runtime_canary.py"
+      - ".github/workflows/runtime-canary.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  real-runtime-canary:
+    name: runtime / real Docker canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Resolve an immutable canary base image
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This mutable tag is used only as a non-authoritative canary bootstrap.
+          # The Factory runtime receives and executes only the resolved RepoDigest.
+          docker pull --quiet python:3.12-slim >/dev/null
+          IMAGE_REF="$(docker image inspect --format '{{index .RepoDigests 0}}' python:3.12-slim)"
+          if [[ ! "$IMAGE_REF" =~ ^python@sha256:[0-9a-f]{64}$ ]]; then
+            echo "Docker did not resolve python:3.12-slim to an immutable RepoDigest" >&2
+            exit 1
+          fi
+          echo "CANARY_IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
+      - name: Run concrete Factory runtime canary
+        run: >-
+          python scripts/runtime_canary.py
+          --workspace factory/canary/runtime-v1
+          --image-ref "$CANARY_IMAGE_REF"
+          --source-commit "$SOURCE_COMMIT"
