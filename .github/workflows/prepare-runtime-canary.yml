@@ -53,6 +53,62 @@ jobs:
             exit 1
           fi
           echo "CANARY_IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
+      - name: Probe exact hardened Docker create compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROBE_DIR="$(mktemp -d)"
+          PROBE_NAME="factory-canary-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
+            rm -rf "$PROBE_DIR"
+          }
+          trap cleanup EXIT
+          cp -a factory/canary/runtime-v1/. "$PROBE_DIR/"
+          chmod -R a+rwX "$PROBE_DIR"
+          set +e
+          OUTPUT="$({
+            docker create \
+              --pull=never \
+              --name "$PROBE_NAME" \
+              --network=none \
+              --read-only \
+              --cap-drop=ALL \
+              --security-opt=no-new-privileges=true \
+              --memory 2g \
+              --memory-swap 2g \
+              --cpus 2 \
+              --pids-limit 256 \
+              --ulimit nofile=4096:4096 \
+              --ulimit nproc=512:512 \
+              --user 65532:65532 \
+              --tmpfs=/tmp:rw,nosuid,nodev,size=256m \
+              --mount "type=bind,src=$PROBE_DIR,dst=/workspace,rw" \
+              --workdir /workspace \
+              --env HOME=/tmp \
+              --env CI=true \
+              --env GIT_CONFIG_COUNT=1 \
+              --env GIT_CONFIG_KEY_0=safe.directory \
+              --env GIT_CONFIG_VALUE_0=/workspace \
+              --label factory.sandbox=true \
+              --label factory.runtime_session_id=runtime-canary-v1.verify \
+              --label factory.request_id=runtime-canary-v1.verify \
+              --label factory.task_id=runtime-canary-task \
+              --label factory.lease_id=runtime-canary-lease \
+              --label factory.role_id=engineering_agent \
+              --label "factory.source_commit=$GITHUB_SHA" \
+              --label factory.runner_identity=factory_docker_sandbox_v1 \
+              "$CANARY_IMAGE_REF" \
+              python -m unittest discover -s tests -v
+          } 2>&1)"
+          RC=$?
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            echo "Exact hardened docker create failed (exit $RC):" >&2
+            printf '%s\n' "$OUTPUT" >&2
+            exit "$RC"
+          fi
+          printf '%s\n' "$OUTPUT" >/dev/null
       - name: Run real Detector-Provisioner-Sandbox canary
         run: >-
           python scripts/runtime_canary.py
