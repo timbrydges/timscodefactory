@@ -1,0 +1,100 @@
+name: provider-live-qualification-preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Disabled live target to preflight
+        required: true
+        type: choice
+        options:
+          - coding_primary_sol_live
+          - coding_primary_terra_live
+      reserve_usd:
+        description: Maximum USD reservation for this qualification session
+        required: true
+        default: "1.00"
+        type: string
+      execute_live:
+        description: Request live execution after preflight (currently must fail closed)
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: provider / owner-gated live preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Validate owner, target, corpus and spend reservation
+        env:
+          FACTORY_ACTOR: ${{ github.actor }}
+          FACTORY_TARGET: ${{ inputs.target }}
+          FACTORY_RESERVE_USD: ${{ inputs.reserve_usd }}
+          FACTORY_SOURCE_COMMIT: ${{ github.sha }}
+          FACTORY_EXECUTE_LIVE: ${{ inputs.execute_live }}
+        run: |
+          python - <<'PY'
+          import os
+          from decimal import Decimal, InvalidOperation
+          from pathlib import Path
+
+          from factory_runtime.live_provider_activation import (
+              LiveProviderActivationError,
+              authorize_live_qualification,
+              validate_live_provider_preparation,
+          )
+
+          root = Path.cwd()
+          preparation = validate_live_provider_preparation(root)
+          actor = os.environ["FACTORY_ACTOR"]
+          target = os.environ["FACTORY_TARGET"]
+          execute_live = os.environ["FACTORY_EXECUTE_LIVE"].lower() == "true"
+          try:
+              reserve = Decimal(os.environ["FACTORY_RESERVE_USD"])
+          except InvalidOperation as exc:
+              raise SystemExit("reserve_usd must be a decimal") from exc
+
+          if actor != "timbrydges":
+              raise SystemExit("only timbrydges may run live provider qualification preflight")
+          if target not in {preparation.baseline_alias, preparation.challenger_alias}:
+              raise SystemExit("requested target is not approved")
+          if reserve <= 0 or reserve > preparation.max_cost_usd_per_qualification_session:
+              raise SystemExit("requested reservation exceeds the locked qualification session cap")
+
+          print(f"target={target}")
+          print(f"corpus_digest={preparation.corpus_digest}")
+          print(f"session_cap_usd={preparation.max_cost_usd_per_qualification_session}")
+          print(f"live_targets_disabled={str(preparation.all_live_targets_disabled).lower()}")
+
+          if not execute_live:
+              if not preparation.all_live_targets_disabled:
+                  raise SystemExit("preparation workflow expected all live targets to remain disabled")
+              print("status=PREPARED_DISABLED_NO_PROVIDER_CALL")
+              raise SystemExit(0)
+
+          try:
+              authorize_live_qualification(
+                  root,
+                  actor=actor,
+                  target_alias=target,
+                  corpus_digest=preparation.corpus_digest,
+                  source_commit=os.environ["FACTORY_SOURCE_COMMIT"],
+                  reserved_cost_usd=reserve,
+              )
+          except LiveProviderActivationError as exc:
+              raise SystemExit(f"LIVE_EXECUTION_BLOCKED: {exc}") from exc
+          raise SystemExit("live execution stage is intentionally absent until owner-reviewed activation")
+          PY

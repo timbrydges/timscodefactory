@@ -1,0 +1,36 @@
+schema_version: "1.0"
+default: deny
+owner: Tim Brydges
+provider_family: openai
+qualification_only: true
+auto_activation: prohibited
+requires_owner_approval: true
+requires_quality_gate: true
+requires_fresh_pricing: true
+requires_ephemeral_provider_credential: true
+requires_provider_broker: true
+limits:
+  max_cost_usd_per_call: "0.25"
+  max_cost_usd_per_candidate_run: "2.00"
+  max_cost_usd_per_qualification_session: "5.00"
+  max_output_tokens_per_call: 4096
+  max_credential_ttl_seconds: 900
+  max_pricing_age_seconds: 86400
+approved_live_targets:
+  coding_primary_sol_live:
+    model_id: gpt-5.6-sol
+    role: quality_baseline
+    enabled: false
+  coding_primary_terra_live:
+    model_id: gpt-5.6-terra
+    role: cost_challenger
+    enabled: false
+activation_requirements:
+  - owner_approval_event
+  - exact_target_alias
+  - exact_qualification_corpus_digest
+  - exact_source_commit
+  - fresh_pricing_quote
+  - ephemeral_credential_lease
+  - quality_gate_pass
+  - spend_reservation_within_session_cap
