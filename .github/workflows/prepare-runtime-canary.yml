@@ -15,13 +15,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fix live Docker create syntax
+      - name: Fix live Docker runtime compatibility and lifecycle
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          runtime = Path("src/factory_runtime/docker_sandbox.py")
-          text = runtime.read_text(encoding="utf-8")
+          sandbox = Path("src/factory_runtime/docker_sandbox.py")
+          text = sandbox.read_text(encoding="utf-8")
           old_security = "--security-opt=no-new-privileges:true"
           new_security = "--security-opt=no-new-privileges=true"
           old_mount = 'mount = f"type=bind,src={copied_workspace},dst=/workspace,rw"'
@@ -31,25 +31,77 @@ jobs:
           if old_mount not in text:
               raise SystemExit("expected Docker bind mount not found")
           text = text.replace(old_security, new_security).replace(old_mount, new_mount)
-          runtime.write_text(text, encoding="utf-8")
+          digest_anchor = '            "workspace=disposable-rw-copy",\n'
+          digest_env = (
+              digest_anchor
+              + '            "HOME=/tmp",\n'
+              + '            "CI=true",\n'
+              + '            "PYTHONDONTWRITEBYTECODE=1",\n'
+              + '            "GIT_CONFIG_COUNT=1",\n'
+              + '            "GIT_CONFIG_KEY_0=safe.directory",\n'
+              + '            "GIT_CONFIG_VALUE_0=/workspace",\n'
+          )
+          if digest_anchor not in text:
+              raise SystemExit("sandbox environment digest anchor not found")
+          text = text.replace(digest_anchor, digest_env)
+          env_anchor = '            "--env",\n            "CI=true",\n'
+          env_patch = (
+              env_anchor
+              + '            "--env",\n'
+              + '            "PYTHONDONTWRITEBYTECODE=1",\n'
+          )
+          if env_anchor not in text:
+              raise SystemExit("sandbox CI environment anchor not found")
+          text = text.replace(env_anchor, env_patch)
+          sandbox.write_text(text, encoding="utf-8")
+
+          pipeline = Path("src/factory_runtime/pipeline.py")
+          value = pipeline.read_text(encoding="utf-8")
+          if "import os\n" not in value:
+              value = value.replace("import re\n", "import os\nimport re\n", 1)
+          old_user = '    user: str = "65532:65532"\n'
+          new_user = '    user: str | None = None\n'
+          if old_user not in value:
+              raise SystemExit("verification factory default user not found")
+          value = value.replace(old_user, new_user, 1)
+          create_anchor = '''    def create(\n        self,\n        *,\n        workspace: Path,\n        image_ref: str,\n        expected_runner_identity: str,\n    ) -> VerificationBinding:\n'''
+          resolver = '''    def _resolved_user(self) -> str:\n        if self.user is not None:\n            return self.user\n        uid = os.geteuid()\n        gid = os.getegid()\n        if uid == 0:\n            raise RuntimePipelineError(\n                "automatic Docker verification user resolution refuses a root host process"\n            )\n        return f"{uid}:{gid}"\n\n'''
+          if create_anchor not in value:
+              raise SystemExit("verification factory create anchor not found")
+          value = value.replace(create_anchor, resolver + create_anchor, 1)
+          if "            user=self.user,\n" not in value:
+              raise SystemExit("verification factory policy user binding not found")
+          value = value.replace("            user=self.user,\n", "            user=self._resolved_user(),\n", 1)
+          pipeline.write_text(value, encoding="utf-8")
 
           test = Path("tests/test_docker_sandbox.py")
-          value = test.read_text(encoding="utf-8")
-          if old_security not in value:
+          tests = test.read_text(encoding="utf-8")
+          if old_security not in tests:
               raise SystemExit("expected Docker security option assertion not found")
-          value = value.replace(old_security, new_security)
-          anchor = '            self.assertIn("--security-opt=no-new-privileges=true", create_argv)\n'
-          mount_assert = (
-              anchor
+          tests = tests.replace(old_security, new_security)
+          security_anchor = '            self.assertIn("--security-opt=no-new-privileges=true", create_argv)\n'
+          assertions = (
+              security_anchor
               + '            mount_index = create_argv.index("--mount")\n'
               + '            self.assertIn("type=bind,src=", create_argv[mount_index + 1])\n'
               + '            self.assertIn(",dst=/workspace", create_argv[mount_index + 1])\n'
               + '            self.assertNotIn(",rw", create_argv[mount_index + 1])\n'
+              + '            self.assertIn("PYTHONDONTWRITEBYTECODE=1", create_argv)\n'
           )
-          if anchor not in value:
+          if security_anchor not in tests:
               raise SystemExit("Docker security assertion anchor not found")
-          value = value.replace(anchor, mount_assert)
-          test.write_text(value, encoding="utf-8")
+          tests = tests.replace(security_anchor, assertions)
+          test.write_text(tests, encoding="utf-8")
+
+          concrete = Path("tests/test_runtime_pipeline_concrete.py")
+          c = concrete.read_text(encoding="utf-8")
+          c = c.replace("import unittest\n", "import unittest\nfrom unittest.mock import patch\n")
+          class_anchor = "class ConcreteRuntimePipelineTests(unittest.TestCase):\n"
+          new_tests = '''class ConcreteRuntimePipelineTests(unittest.TestCase):\n    def test_default_verification_user_tracks_non_root_host_identity(self):\n        with tempfile.TemporaryDirectory() as tmp:\n            factory = DockerVerificationFactory()\n            with patch("factory_runtime.pipeline.os.geteuid", return_value=1234), patch(\n                "factory_runtime.pipeline.os.getegid", return_value=5678\n            ):\n                binding = factory.create(\n                    workspace=Path(tmp),\n                    image_ref="python@sha256:" + "a" * 64,\n                    expected_runner_identity="factory_docker_sandbox_v1",\n                )\n            self.assertEqual(binding.adapter.policy.user, "1234:5678")\n\n    def test_default_verification_user_refuses_root_host_process(self):\n        with tempfile.TemporaryDirectory() as tmp:\n            factory = DockerVerificationFactory()\n            with patch("factory_runtime.pipeline.os.geteuid", return_value=0), patch(\n                "factory_runtime.pipeline.os.getegid", return_value=0\n            ):\n                with self.assertRaisesRegex(RuntimeError, "refuses a root host process"):\n                    factory.create(\n                        workspace=Path(tmp),\n                        image_ref="python@sha256:" + "a" * 64,\n                        expected_runner_identity="factory_docker_sandbox_v1",\n                    )\n\n'''
+          if class_anchor not in c:
+              raise SystemExit("concrete runtime test class anchor not found")
+          c = c.replace(class_anchor, new_tests, 1)
+          concrete.write_text(c, encoding="utf-8")
           PY
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -77,6 +129,7 @@ jobs:
           set -euo pipefail
           PROBE_DIR="$(mktemp -d)"
           PROBE_NAME="factory-canary-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          HOST_USER="$(id -u):$(id -g)"
           cleanup() {
             docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
             rm -rf "$PROBE_DIR"
@@ -99,12 +152,13 @@ jobs:
               --pids-limit 256 \
               --ulimit nofile=4096:4096 \
               --ulimit nproc=512:512 \
-              --user 65532:65532 \
+              --user "$HOST_USER" \
               --tmpfs=/tmp:rw,nosuid,nodev,size=256m \
               --mount "type=bind,src=$PROBE_DIR,dst=/workspace" \
               --workdir /workspace \
               --env HOME=/tmp \
               --env CI=true \
+              --env PYTHONDONTWRITEBYTECODE=1 \
               --env GIT_CONFIG_COUNT=1 \
               --env GIT_CONFIG_KEY_0=safe.directory \
               --env GIT_CONFIG_VALUE_0=/workspace \
