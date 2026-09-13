@@ -38,7 +38,7 @@ jobs:
           python scripts/build_manifest.py
           git config user.name "tims-software-factory"
           git config user.email "actions@users.noreply.github.com"
-          git add scripts/bootstrap_pilot_repo.py MANIFEST.sha256 .github/workflows/pilot-readme-two-line-fix-once.yml config/github/pilot-repo/.placeholder
+          git add scripts/bootstrap_pilot_repo.py MANIFEST.sha256 .github/workflows/pilot-readme-two-line-fix-once.yml
           git diff --cached --check
           git commit -m "fix(pilot): accept GitHub two-line bootstrap README"
           git push origin HEAD:fix/pilot-readme-two-line
