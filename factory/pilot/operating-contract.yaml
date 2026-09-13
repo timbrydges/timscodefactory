@@ -116,8 +116,8 @@ activation:
       verified: true
       evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     oidc_trust_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     release_storage_verified:
       verified: true
       evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
