@@ -109,12 +109,6 @@ data "aws_iam_policy_document" "pilot_runtime_trust" {
 
     condition {
       test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:event_name"
-      values   = ["workflow_dispatch"]
-    }
-
-    condition {
-      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:actor_id"
       values   = [var.pilot_github_repository_owner_id]
     }
