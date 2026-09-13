@@ -84,6 +84,9 @@ jobs:
             --consistent-read \
             --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
             > "$RUNNER_TEMP/real-current-before.json"
+          if [[ ! -s "$RUNNER_TEMP/real-current-before.json" ]]; then
+            printf '{}\n' > "$RUNNER_TEMP/real-current-before.json"
+          fi
 
       - name: Create and verify versioned drill artifacts
         shell: bash
@@ -340,6 +343,9 @@ jobs:
             --consistent-read \
             --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
             > "$RUNNER_TEMP/real-current-after.json"
+          if [[ ! -s "$RUNNER_TEMP/real-current-after.json" ]]; then
+            printf '{}\n' > "$RUNNER_TEMP/real-current-after.json"
+          fi
           aws s3api head-object \
             --bucket "$RELEASE_BUCKET" \
             --key "$BASELINE_KEY" \

@@ -2,7 +2,7 @@
 cfa642646a2085f2974287dc754983d157a63cd58b3458071e7b52bdff680504  .github/dependabot.yml
 6491e1e2abdfad7ce8bba71ef09a3e85081730583e31bd3729fc64f4b6d78813  .github/pull_request_template.md
 7b0e0e1f440eae6647a0f3536f3389e3d8a2e44d16e525b6ca2375f5e30193e0  .github/workflows/aws-infra-verify.yml
-0275aa7345b3db1b95556b59965cbd5d031e27f6d9bc7d5e4e44ea52a29dffb6  .github/workflows/aws-rollback-drill.yml
+77a0d38f3bcefbd66009a34ff7c77d32477fbbacf34bd51d75e54559d799876e  .github/workflows/aws-rollback-drill.yml
 9ca1655ae0852003ba4ac9ae8aa1f48f22adbdbbbd36db50b3bdbf656e525637  .github/workflows/brokered-repair-canary.yml
 8225bbcd3f8c391f50cd5243733a21c675f83f715e52455a17e1c5341e5ed01f  .github/workflows/brokered-repair-tls-canary.yml
 1b486ef365706dd0b32ef12994233ff6d4a8bcd5cc14ed46ce5185922175fbd0  .github/workflows/build-attest.yml
