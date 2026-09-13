@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "repository": "timbrydges/tims-factory-pilot",
+  "installation_scope": "only_selected_repository",
+  "credential_handling": {
+    "long_lived_private_key_storage": "github_actions_repository_secret",
+    "agent_receives_private_key": false,
+    "token_broker": "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1",
+    "installation_token_max_lifetime": "1h",
+    "revoke_token_at_job_end": true
+  },
+  "apps": {
+    "planner": {
+      "suggested_name": "tims-factory-planner",
+      "authoritative_identity": "software_architect_service",
+      "credential_profile": "gh_architecture_writer",
+      "repository_permissions": {
+        "contents": "write",
+        "pull_requests": "write",
+        "checks": "read",
+        "metadata": "read"
+      },
+      "allowed_merge_paths": ["architecture/**", "docs/adr/**"],
+      "client_id_variable": "FACTORY_PLANNER_APP_CLIENT_ID",
+      "private_key_secret": "FACTORY_PLANNER_APP_PRIVATE_KEY",
+      "bot_login_variable": "FACTORY_PLANNER_LOGIN"
+    },
+    "builder": {
+      "suggested_name": "tims-factory-builder",
+      "authoritative_identity": "engineering_agent_service",
+      "credential_profile": "gh_feature_writer",
+      "repository_permissions": {
+        "contents": "write",
+        "pull_requests": "write",
+        "checks": "read",
+        "metadata": "read"
+      },
+      "allowed_merge_paths": ["src/**", "tests/unit/**", "docs/implementation/**"],
+      "client_id_variable": "FACTORY_BUILDER_APP_CLIENT_ID",
+      "private_key_secret": "FACTORY_BUILDER_APP_PRIVATE_KEY",
+      "bot_login_variable": "FACTORY_BUILDER_LOGIN"
+    },
+    "inspector": {
+      "suggested_name": "tims-factory-inspector",
+      "authoritative_identity": "independent_inspector_service",
+      "credential_profile": "gh_readonly_reviewer",
+      "repository_permissions": {
+        "contents": "read",
+        "pull_requests": "write",
+        "checks": "read",
+        "metadata": "read"
+      },
+      "allowed_merge_paths": [],
+      "client_id_variable": "FACTORY_INSPECTOR_APP_CLIENT_ID",
+      "private_key_secret": "FACTORY_INSPECTOR_APP_PRIVATE_KEY",
+      "bot_login_variable": "FACTORY_INSPECTOR_LOGIN"
+    }
+  }
+}
