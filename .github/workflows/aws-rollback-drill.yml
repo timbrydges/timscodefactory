@@ -1,0 +1,410 @@
+name: aws-rollback-drill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/aws-rollback-drill.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: factory-production-release
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: aws / isolated rollback drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+
+      - name: Verify owner, main branch, and rollback-drill gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_ACTOR_ID" = "214414801"
+          python scripts/pilot_gate.py --mode validate
+          python - <<'PY'
+          from factory_state.pilot import OWNER_IDENTITY, PilotActivationPolicy
+          from scripts.pilot_gate import load_contract
+
+          contract = load_contract()
+          policy = PilotActivationPolicy.from_contract(contract)
+          if policy.phase != "INFRA_VERIFICATION":
+              raise SystemExit(f"rollback drill requires INFRA_VERIFICATION, got {policy.phase}")
+          policy.assert_rollback_drill_allowed(actor_identity=OWNER_IDENTITY)
+          PY
+
+      - name: Prepare isolated drill namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          DRILL_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "DRILL_ID=${DRILL_ID}"
+            echo "RELEASE_PK=FACTORY#tims-software-factory#RELEASE"
+            echo "BASELINE_SK=DRILL#${DRILL_ID}#BASELINE"
+            echo "CANDIDATE_SK=DRILL#${DRILL_ID}#CANDIDATE"
+            echo "DRILL_CURRENT_SK=DRILL#${DRILL_ID}#CURRENT"
+            echo "ROLLBACK_EVENT_SK=DRILL#${DRILL_ID}#ROLLBACK"
+            echo "BASELINE_KEY=releases/drill/${DRILL_ID}/baseline.txt"
+            echo "CANDIDATE_KEY=releases/drill/${DRILL_ID}/candidate.txt"
+          } >> "$GITHUB_ENV"
+
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: factory-rollback-drill-${{ github.run_id }}
+
+      - name: Capture real release pointer before drill
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/real-current-before.json"
+
+      - name: Create and verify versioned drill artifacts
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+        run: |
+          set -euo pipefail
+          BASELINE_FILE="$RUNNER_TEMP/rollback-drill-baseline.txt"
+          CANDIDATE_FILE="$RUNNER_TEMP/rollback-drill-candidate.txt"
+          printf 'factory rollback drill baseline %s\n' "$GITHUB_SHA" > "$BASELINE_FILE"
+          printf 'factory rollback drill candidate %s\n' "$GITHUB_SHA" > "$CANDIDATE_FILE"
+
+          BASELINE_RAW="$(sha256sum "$BASELINE_FILE" | cut -d' ' -f1)"
+          CANDIDATE_RAW="$(sha256sum "$CANDIDATE_FILE" | cut -d' ' -f1)"
+          BASELINE_CHECKSUM="$(python -c 'import base64,sys; print(base64.b64encode(bytes.fromhex(sys.argv[1])).decode())' "$BASELINE_RAW")"
+          CANDIDATE_CHECKSUM="$(python -c 'import base64,sys; print(base64.b64encode(bytes.fromhex(sys.argv[1])).decode())' "$CANDIDATE_RAW")"
+
+          aws s3api put-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$BASELINE_KEY" \
+            --body "$BASELINE_FILE" \
+            --checksum-sha256 "$BASELINE_CHECKSUM" \
+            --server-side-encryption AES256 \
+            --metadata "purpose=rollback-drill-baseline,source-commit=${GITHUB_SHA}" \
+            > "$RUNNER_TEMP/baseline-put.json"
+          aws s3api put-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$CANDIDATE_KEY" \
+            --body "$CANDIDATE_FILE" \
+            --checksum-sha256 "$CANDIDATE_CHECKSUM" \
+            --server-side-encryption AES256 \
+            --metadata "purpose=rollback-drill-candidate,source-commit=${GITHUB_SHA}" \
+            > "$RUNNER_TEMP/candidate-put.json"
+
+          BASELINE_VERSION="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["VersionId"])' "$RUNNER_TEMP/baseline-put.json")"
+          CANDIDATE_VERSION="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["VersionId"])' "$RUNNER_TEMP/candidate-put.json")"
+          test -n "$BASELINE_VERSION"
+          test -n "$CANDIDATE_VERSION"
+          test "$BASELINE_VERSION" != "null"
+          test "$CANDIDATE_VERSION" != "null"
+          test "$BASELINE_VERSION" != "$CANDIDATE_VERSION"
+
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$BASELINE_KEY" \
+            --version-id "$BASELINE_VERSION" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/baseline-head-before.json"
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$CANDIDATE_KEY" \
+            --version-id "$CANDIDATE_VERSION" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/candidate-head.json"
+
+          python - "$RUNNER_TEMP/baseline-head-before.json" "$BASELINE_VERSION" "$BASELINE_CHECKSUM" "$GITHUB_SHA" baseline <<'PY'
+          import json
+          import sys
+
+          head = json.load(open(sys.argv[1], encoding="utf-8"))
+          assert head["VersionId"] == sys.argv[2]
+          assert head["ChecksumSHA256"] == sys.argv[3]
+          assert head["ServerSideEncryption"] == "AES256"
+          assert head["Metadata"]["purpose"] == f"rollback-drill-{sys.argv[5]}"
+          assert head["Metadata"]["source-commit"] == sys.argv[4]
+          PY
+          python - "$RUNNER_TEMP/candidate-head.json" "$CANDIDATE_VERSION" "$CANDIDATE_CHECKSUM" "$GITHUB_SHA" candidate <<'PY'
+          import json
+          import sys
+
+          head = json.load(open(sys.argv[1], encoding="utf-8"))
+          assert head["VersionId"] == sys.argv[2]
+          assert head["ChecksumSHA256"] == sys.argv[3]
+          assert head["ServerSideEncryption"] == "AES256"
+          assert head["Metadata"]["purpose"] == f"rollback-drill-{sys.argv[5]}"
+          assert head["Metadata"]["source-commit"] == sys.argv[4]
+          PY
+
+          {
+            echo "BASELINE_VERSION_ID=${BASELINE_VERSION}"
+            echo "CANDIDATE_VERSION_ID=${CANDIDATE_VERSION}"
+            echo "BASELINE_DIGEST=sha256:${BASELINE_RAW}"
+            echo "CANDIDATE_DIGEST=sha256:${CANDIDATE_RAW}"
+            echo "BASELINE_CHECKSUM_B64=${BASELINE_CHECKSUM}"
+            echo "CANDIDATE_CHECKSUM_B64=${CANDIDATE_CHECKSUM}"
+          } >> "$GITHUB_ENV"
+
+      - name: Atomically initialize isolated drill records at candidate
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/drill-init.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          def s(value):
+              return {"S": str(value)}
+
+          table = os.environ["STATE_TABLE"]
+          pk = os.environ["RELEASE_PK"]
+          common = {
+              "source_commit": s(os.environ["GITHUB_SHA"]),
+              "workflow_run": s(os.environ["GITHUB_RUN_ID"]),
+              "workflow_attempt": s(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "actor_id": s(os.environ["GITHUB_ACTOR_ID"]),
+          }
+
+          def drill_item(sk, record_type, state, key, version, digest):
+              item = {
+                  "PK": s(pk),
+                  "SK": s(sk),
+                  "record_type": s(record_type),
+                  "state": s(state),
+                  "object_key": s(key),
+                  "object_version_id": s(version),
+                  "artifact_sha256": s(digest),
+                  **common,
+              }
+              return {
+                  "Put": {
+                      "TableName": table,
+                      "Item": item,
+                      "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                  }
+              }
+
+          tx = [
+              drill_item(
+                  os.environ["BASELINE_SK"], "DRILL_BASELINE", "BASELINE",
+                  os.environ["BASELINE_KEY"], os.environ["BASELINE_VERSION_ID"],
+                  os.environ["BASELINE_DIGEST"],
+              ),
+              drill_item(
+                  os.environ["CANDIDATE_SK"], "DRILL_CANDIDATE", "CANDIDATE",
+                  os.environ["CANDIDATE_KEY"], os.environ["CANDIDATE_VERSION_ID"],
+                  os.environ["CANDIDATE_DIGEST"],
+              ),
+              drill_item(
+                  os.environ["DRILL_CURRENT_SK"], "DRILL_CURRENT", "CANDIDATE",
+                  os.environ["CANDIDATE_KEY"], os.environ["CANDIDATE_VERSION_ID"],
+                  os.environ["CANDIDATE_DIGEST"],
+              ),
+          ]
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(tx, handle, separators=(",", ":"))
+          PY
+          aws dynamodb transact-write-items \
+            --transact-items "file://$RUNNER_TEMP/drill-init.json" \
+            --client-request-token "init-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"${DRILL_CURRENT_SK}\"}}" \
+            > "$RUNNER_TEMP/drill-current-candidate.json"
+          python - "$RUNNER_TEMP/drill-current-candidate.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          item = json.load(open(sys.argv[1], encoding="utf-8"))["Item"]
+          assert item["state"]["S"] == "CANDIDATE"
+          assert item["object_key"]["S"] == os.environ["CANDIDATE_KEY"]
+          assert item["object_version_id"]["S"] == os.environ["CANDIDATE_VERSION_ID"]
+          assert item["artifact_sha256"]["S"] == os.environ["CANDIDATE_DIGEST"]
+          PY
+
+      - name: Atomically roll isolated current pointer back to baseline
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          ROLLED_BACK_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export ROLLED_BACK_AT
+          python - "$RUNNER_TEMP/drill-rollback.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          def s(value):
+              return {"S": str(value)}
+
+          table = os.environ["STATE_TABLE"]
+          pk = os.environ["RELEASE_PK"]
+          event_item = {
+              "PK": s(pk),
+              "SK": s(os.environ["ROLLBACK_EVENT_SK"]),
+              "record_type": s("DRILL_ROLLBACK_EVENT"),
+              "from_state": s("CANDIDATE"),
+              "to_state": s("BASELINE"),
+              "candidate_key": s(os.environ["CANDIDATE_KEY"]),
+              "candidate_version_id": s(os.environ["CANDIDATE_VERSION_ID"]),
+              "candidate_sha256": s(os.environ["CANDIDATE_DIGEST"]),
+              "baseline_key": s(os.environ["BASELINE_KEY"]),
+              "baseline_version_id": s(os.environ["BASELINE_VERSION_ID"]),
+              "baseline_sha256": s(os.environ["BASELINE_DIGEST"]),
+              "source_commit": s(os.environ["GITHUB_SHA"]),
+              "workflow_run": s(os.environ["GITHUB_RUN_ID"]),
+              "rolled_back_at": s(os.environ["ROLLED_BACK_AT"]),
+          }
+          tx = [
+              {
+                  "Update": {
+                      "TableName": table,
+                      "Key": {"PK": s(pk), "SK": s(os.environ["DRILL_CURRENT_SK"])},
+                      "UpdateExpression": "SET #state = :baseline, object_key = :baseline_key, object_version_id = :baseline_version, artifact_sha256 = :baseline_digest, rolled_back_at = :rolled_back_at",
+                      "ConditionExpression": "#state = :candidate AND object_version_id = :candidate_version AND artifact_sha256 = :candidate_digest",
+                      "ExpressionAttributeNames": {"#state": "state"},
+                      "ExpressionAttributeValues": {
+                          ":baseline": s("BASELINE"),
+                          ":baseline_key": s(os.environ["BASELINE_KEY"]),
+                          ":baseline_version": s(os.environ["BASELINE_VERSION_ID"]),
+                          ":baseline_digest": s(os.environ["BASELINE_DIGEST"]),
+                          ":rolled_back_at": s(os.environ["ROLLED_BACK_AT"]),
+                          ":candidate": s("CANDIDATE"),
+                          ":candidate_version": s(os.environ["CANDIDATE_VERSION_ID"]),
+                          ":candidate_digest": s(os.environ["CANDIDATE_DIGEST"]),
+                      },
+                  }
+              },
+              {
+                  "Put": {
+                      "TableName": table,
+                      "Item": event_item,
+                      "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                  }
+              },
+          ]
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(tx, handle, separators=(",", ":"))
+          PY
+          aws dynamodb transact-write-items \
+            --transact-items "file://$RUNNER_TEMP/drill-rollback.json" \
+            --client-request-token "rollback-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "ROLLED_BACK_AT=${ROLLED_BACK_AT}" >> "$GITHUB_ENV"
+
+      - name: Verify exact baseline recovery and untouched real release pointer
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"${DRILL_CURRENT_SK}\"}}" \
+            > "$RUNNER_TEMP/drill-current-baseline.json"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${RELEASE_PK}\"},\"SK\":{\"S\":\"CURRENT\"}}" \
+            > "$RUNNER_TEMP/real-current-after.json"
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$BASELINE_KEY" \
+            --version-id "$BASELINE_VERSION_ID" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/baseline-head-after.json"
+
+          python - "$RUNNER_TEMP/rollback-drill-evidence.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          temp = os.environ["RUNNER_TEMP"]
+          def load(name):
+              with open(os.path.join(temp, name), encoding="utf-8") as handle:
+                  return json.load(handle)
+
+          before = load("real-current-before.json")
+          after = load("real-current-after.json")
+          if before != after:
+              raise SystemExit("authoritative real CURRENT release pointer changed during rollback drill")
+
+          item = load("drill-current-baseline.json")["Item"]
+          assert item["state"]["S"] == "BASELINE"
+          assert item["object_key"]["S"] == os.environ["BASELINE_KEY"]
+          assert item["object_version_id"]["S"] == os.environ["BASELINE_VERSION_ID"]
+          assert item["artifact_sha256"]["S"] == os.environ["BASELINE_DIGEST"]
+
+          head = load("baseline-head-after.json")
+          assert head["VersionId"] == os.environ["BASELINE_VERSION_ID"]
+          assert head["ChecksumSHA256"] == os.environ["BASELINE_CHECKSUM_B64"]
+          assert head["ServerSideEncryption"] == "AES256"
+          assert head["Metadata"]["purpose"] == "rollback-drill-baseline"
+          assert head["Metadata"]["source-commit"] == os.environ["GITHUB_SHA"]
+
+          evidence = {
+              "schema_version": "1.0",
+              "evidence_type": "aws_isolated_rollback_drill",
+              "conclusion": "success",
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run": os.environ["GITHUB_RUN_ID"],
+              "workflow_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "actor_id": os.environ["GITHUB_ACTOR_ID"],
+              "drill_id": os.environ["DRILL_ID"],
+              "real_current_unchanged": True,
+              "baseline": {
+                  "key": os.environ["BASELINE_KEY"],
+                  "version_id": os.environ["BASELINE_VERSION_ID"],
+                  "sha256": os.environ["BASELINE_DIGEST"],
+              },
+              "candidate": {
+                  "key": os.environ["CANDIDATE_KEY"],
+                  "version_id": os.environ["CANDIDATE_VERSION_ID"],
+                  "sha256": os.environ["CANDIDATE_DIGEST"],
+              },
+              "rolled_back_at": os.environ["ROLLED_BACK_AT"],
+          }
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(evidence, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: factory-rollback-drill-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rollback-drill-evidence.json
+          if-no-files-found: error
+          retention-days: 30
