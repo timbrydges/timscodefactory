@@ -1,0 +1,59 @@
+name: one-shot-pilot-openai-incomplete-fix
+
+on:
+  push:
+    branches: [fix/pilot-openai-incomplete]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/pilot-openai-incomplete
+          fetch-depth: 0
+      - name: Patch bounded OpenAI runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          runtime = Path('config/github/pilot-repo/pilot_runtime.py')
+          text = runtime.read_text(encoding='utf-8')
+
+          old_validation = '''            or item.get("enabled") is not True\n            or item.get("max_output_tokens") != 4096\n        ):'''
+          new_validation = '''            or item.get("enabled") is not True\n            or item.get("max_output_tokens") != (8192 if role in {"planner", "builder"} else 4096)\n        ):'''
+          if text.count(old_validation) != 1:
+              raise SystemExit('expected max_output_tokens validation fragment not found exactly once')
+          text = text.replace(old_validation, new_validation, 1)
+
+          old_extract = '''def _extract_openai_output(payload: dict[str, Any]) -> dict[str, Any]:\n    if payload.get("status") != "completed":\n        raise PilotRuntimeError("OpenAI response did not complete")\n    if payload.get("error") is not None or payload.get("incomplete_details") is not None:\n        raise PilotRuntimeError("OpenAI response reported failure")'''
+          new_extract = '''def _extract_openai_output(payload: dict[str, Any]) -> dict[str, Any]:\n    status = payload.get("status")\n    if status != "completed":\n        details = payload.get("incomplete_details")\n        reason = details.get("reason") if isinstance(details, dict) else None\n        error = payload.get("error")\n        error_code = error.get("code") if isinstance(error, dict) else None\n        diagnostic = reason or error_code or str(status or "unknown")\n        raise PilotRuntimeError(f"OpenAI response did not complete: {diagnostic}")\n    if payload.get("error") is not None or payload.get("incomplete_details") is not None:\n        raise PilotRuntimeError("OpenAI completed response contained failure metadata")'''
+          if text.count(old_extract) != 1:
+              raise SystemExit('expected OpenAI extraction fragment not found exactly once')
+          text = text.replace(old_extract, new_extract, 1)
+          runtime.write_text(text, encoding='utf-8')
+
+          policy_path = Path('config/github/pilot-repo/provider-policy.json')
+          policy = json.loads(policy_path.read_text(encoding='utf-8'))
+          policy['providers']['planner']['max_output_tokens'] = 8192
+          policy['providers']['builder']['max_output_tokens'] = 8192
+          policy_path.write_text(json.dumps(policy, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+          python -m py_compile config/github/pilot-repo/pilot_runtime.py
+          git diff --check
+
+          git config user.name "timbrydges"
+          git config user.email "214414801+timbrydges@users.noreply.github.com"
+          git rm .github/workflows/one-shot-pilot-openai-incomplete-fix.yml
+          git add config/github/pilot-repo/pilot_runtime.py config/github/pilot-repo/provider-policy.json
+          git commit -m "fix(pilot): handle bounded OpenAI incomplete responses"
+          git push origin HEAD:fix/pilot-openai-incomplete
