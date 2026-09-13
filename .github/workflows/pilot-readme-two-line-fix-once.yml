@@ -1,0 +1,44 @@
+name: pilot-readme-two-line-fix-once
+
+on:
+  push:
+    branches: [fix/pilot-readme-two-line]
+    paths:
+      - ".github/workflows/pilot-readme-two-line-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/pilot-readme-two-line
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Accept exact GitHub two-line bootstrap README and self-remove
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/bootstrap_pilot_repo.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        github_default_readme = (\n            target == "README.md"\n            and existing_raw.decode("utf-8", errors="replace").strip() == f"# {REPO}"\n        )\n'''
+          new = '''        existing_text = existing_raw.decode("utf-8", errors="replace").strip()\n        known_github_default_readmes = {\n            f"# {REPO}",\n            f"# {REPO}\\nGoverned private pilot for Tim's Software Factory",\n        }\n        github_default_readme = (\n            target == "README.md" and existing_text in known_github_default_readmes\n        )\n'''
+          if text.count(old) != 1:
+              raise SystemExit('expected README bootstrap guard not found exactly once')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          rm .github/workflows/pilot-readme-two-line-fix-once.yml
+          python scripts/build_manifest.py
+          git config user.name "tims-software-factory"
+          git config user.email "actions@users.noreply.github.com"
+          git add scripts/bootstrap_pilot_repo.py MANIFEST.sha256 .github/workflows/pilot-readme-two-line-fix-once.yml config/github/pilot-repo/.placeholder
+          git diff --cached --check
+          git commit -m "fix(pilot): accept GitHub two-line bootstrap README"
+          git push origin HEAD:fix/pilot-readme-two-line
