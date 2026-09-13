@@ -44,6 +44,13 @@ def test_openai_runtime_has_bounded_long_request_and_medium_reasoning():
     assert 'OpenAI request exceeded 300-second bounded timeout' in source
 
 
+def test_dynamodb_transaction_token_respects_aws_36_char_limit_and_surfaces_stderr():
+    source = RUNTIME_PATH.read_text(encoding="utf-8")
+    assert 'hexdigest()[:30]' in source
+    assert 'hexdigest()[:32]' not in source
+    assert 'detail = (exc.stderr or "").strip()' in source
+
+
 def test_builder_output_rejects_unauthorized_or_duplicate_paths():
     valid = [
         {"path": path, "content": "x"}
