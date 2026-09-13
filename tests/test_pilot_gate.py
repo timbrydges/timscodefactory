@@ -23,6 +23,29 @@ class PilotActivationGateTests(unittest.TestCase):
     def setUp(self):
         self.contract = load_contract(ROOT)
 
+    def _dry_run_contract(self):
+        contract = copy.deepcopy(self.contract)
+        contract["status"] = "OWNER_APPROVED_DRY_RUN_ONLY"
+        contract["execution"] = {
+            "phase": "DRY_RUN_ONLY",
+            "dry_run_simulation": "ALLOW",
+            "infrastructure_provisioning": "DENY",
+            "rollback_drill": "DENY",
+            "operational_role_activation": "DENY",
+            "pilot_repository_writes": "DENY",
+            "live_task_transitions": "DENY",
+            "real_release": "DENY",
+        }
+        contract["pilot"]["repository"]["current_status"] = "RESERVED_NOT_CREATED"
+        for name in REQUIRED_ACTIVATION_GATES:
+            if name in {"pilot_contract_approved", "acceptance_contract_approved"}:
+                continue
+            contract["activation"]["gates"][name] = {
+                "verified": False,
+                "evidence": [],
+            }
+        return contract
+
     def _live_contract(self):
         contract = copy.deepcopy(self.contract)
         contract["status"] = "OWNER_APPROVED_LIVE_PILOT"
@@ -70,20 +93,20 @@ class PilotActivationGateTests(unittest.TestCase):
         self.assertEqual(simulate_current_policy(self.contract), ())
 
     def test_pg03_all_operational_roles_are_blocked_during_dry_run(self):
-        policy = PilotActivationPolicy.from_contract(self.contract)
+        policy = PilotActivationPolicy.from_contract(self._dry_run_contract())
         for system in PILOT_SYSTEMS:
             with self.subTest(system=system), self.assertRaises(PilotGateError):
                 policy.assert_role_activation_allowed(system)
 
     def test_pg04_repository_writes_and_transitions_are_blocked_during_dry_run(self):
-        policy = PilotActivationPolicy.from_contract(self.contract)
+        policy = PilotActivationPolicy.from_contract(self._dry_run_contract())
         with self.assertRaises(PilotGateError):
             policy.assert_repository_write_allowed()
         with self.assertRaises(PilotGateError):
             policy.assert_live_transition_allowed()
 
     def test_pg05_even_owner_release_is_blocked_before_readiness(self):
-        policy = PilotActivationPolicy.from_contract(self.contract)
+        policy = PilotActivationPolicy.from_contract(self._dry_run_contract())
         with self.assertRaises(PilotGateError):
             policy.assert_real_release_allowed(
                 actor_identity=OWNER_IDENTITY,

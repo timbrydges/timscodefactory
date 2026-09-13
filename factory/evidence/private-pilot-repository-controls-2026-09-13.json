@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "private_pilot_repository_controls",
+  "conclusion": "success",
+  "observed_on": "2026-09-13",
+  "repository": {
+    "full_name": "timbrydges/tims-factory-pilot",
+    "repository_id": 1368587958,
+    "visibility": "private",
+    "default_branch": "main"
+  },
+  "ruleset": {
+    "id": 23189461,
+    "name": "pilot-main-protected",
+    "target": "branch",
+    "enforcement": "active",
+    "default_branch_only": true,
+    "deletion_blocked": true,
+    "non_fast_forward_blocked": true,
+    "linear_history_required": true,
+    "pull_request_required": true,
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews_on_push": true,
+    "require_last_push_approval": true,
+    "required_review_thread_resolution": true,
+    "allowed_merge_methods": ["squash"],
+    "required_status_checks": [
+      "pilot-ci / validate",
+      "identity-boundary / verify",
+      "inspector-gate / verify"
+    ],
+    "owner_bypass": {
+      "login": "timbrydges",
+      "user_id": 214414801,
+      "mode": "always",
+      "preserved_by_contract": true
+    }
+  },
+  "control_surface_verified": [
+    ".factory/identity-contract.json",
+    ".github/CODEOWNERS",
+    ".github/pull_request_template.md",
+    ".github/workflows/pilot-ci.yml",
+    ".github/workflows/identity-boundary.yml",
+    ".github/workflows/inspector-gate.yml",
+    ".github/workflows/identity-canary.yml"
+  ],
+  "feature_code_written": false
+}

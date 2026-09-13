@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "pilot_github_app_identity_canary",
+  "conclusion": "success",
+  "observed_on": "2026-09-13",
+  "repository": "timbrydges/tims-factory-pilot",
+  "workflow_run": {
+    "run_id": 34774402004,
+    "run_attempt": 1,
+    "head_sha": "0860a56d0333e1d7adb978efe8e97f7fd150671e"
+  },
+  "artifact": {
+    "artifact_id": 10322886947,
+    "name": "pilot-identity-evidence-34774402004-1",
+    "digest": "sha256:58bf2943adf0f05c3c12c49092a511076c2cf9ab89a83d7bdc7ea11b978e72f0"
+  },
+  "identities": {
+    "planner": {
+      "app_id": 4932022,
+      "app_slug": "tims-factory-planner",
+      "installation_id": 161430388,
+      "bot_login": "tims-factory-planner[bot]"
+    },
+    "builder": {
+      "app_id": 4932520,
+      "app_slug": "tims-factory-builder",
+      "installation_id": 161430772,
+      "bot_login": "tims-factory-builder[bot]"
+    },
+    "inspector": {
+      "app_id": 4932568,
+      "app_slug": "tims-factory-inspector",
+      "installation_id": 161430925,
+      "bot_login": "tims-factory-inspector[bot]"
+    }
+  },
+  "verified_controls": [
+    "three_distinct_github_apps",
+    "selected_repository_only",
+    "planner_permissions_exact",
+    "builder_permissions_exact",
+    "inspector_readonly_contents",
+    "ephemeral_installation_tokens"
+  ]
+}
