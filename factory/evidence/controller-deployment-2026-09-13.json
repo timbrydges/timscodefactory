@@ -1,0 +1,21 @@
+{
+  "artifact_digest": "sha256:9c7b8739b66a99eeecdb9ea864c11f09b952f88afbadc53378f13728682c75eb",
+  "artifact_id": 10321146390,
+  "aws_role_arn": "arn:aws:sts::666730517561:assumed-role/tims-software-factory-github-controller/factory-controller-34766467529",
+  "conclusion": "success",
+  "controller_identity": "factory_controller_service",
+  "evidence_type": "controller_workload_identity_canary",
+  "schema_version": "1.0",
+  "source_commit": "626f06bffb68dcc78274b8d03d02585c2501e9aa",
+  "state_table": "tims-software-factory-state",
+  "verified_controls": [
+    "github_oidc_assume_controller_role",
+    "task_partition_scope",
+    "conditional_initial_write",
+    "compare_and_swap_transition",
+    "atomic_state_and_audit_write",
+    "consistent_state_readback"
+  ],
+  "workflow_attempt": 1,
+  "workflow_run": 34766467529
+}
