@@ -110,8 +110,8 @@ activation:
       verified: false
       evidence: []
     controller_deployed_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/controller-deployment-2026-09-13.json]
     state_store_deployed_verified:
       verified: true
       evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
