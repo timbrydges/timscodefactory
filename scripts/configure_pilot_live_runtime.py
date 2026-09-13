@@ -106,18 +106,15 @@ def main() -> int:
         token,
         {"use_default": True, "use_immutable_subject": True},
     )
+    # GitHub Pro permits the private-repository environment itself, but private
+    # repository deployment branch protection rules are not available here.
+    # Main-only execution is independently enforced by the pilot workflow,
+    # immutable OIDC subject, and active default-branch ruleset.
     request(
         "PUT",
         f"/repos/{REPOSITORY}/environments/{ENVIRONMENT}",
         token,
-        {
-            "wait_timer": 0,
-            "prevent_self_review": False,
-            "deployment_branch_policy": {
-                "protected_branches": True,
-                "custom_branch_policies": False,
-            },
-        },
+        {},
     )
 
     shas = {}
@@ -132,7 +129,7 @@ def main() -> int:
         "repository_id": REPOSITORY_ID,
         "environment": ENVIRONMENT,
         "immutable_oidc_subject": True,
-        "deployment_branch_policy": "protected_branches",
+        "deployment_branch_policy": "enforced_by_workflow_oidc_and_repository_ruleset",
         "runtime_file_shas": shas,
         "openai_secret_configured": False,
         "aws_runtime_variables_configured": False,
