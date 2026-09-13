@@ -40,7 +40,7 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_ACTOR_ID" = "214414801"
           python scripts/pilot_gate.py --mode validate
-          python - <<'PY'
+          PYTHONPATH=src python - <<'PY'
           from factory_state.pilot import OWNER_IDENTITY, PilotActivationPolicy
           from scripts.pilot_gate import load_contract
 
