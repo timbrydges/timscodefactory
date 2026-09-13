@@ -1,0 +1,66 @@
+name: identity-boundary
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+      OWNER_LOGIN: ${{ github.repository_owner }}
+      PLANNER_LOGIN: ${{ vars.FACTORY_PLANNER_LOGIN }}
+      BUILDER_LOGIN: ${{ vars.FACTORY_BUILDER_LOGIN }}
+      INSPECTOR_LOGIN: ${{ vars.FACTORY_INSPECTOR_LOGIN }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Enforce role-bound merge paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files.txt"
+          python - "$RUNNER_TEMP/changed-files.txt" <<'PY'
+          import os
+          import sys
+
+          author = os.environ["AUTHOR_LOGIN"]
+          owner = os.environ["OWNER_LOGIN"]
+          planner = os.environ.get("PLANNER_LOGIN", "")
+          builder = os.environ.get("BUILDER_LOGIN", "")
+          inspector = os.environ.get("INSPECTOR_LOGIN", "")
+          changed = [line.strip() for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+
+          if author == owner:
+              print("Factory owner change; owner override/audit policy remains authoritative.")
+              raise SystemExit(0)
+
+          if not planner or not builder or not inspector:
+              raise SystemExit("Factory role login variables are not fully configured; fail closed")
+
+          if author == planner:
+              allowed = ("architecture/", "docs/adr/")
+          elif author == builder:
+              allowed = ("src/", "tests/unit/", "docs/implementation/")
+          elif author == inspector:
+              raise SystemExit("Inspector is read-only and may not author repository changes")
+          else:
+              raise SystemExit(f"Unknown PR author identity: {author}")
+
+          violations = [path for path in changed if not path.startswith(allowed)]
+          if violations:
+              raise SystemExit(
+                  "role path boundary violation: " + ", ".join(sorted(violations))
+              )
+          print(f"Identity boundary verified for {author}: {len(changed)} changed path(s)")
+          PY
