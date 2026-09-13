@@ -1,0 +1,117 @@
+name: aws-infra-verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/aws-infra-verify.yml"
+      - "factory/pilot/operating-contract.yaml"
+      - "factory/evidence/aws-bootstrap-2026-09-13.json"
+      - "MANIFEST.sha256"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: factory-aws-infra-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: aws / non-release infrastructure verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: factory-infra-${{ github.run_id }}
+
+      - name: Verify immutable AWS identity
+        shell: bash
+        env:
+          EXPECTED_ACCOUNT: "666730517561"
+        run: |
+          set -euo pipefail
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          ARN="$(aws sts get-caller-identity --query Arn --output text)"
+          test "$ACCOUNT" = "$EXPECTED_ACCOUNT"
+          [[ "$ARN" == "arn:aws:sts::${EXPECTED_ACCOUNT}:assumed-role/tims-software-factory-github-release/"* ]]
+
+      - name: Verify authoritative state store without touching release state
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          PK="FACTORY#tims-software-factory#RELEASE"
+          SK="INFRA_VERIFY#${GITHUB_RUN_ID}#${GITHUB_RUN_ATTEMPT}"
+          cat > "$RUNNER_TEMP/infra-verify-item.json" <<EOF
+          {
+            "PK": {"S": "${PK}"},
+            "SK": {"S": "${SK}"},
+            "record_type": {"S": "INFRA_VERIFICATION"},
+            "source_commit": {"S": "${GITHUB_SHA}"},
+            "workflow_run": {"S": "${GITHUB_RUN_ID}"},
+            "actor_id": {"S": "${GITHUB_ACTOR_ID}"}
+          }
+          EOF
+          aws dynamodb put-item \
+            --table-name "$STATE_TABLE" \
+            --item "file://$RUNNER_TEMP/infra-verify-item.json" \
+            --condition-expression "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${PK}\"},\"SK\":{\"S\":\"${SK}\"}}" \
+            > "$RUNNER_TEMP/infra-verify-state.json"
+          python - "$RUNNER_TEMP/infra-verify-state.json" "$GITHUB_SHA" <<'PY'
+          import json
+          import sys
+          item = json.load(open(sys.argv[1], encoding="utf-8")).get("Item", {})
+          assert item["record_type"]["S"] == "INFRA_VERIFICATION"
+          assert item["source_commit"]["S"] == sys.argv[2]
+          PY
+
+      - name: Verify versioned release storage with a non-release marker
+        shell: bash
+        env:
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+        run: |
+          set -euo pipefail
+          PROBE="$RUNNER_TEMP/oidc-probe.txt"
+          printf 'factory infra verification %s\n' "$GITHUB_SHA" > "$PROBE"
+          RAW_DIGEST="$(sha256sum "$PROBE" | cut -d' ' -f1)"
+          CHECKSUM_B64="$(python -c 'import base64,sys; print(base64.b64encode(bytes.fromhex(sys.argv[1])).decode())' "$RAW_DIGEST")"
+          KEY="releases/verification/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/oidc-probe.txt"
+          aws s3api put-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$KEY" \
+            --body "$PROBE" \
+            --checksum-sha256 "$CHECKSUM_B64" \
+            --server-side-encryption AES256 \
+            --metadata "purpose=infra-verification,source-commit=${GITHUB_SHA}" \
+            > "$RUNNER_TEMP/infra-verify-put.json"
+          VERSION_ID="$(python -c 'import json,sys; print(json.load(open(sys.argv[1])).get("VersionId", ""))' "$RUNNER_TEMP/infra-verify-put.json")"
+          test -n "$VERSION_ID"
+          test "$VERSION_ID" != "null"
+          aws s3api head-object \
+            --bucket "$RELEASE_BUCKET" \
+            --key "$KEY" \
+            --version-id "$VERSION_ID" \
+            --checksum-mode ENABLED \
+            > "$RUNNER_TEMP/infra-verify-head.json"
+          python - "$RUNNER_TEMP/infra-verify-head.json" "$VERSION_ID" "$CHECKSUM_B64" "$GITHUB_SHA" <<'PY'
+          import json
+          import sys
+          head = json.load(open(sys.argv[1], encoding="utf-8"))
+          assert head["VersionId"] == sys.argv[2]
+          assert head["ChecksumSHA256"] == sys.argv[3]
+          assert head["ServerSideEncryption"] == "AES256"
+          assert head["Metadata"]["purpose"] == "infra-verification"
+          assert head["Metadata"]["source-commit"] == sys.argv[4]
+          PY
