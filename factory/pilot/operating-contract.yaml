@@ -122,8 +122,8 @@ activation:
       verified: true
       evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     rollback_drill_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/aws-rollback-drill-2026-09-13.json]
   dry_run_allowlist:
     - contract_validation
     - threat_modeling

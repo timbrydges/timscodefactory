@@ -1,0 +1,28 @@
+{
+  "actor_id": "214414801",
+  "artifact": {
+    "digest": "sha256:ff794a90b9db8c1f1eaa10bbfa67cd0f325a49bf88494f5cac8b6950416490b8",
+    "id": 10319992434,
+    "name": "factory-rollback-drill-34763988760-1"
+  },
+  "baseline": {
+    "key": "releases/drill/34763988760-1/baseline.txt",
+    "sha256": "sha256:067a4dee2f1e4b91398abb025faf4ef4a645409b85adbaf28c5defc3c874eef9",
+    "version_id": "j.V86A1QHrJFTGXGLN.1e0ifIU6qMcC."
+  },
+  "candidate": {
+    "key": "releases/drill/34763988760-1/candidate.txt",
+    "sha256": "sha256:a496521ed3ef434538eb373367acd90f95febff9640b158113b6b77a7d5551e9",
+    "version_id": "J50.u0uiK98fr1hSHz2jfMpMWruYwHXu"
+  },
+  "conclusion": "success",
+  "drill_id": "34763988760-1",
+  "evidence_type": "aws_isolated_rollback_drill",
+  "real_current_unchanged": true,
+  "rolled_back_at": "2026-09-13T14:54:17Z",
+  "schema_version": "1.0",
+  "source_commit": "156f8154b72eb2dfc93ec745de018104edfdebdc",
+  "workflow": "aws-rollback-drill",
+  "workflow_attempt": "1",
+  "workflow_run": "34763988760"
+}
