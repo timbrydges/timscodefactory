@@ -524,7 +524,11 @@ def _aws_json(args: list[str], *, timeout: int = 60) -> dict[str, Any]:
             text=True,
             timeout=timeout,
         )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or "").strip().replace("\n", " ")[:500]
+        suffix = f": {detail}" if detail else ""
+        raise PilotRuntimeError(f"AWS operation failed: {' '.join(args[:3])}{suffix}") from exc
+    except (OSError, subprocess.TimeoutExpired) as exc:
         raise PilotRuntimeError(f"AWS operation failed: {' '.join(args[:3])}") from exc
     try:
         value = json.loads(completed.stdout or "{}")
@@ -669,7 +673,7 @@ def transition_state(
                 "--transact-items",
                 f"file://{path}",
                 "--client-request-token",
-                f"pilot-{hashlib.sha256((pk + event_sk).encode()).hexdigest()[:32]}",
+                f"pilot-{hashlib.sha256((pk + event_sk).encode()).hexdigest()[:30]}",
             ]
         )
 
