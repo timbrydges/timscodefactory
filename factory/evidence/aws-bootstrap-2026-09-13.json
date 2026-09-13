@@ -1,0 +1,32 @@
+{
+  "aws_account_id": "666730517561",
+  "aws_region": "ca-central-1",
+  "evidence_type": "aws_factory_bootstrap",
+  "gate_evidence": {
+    "aws_account_verified": true,
+    "oidc_trust_verified": false,
+    "release_storage_verified": true,
+    "state_store_deployed_verified": true
+  },
+  "github_preflight": {
+    "live_controls": "success",
+    "run_id": 34762264751,
+    "run_number": 104,
+    "source_commit": "a0ed975ca913cdaf8b8bae98eb789b5009de86e3",
+    "static": "success"
+  },
+  "note": "OIDC trust remains unverified until a GitHub Actions production-environment job successfully assumes the AWS release role.",
+  "observed_on": "2026-09-13",
+  "owner_identity": "tim_brydges",
+  "resources": {
+    "release_bucket": "tims-software-factory-666730517561-ca-central-1",
+    "release_role_arn": "arn:aws:iam::666730517561:role/tims-software-factory-github-release",
+    "state_table": "tims-software-factory-state"
+  },
+  "schema_version": "1.0",
+  "terraform_apply": {
+    "added": 9,
+    "changed": 0,
+    "destroyed": 0
+  }
+}
