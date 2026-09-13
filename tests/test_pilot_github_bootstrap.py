@@ -95,3 +95,5 @@ def test_bootstrap_targets_only_reserved_private_pilot():
     assert '"default_workflow_permissions": "read"' in script
     assert '"can_approve_pull_request_reviews": False' in script
     assert '"feature_code_written": False' in script
+    assert "github_default_readme" in script
+    assert '== f"# {REPO}"' in script

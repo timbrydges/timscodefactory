@@ -97,7 +97,11 @@ def put_file(auth: str, target: str, source: Path, *, replace: bool) -> str:
         existing_raw = base64.b64decode(existing["content"].replace("\n", ""))
         if existing_raw == raw:
             return existing["sha"]
-        if not replace:
+        github_default_readme = (
+            target == "README.md"
+            and existing_raw.decode("utf-8", errors="replace").strip() == f"# {REPO}"
+        )
+        if not replace and not github_default_readme:
             raise RuntimeError(
                 f"{target} already exists with unexpected content; rerun with --replace-files only after review"
             )
