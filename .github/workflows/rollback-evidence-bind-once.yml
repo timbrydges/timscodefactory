@@ -1,0 +1,43 @@
+name: rollback-evidence-bind-once
+
+on:
+  push:
+    branches: [feat/aws-rollback-verified]
+    paths:
+      - ".github/workflows/rollback-evidence-bind-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bind:
+    name: bind rollback evidence and self-remove
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/aws-rollback-verified
+      - name: Bind evidence, refresh manifest, and self-remove
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('factory/pilot/operating-contract.yaml')
+          text = path.read_text(encoding='utf-8')
+          old = '''    rollback_drill_verified:\n      verified: false\n      evidence: []'''
+          new = '''    rollback_drill_verified:\n      verified: true\n      evidence: [factory/evidence/aws-rollback-drill-2026-09-13.json]'''
+          if text.count(old) != 1:
+              raise SystemExit('expected rollback_drill_verified block not found exactly once')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          rm .github/workflows/rollback-evidence-bind-once.yml
+          python scripts/build_manifest.py
+          git config user.name "tims-software-factory"
+          git config user.email "actions@users.noreply.github.com"
+          git add factory/pilot/operating-contract.yaml factory/evidence/aws-rollback-drill-2026-09-13.json MANIFEST.sha256 .github/workflows/rollback-evidence-bind-once.yml
+          git diff --cached --check
+          git commit -m "feat(pilot): verify rollback drill gate"
+          git push origin HEAD:feat/aws-rollback-verified
