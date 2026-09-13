@@ -1,7 +1,7 @@
 schema_version: "1.0"
 contract_id: tims-factory-pilot-001
 contract_version: "1.0"
-status: OWNER_APPROVED_DRY_RUN_ONLY
+status: OWNER_APPROVED_INFRA_VERIFICATION
 
 approval:
   owner_identity: tim_brydges
@@ -10,10 +10,10 @@ approval:
   approval_required_from_others: false
 
 execution:
-  phase: DRY_RUN_ONLY
+  phase: INFRA_VERIFICATION
   dry_run_simulation: ALLOW
-  infrastructure_provisioning: DENY
-  rollback_drill: DENY
+  infrastructure_provisioning: ALLOW
+  rollback_drill: ALLOW
   operational_role_activation: DENY
   pilot_repository_writes: DENY
   live_task_transitions: DENY
@@ -95,8 +95,8 @@ activation:
       verified: true
       evidence: [factory/pilot/operating-contract.yaml]
     aws_account_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     private_repository_controls_verified:
       verified: false
       evidence: []
@@ -113,14 +113,14 @@ activation:
       verified: false
       evidence: []
     state_store_deployed_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     oidc_trust_verified:
       verified: false
       evidence: []
     release_storage_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     rollback_drill_verified:
       verified: false
       evidence: []
@@ -209,8 +209,8 @@ aws_escalation:
   checkpoint_business_days: [7, 10]
   escalation_window_start: "2026-09-03"
   escalation_deadline: "2026-09-09"
-  status: DUE
-  required_action: Open or follow up on the AWS Account and Billing activation case; do not bypass verification.
+  status: RESOLVED
+  required_action: AWS account verified and Factory bootstrap applied successfully on 2026-09-13; continue staged infrastructure verification.
 
 completion:
   require_pilot_shipped_within_contract: true
