@@ -21,7 +21,7 @@
         "metadata": "read"
       },
       "allowed_merge_paths": ["architecture/**", "docs/adr/**"],
-      "client_id_variable": "FACTORY_PLANNER_APP_CLIENT_ID",
+      "app_id_variable": "FACTORY_PLANNER_APP_ID",
       "private_key_secret": "FACTORY_PLANNER_APP_PRIVATE_KEY",
       "bot_login_variable": "FACTORY_PLANNER_LOGIN"
     },
@@ -36,7 +36,7 @@
         "metadata": "read"
       },
       "allowed_merge_paths": ["src/**", "tests/unit/**", "docs/implementation/**"],
-      "client_id_variable": "FACTORY_BUILDER_APP_CLIENT_ID",
+      "app_id_variable": "FACTORY_BUILDER_APP_ID",
       "private_key_secret": "FACTORY_BUILDER_APP_PRIVATE_KEY",
       "bot_login_variable": "FACTORY_BUILDER_LOGIN"
     },
@@ -51,7 +51,7 @@
         "metadata": "read"
       },
       "allowed_merge_paths": [],
-      "client_id_variable": "FACTORY_INSPECTOR_APP_CLIENT_ID",
+      "app_id_variable": "FACTORY_INSPECTOR_APP_ID",
       "private_key_secret": "FACTORY_INSPECTOR_APP_PRIVATE_KEY",
       "bot_login_variable": "FACTORY_INSPECTOR_LOGIN"
     }
