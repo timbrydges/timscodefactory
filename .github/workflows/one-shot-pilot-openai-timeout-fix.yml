@@ -1,0 +1,71 @@
+name: one-shot-pilot-openai-timeout-fix
+
+on:
+  push:
+    branches:
+      - fix/pilot-openai-timeout
+    paths:
+      - .github/workflows/one-shot-pilot-openai-timeout-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/pilot-openai-timeout
+          fetch-depth: 0
+      - name: Apply exact runtime repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          runtime = Path('config/github/pilot-repo/pilot_runtime.py')
+          text = runtime.read_text(encoding='utf-8')
+
+          old = '        "reasoning": {"effort": "high"},'
+          new = '        "reasoning": {"effort": "medium"},'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one reasoning marker, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old = '        with urllib.request.urlopen(req, timeout=120) as response:'
+          new = '        with urllib.request.urlopen(req, timeout=300) as response:'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one timeout marker, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old = '''    except urllib.error.HTTPError as exc:\n        raise PilotRuntimeError(f"OpenAI request failed with HTTP {exc.code}") from exc\n    except urllib.error.URLError as exc:\n        raise PilotRuntimeError("OpenAI request transport failed") from exc\n'''
+          new = '''    except urllib.error.HTTPError as exc:\n        raise PilotRuntimeError(f"OpenAI request failed with HTTP {exc.code}") from exc\n    except TimeoutError as exc:\n        raise PilotRuntimeError("OpenAI request exceeded 300-second bounded timeout") from exc\n    except urllib.error.URLError as exc:\n        raise PilotRuntimeError("OpenAI request transport failed") from exc\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one exception block, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          runtime.write_text(text, encoding='utf-8')
+
+          tests = Path('tests/test_pilot_live_runtime.py')
+          t = tests.read_text(encoding='utf-8')
+          marker = '''def test_builder_output_rejects_unauthorized_or_duplicate_paths():\n'''
+          addition = '''def test_openai_runtime_has_bounded_long_request_and_medium_reasoning():\n    source = RUNTIME_PATH.read_text(encoding="utf-8")\n    assert '"reasoning": {"effort": "medium"}' in source\n    assert 'urlopen(req, timeout=300)' in source\n    assert 'OpenAI request exceeded 300-second bounded timeout' in source\n\n\n'''
+          if addition not in t:
+              if marker not in t:
+                  raise SystemExit('test insertion marker missing')
+              t = t.replace(marker, addition + marker, 1)
+              tests.write_text(t, encoding='utf-8')
+          PY
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/one-shot-pilot-openai-timeout-fix.yml
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name timbrydges
+          git config user.email 214414801+timbrydges@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(pilot): bound OpenAI request latency"
+          git push origin HEAD:fix/pilot-openai-timeout
