@@ -86,25 +86,32 @@ terraform -chdir="${FACTORY_TERRAFORM_DIR}" init -reconfigure \
 terraform -chdir="${FACTORY_TERRAFORM_DIR}" validate
 
 FACTORY_OIDC_PROVIDER_ARN=""
-while IFS= read -r provider_arn; do
-  [[ -z "${provider_arn}" ]] && continue
-  provider_url="$(
-    aws iam get-open-id-connect-provider \
-      --open-id-connect-provider-arn "${provider_arn}" \
-      --query Url --output text
-  )"
-  if [[ "${provider_url}" == "token.actions.githubusercontent.com" ]]; then
-    FACTORY_OIDC_PROVIDER_ARN="${provider_arn}"
-    break
-  fi
-done < <(
-  aws iam list-open-id-connect-providers \
-    --query 'OpenIDConnectProviderList[].Arn' --output text | tr '\t' '\n'
-)
+FACTORY_OIDC_MANAGED_IN_STATE="false"
+if terraform -chdir="${FACTORY_TERRAFORM_DIR}" state list 2>/dev/null \
+    | grep -qx 'aws_iam_openid_connect_provider.github\[0\]'; then
+  FACTORY_OIDC_MANAGED_IN_STATE="true"
+  echo "GitHub OIDC provider is already managed by Terraform state."
+else
+  while IFS= read -r provider_arn; do
+    [[ -z "${provider_arn}" ]] && continue
+    provider_url="$(
+      aws iam get-open-id-connect-provider \
+        --open-id-connect-provider-arn "${provider_arn}" \
+        --query Url --output text
+    )"
+    if [[ "${provider_url}" == "token.actions.githubusercontent.com" ]]; then
+      FACTORY_OIDC_PROVIDER_ARN="${provider_arn}"
+      break
+    fi
+  done < <(
+    aws iam list-open-id-connect-providers \
+      --query 'OpenIDConnectProviderList[].Arn' --output text | tr '\t' '\n'
+  )
+fi
 
 FACTORY_TERRAFORM_VARS=(-var="aws_region=${FACTORY_REGION}")
-if [[ -n "${FACTORY_OIDC_PROVIDER_ARN}" ]]; then
-  echo "Reusing GitHub OIDC provider: ${FACTORY_OIDC_PROVIDER_ARN}"
+if [[ "${FACTORY_OIDC_MANAGED_IN_STATE}" != "true" && -n "${FACTORY_OIDC_PROVIDER_ARN}" ]]; then
+  echo "Reusing externally managed GitHub OIDC provider: ${FACTORY_OIDC_PROVIDER_ARN}"
   FACTORY_TERRAFORM_VARS+=(
     -var="existing_github_oidc_provider_arn=${FACTORY_OIDC_PROVIDER_ARN}"
   )
