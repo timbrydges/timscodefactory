@@ -1,0 +1,43 @@
+name: rollback-drill-fix-once
+
+on:
+  push:
+    branches: [fix/aws-rollback-drill-pythonpath]
+    paths:
+      - ".github/workflows/rollback-drill-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    name: patch rollback drill Python path and self-remove
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/aws-rollback-drill-pythonpath
+      - name: Patch workflow, refresh manifest, and self-remove
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/aws-rollback-drill.yml')
+          text = path.read_text(encoding='utf-8')
+          old = "          python - <<'PY'\n          from factory_state.pilot import OWNER_IDENTITY, PilotActivationPolicy"
+          new = "          PYTHONPATH=src python - <<'PY'\n          from factory_state.pilot import OWNER_IDENTITY, PilotActivationPolicy"
+          if text.count(old) != 1:
+              raise SystemExit('expected rollback gate Python invocation not found exactly once')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          rm .github/workflows/rollback-drill-fix-once.yml
+          python scripts/build_manifest.py
+          git config user.name "tims-software-factory"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/workflows/aws-rollback-drill.yml MANIFEST.sha256 .github/workflows/rollback-drill-fix-once.yml
+          git diff --cached --check
+          git commit -m "fix(aws): set rollback drill Python path"
+          git push origin HEAD:fix/aws-rollback-drill-pythonpath
