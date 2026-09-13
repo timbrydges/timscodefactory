@@ -97,9 +97,13 @@ def put_file(auth: str, target: str, source: Path, *, replace: bool) -> str:
         existing_raw = base64.b64decode(existing["content"].replace("\n", ""))
         if existing_raw == raw:
             return existing["sha"]
+        existing_text = existing_raw.decode("utf-8", errors="replace").strip()
+        known_github_default_readmes = {
+            f"# {REPO}",
+            f"# {REPO}\nGoverned private pilot for Tim's Software Factory",
+        }
         github_default_readme = (
-            target == "README.md"
-            and existing_raw.decode("utf-8", errors="replace").strip() == f"# {REPO}"
+            target == "README.md" and existing_text in known_github_default_readmes
         )
         if not replace and not github_default_readme:
             raise RuntimeError(
