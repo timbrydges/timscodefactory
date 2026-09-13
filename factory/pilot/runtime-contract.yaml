@@ -1,0 +1,81 @@
+schema_version: "1.0"
+contract_id: tims-factory-pilot-runtime-001
+status: OWNER_APPROVED_LIVE_PILOT
+repository: timbrydges/tims-factory-pilot
+workflow: pilot-live
+dispatch:
+  event: workflow_dispatch
+  owner_login: timbrydges
+  owner_id: "214414801"
+  ref: refs/heads/main
+  environment: production
+  maximum_concurrent_runs: 1
+
+roles:
+  planner:
+    authoritative_identity: software_architect_service
+    github_app: tims-factory-planner
+    provider_family: openai
+    model: gpt-5.6-sol
+    repository_effect: evidence_branch_only
+    writable_paths: ["architecture/**", "docs/adr/**"]
+  builder:
+    authoritative_identity: engineering_agent_service
+    github_app: tims-factory-builder
+    provider_family: openai
+    model: gpt-5.6-sol
+    repository_effect: implementation_pull_request
+    writable_paths: ["src/**", "tests/unit/**", "docs/implementation/**"]
+  inspector:
+    authoritative_identity: independent_inspector_service
+    github_app: tims-factory-inspector
+    provider_family: anthropic
+    model: us.anthropic.claude-sonnet-5
+    repository_effect: exact_head_review_only
+    writable_paths: []
+
+state_machine:
+  authority: factory_controller_service
+  persistence: aws_dynamodb
+  partition_prefix: FACTORY#tims-software-factory#TASK#
+  initial_state: PILOT_PLANNING
+  terminal_state: PILOT_RELEASED
+  transitions:
+    PILOT_PLANNING: [PILOT_BUILDING, PILOT_STALLED]
+    PILOT_BUILDING: [PILOT_INSPECTING, PILOT_STALLED]
+    PILOT_INSPECTING: [PILOT_RELEASE_READY, PILOT_BUILDING, PILOT_STALLED]
+    PILOT_RELEASE_READY: [PILOT_RELEASED, PILOT_STALLED]
+    PILOT_RELEASED: []
+    PILOT_STALLED: [PILOT_PLANNING, PILOT_BUILDING, PILOT_INSPECTING]
+
+provider_limits:
+  maximum_calls_per_run: 3
+  maximum_reserved_cost_usd_per_call: 1.00
+  maximum_reserved_cost_usd_per_run: 3.00
+  warning_spend_usd: 5.00
+  hard_stop_spend_usd: 10.00
+
+merge_gate:
+  builder_pr_only: true
+  deterministic_ci_required: true
+  identity_boundary_required: true
+  exact_head_inspector_approval_required: true
+  controller_performs_merge: true
+  agents_may_merge: false
+
+release:
+  authority: tim_brydges
+  oidc_actor_id_required: "214414801"
+  source_ref_required: refs/heads/main
+  workflow_required: pilot-live
+  artifact_prefix: pilot-releases/
+  s3_version_required: true
+  exact_version_recovery_required: true
+  recovery_digest_match_required: true
+
+failure_policy:
+  default: FAIL_CLOSED
+  inspector_request_changes: STOP_WITH_PILOT_INSPECTING_STATE
+  provider_failure: STOP_WITHOUT_ADVANCING_GATE
+  deterministic_test_failure: STOP_WITHOUT_INSPECTOR_APPROVAL
+  owner_override_counts_as_clean_pilot_success: false
