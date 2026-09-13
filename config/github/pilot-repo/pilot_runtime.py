@@ -106,7 +106,7 @@ def validate_contracts(task: dict[str, Any], policy: dict[str, Any]) -> None:
             or item.get("model_id") != model
             or item.get("transport") != transport
             or item.get("enabled") is not True
-            or item.get("max_output_tokens") != 4096
+            or item.get("max_output_tokens") != (8192 if role in {"planner", "builder"} else 4096)
         ):
             raise PilotRuntimeError(f"provider binding drifted: {role}")
         try:
@@ -131,10 +131,16 @@ def _bounded_text(value: str, label: str, *, max_chars: int = MAX_PROMPT_CHARS) 
 
 
 def _extract_openai_output(payload: dict[str, Any]) -> dict[str, Any]:
-    if payload.get("status") != "completed":
-        raise PilotRuntimeError("OpenAI response did not complete")
+    status = payload.get("status")
+    if status != "completed":
+        details = payload.get("incomplete_details")
+        reason = details.get("reason") if isinstance(details, dict) else None
+        error = payload.get("error")
+        error_code = error.get("code") if isinstance(error, dict) else None
+        diagnostic = reason or error_code or str(status or "unknown")
+        raise PilotRuntimeError(f"OpenAI response did not complete: {diagnostic}")
     if payload.get("error") is not None or payload.get("incomplete_details") is not None:
-        raise PilotRuntimeError("OpenAI response reported failure")
+        raise PilotRuntimeError("OpenAI completed response contained failure metadata")
     texts: list[str] = []
     output = payload.get("output")
     if not isinstance(output, list):
