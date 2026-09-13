@@ -4,7 +4,7 @@
   "evidence_type": "aws_factory_bootstrap",
   "gate_evidence": {
     "aws_account_verified": true,
-    "oidc_trust_verified": false,
+    "oidc_trust_verified": true,
     "release_storage_verified": true,
     "state_store_deployed_verified": true
   },
@@ -15,7 +15,22 @@
     "source_commit": "a0ed975ca913cdaf8b8bae98eb789b5009de86e3",
     "static": "success"
   },
-  "note": "OIDC trust remains unverified until a GitHub Actions production-environment job successfully assumes the AWS release role.",
+  "oidc_verification": {
+    "conclusion": "success",
+    "production_environment": true,
+    "run_id": 34762967053,
+    "run_number": 1,
+    "source_commit": "99c935a35775277439c2620a772a9e63bc9863f5",
+    "verified_checks": [
+      "github_oidc_assume_role",
+      "aws_account_identity",
+      "dynamodb_consistent_write_read",
+      "s3_versioned_checksum_write_read",
+      "s3_aes256_encryption"
+    ],
+    "workflow": "aws-infra-verify"
+  },
+  "note": "GitHub Actions production-environment OIDC successfully assumed the scoped AWS release role. Verification used isolated non-release DynamoDB and S3 records and did not mutate the authoritative CURRENT or DEPLOYMENT release records.",
   "observed_on": "2026-09-13",
   "owner_identity": "tim_brydges",
   "resources": {
