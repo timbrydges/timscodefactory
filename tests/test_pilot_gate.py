@@ -169,20 +169,30 @@ class PilotActivationGateTests(unittest.TestCase):
                 policy.assert_role_activation_allowed(system)
 
     def test_pg14_rollback_drill_requires_live_oidc_state_and_storage_evidence(self):
-        contract = self._infra_contract()
-        policy = PilotActivationPolicy.from_contract(contract)
-        with self.assertRaises(PilotGateError):
-            policy.assert_rollback_drill_allowed(actor_identity=OWNER_IDENTITY)
-        for name in (
+        required = (
             "oidc_trust_verified",
             "state_store_deployed_verified",
             "release_storage_verified",
-        ):
-            contract["activation"]["gates"][name] = {
+        )
+        ready = self._infra_contract()
+        for name in required:
+            ready["activation"]["gates"][name] = {
                 "verified": True,
                 "evidence": [f"evidence/{name}.json"],
             }
-        PilotActivationPolicy.from_contract(contract).assert_rollback_drill_allowed(
+
+        for missing in required:
+            contract = copy.deepcopy(ready)
+            contract["activation"]["gates"][missing] = {
+                "verified": False,
+                "evidence": [],
+            }
+            with self.subTest(missing=missing), self.assertRaises(PilotGateError):
+                PilotActivationPolicy.from_contract(contract).assert_rollback_drill_allowed(
+                    actor_identity=OWNER_IDENTITY
+                )
+
+        PilotActivationPolicy.from_contract(ready).assert_rollback_drill_allowed(
             actor_identity=OWNER_IDENTITY
         )
 
