@@ -5,10 +5,7 @@ on:
 
 permissions:
   actions: read
-  checks: read
-  contents: write
-  id-token: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: tims-factory-pilot-live
@@ -21,6 +18,10 @@ env:
 
 jobs:
   preflight:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     name: controller / live preflight
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -78,6 +79,9 @@ jobs:
             --run-id "$GITHUB_RUN_ID"
 
   planner-infer:
+    permissions:
+      actions: read
+      contents: read
     name: planner / architecture inference
     needs: preflight
     runs-on: ubuntu-latest
@@ -104,6 +108,9 @@ jobs:
           retention-days: 30
 
   planner-publish:
+    permissions:
+      actions: read
+      contents: read
     name: planner / bind architecture provenance
     needs: [preflight, planner-infer]
     runs-on: ubuntu-latest
@@ -152,6 +159,9 @@ jobs:
           echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   planner-record:
+    permissions:
+      contents: read
+      id-token: write
     name: controller / accept Planner evidence
     needs: [preflight, planner-publish]
     runs-on: ubuntu-latest
@@ -184,6 +194,9 @@ jobs:
             --details-json "{\"planner_branch\":\"${BRANCH}\",\"planner_head\":\"${HEAD}\"}"
 
   builder-infer:
+    permissions:
+      actions: read
+      contents: read
     name: builder / implementation inference
     needs: [preflight, planner-record, planner-infer]
     runs-on: ubuntu-latest
@@ -213,6 +226,9 @@ jobs:
           retention-days: 30
 
   builder-publish:
+    permissions:
+      actions: read
+      contents: read
     name: builder / publish implementation PR
     needs: [preflight, builder-infer]
     runs-on: ubuntu-latest
@@ -270,6 +286,11 @@ jobs:
           echo "head_sha=$HEAD" >> "$GITHUB_OUTPUT"
 
   inspector-infer:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: read
     name: inspector / independent Claude review
     needs: [preflight, builder-publish, planner-infer]
     runs-on: ubuntu-latest
@@ -333,6 +354,9 @@ jobs:
           retention-days: 30
 
   inspector-submit:
+    permissions:
+      actions: read
+      contents: read
     name: inspector / exact-head verdict
     needs: [preflight, builder-publish, inspector-infer]
     runs-on: ubuntu-latest
@@ -376,6 +400,12 @@ jobs:
           test "$VERDICT" = "APPROVE"
 
   implementation-merge:
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+      pull-requests: write
     name: controller / merge inspected implementation
     needs: [preflight, builder-publish, inspector-submit]
     runs-on: ubuntu-latest
@@ -423,6 +453,10 @@ jobs:
             --details-json "{\"builder_pr\":${PR},\"inspected_head\":\"${HEAD}\"}"
 
   release:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     name: owner-authorized / release and exact-version recovery
     needs: [preflight, implementation-merge]
     runs-on: ubuntu-latest
