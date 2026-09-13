@@ -24,12 +24,16 @@ API_VERSION = "2026-03-10"
 TEMPLATES = {
     "README.md": "config/github/pilot-repo/README.md",
     ".factory/identity-contract.json": "config/github/pilot-repo/identity-contract.json",
+    ".factory/pilot-task.json": "config/github/pilot-repo/pilot-task.json",
+    ".factory/provider-policy.json": "config/github/pilot-repo/provider-policy.json",
+    ".factory/pilot_runtime.py": "config/github/pilot-repo/pilot_runtime.py",
     ".github/CODEOWNERS": "config/github/pilot-repo/CODEOWNERS",
     ".github/pull_request_template.md": "config/github/pilot-repo/pull_request_template.md",
     ".github/workflows/pilot-ci.yml": "config/github/pilot-repo/pilot-ci.yml",
     ".github/workflows/identity-boundary.yml": "config/github/pilot-repo/identity-boundary.yml",
     ".github/workflows/inspector-gate.yml": "config/github/pilot-repo/inspector-gate.yml",
     ".github/workflows/identity-canary.yml": "config/github/pilot-repo/identity-canary.yml",
+    ".github/workflows/pilot-live.yml": "config/github/pilot-repo/pilot-live.yml",
 }
 
 
@@ -222,7 +226,10 @@ def main() -> int:
     output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(evidence, indent=2, sort_keys=True))
     print(f"Evidence saved locally to {output}")
-    print("Pilot repository controls bootstrapped. Operational role activation remains DENY.")
+    print(
+        "Pilot runtime templates synced. Live execution remains fail-closed until "
+        "AWS runtime variables and provider credentials are configured."
+    )
     return 0
 
 
