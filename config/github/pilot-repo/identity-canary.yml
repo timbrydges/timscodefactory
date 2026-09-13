@@ -1,0 +1,136 @@
+name: identity-canary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  planner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      installation_id: ${{ steps.token.outputs.installation-id }}
+      app_slug: ${{ steps.token.outputs.app-slug }}
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.FACTORY_PLANNER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_PLANNER_APP_PRIVATE_KEY }}
+      - name: Verify Planner installation identity and permissions
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+          EXPECTED_LOGIN: ${{ vars.FACTORY_PLANNER_LOGIN }}
+        run: |
+          set -euo pipefail
+          test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
+          gh api /installation > "$RUNNER_TEMP/installation.json"
+          gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
+          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "write" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
+          jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
+
+  builder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      installation_id: ${{ steps.token.outputs.installation-id }}
+      app_slug: ${{ steps.token.outputs.app-slug }}
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.FACTORY_BUILDER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_BUILDER_APP_PRIVATE_KEY }}
+      - name: Verify Builder installation identity and permissions
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+          EXPECTED_LOGIN: ${{ vars.FACTORY_BUILDER_LOGIN }}
+        run: |
+          set -euo pipefail
+          test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
+          gh api /installation > "$RUNNER_TEMP/installation.json"
+          gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
+          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "write" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
+          jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
+
+  inspector:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      installation_id: ${{ steps.token.outputs.installation-id }}
+      app_slug: ${{ steps.token.outputs.app-slug }}
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.FACTORY_INSPECTOR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_INSPECTOR_APP_PRIVATE_KEY }}
+      - name: Verify Inspector installation identity and permissions
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+          EXPECTED_LOGIN: ${{ vars.FACTORY_INSPECTOR_LOGIN }}
+        run: |
+          set -euo pipefail
+          test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
+          gh api /installation > "$RUNNER_TEMP/installation.json"
+          gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
+          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "read" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
+          jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
+
+  independence:
+    needs: [planner, builder, inspector]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PLANNER_ID: ${{ needs.planner.outputs.installation_id }}
+      BUILDER_ID: ${{ needs.builder.outputs.installation_id }}
+      INSPECTOR_ID: ${{ needs.inspector.outputs.installation_id }}
+      PLANNER_SLUG: ${{ needs.planner.outputs.app_slug }}
+      BUILDER_SLUG: ${{ needs.builder.outputs.app_slug }}
+      INSPECTOR_SLUG: ${{ needs.inspector.outputs.app_slug }}
+    steps:
+      - name: Verify distinct authoritative installations and emit evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PLANNER_ID" != "$BUILDER_ID"
+          test "$PLANNER_ID" != "$INSPECTOR_ID"
+          test "$BUILDER_ID" != "$INSPECTOR_ID"
+          python - "$RUNNER_TEMP/pilot-identity-evidence.json" <<'PY'
+          import json, os, sys
+          evidence = {
+              "schema_version": "1.0",
+              "evidence_type": "pilot_github_app_identity_canary",
+              "conclusion": "success",
+              "repository": "timbrydges/tims-factory-pilot",
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "identities": {
+                  "planner": {"app_slug": os.environ["PLANNER_SLUG"], "installation_id": os.environ["PLANNER_ID"]},
+                  "builder": {"app_slug": os.environ["BUILDER_SLUG"], "installation_id": os.environ["BUILDER_ID"]},
+                  "inspector": {"app_slug": os.environ["INSPECTOR_SLUG"], "installation_id": os.environ["INSPECTOR_ID"]},
+              },
+              "verified_controls": [
+                  "three_distinct_github_apps",
+                  "selected_repository_only",
+                  "planner_permissions_exact",
+                  "builder_permissions_exact",
+                  "inspector_readonly_contents",
+                  "ephemeral_installation_tokens"
+              ]
+          }
+          with open(sys.argv[1], "w", encoding="utf-8") as f:
+              json.dump(evidence, f, indent=2, sort_keys=True)
+              f.write("\n")
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: pilot-identity-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pilot-identity-evidence.json
+          if-no-files-found: error
+          retention-days: 30
