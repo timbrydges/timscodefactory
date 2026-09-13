@@ -52,3 +52,25 @@ def test_bootstrap_includes_live_runtime_templates():
         assert target in script
     assert "Operational role activation remains DENY" not in script
     assert "Live execution remains fail-closed" in script
+
+
+def test_pilot_oidc_trust_uses_only_aws_supported_github_claims():
+    terraform = (ROOT / "infra/aws/pilot_runtime.tf").read_text(encoding="utf-8")
+    supported = {
+        "aud",
+        "sub",
+        "repository_owner_id",
+        "repository_id",
+        "ref",
+        "environment",
+        "workflow",
+        "actor_id",
+    }
+    prefix = 'variable = "token.actions.githubusercontent.com:'
+    claims = {
+        line.split(prefix, 1)[1].split('"', 1)[0]
+        for line in terraform.splitlines()
+        if prefix in line
+    }
+    assert claims == supported
+    assert "token.actions.githubusercontent.com:event_name" not in terraform
