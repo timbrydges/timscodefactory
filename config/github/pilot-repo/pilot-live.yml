@@ -36,7 +36,6 @@ jobs:
         name: Verify owner, repository, contracts, and required bindings
         shell: bash
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AWS_PILOT_RUNTIME_ROLE_ARN: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           AWS_REGION: ${{ vars.AWS_REGION }}
           FACTORY_STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
@@ -46,7 +45,6 @@ jobs:
           test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
           test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
           test "$GITHUB_REF" = "refs/heads/main"
-          test -n "$OPENAI_API_KEY"
           test -n "$AWS_PILOT_RUNTIME_ROLE_ARN"
           test -n "$AWS_REGION"
           test -n "$FACTORY_STATE_TABLE"
@@ -125,7 +123,6 @@ jobs:
           app-id: ${{ vars.FACTORY_PLANNER_APP_ID }}
           private-key: ${{ secrets.FACTORY_PLANNER_APP_PRIVATE_KEY }}
           permission-contents: write
-          permission-pull-requests: write
           permission-checks: read
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -428,8 +425,15 @@ jobs:
           ref: main
           fetch-depth: 0
       - id: source
+        name: Bind merged release tree to exact inspected Builder tree
         shell: bash
-        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          INSPECTED_HEAD: ${{ needs.builder-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$INSPECTED_HEAD"
+          test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")" = "$(git rev-parse "HEAD^{tree}")"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
