@@ -1,0 +1,505 @@
+name: pilot-live
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: tims-factory-pilot-live
+  cancel-in-progress: false
+
+env:
+  EXPECTED_OWNER: timbrydges
+  EXPECTED_REPOSITORY: timbrydges/tims-factory-pilot
+  EXPECTED_AWS_ACCOUNT: "666730517561"
+
+jobs:
+  preflight:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    name: controller / live preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    outputs:
+      task_id: ${{ steps.identity.outputs.task_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - id: identity
+        name: Verify owner, repository, contracts, and required bindings
+        shell: bash
+        env:
+          AWS_PILOT_RUNTIME_ROLE_ARN: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          FACTORY_STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          FACTORY_RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
+          test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test -n "$AWS_PILOT_RUNTIME_ROLE_ARN"
+          test -n "$AWS_REGION"
+          test -n "$FACTORY_STATE_TABLE"
+          test -n "$FACTORY_RELEASE_BUCKET"
+          test -n "${{ vars.FACTORY_PLANNER_APP_ID }}"
+          test -n "${{ vars.FACTORY_BUILDER_APP_ID }}"
+          test -n "${{ vars.FACTORY_INSPECTOR_APP_ID }}"
+          python .factory/pilot_runtime.py validate-config
+          TASK_ID="pilot-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "task_id=$TASK_ID" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-preflight-${{ github.run_id }}
+      - name: Verify AWS identity and initialize authoritative task state
+        shell: bash
+        env:
+          TASK_ID: ${{ steps.identity.outputs.task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          ARN="$(aws sts get-caller-identity --query Arn --output text)"
+          test "$ACCOUNT" = "$EXPECTED_AWS_ACCOUNT"
+          [[ "$ARN" == "arn:aws:sts::${EXPECTED_AWS_ACCOUNT}:assumed-role/tims-software-factory-pilot-runtime/"* ]]
+          python .factory/pilot_runtime.py init-state \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --run-id "$GITHUB_RUN_ID"
+
+  planner-infer:
+    permissions:
+      actions: read
+      contents: read
+    name: planner / architecture inference
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - name: Generate bounded Planner outputs
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/planner"
+          python .factory/pilot_runtime.py plan --output-dir "$RUNNER_TEMP/planner"
+          test -s "$RUNNER_TEMP/planner/architecture/plan.md"
+          test -s "$RUNNER_TEMP/planner/docs/adr/0001-pilot-design.md"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: planner-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/planner
+          if-no-files-found: error
+          retention-days: 30
+
+  planner-publish:
+    permissions:
+      actions: read
+      contents: read
+    name: planner / bind architecture provenance
+    needs: [preflight, planner-infer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      branch: ${{ steps.publish.outputs.branch }}
+      head_sha: ${{ steps.publish.outputs.head_sha }}
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.FACTORY_PLANNER_APP_ID }}
+          private-key: ${{ secrets.FACTORY_PLANNER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-checks: read
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          token: ${{ steps.token.outputs.token }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: planner-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/planner
+      - id: publish
+        name: Commit only Planner-authorized paths to an evidence branch
+        shell: bash
+        env:
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+        run: |
+          set -euo pipefail
+          cp -R "$RUNNER_TEMP/planner/architecture" .
+          mkdir -p docs
+          cp -R "$RUNNER_TEMP/planner/docs/adr" docs/
+          git config user.name "${{ vars.FACTORY_PLANNER_LOGIN }}"
+          git config user.email "${{ vars.FACTORY_PLANNER_APP_ID }}+tims-factory-planner[bot]@users.noreply.github.com"
+          BRANCH="planner/${TASK_ID}"
+          git switch -c "$BRANCH"
+          git add architecture docs/adr
+          git diff --cached --check
+          git diff --cached --quiet && { echo "Planner produced no changes" >&2; exit 1; }
+          git commit -m "plan(${TASK_ID}): architecture and ADR"
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  planner-record:
+    permissions:
+      contents: read
+      id-token: write
+    name: controller / accept Planner evidence
+    needs: [preflight, planner-publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-planner-record-${{ github.run_id }}
+      - name: Advance authoritative pilot state
+        shell: bash
+        env:
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          BRANCH: ${{ needs.planner-publish.outputs.branch }}
+          HEAD: ${{ needs.planner-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          python .factory/pilot_runtime.py transition-state \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --expected-state PILOT_PLANNING \
+            --next-state PILOT_BUILDING \
+            --expected-version 0 \
+            --details-json "{\"planner_branch\":\"${BRANCH}\",\"planner_head\":\"${HEAD}\"}"
+
+  builder-infer:
+    permissions:
+      actions: read
+      contents: read
+    name: builder / implementation inference
+    needs: [preflight, planner-record, planner-infer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: planner-${{ needs.preflight.outputs.task_id }}
+          path: .
+      - name: Generate bounded Builder outputs
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/builder"
+          python .factory/pilot_runtime.py build --output-dir "$RUNNER_TEMP/builder"
+          python -m compileall -q "$RUNNER_TEMP/builder/src"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: builder-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/builder
+          if-no-files-found: error
+          retention-days: 30
+
+  builder-publish:
+    permissions:
+      actions: read
+      contents: read
+    name: builder / publish implementation PR
+    needs: [preflight, builder-infer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      pr_number: ${{ steps.publish.outputs.pr_number }}
+      head_sha: ${{ steps.publish.outputs.head_sha }}
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.FACTORY_BUILDER_APP_ID }}
+          private-key: ${{ secrets.FACTORY_BUILDER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          token: ${{ steps.token.outputs.token }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: builder-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/builder
+      - id: publish
+        name: Commit only Builder-authorized paths and open PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+        run: |
+          set -euo pipefail
+          cp -R "$RUNNER_TEMP/builder/src" .
+          mkdir -p tests docs
+          cp -R "$RUNNER_TEMP/builder/tests/unit" tests/
+          cp -R "$RUNNER_TEMP/builder/docs/implementation" docs/
+          git config user.name "${{ vars.FACTORY_BUILDER_LOGIN }}"
+          git config user.email "${{ vars.FACTORY_BUILDER_APP_ID }}+tims-factory-builder[bot]@users.noreply.github.com"
+          BRANCH="builder/${TASK_ID}"
+          git switch -c "$BRANCH"
+          git add src tests/unit docs/implementation
+          git diff --cached --check
+          git diff --cached --quiet && { echo "Builder produced no changes" >&2; exit 1; }
+          git commit -m "build(${TASK_ID}): deterministic checklist CLI"
+          git push origin "$BRANCH"
+          URL="$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "build(${TASK_ID}): deterministic release-readiness CLI" \
+            --body "Builder implementation for ${TASK_ID}. Awaiting independent Inspector verdict.")"
+          PR="${URL##*/}"
+          HEAD="$(git rev-parse HEAD)"
+          echo "pr_number=$PR" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD" >> "$GITHUB_OUTPUT"
+
+  inspector-infer:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: read
+    name: inspector / independent Claude review
+    needs: [preflight, builder-publish, planner-infer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.builder-publish.outputs.head_sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: planner-${{ needs.preflight.outputs.task_id }}
+          path: .
+      - name: Produce deterministic test and exact-diff evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.builder-publish.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          BASE="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid -q .baseRefOid)"
+          git fetch origin "$BASE"
+          python -m compileall -q src
+          python -m unittest discover -s tests -v 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          git diff --no-ext-diff --unified=80 "$BASE" "${{ needs.builder-publish.outputs.head_sha }}" > "$RUNNER_TEMP/builder.diff"
+          test -s "$RUNNER_TEMP/builder.diff"
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-inspector-${{ github.run_id }}
+      - name: Advance state and invoke independent Inspector
+        shell: bash
+        env:
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          PR: ${{ needs.builder-publish.outputs.pr_number }}
+          HEAD: ${{ needs.builder-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          python .factory/pilot_runtime.py transition-state \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --expected-state PILOT_BUILDING \
+            --next-state PILOT_INSPECTING \
+            --expected-version 1 \
+            --details-json "{\"builder_pr\":${PR},\"builder_head\":\"${HEAD}\"}"
+          python .factory/pilot_runtime.py review \
+            --diff "$RUNNER_TEMP/builder.diff" \
+            --tests "$RUNNER_TEMP/tests.log" \
+            --output "$RUNNER_TEMP/inspector-verdict.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: inspector-${{ needs.preflight.outputs.task_id }}
+          path: |
+            ${{ runner.temp }}/inspector-verdict.json
+            ${{ runner.temp }}/tests.log
+            ${{ runner.temp }}/builder.diff
+          if-no-files-found: error
+          retention-days: 30
+
+  inspector-submit:
+    permissions:
+      actions: read
+      contents: read
+    name: inspector / exact-head verdict
+    needs: [preflight, builder-publish, inspector-infer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.FACTORY_INSPECTOR_APP_ID }}
+          private-key: ${{ secrets.FACTORY_INSPECTOR_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+          permission-checks: read
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: inspector-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/inspector
+      - name: Submit Inspector verdict bound to exact Builder commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          PR: ${{ needs.builder-publish.outputs.pr_number }}
+          HEAD: ${{ needs.builder-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/inspector/inspector-verdict.json" "$RUNNER_TEMP/review.json" "$HEAD" <<'PY'
+          import json, sys
+          verdict = json.load(open(sys.argv[1], encoding="utf-8"))
+          event = verdict["verdict"]
+          lines = [verdict["summary"], "", "Findings:"]
+          if verdict["findings"]:
+              for item in verdict["findings"]:
+                  lines.append(f"- [{item['severity'].upper()}] {item['path']}: {item['message']}")
+          else:
+              lines.append("- None")
+          payload = {"commit_id": sys.argv[3], "event": event, "body": "\n".join(lines)}
+          json.dump(payload, open(sys.argv[2], "w", encoding="utf-8"))
+          PY
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" --input "$RUNNER_TEMP/review.json"
+          VERDICT="$(jq -r .verdict "$RUNNER_TEMP/inspector/inspector-verdict.json")"
+          test "$VERDICT" = "APPROVE"
+
+  implementation-merge:
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+      pull-requests: write
+    name: controller / merge inspected implementation
+    needs: [preflight, builder-publish, inspector-submit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    outputs:
+      source_commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - name: Wait for all protected-branch requirements and merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.builder-publish.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required --watch --interval 5
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: source
+        name: Bind merged release tree to exact inspected Builder tree
+        shell: bash
+        env:
+          INSPECTED_HEAD: ${{ needs.builder-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$INSPECTED_HEAD"
+          test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")" = "$(git rev-parse "HEAD^{tree}")"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-implementation-merge-${{ github.run_id }}
+      - name: Advance authoritative pilot state
+        shell: bash
+        env:
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          PR: ${{ needs.builder-publish.outputs.pr_number }}
+          HEAD: ${{ needs.builder-publish.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          python .factory/pilot_runtime.py transition-state \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --expected-state PILOT_INSPECTING \
+            --next-state PILOT_RELEASE_READY \
+            --expected-version 2 \
+            --details-json "{\"builder_pr\":${PR},\"inspected_head\":\"${HEAD}\"}"
+
+  release:
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    name: owner-authorized / release and exact-version recovery
+    needs: [preflight, implementation-merge]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.implementation-merge.outputs.source_commit }}
+          fetch-depth: 0
+      - name: Re-run deterministic release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q src
+          python -m unittest discover -s tests -v
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-release-${{ github.run_id }}
+      - name: Publish immutable artifact and prove exact-version recovery
+        shell: bash
+        env:
+          TASK_ID: ${{ needs.preflight.outputs.task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          SOURCE_COMMIT: ${{ needs.implementation-merge.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          python .factory/pilot_runtime.py release \
+            --table "$STATE_TABLE" \
+            --bucket "$RELEASE_BUCKET" \
+            --task-id "$TASK_ID" \
+            --source-commit "$SOURCE_COMMIT" \
+            --evidence "$RUNNER_TEMP/release-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-evidence-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/release-evidence.json
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_operational_contract_binds_three_system_pilot_without_owner_override():
+    contract = yaml.safe_load((ROOT / "factory/pilot/runtime-contract.yaml").read_text(encoding="utf-8"))
+    assert contract["status"] == "OWNER_APPROVED_LIVE_PILOT"
+    assert contract["repository"] == "timbrydges/tims-factory-pilot"
+    assert contract["workflow"] == "pilot-live"
+    assert contract["dispatch"] == {
+        "event": "workflow_dispatch",
+        "owner_login": "timbrydges",
+        "owner_id": "214414801",
+        "ref": "refs/heads/main",
+        "environment": "production",
+        "maximum_concurrent_runs": 1,
+    }
+    assert set(contract["roles"]) == {"planner", "builder", "inspector"}
+    assert contract["roles"]["planner"]["repository_effect"] == "evidence_branch_only"
+    assert contract["roles"]["builder"]["repository_effect"] == "implementation_pull_request"
+    assert contract["roles"]["inspector"]["repository_effect"] == "exact_head_review_only"
+    assert contract["roles"]["builder"]["provider_family"] != contract["roles"]["inspector"]["provider_family"]
+    assert contract["failure_policy"]["owner_override_counts_as_clean_pilot_success"] is False
+
+
+def test_operational_state_graph_is_bounded_and_release_terminal():
+    contract = yaml.safe_load((ROOT / "factory/pilot/runtime-contract.yaml").read_text(encoding="utf-8"))
+    machine = contract["state_machine"]
+    assert machine["authority"] == "factory_controller_service"
+    assert machine["initial_state"] == "PILOT_PLANNING"
+    assert machine["terminal_state"] == "PILOT_RELEASED"
+    assert machine["transitions"]["PILOT_RELEASED"] == []
+    assert machine["transitions"]["PILOT_PLANNING"] == ["PILOT_BUILDING", "PILOT_STALLED"]
+    assert "PILOT_RELEASED" not in machine["transitions"]["PILOT_BUILDING"]
+    assert "PILOT_RELEASED" not in machine["transitions"]["PILOT_INSPECTING"]
+
+
+def test_bootstrap_includes_live_runtime_templates():
+    script = (ROOT / "scripts/bootstrap_pilot_repo.py").read_text(encoding="utf-8")
+    for target in (
+        '.factory/pilot-task.json',
+        '.factory/provider-policy.json',
+        '.factory/pilot_runtime.py',
+        '.github/workflows/pilot-live.yml',
+    ):
+        assert target in script
+    assert "Operational role activation remains DENY" not in script
+    assert "Live execution remains fail-closed" in script
