@@ -1,7 +1,7 @@
 schema_version: "1.0"
 contract_id: tims-factory-pilot-001
 contract_version: "1.0"
-status: OWNER_APPROVED_INFRA_VERIFICATION
+status: OWNER_APPROVED_LIVE_PILOT
 
 approval:
   owner_identity: tim_brydges
@@ -10,21 +10,21 @@ approval:
   approval_required_from_others: false
 
 execution:
-  phase: INFRA_VERIFICATION
+  phase: LIVE_PILOT
   dry_run_simulation: ALLOW
   infrastructure_provisioning: ALLOW
   rollback_drill: ALLOW
-  operational_role_activation: DENY
-  pilot_repository_writes: DENY
-  live_task_transitions: DENY
-  real_release: DENY
+  operational_role_activation: ALLOW
+  pilot_repository_writes: ALLOW
+  live_task_transitions: ALLOW
+  real_release: ALLOW
 
 pilot:
   repository:
     full_name: timbrydges/tims-factory-pilot
     visibility: private
     maximum_repository_count: 1
-    current_status: RESERVED_NOT_CREATED
+    current_status: ACTIVE
   feature_slice:
     name: deterministic_release_readiness_checklist
     objective: >-
@@ -98,17 +98,17 @@ activation:
       verified: true
       evidence: [factory/evidence/aws-bootstrap-2026-09-13.json]
     private_repository_controls_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/private-pilot-repository-controls-2026-09-13.json]
     planner_identity_deployed_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/pilot-identity-canary-2026-09-13.json]
     builder_identity_deployed_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/pilot-identity-canary-2026-09-13.json]
     inspector_identity_deployed_verified:
-      verified: false
-      evidence: []
+      verified: true
+      evidence: [factory/evidence/pilot-identity-canary-2026-09-13.json]
     controller_deployed_verified:
       verified: true
       evidence: [factory/evidence/controller-deployment-2026-09-13.json]
