@@ -37,6 +37,13 @@ def test_live_pilot_contracts_are_exact_and_bounded():
     assert policy["providers"]["builder"]["provider_family"] != policy["providers"]["inspector"]["provider_family"]
 
 
+def test_openai_runtime_has_bounded_long_request_and_medium_reasoning():
+    source = RUNTIME_PATH.read_text(encoding="utf-8")
+    assert '"reasoning": {"effort": "medium"}' in source
+    assert 'urlopen(req, timeout=300)' in source
+    assert 'OpenAI request exceeded 300-second bounded timeout' in source
+
+
 def test_builder_output_rejects_unauthorized_or_duplicate_paths():
     valid = [
         {"path": path, "content": "x"}

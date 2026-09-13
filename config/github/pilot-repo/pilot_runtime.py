@@ -190,7 +190,7 @@ def call_openai(
         "instructions": _bounded_text(instructions, "provider instructions", max_chars=20_000),
         "input": prompt,
         "max_output_tokens": max_output_tokens,
-        "reasoning": {"effort": "high"},
+        "reasoning": {"effort": "medium"},
         "text": {
             "format": {
                 "type": "json_schema",
@@ -213,10 +213,12 @@ def call_openai(
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as response:
+        with urllib.request.urlopen(req, timeout=300) as response:
             payload_raw = response.read(MAX_RESPONSE_BYTES + 1)
     except urllib.error.HTTPError as exc:
         raise PilotRuntimeError(f"OpenAI request failed with HTTP {exc.code}") from exc
+    except TimeoutError as exc:
+        raise PilotRuntimeError("OpenAI request exceeded 300-second bounded timeout") from exc
     except urllib.error.URLError as exc:
         raise PilotRuntimeError("OpenAI request transport failed") from exc
     if len(payload_raw) > MAX_RESPONSE_BYTES:
