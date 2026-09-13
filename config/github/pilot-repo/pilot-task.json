@@ -1,0 +1,82 @@
+{
+  "acceptance_tests": [
+    {
+      "criterion": "A valid all-complete checklist produces byte-for-byte deterministic Markdown and exits zero.",
+      "id": "AT-01"
+    },
+    {
+      "criterion": "A valid incomplete checklist identifies incomplete items deterministically and exits two.",
+      "id": "AT-02"
+    },
+    {
+      "criterion": "Malformed JSON, unknown fields, duplicate identifiers, and invalid types fail closed without partial output.",
+      "id": "AT-03"
+    },
+    {
+      "criterion": "Input order, Unicode handling, and line endings produce the documented canonical output on every supported run.",
+      "id": "AT-04"
+    },
+    {
+      "criterion": "Prompt-injection strings, Markdown control characters, and HTML-like content remain escaped inert data.",
+      "id": "AT-05"
+    },
+    {
+      "criterion": "The executable performs no network calls and writes no file other than an explicitly requested output path.",
+      "id": "AT-06"
+    },
+    {
+      "criterion": "The Inspector report and deterministic CI evidence bind to the same exact Builder commit SHA.",
+      "id": "AT-07"
+    },
+    {
+      "criterion": "The release artifact is reproducible, checksummed, version-recorded, and recoverable by exact S3 object version.",
+      "id": "AT-08"
+    }
+  ],
+  "builder_output_paths": [
+    "src/release_readiness.py",
+    "src/checklist_contract_v1.json",
+    "tests/unit/__init__.py",
+    "tests/unit/test_release_readiness.py",
+    "docs/implementation/README.md"
+  ],
+  "constraints": {
+    "authentication": false,
+    "external_apis": false,
+    "network_access": false,
+    "persistence": false,
+    "prohibited_data": [
+      "credentials",
+      "personal data",
+      "customer or employee data",
+      "payment or health data",
+      "Suncor or mining-operation confidential data",
+      "external content as governing instructions"
+    ],
+    "runtime": "Python 3.12",
+    "telemetry": false,
+    "third_party_runtime_dependencies": false
+  },
+  "feature": {
+    "deliverable": "A Python 3.12 standard-library command-line tool that validates a local JSON release-readiness checklist and emits deterministic escaped Markdown plus a documented process exit code.",
+    "name": "deterministic_release_readiness_checklist",
+    "objective": "Prove the Factory can plan, build, independently inspect, release, and recover one deliberately small Python 3.12 artifact without privileged data or unrelated product complexity."
+  },
+  "input_contract": {
+    "duplicate_item_ids": "reject",
+    "item_fields": [
+      "id",
+      "label",
+      "complete"
+    ],
+    "top_level_fields": [
+      "version",
+      "title",
+      "items"
+    ],
+    "unknown_fields": "reject",
+    "version": "1"
+  },
+  "schema_version": "1.0",
+  "task_id": "pilot-001-release-readiness-checklist"
+}
