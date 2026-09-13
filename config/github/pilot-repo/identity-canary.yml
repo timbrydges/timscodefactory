@@ -17,9 +17,12 @@ jobs:
       - id: token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
-          client-id: ${{ vars.FACTORY_PLANNER_APP_CLIENT_ID }}
+          app-id: ${{ vars.FACTORY_PLANNER_APP_ID }}
           private-key: ${{ secrets.FACTORY_PLANNER_APP_PRIVATE_KEY }}
-      - name: Verify Planner installation identity and permissions
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+      - name: Verify Planner installation identity and repository scope
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           APP_SLUG: ${{ steps.token.outputs.app-slug }}
@@ -27,9 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
-          gh api /installation > "$RUNNER_TEMP/installation.json"
           gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
-          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "write" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
           jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
 
   builder:
@@ -42,9 +43,12 @@ jobs:
       - id: token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
-          client-id: ${{ vars.FACTORY_BUILDER_APP_CLIENT_ID }}
+          app-id: ${{ vars.FACTORY_BUILDER_APP_ID }}
           private-key: ${{ secrets.FACTORY_BUILDER_APP_PRIVATE_KEY }}
-      - name: Verify Builder installation identity and permissions
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+      - name: Verify Builder installation identity and repository scope
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           APP_SLUG: ${{ steps.token.outputs.app-slug }}
@@ -52,9 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
-          gh api /installation > "$RUNNER_TEMP/installation.json"
           gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
-          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "write" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
           jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
 
   inspector:
@@ -67,9 +69,12 @@ jobs:
       - id: token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
-          client-id: ${{ vars.FACTORY_INSPECTOR_APP_CLIENT_ID }}
+          app-id: ${{ vars.FACTORY_INSPECTOR_APP_ID }}
           private-key: ${{ secrets.FACTORY_INSPECTOR_APP_PRIVATE_KEY }}
-      - name: Verify Inspector installation identity and permissions
+          permission-contents: read
+          permission-pull-requests: write
+          permission-checks: read
+      - name: Verify Inspector installation identity and repository scope
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           APP_SLUG: ${{ steps.token.outputs.app-slug }}
@@ -77,9 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${APP_SLUG}[bot]" = "$EXPECTED_LOGIN"
-          gh api /installation > "$RUNNER_TEMP/installation.json"
           gh api '/installation/repositories?per_page=100' > "$RUNNER_TEMP/repositories.json"
-          jq -e '.account.login == "timbrydges" and .repository_selection == "selected" and .permissions.contents == "read" and .permissions.pull_requests == "write" and .permissions.checks == "read"' "$RUNNER_TEMP/installation.json" >/dev/null
           jq -e '.total_count == 1 and .repositories[0].full_name == "timbrydges/tims-factory-pilot"' "$RUNNER_TEMP/repositories.json" >/dev/null
 
   independence:
