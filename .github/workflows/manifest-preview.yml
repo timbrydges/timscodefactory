@@ -9,10 +9,16 @@ permissions:
 
 jobs:
   render:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
       - name: Render expected clean manifest
         shell: bash
         run: |
@@ -25,3 +31,18 @@ jobs:
           path: MANIFEST.sha256
           if-no-files-found: error
           retention-days: 7
+      - name: Commit manifest only when it changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- MANIFEST.sha256; then
+            echo "Manifest already current."
+            exit 0
+          fi
+          test "$(git diff --name-only | tr -d '\r')" = "MANIFEST.sha256"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add MANIFEST.sha256
+          git diff --cached --check
+          git commit -m "chore: refresh repository integrity manifest"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
