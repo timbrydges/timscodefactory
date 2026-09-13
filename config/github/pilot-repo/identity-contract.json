@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "owner": "timbrydges",
+  "planner": {
+    "login_variable": "FACTORY_PLANNER_LOGIN",
+    "allowed_paths": ["architecture/", "docs/adr/"]
+  },
+  "builder": {
+    "login_variable": "FACTORY_BUILDER_LOGIN",
+    "allowed_paths": ["src/", "tests/unit/", "docs/implementation/"]
+  },
+  "inspector": {
+    "login_variable": "FACTORY_INSPECTOR_LOGIN",
+    "allowed_paths": []
+  },
+  "unknown_author_policy": "deny",
+  "inspector_must_approve_exact_head": true,
+  "direct_main_push_policy": "deny_except_owner_ruleset_bypass"
+}
