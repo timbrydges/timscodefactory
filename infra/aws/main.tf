@@ -13,6 +13,7 @@ locals {
   repository_name   = local.repository_parts[1]
   oidc_subject      = "repo:${local.repository_owner}@${var.github_repository_owner_id}/${local.repository_name}@${var.github_repository_id}:environment:${var.github_environment}"
   oidc_provider_arn = var.existing_github_oidc_provider_arn != null ? var.existing_github_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn
+  release_workflows = ["release-oidc", "rollback-oidc", "aws-infra-verify", "aws-rollback-drill"]
 }
 
 check "existing_github_oidc_provider" {
@@ -117,6 +118,36 @@ data "aws_iam_policy_document" "release_trust" {
       variable = "token.actions.githubusercontent.com:sub"
       values   = [local.oidc_subject]
     }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository_owner_id"
+      values   = [var.github_repository_owner_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository_id"
+      values   = [var.github_repository_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:ref"
+      values   = ["refs/heads/main"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:environment"
+      values   = [var.github_environment]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:workflow"
+      values   = local.release_workflows
+    }
   }
 }
 
@@ -178,7 +209,7 @@ resource "aws_iam_role_policy" "github_release" {
 
 data "aws_iam_policy_document" "controller_state" {
   statement {
-    sid    = "ControllerAuthoritativeState"
+    sid    = "ControllerAuthoritativeTaskState"
     effect = "Allow"
     actions = [
       "dynamodb:ConditionCheckItem",
@@ -188,14 +219,82 @@ data "aws_iam_policy_document" "controller_state" {
       "dynamodb:TransactWriteItems",
       "dynamodb:UpdateItem"
     ]
-    resources = [
-      aws_dynamodb_table.factory_state.arn,
-      "${aws_dynamodb_table.factory_state.arn}/index/*"
-    ]
+    resources = [aws_dynamodb_table.factory_state.arn]
+
+    condition {
+      test     = "ForAllValues:StringLike"
+      variable = "dynamodb:LeadingKeys"
+      values   = ["FACTORY#tims-software-factory#TASK#*"]
+    }
   }
 }
 
 resource "aws_iam_policy" "controller_state" {
   name   = "${local.name_prefix}-controller-state"
   policy = data.aws_iam_policy_document.controller_state.json
+}
+
+data "aws_iam_policy_document" "controller_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [local.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = [local.oidc_subject]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository_owner_id"
+      values   = [var.github_repository_owner_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository_id"
+      values   = [var.github_repository_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:ref"
+      values   = ["refs/heads/main"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:environment"
+      values   = [var.github_environment]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:workflow"
+      values   = ["controller-runtime"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_controller" {
+  name                 = "${local.name_prefix}-github-controller"
+  assume_role_policy   = data.aws_iam_policy_document.controller_trust.json
+  max_session_duration = 3600
+}
+
+resource "aws_iam_role_policy_attachment" "github_controller_state" {
+  role       = aws_iam_role.github_controller.name
+  policy_arn = aws_iam_policy.controller_state.arn
 }

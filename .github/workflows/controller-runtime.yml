@@ -1,0 +1,235 @@
+name: controller-runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "factory/evidence/controller-bootstrap-request.json"
+
+permissions:
+  actions: write
+  checks: read
+  contents: read
+  id-token: write
+  pull-requests: read
+
+concurrency:
+  group: factory-controller-runtime
+  cancel-in-progress: false
+
+jobs:
+  controller-canary:
+    name: controller / authoritative-state canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+
+      - name: Verify controller activation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          python scripts/pilot_gate.py --mode validate
+          PYTHONPATH=src python - <<'PY'
+          from scripts.pilot_gate import load_contract
+
+          contract = load_contract()
+          if contract["execution"]["phase"] != "INFRA_VERIFICATION":
+              raise SystemExit("controller canary requires INFRA_VERIFICATION")
+          if contract["activation"]["gates"]["controller_deployed_verified"]["verified"]:
+              raise SystemExit("controller deployment gate is already verified; bootstrap canary is one-shot evidence")
+          PY
+
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_CONTROLLER_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: factory-controller-${{ github.run_id }}
+
+      - name: Verify dedicated controller cloud identity
+        shell: bash
+        env:
+          EXPECTED_ACCOUNT: "666730517561"
+        run: |
+          set -euo pipefail
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          ARN="$(aws sts get-caller-identity --query Arn --output text)"
+          test "$ACCOUNT" = "$EXPECTED_ACCOUNT"
+          [[ "$ARN" == "arn:aws:sts::${EXPECTED_ACCOUNT}:assumed-role/tims-software-factory-github-controller/"* ]]
+          printf '%s\n' "$ARN" > "$RUNNER_TEMP/controller-role-arn.txt"
+
+      - name: Exercise authoritative compare-and-swap state path
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          TASK_ID="controller-deployment-canary-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TASK_PK="FACTORY#tims-software-factory#TASK#${TASK_ID}"
+          UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          EVENT_SK="EVENT#${UPDATED_AT}#controller-canary"
+          export TASK_ID TASK_PK UPDATED_AT EVENT_SK
+
+          python - "$RUNNER_TEMP/initial-item.json" "$RUNNER_TEMP/transition.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          def s(value):
+              return {"S": str(value)}
+
+          task_id = os.environ["TASK_ID"]
+          pk = os.environ["TASK_PK"]
+          now = os.environ["UPDATED_AT"]
+          actor = "factory_controller_service"
+          initial_payload = {
+              "factory_id": "tims-software-factory",
+              "task_id": task_id,
+              "state": "PAUSED",
+              "version": 0,
+              "updated_at": now,
+              "updated_by": actor,
+              "active_lease_ids": [],
+              "leases": [],
+              "consumed_evidence_ids": [],
+          }
+          next_payload = dict(initial_payload)
+          next_payload.update({"state": "INTAKE", "version": 1})
+          initial = {
+              "PK": s(pk),
+              "SK": s("STATE"),
+              "state": s("PAUSED"),
+              "version": {"N": "0"},
+              "updated_at": s(now),
+              "payload": s(json.dumps(initial_payload, sort_keys=True)),
+          }
+          transition = [
+              {
+                  "Update": {
+                      "TableName": os.environ["STATE_TABLE"],
+                      "Key": {"PK": s(pk), "SK": s("STATE")},
+                      "UpdateExpression": "SET #s=:state, #v=:next, payload=:payload, updated_at=:updated",
+                      "ConditionExpression": "#s=:expected_state AND #v=:expected_version",
+                      "ExpressionAttributeNames": {"#s": "state", "#v": "version"},
+                      "ExpressionAttributeValues": {
+                          ":state": s("INTAKE"),
+                          ":next": {"N": "1"},
+                          ":payload": s(json.dumps(next_payload, sort_keys=True)),
+                          ":updated": s(now),
+                          ":expected_state": s("PAUSED"),
+                          ":expected_version": {"N": "0"},
+                      },
+                  }
+              },
+              {
+                  "Put": {
+                      "TableName": os.environ["STATE_TABLE"],
+                      "Item": {
+                          "PK": s(pk),
+                          "SK": s(os.environ["EVENT_SK"]),
+                          "event_type": s("STATE_TRANSITION"),
+                          "from_version": {"N": "0"},
+                          "to_version": {"N": "1"},
+                          "from_state": s("PAUSED"),
+                          "to_state": s("INTAKE"),
+                          "actor_identity": s(actor),
+                      },
+                      "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                  }
+              },
+          ]
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(initial, handle, separators=(",", ":"))
+          with open(sys.argv[2], "w", encoding="utf-8") as handle:
+              json.dump(transition, handle, separators=(",", ":"))
+          PY
+
+          aws dynamodb put-item \
+            --table-name "$STATE_TABLE" \
+            --item "file://$RUNNER_TEMP/initial-item.json" \
+            --condition-expression "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+
+          aws dynamodb transact-write-items \
+            --transact-items "file://$RUNNER_TEMP/transition.json" \
+            --client-request-token "controller-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${TASK_PK}\"},\"SK\":{\"S\":\"STATE\"}}" \
+            > "$RUNNER_TEMP/controller-state.json"
+
+          aws dynamodb get-item \
+            --table-name "$STATE_TABLE" \
+            --consistent-read \
+            --key "{\"PK\":{\"S\":\"${TASK_PK}\"},\"SK\":{\"S\":\"${EVENT_SK}\"}}" \
+            > "$RUNNER_TEMP/controller-event.json"
+
+          python - "$RUNNER_TEMP/controller-state.json" "$RUNNER_TEMP/controller-event.json" <<'PY'
+          import json
+          import sys
+
+          state = json.load(open(sys.argv[1], encoding="utf-8"))["Item"]
+          event = json.load(open(sys.argv[2], encoding="utf-8"))["Item"]
+          assert state["state"]["S"] == "INTAKE"
+          assert state["version"]["N"] == "1"
+          assert event["event_type"]["S"] == "STATE_TRANSITION"
+          assert event["actor_identity"]["S"] == "factory_controller_service"
+          assert event["from_state"]["S"] == "PAUSED"
+          assert event["to_state"]["S"] == "INTAKE"
+          PY
+
+      - name: Emit controller deployment evidence
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/controller-deployment-evidence.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          role_arn = open(os.path.join(os.environ["RUNNER_TEMP"], "controller-role-arn.txt"), encoding="utf-8").read().strip()
+          evidence = {
+              "schema_version": "1.0",
+              "evidence_type": "controller_workload_identity_canary",
+              "conclusion": "success",
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run": os.environ["GITHUB_RUN_ID"],
+              "workflow_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "controller_identity": "factory_controller_service",
+              "aws_role_arn": role_arn,
+              "state_table": os.environ["STATE_TABLE"],
+              "verified_controls": [
+                  "github_oidc_assume_controller_role",
+                  "task_partition_scope",
+                  "conditional_initial_write",
+                  "compare_and_swap_transition",
+                  "atomic_state_and_audit_write",
+                  "consistent_state_readback"
+              ]
+          }
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(evidence, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: factory-controller-deployment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/controller-deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 30
