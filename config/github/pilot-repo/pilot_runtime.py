@@ -20,13 +20,12 @@ import tarfile
 import tempfile
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TASK_PATH = ROOT / ".factory/pilot-task.json"
-POLICY_PATH = ROOT / ".factory/provider-policy.json"
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 EXPECTED_BUILDER_PATHS = {
     "src/release_readiness.py",
@@ -38,6 +37,14 @@ EXPECTED_BUILDER_PATHS = {
 PACKAGE_PREFIXES = ("architecture/", "docs/adr/", "src/", "tests/", "docs/implementation/")
 MAX_PROMPT_CHARS = 120_000
 MAX_RESPONSE_BYTES = 512 * 1024
+PILOT_STATES = {
+    "PILOT_PLANNING",
+    "PILOT_BUILDING",
+    "PILOT_INSPECTING",
+    "PILOT_RELEASE_READY",
+    "PILOT_RELEASED",
+    "PILOT_STALLED",
+}
 
 
 class PilotRuntimeError(RuntimeError):
@@ -500,6 +507,165 @@ def run_review(root: Path, diff_path: Path, tests_path: Path, output_path: Path)
     output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _aws_json(args: list[str], *, timeout: int = 60) -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            ["aws", *args, "--output", "json"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise PilotRuntimeError(f"AWS operation failed: {' '.join(args[:3])}") from exc
+    try:
+        value = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        raise PilotRuntimeError("AWS operation returned malformed JSON") from exc
+    if not isinstance(value, dict):
+        raise PilotRuntimeError("AWS operation returned invalid root value")
+    return value
+
+
+def _state_pk(task_id: str) -> str:
+    if not isinstance(task_id, str) or not task_id or len(task_id) > 128:
+        raise PilotRuntimeError("pilot task_id is invalid")
+    if any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-" for ch in task_id):
+        raise PilotRuntimeError("pilot task_id contains unsafe characters")
+    return f"FACTORY#tims-software-factory#TASK#{task_id}"
+
+
+def init_state(*, table: str, task_id: str, run_id: str) -> None:
+    pk = _state_pk(task_id)
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "schema_version": "1.0",
+        "task_id": task_id,
+        "state": "PILOT_PLANNING",
+        "version": 0,
+        "updated_at": now,
+        "updated_by": "factory_controller_service",
+        "workflow_run_id": run_id,
+        "provider_reserved_usd": "3.00",
+    }
+    item = {
+        "PK": {"S": pk},
+        "SK": {"S": "STATE"},
+        "state": {"S": "PILOT_PLANNING"},
+        "version": {"N": "0"},
+        "updated_at": {"S": now},
+        "payload": {"S": json.dumps(payload, sort_keys=True, separators=(",", ":"))},
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "state.json"
+        path.write_text(json.dumps(item), encoding="utf-8")
+        _aws_json(
+            [
+                "dynamodb",
+                "put-item",
+                "--table-name",
+                table,
+                "--item",
+                f"file://{path}",
+                "--condition-expression",
+                "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            ]
+        )
+
+
+def transition_state(
+    *,
+    table: str,
+    task_id: str,
+    expected_state: str,
+    next_state: str,
+    expected_version: int,
+    details: dict[str, Any] | None = None,
+) -> None:
+    if expected_state not in PILOT_STATES or next_state not in PILOT_STATES:
+        raise PilotRuntimeError("pilot state transition uses an unknown state")
+    allowed = {
+        "PILOT_PLANNING": {"PILOT_BUILDING", "PILOT_STALLED"},
+        "PILOT_BUILDING": {"PILOT_INSPECTING", "PILOT_STALLED"},
+        "PILOT_INSPECTING": {"PILOT_RELEASE_READY", "PILOT_BUILDING", "PILOT_STALLED"},
+        "PILOT_RELEASE_READY": {"PILOT_RELEASED", "PILOT_STALLED"},
+        "PILOT_RELEASED": set(),
+        "PILOT_STALLED": {"PILOT_PLANNING", "PILOT_BUILDING", "PILOT_INSPECTING"},
+    }
+    if next_state not in allowed[expected_state]:
+        raise PilotRuntimeError(f"pilot transition denied: {expected_state} -> {next_state}")
+    if isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version < 0:
+        raise PilotRuntimeError("pilot state version is invalid")
+
+    pk = _state_pk(task_id)
+    next_version = expected_version + 1
+    now = datetime.now(timezone.utc).isoformat()
+    details = details or {}
+    payload = {
+        "schema_version": "1.0",
+        "task_id": task_id,
+        "state": next_state,
+        "version": next_version,
+        "updated_at": now,
+        "updated_by": "factory_controller_service",
+        "details": details,
+    }
+    event_sk = f"EVENT#{now}#v{next_version}"
+
+    def s(value: object) -> dict[str, str]:
+        return {"S": str(value)}
+
+    transact = [
+        {
+            "Update": {
+                "TableName": table,
+                "Key": {"PK": s(pk), "SK": s("STATE")},
+                "UpdateExpression": "SET #s=:state,#v=:next,payload=:payload,updated_at=:updated",
+                "ConditionExpression": "#s=:expected_state AND #v=:expected_version",
+                "ExpressionAttributeNames": {"#s": "state", "#v": "version"},
+                "ExpressionAttributeValues": {
+                    ":state": s(next_state),
+                    ":next": {"N": str(next_version)},
+                    ":payload": s(json.dumps(payload, sort_keys=True, separators=(",", ":"))),
+                    ":updated": s(now),
+                    ":expected_state": s(expected_state),
+                    ":expected_version": {"N": str(expected_version)},
+                },
+            }
+        },
+        {
+            "Put": {
+                "TableName": table,
+                "Item": {
+                    "PK": s(pk),
+                    "SK": s(event_sk),
+                    "event_type": s("PILOT_STATE_TRANSITION"),
+                    "from_state": s(expected_state),
+                    "to_state": s(next_state),
+                    "from_version": {"N": str(expected_version)},
+                    "to_version": {"N": str(next_version)},
+                    "actor_identity": s("factory_controller_service"),
+                    "details": s(json.dumps(details, sort_keys=True, separators=(",", ":"))),
+                },
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        },
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "transition.json"
+        path.write_text(json.dumps(transact), encoding="utf-8")
+        _aws_json(
+            [
+                "dynamodb",
+                "transact-write-items",
+                "--transact-items",
+                f"file://{path}",
+                "--client-request-token",
+                f"pilot-{hashlib.sha256((pk + event_sk).encode()).hexdigest()[:32]}",
+            ]
+        )
+
+
 def deterministic_package(root: Path, output: Path) -> str:
     candidates: list[Path] = []
     for path in root.rglob("*"):
@@ -530,6 +696,118 @@ def deterministic_package(root: Path, output: Path) -> str:
     return hashlib.sha256(compressed).hexdigest()
 
 
+def release_and_recover(
+    *,
+    root: Path,
+    bucket: str,
+    table: str,
+    task_id: str,
+    source_commit: str,
+    evidence_path: Path,
+) -> dict[str, Any]:
+    if not isinstance(source_commit, str) or len(source_commit) != 40 or any(ch not in "0123456789abcdef" for ch in source_commit):
+        raise PilotRuntimeError("release source commit must be an exact lowercase SHA")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_root = Path(tmp)
+        artifact = tmp_root / "pilot-release.tar.gz"
+        digest = deterministic_package(root, artifact)
+        key = f"pilot-releases/{task_id}/{source_commit}/pilot-release.tar.gz"
+        try:
+            put = subprocess.run(
+                [
+                    "aws",
+                    "s3api",
+                    "put-object",
+                    "--bucket",
+                    bucket,
+                    "--key",
+                    key,
+                    "--body",
+                    str(artifact),
+                    "--metadata",
+                    f"source-commit={source_commit},sha256={digest},task-id={task_id}",
+                    "--checksum-algorithm",
+                    "SHA256",
+                    "--output",
+                    "json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            put_result = json.loads(put.stdout)
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+            raise PilotRuntimeError("release upload failed") from exc
+        version_id = put_result.get("VersionId")
+        if not isinstance(version_id, str) or not version_id:
+            raise PilotRuntimeError("versioned release upload did not return a VersionId")
+
+        recovered = tmp_root / "recovered.tar.gz"
+        try:
+            subprocess.run(
+                [
+                    "aws",
+                    "s3api",
+                    "get-object",
+                    "--bucket",
+                    bucket,
+                    "--key",
+                    key,
+                    "--version-id",
+                    version_id,
+                    str(recovered),
+                    "--output",
+                    "json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            raise PilotRuntimeError("exact-version recovery failed") from exc
+        recovered_digest = hashlib.sha256(recovered.read_bytes()).hexdigest()
+        if recovered_digest != digest:
+            raise PilotRuntimeError("recovered release digest does not match uploaded artifact")
+
+    evidence = {
+        "schema_version": "1.0",
+        "evidence_type": "pilot_release_and_recovery",
+        "conclusion": "success",
+        "task_id": task_id,
+        "source_commit": source_commit,
+        "artifact_digest": f"sha256:{digest}",
+        "bucket": bucket,
+        "key": key,
+        "version_id": version_id,
+        "recovery_digest": f"sha256:{recovered_digest}",
+        "verified_controls": [
+            "deterministic_package",
+            "versioned_s3_release",
+            "source_commit_metadata",
+            "exact_version_recovery",
+            "recovery_digest_match",
+        ],
+    }
+    evidence_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    transition_state(
+        table=table,
+        task_id=task_id,
+        expected_state="PILOT_RELEASE_READY",
+        next_state="PILOT_RELEASED",
+        expected_version=3,
+        details={
+            "source_commit": source_commit,
+            "artifact_digest": f"sha256:{digest}",
+            "s3_key": key,
+            "s3_version_id": version_id,
+            "recovery_verified": True,
+        },
+    )
+    return evidence
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -552,6 +830,26 @@ def main() -> int:
     package.add_argument("--output", type=Path, required=True)
     package.add_argument("--digest-output", type=Path, required=True)
 
+    init = sub.add_parser("init-state")
+    init.add_argument("--table", required=True)
+    init.add_argument("--task-id", required=True)
+    init.add_argument("--run-id", required=True)
+
+    transition = sub.add_parser("transition-state")
+    transition.add_argument("--table", required=True)
+    transition.add_argument("--task-id", required=True)
+    transition.add_argument("--expected-state", required=True)
+    transition.add_argument("--next-state", required=True)
+    transition.add_argument("--expected-version", type=int, required=True)
+    transition.add_argument("--details-json", default="{}")
+
+    release = sub.add_parser("release")
+    release.add_argument("--bucket", required=True)
+    release.add_argument("--table", required=True)
+    release.add_argument("--task-id", required=True)
+    release.add_argument("--source-commit", required=True)
+    release.add_argument("--evidence", type=Path, required=True)
+
     args = parser.parse_args()
     root = args.root.resolve()
 
@@ -573,6 +871,35 @@ def main() -> int:
         digest = deterministic_package(root, args.output)
         args.digest_output.write_text(f"sha256:{digest}\n", encoding="utf-8")
         print(f"sha256:{digest}")
+        return 0
+    if args.command == "init-state":
+        init_state(table=args.table, task_id=args.task_id, run_id=args.run_id)
+        return 0
+    if args.command == "transition-state":
+        try:
+            details = json.loads(args.details_json)
+        except json.JSONDecodeError as exc:
+            raise PilotRuntimeError("transition details must be valid JSON") from exc
+        if not isinstance(details, dict):
+            raise PilotRuntimeError("transition details must be a JSON object")
+        transition_state(
+            table=args.table,
+            task_id=args.task_id,
+            expected_state=args.expected_state,
+            next_state=args.next_state,
+            expected_version=args.expected_version,
+            details=details,
+        )
+        return 0
+    if args.command == "release":
+        release_and_recover(
+            root=root,
+            bucket=args.bucket,
+            table=args.table,
+            task_id=args.task_id,
+            source_commit=args.source_commit,
+            evidence_path=args.evidence,
+        )
         return 0
     raise PilotRuntimeError("unknown pilot runtime command")
 
