@@ -1,0 +1,38 @@
+name: inspector-gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      INSPECTOR_LOGIN: ${{ vars.FACTORY_INSPECTOR_LOGIN }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Require Inspector approval bound to exact head commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$INSPECTOR_LOGIN" || { echo "FACTORY_INSPECTOR_LOGIN is not configured" >&2; exit 1; }
+          test -n "$PR_NUMBER" || { echo "pull request number unavailable" >&2; exit 1; }
+          test -n "$HEAD_SHA" || { echo "pull request head SHA unavailable" >&2; exit 1; }
+
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" > "$RUNNER_TEMP/reviews.json"
+          jq -e \
+            --arg login "$INSPECTOR_LOGIN" \
+            --arg head "$HEAD_SHA" \
+            '[.[] | select(.user.login == $login and .state == "APPROVED" and .commit_id == $head)] | length > 0' \
+            "$RUNNER_TEMP/reviews.json" >/dev/null
+          echo "Inspector approval verified for exact head ${HEAD_SHA}."
