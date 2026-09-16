@@ -106,7 +106,7 @@ def validate_contracts(task: dict[str, Any], policy: dict[str, Any]) -> None:
             or item.get("model_id") != model
             or item.get("transport") != transport
             or item.get("enabled") is not True
-            or item.get("max_output_tokens") != (8192 if role in {"planner", "builder"} else 4096)
+            or item.get("max_output_tokens") != {"planner": 8192, "builder": 16384, "inspector": 4096}[role]
         ):
             raise PilotRuntimeError(f"provider binding drifted: {role}")
         try:
