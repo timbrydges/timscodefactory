@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.util
 import os
-import shutil
 import subprocess
 import tempfile
 import unittest
@@ -45,7 +44,10 @@ class PilotMarkdownPublicationTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = ROOT / module.TEMPLATES[".gitattributes"]
-        shutil.copyfile(source, self.repo / ".gitattributes")
+        # Windows checkouts may use CRLF; the isolated fixture stages LF bytes.
+        (self.repo / ".gitattributes").write_text(
+            source.read_text(encoding="utf-8"), encoding="utf-8", newline="\n"
+        )
         self.git("add", ".gitattributes")
 
     def test_observed_builder_failure_accepts_markdown_without_rewriting_bytes(self):
