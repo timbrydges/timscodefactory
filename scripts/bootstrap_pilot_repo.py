@@ -22,6 +22,7 @@ FULL_REPO = f"{OWNER}/{REPO}"
 API_VERSION = "2026-03-10"
 
 TEMPLATES = {
+    ".gitattributes": "config/github/pilot-repo/gitattributes",
     "README.md": "config/github/pilot-repo/README.md",
     ".factory/identity-contract.json": "config/github/pilot-repo/identity-contract.json",
     ".factory/pilot-task.json": "config/github/pilot-repo/pilot-task.json",
