@@ -441,7 +441,11 @@ def call_bedrock_review(
                 text=True,
                 timeout=180,
             )
-        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or "").strip().replace("\n", " ")[:500]
+            suffix = f": {detail}" if detail else ""
+            raise PilotRuntimeError(f"Bedrock Inspector invocation failed{suffix}") from exc
+        except (OSError, subprocess.TimeoutExpired) as exc:
             raise PilotRuntimeError("Bedrock Inspector invocation failed") from exc
     if len(completed.stdout.encode("utf-8")) > MAX_RESPONSE_BYTES:
         raise PilotRuntimeError("Bedrock Inspector response exceeds bounded size")
