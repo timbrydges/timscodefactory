@@ -35,6 +35,9 @@ def test_live_pilot_contracts_are_exact_and_bounded():
     assert policy["providers"]["builder"]["model_id"] == "gpt-5.6-sol"
     assert policy["providers"]["inspector"]["model_id"] == "us.anthropic.claude-sonnet-5"
     assert policy["providers"]["builder"]["provider_family"] != policy["providers"]["inspector"]["provider_family"]
+    assert policy["providers"]["planner"]["max_output_tokens"] == 8192
+    assert policy["providers"]["builder"]["max_output_tokens"] == 16384
+    assert policy["providers"]["inspector"]["max_output_tokens"] == 4096
 
 
 def test_openai_runtime_has_bounded_long_request_and_medium_reasoning():
