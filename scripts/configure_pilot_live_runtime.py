@@ -21,6 +21,7 @@ REPOSITORY_ID = 1368587958
 ENVIRONMENT = "production"
 
 TEMPLATES = {
+    ".gitattributes": "config/github/pilot-repo/gitattributes",
     ".factory/pilot-task.json": "config/github/pilot-repo/pilot-task.json",
     ".factory/provider-policy.json": "config/github/pilot-repo/provider-policy.json",
     ".factory/pilot_runtime.py": "config/github/pilot-repo/pilot_runtime.py",

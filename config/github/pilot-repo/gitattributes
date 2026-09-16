@@ -1,0 +1,5 @@
+# Two trailing spaces are valid Markdown hard breaks in generated documents.
+# Keep source-code whitespace checks and the other diff checks enabled.
+architecture/plan.md whitespace=-blank-at-eol
+docs/adr/0001-pilot-design.md whitespace=-blank-at-eol
+docs/implementation/README.md whitespace=-blank-at-eol
