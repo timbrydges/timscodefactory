@@ -1,0 +1,230 @@
+schema_version: "1.0"
+artifact_id: bonus-library-importer-architecture-dry-run-001
+contract_id: bonus-library-importer-001
+status: NON_AUTHORITATIVE_DRY_RUN_COMPLETE
+authoritative: false
+generated_by: codex_interactive_dry_run
+generated_on: "2026-09-17"
+source_contract: factory/projects/bonus-library-importer/operating-contract.yaml
+
+constraints:
+  - Architecture and threat-model analysis only; no implementation is authorized.
+  - No repository, infrastructure, operational identity, or provider activation may be created.
+  - No live or paid provider call may be made by this dry run.
+  - The approved single-item, owner-only feature slice may not be widened.
+  - Tim remains the only identity permitted to approve or publish a draft.
+  - Source objects remain private, immutable, and checksum-bound.
+  - Vendor selections remain unbound until a later owner decision.
+
+components:
+  - id: owner_web_ui
+    description: Owner-only upload, review, approval, and download interface with no public account surface.
+  - id: authentication_boundary
+    description: Deny-by-default owner identity and session verification before every privileged operation.
+  - id: ingestion_api
+    description: Streaming, size-bounded single-file intake with idempotency and request correlation.
+  - id: quarantine_validator
+    description: Non-executing type, magic-byte, archive-path, symlink, executable, entry-count, and expansion checks.
+  - id: private_object_storage
+    description: Non-public immutable source and generated-asset storage addressed by checksum and opaque identifiers.
+  - id: metadata_store
+    description: Relational records for sources, drafts, approvals, state transitions, and release bindings.
+  - id: provider_budget_broker
+    description: Atomic reservation, dispatch-count, usage, and hard-stop boundary for approved AI generation only.
+  - id: draft_review_service
+    description: Creates unpublished revisions and binds Tim's approval to exact source, draft, and asset checksums.
+  - id: signed_download_service
+    description: Issues owner-scoped object links with a maximum five-minute lifetime and no storage enumeration.
+  - id: append_only_audit_log
+    description: Provenance evidence for intake, validation, provider use, approval, publication, links, and rollback.
+
+data_entities:
+  - id: bonus_source
+    description: Immutable source identifier, checksum, type, size, storage key, and validation disposition.
+  - id: bonus_draft
+    description: Versioned unpublished metadata bound to one source checksum.
+  - id: bonus_asset
+    description: Source or generated cover asset with checksum, provenance, and private storage key.
+  - id: provider_reservation
+    description: Atomic idempotency key, estimated cost, dispatch count, and reservation state.
+  - id: provider_usage
+    description: Persisted provider/model usage and actual cost reconciled to its reservation.
+  - id: owner_approval
+    description: Tim identity, timestamp, reviewed revision checksum, source checksum, and decision.
+  - id: audit_event
+    description: Append-only actor, action, correlation, state transition, and evidence digest.
+  - id: release_binding
+    description: Exact application version, schema version, approved record revision, and rollback predecessor.
+
+workflow_states: [RECEIVING, QUARANTINED, VALIDATED, DRAFTING, AWAITING_OWNER_APPROVAL, APPROVED, PUBLISHED, REJECTED, FAILED, ROLLED_BACK]
+
+workflow:
+  - step: 1
+    actor: tim_brydges
+    action: Authenticate and submit one supported source plus an idempotency key.
+    result: RECEIVING
+  - step: 2
+    actor: ingestion_api
+    action: Stream into quarantine while enforcing the 50 MB limit and computing SHA-256.
+    result: QUARANTINED
+  - step: 3
+    actor: quarantine_validator
+    action: Fail closed on type spoofing, traversal, links, executable entries, excessive entries, or expansion.
+    result: VALIDATED or REJECTED
+  - step: 4
+    actor: ingestion_api
+    action: Atomically claim the idempotency key and persist the validated source privately.
+    result: VALIDATED
+  - step: 5
+    actor: provider_budget_broker
+    action: Reserve budget and dispatch allowance only for missing title, description, or cover fields.
+    result: DRAFTING or FAILED
+  - step: 6
+    actor: draft_review_service
+    action: Treat source content as untrusted data, persist provider usage, and create a checksum-bound draft.
+    result: AWAITING_OWNER_APPROVAL
+  - step: 7
+    actor: tim_brydges
+    action: Review and approve or reject the exact draft revision; no AI or agent can perform this action.
+    result: APPROVED or REJECTED
+  - step: 8
+    actor: draft_review_service
+    action: Publish only the approved revision and record its source, draft, asset, and release digests.
+    result: PUBLISHED
+  - step: 9
+    actor: signed_download_service
+    action: Reauthorize Tim and issue a link scoped to the approved object for no more than five minutes.
+    result: PUBLISHED
+  - step: 10
+    actor: factory_owner
+    action: Invoke deterministic rollback to the prior application and metadata revision when criteria trigger.
+    result: ROLLED_BACK
+
+trust_boundaries:
+  - id: browser_to_owner_api
+    description: Every request is hostile until owner authentication, authorization, CSRF, and request limits pass.
+  - id: upload_to_quarantine
+    description: Bytes, filenames, archive entries, and embedded text are data only and never executed or trusted as instructions.
+  - id: application_to_storage
+    description: Storage is private by policy; opaque keys and narrowly scoped service access prevent enumeration.
+  - id: application_to_provider
+    description: Only sanitized bounded fields cross the boundary after atomic budget reservation; usage must reconcile.
+  - id: approval_to_publication
+    description: Publication requires Tim's fresh authorization and exact checksum equality across reviewed artifacts.
+
+threats:
+  - id: T01
+    threat: Authentication or authorization bypass.
+    control: Central owner-only checks on every upload, approval, publication, and download-link operation.
+    failure_mode: Deny request, record audit evidence, and publish nothing.
+  - id: T02
+    threat: ZIP path traversal or absolute paths.
+    control: Normalize each entry and reject anything escaping the virtual archive root before extraction.
+    failure_mode: Reject the complete package without persistent source or draft records.
+  - id: T03
+    threat: Symlinks, devices, executable entries, nested archives, or archive bombs.
+    control: Inspect without execution; reject links/special files/executables/nesting and enforce entry and expansion ceilings.
+    failure_mode: Reject and delete only the quarantined temporary object.
+  - id: T04
+    threat: Extension or MIME spoofing.
+    control: Allowlist extension, declared MIME, and detected magic bytes and require agreement.
+    failure_mode: Reject before immutable storage.
+  - id: T05
+    threat: Prompt injection embedded in source text or filenames.
+    control: Delimit source as untrusted data, use fixed system policy, minimize extracted fields, and disallow tools.
+    failure_mode: Discard generation and retain an unpublished draft requiring manual metadata.
+  - id: T06
+    threat: Sensitive source exfiltration to an AI provider.
+    control: Send only the minimum sanitized content explicitly required for missing fields; never send archives or credentials.
+    failure_mode: Block dispatch and record a policy failure.
+  - id: T07
+    threat: Public storage exposure or object enumeration.
+    control: Block public access, use opaque object keys, service-scoped access, and continuously test anonymous denial.
+    failure_mode: Disable link issuance and trigger rollback/security review.
+  - id: T08
+    threat: Replay creates duplicate records or provider charges.
+    control: Atomic idempotency claim plus request-digest conflict detection and reservation reuse.
+    failure_mode: Return prior result for an identical retry; reject a conflicting retry.
+  - id: T09
+    threat: Draft tampering or time-of-check/time-of-use substitution.
+    control: Bind approval and publication to immutable source, draft, asset, and release checksums.
+    failure_mode: Reject publication and require a new owner review.
+  - id: T10
+    threat: Signed-link leakage or excessive lifetime.
+    control: Reauthorize owner, scope to one approved object, cap expiry at five minutes, and avoid link logging.
+    failure_mode: Refuse issuance and rotate signing authority if compromise is suspected.
+  - id: T11
+    threat: Spend or provider-dispatch limit exceeded.
+    control: Atomic reservation before dispatch, maximum three dispatches, $3 warning, $10 hard stop, and usage reconciliation.
+    failure_mode: Stop generation while preserving a manual unpublished draft path.
+  - id: T12
+    threat: Inspector or release evidence substituted for another commit.
+    control: Bind CI, Inspector verdict, manifest, and release to one exact commit and immutable artifact digest.
+    failure_mode: Deny merge or release.
+
+acceptance_mapping:
+  - id: BL-01
+    components: [authentication_boundary, owner_web_ui, signed_download_service]
+    evidence: Negative integration tests for anonymous and non-owner upload, approval, publication, and link requests.
+  - id: BL-02
+    components: [ingestion_api, quarantine_validator]
+    evidence: Adversarial corpus tests for size, type, traversal, links, executables, entry count, nesting, and expansion.
+  - id: BL-03
+    components: [private_object_storage, metadata_store]
+    evidence: Storage-policy denial test plus checksum recomputation and immutable-identifier assertion.
+  - id: BL-04
+    components: [quarantine_validator, provider_budget_broker, draft_review_service]
+    evidence: Prompt-injection fixtures proving source content cannot alter policy, permissions, state, or dispatch settings.
+  - id: BL-05
+    components: [provider_budget_broker, draft_review_service, append_only_audit_log]
+    evidence: Missing-field generation test with approved provider binding and reservation-to-usage reconciliation.
+  - id: BL-06
+    components: [draft_review_service, authentication_boundary]
+    evidence: State-machine tests proving every ingestion remains unpublished and non-owner identities cannot approve.
+  - id: BL-07
+    components: [draft_review_service, metadata_store, append_only_audit_log]
+    evidence: Approval/publication test asserting Tim identity and exact source, draft, and asset checksum equality.
+  - id: BL-08
+    components: [signed_download_service, private_object_storage]
+    evidence: Link-scope, maximum-expiry, enumeration, revocation, and anonymous-access tests.
+  - id: BL-09
+    components: [ingestion_api, provider_budget_broker, metadata_store]
+    evidence: Concurrent identical and conflicting retry tests across records, reservations, dispatches, and usage.
+  - id: BL-10
+    components: [append_only_audit_log, metadata_store, private_object_storage]
+    evidence: Exact-version rebuild, health check, artifact-digest comparison, rollback, and recovery exercise.
+
+rollback:
+  - Retain immutable source objects and audit events; rollback never deletes or mutates an approved source.
+  - Deploy the prior exact application artifact and verify its manifest and health before traffic restoration.
+  - Keep schema changes backward compatible for the first slice; use additive migrations with tested down or forward recovery.
+  - Repoint the published metadata revision to its recorded predecessor without changing its historical approval evidence.
+  - Disable provider dispatch and signed-link issuance independently while investigation or recovery is active.
+
+open_decisions:
+  - id: web_runtime
+    description: Select the private web framework and hosting boundary after architecture approval.
+  - id: owner_authentication
+    description: Select the identity provider and strong owner authentication/session policy.
+  - id: data_and_object_storage
+    description: Select relational metadata and private object-storage services with atomic and deny-public controls.
+  - id: generation_provider
+    description: Select approved text and image models, data-use terms, region, pricing, and failure behavior.
+  - id: archive_limits
+    description: Bind maximum entry count and expansion ratio below the fixed 50 MB upload ceiling before implementation.
+
+remaining_gates:
+  - architecture_and_threat_model_approved
+  - private_repository_controls_verified
+  - project_identity_and_oidc_verified
+  - authentication_boundary_verified
+  - private_storage_verified
+  - acceptance_tests_bound
+  - rollback_path_verified
+
+owner_decision_required:
+  decision: APPROVE_ARCHITECTURE_AND_THREAT_MODEL
+  effect: >-
+    Approval accepts this design as the bounded baseline but does not authorize
+    repository creation, infrastructure, identities, provider calls,
+    implementation, merge, or release; each remains denied until its gate passes.
