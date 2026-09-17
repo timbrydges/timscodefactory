@@ -50,6 +50,34 @@ def test_openai_runtime_has_bounded_long_request_and_medium_reasoning():
     assert 'OpenAI request exceeded 300-second bounded timeout' in source
 
 
+def test_bedrock_structured_output_accepts_bare_json_or_one_complete_fence():
+    expected = {
+        "verdict": "APPROVE",
+        "summary": "The implementation satisfies the contract.",
+        "findings": [],
+    }
+    raw = json.dumps(expected)
+    assert runtime._decode_bedrock_structured_output(raw) == expected
+    assert runtime._decode_bedrock_structured_output(f"```json\n{raw}\n```") == expected
+
+
+def test_bedrock_structured_output_rejects_prose_or_broken_fences():
+    raw = json.dumps(
+        {
+            "verdict": "APPROVE",
+            "summary": "The implementation satisfies the contract.",
+            "findings": [],
+        }
+    )
+    for malformed in (f"Result:\n{raw}", f"```json\n{raw}", f"```json\n{raw}\n```\nextra"):
+        try:
+            runtime._decode_bedrock_structured_output(malformed)
+        except runtime.PilotRuntimeError:
+            pass
+        else:
+            raise AssertionError("malformed Bedrock output was accepted")
+
+
 def test_dynamodb_transaction_token_respects_aws_36_char_limit_and_surfaces_stderr():
     source = RUNTIME_PATH.read_text(encoding="utf-8")
     assert 'hexdigest()[:30]' in source
