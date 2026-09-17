@@ -674,6 +674,62 @@ def _usd_to_microusd(value: object, label: str) -> int:
     return int(microusd)
 
 
+def _dispatch_already_committed(
+    *,
+    table: str,
+    task_id: str,
+    run_id: str,
+    ledger_id: str,
+    reserved_microusd: int,
+    hard_stop_microusd: int,
+    maximum_dispatches: int,
+) -> bool:
+    def get(pk: str, sk: str) -> dict[str, Any]:
+        response = _aws_json(
+            [
+                "dynamodb",
+                "get-item",
+                "--table-name",
+                table,
+                "--key",
+                json.dumps(
+                    {"PK": {"S": pk}, "SK": {"S": sk}},
+                    separators=(",", ":"),
+                ),
+                "--consistent-read",
+            ]
+        )
+        item = response.get("Item")
+        return item if isinstance(item, dict) else {}
+
+    budget_pk = _budget_pk(ledger_id)
+    reservation = get(budget_pk, f"RESERVATION#{task_id}")
+    state = get(_state_pk(task_id), "STATE")
+    ledger = get(budget_pk, "LEDGER")
+    expected_strings = {
+        "task_id": task_id,
+        "workflow_run_id": run_id,
+    }
+    if any(reservation.get(key) != {"S": value} for key, value in expected_strings.items()):
+        return False
+    if reservation.get("reserved_microusd") != {"N": str(reserved_microusd)}:
+        return False
+    try:
+        payload = json.loads(state["payload"]["S"])
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return False
+    return (
+        state.get("state") == {"S": "PILOT_PLANNING"}
+        and payload.get("task_id") == task_id
+        and payload.get("workflow_run_id") == run_id
+        and payload.get("budget_ledger_id") == ledger_id
+        and _usd_to_microusd(payload.get("provider_reserved_usd"), "provider reservation")
+        == reserved_microusd
+        and ledger.get("hard_stop_microusd") == {"N": str(hard_stop_microusd)}
+        and ledger.get("maximum_dispatches") == {"N": str(maximum_dispatches)}
+    )
+
+
 def init_state(
     *,
     table: str,
@@ -772,16 +828,32 @@ def init_state(
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "initial-state-and-budget.json"
         path.write_text(json.dumps(transact), encoding="utf-8")
-        _aws_json(
-            [
-                "dynamodb",
-                "transact-write-items",
-                "--transact-items",
-                f"file://{path}",
-                "--client-request-token",
-                f"budget-{hashlib.sha256((budget_pk + task_id).encode()).hexdigest()[:28]}",
-            ]
-        )
+        try:
+            _aws_json(
+                [
+                    "dynamodb",
+                    "transact-write-items",
+                    "--transact-items",
+                    f"file://{path}",
+                    "--client-request-token",
+                    f"budget-{hashlib.sha256((budget_pk + task_id).encode()).hexdigest()[:28]}",
+                ]
+            )
+        except PilotRuntimeError as exc:
+            try:
+                committed = _dispatch_already_committed(
+                    table=table,
+                    task_id=task_id,
+                    run_id=run_id,
+                    ledger_id=ledger_id,
+                    reserved_microusd=reserved_microusd,
+                    hard_stop_microusd=hard_stop_microusd,
+                    maximum_dispatches=maximum_dispatches,
+                )
+            except PilotRuntimeError:
+                raise exc
+            if not committed:
+                raise
 
 
 def record_provider_usage(

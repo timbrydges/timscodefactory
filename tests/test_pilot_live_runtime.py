@@ -137,6 +137,79 @@ def test_init_state_atomically_reserves_cumulative_budget_before_provider_calls(
     assert payload["budget_ledger_id"] == "tims-factory-pilot-001"
 
 
+def test_budget_reservation_retry_accepts_only_matching_committed_dispatch():
+    original = runtime._aws_json
+    calls = []
+
+    def existing_dispatch(arguments, *, timeout=60):
+        calls.append(arguments)
+        if arguments[1] == "transact-write-items":
+            raise runtime.PilotRuntimeError("idempotent request parameters changed")
+        key = json.loads(arguments[arguments.index("--key") + 1])
+        sk = key["SK"]["S"]
+        if sk.startswith("RESERVATION#"):
+            item = {
+                "task_id": {"S": "pilot-123-1"},
+                "workflow_run_id": {"S": "123"},
+                "reserved_microusd": {"N": "3000000"},
+            }
+        elif sk == "STATE":
+            item = {
+                "state": {"S": "PILOT_PLANNING"},
+                "payload": {
+                    "S": json.dumps(
+                        {
+                            "task_id": "pilot-123-1",
+                            "workflow_run_id": "123",
+                            "budget_ledger_id": "tims-factory-pilot-001",
+                            "provider_reserved_usd": "3.00",
+                        }
+                    )
+                },
+            }
+        else:
+            item = {
+                "hard_stop_microusd": {"N": "10000000"},
+                "maximum_dispatches": {"N": "3"},
+            }
+        return {"Item": item}
+
+    runtime._aws_json = existing_dispatch
+    try:
+        runtime.init_state(
+            table="factory-state",
+            task_id="pilot-123-1",
+            run_id="123",
+            ledger_id="tims-factory-pilot-001",
+            provider_reserved_usd="3.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        )
+    finally:
+        runtime._aws_json = original
+
+    assert len(calls) == 4
+
+    runtime._aws_json = existing_dispatch
+    try:
+        try:
+            runtime.init_state(
+                table="factory-state",
+                task_id="pilot-123-1",
+                run_id="changed",
+                ledger_id="tims-factory-pilot-001",
+                provider_reserved_usd="3.00",
+                hard_stop_usd="10.00",
+                maximum_dispatches=3,
+            )
+        except runtime.PilotRuntimeError:
+            pass
+        else:
+            raise AssertionError("conflicting committed dispatch was accepted")
+    finally:
+        runtime._aws_json = original
+
+
 def test_provider_usage_is_validated_and_persisted_atomically():
     usage = runtime._provider_usage(
         {"usage": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}},
