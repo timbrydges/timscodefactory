@@ -3,6 +3,11 @@ name: pilot-live
 on:
   workflow_dispatch:
     inputs:
+      verify_controls:
+        description: Verify budget, attempt, and usage controls without model inference
+        required: false
+        default: false
+        type: boolean
       recovery_pr:
         description: Existing inspected and owner-merged PR to release without new model inference
         required: false
@@ -31,8 +36,57 @@ env:
   PILOT_STATUS: RETIRED
 
 jobs:
+  verify-controls:
+    if: ${{ inputs.verify_controls }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    name: owner / verify budget and usage controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - name: Verify retired-pilot boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
+          test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$PILOT_STATUS" = "RETIRED"
+          test "${{ inputs.recovery_pr }}" = ""
+          test "${{ inputs.recovery_head }}" = ""
+          test "${{ inputs.recovery_task_id }}" = ""
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: post-pilot-controls-${{ github.run_id }}
+      - name: Exercise deployed controls without model inference
+        shell: bash
+        env:
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+        run: |
+          set -euo pipefail
+          test -n "$STATE_TABLE"
+          python .factory/pilot_runtime.py validate-config
+          python .factory/pilot_runtime.py verify-budget-controls \
+            --table "$STATE_TABLE" \
+            --run-id "$GITHUB_RUN_ID" \
+            --evidence "$RUNNER_TEMP/provider-controls-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: post-pilot-controls-${{ github.run_id }}
+          path: ${{ runner.temp }}/provider-controls-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+
   preflight:
-    if: ${{ inputs.recovery_pr == '' }}
+    if: ${{ inputs.recovery_pr == '' && !inputs.verify_controls }}
     permissions:
       actions: read
       contents: read
@@ -184,12 +238,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: planner-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/planner-evidence
       - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: pilot-planner-record-${{ github.run_id }}
-      - name: Advance authoritative pilot state
+      - name: Persist usage and advance authoritative pilot state
         shell: bash
         env:
           TASK_ID: ${{ needs.preflight.outputs.task_id }}
@@ -198,6 +256,10 @@ jobs:
           HEAD: ${{ needs.planner-publish.outputs.head_sha }}
         run: |
           set -euo pipefail
+          python .factory/pilot_runtime.py record-usage \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --usage "$RUNNER_TEMP/planner-evidence/provider-usage.json"
           python .factory/pilot_runtime.py transition-state \
             --table "$STATE_TABLE" \
             --task-id "$TASK_ID" \
@@ -321,6 +383,10 @@ jobs:
         with:
           name: planner-${{ needs.preflight.outputs.task_id }}
           path: .
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: builder-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/builder-evidence
       - name: Produce deterministic test and exact-diff evidence
         shell: bash
         env:
@@ -348,6 +414,10 @@ jobs:
           HEAD: ${{ needs.builder-publish.outputs.head_sha }}
         run: |
           set -euo pipefail
+          python .factory/pilot_runtime.py record-usage \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --usage "$RUNNER_TEMP/builder-evidence/provider-usage.json"
           python .factory/pilot_runtime.py transition-state \
             --table "$STATE_TABLE" \
             --task-id "$TASK_ID" \
@@ -358,12 +428,18 @@ jobs:
           python .factory/pilot_runtime.py review \
             --diff "$RUNNER_TEMP/builder.diff" \
             --tests "$RUNNER_TEMP/tests.log" \
-            --output "$RUNNER_TEMP/inspector-verdict.json"
+            --output "$RUNNER_TEMP/inspector-verdict.json" \
+            --usage-output "$RUNNER_TEMP/inspector-usage.json"
+          python .factory/pilot_runtime.py record-usage \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --usage "$RUNNER_TEMP/inspector-usage.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: inspector-${{ needs.preflight.outputs.task_id }}
           path: |
             ${{ runner.temp }}/inspector-verdict.json
+            ${{ runner.temp }}/inspector-usage.json
             ${{ runner.temp }}/tests.log
             ${{ runner.temp }}/builder.diff
           if-no-files-found: error
@@ -533,7 +609,7 @@ jobs:
           retention-days: 90
 
   recovery:
-    if: ${{ inputs.recovery_pr != '' }}
+    if: ${{ inputs.recovery_pr != '' && !inputs.verify_controls }}
     permissions:
       actions: read
       checks: read

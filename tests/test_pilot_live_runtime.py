@@ -137,6 +137,82 @@ def test_init_state_atomically_reserves_cumulative_budget_before_provider_calls(
     assert payload["budget_ledger_id"] == "tims-factory-pilot-001"
 
 
+def test_provider_usage_is_validated_and_persisted_atomically():
+    usage = runtime._provider_usage(
+        {"usage": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}},
+        provider_family="openai",
+        model_id="gpt-5.6-sol",
+        input_key="input_tokens",
+        output_key="output_tokens",
+        total_key="total_tokens",
+    )
+    assert usage["total_tokens"] == 15
+
+    captured = []
+    original = runtime._aws_json
+
+    def capture(arguments, *, timeout=60):
+        path = Path(arguments[arguments.index("--transact-items") + 1].removeprefix("file://"))
+        captured.append((arguments, json.loads(path.read_text(encoding="utf-8"))))
+        return {}
+
+    policy = json.loads(
+        (ROOT / "config/github/pilot-repo/provider-policy.json").read_text(encoding="utf-8")
+    )
+    runtime._aws_json = capture
+    try:
+        with tempfile.TemporaryDirectory() as raw:
+            usage_path = Path(raw) / "usage.json"
+            usage_path.write_text(
+                json.dumps({**usage, "role": "planner"}),
+                encoding="utf-8",
+            )
+            runtime.record_provider_usage(
+                table="factory-state",
+                task_id="pilot-123-1",
+                ledger_id="tims-factory-pilot-001",
+                usage_path=usage_path,
+                providers=policy["providers"],
+            )
+    finally:
+        runtime._aws_json = original
+
+    assert len(captured) == 1
+    arguments, transaction = captured[0]
+    assert len(arguments[arguments.index("--client-request-token") + 1]) <= 36
+    assert len(transaction) == 4
+    assert transaction[0]["ConditionCheck"]["Key"]["SK"]["S"] == "RESERVATION#pilot-123-1"
+    assert transaction[1]["ConditionCheck"]["Key"]["SK"]["S"] == "STATE"
+    ledger = transaction[2]["Update"]
+    assert "actual_total_tokens :total" in ledger["UpdateExpression"]
+    assert ledger["ExpressionAttributeValues"][":total"] == {"N": "15"}
+    record = transaction[3]["Put"]["Item"]
+    assert record["SK"]["S"] == "USAGE#pilot-123-1#planner"
+    assert record["model_id"]["S"] == "gpt-5.6-sol"
+
+
+def test_provider_usage_rejects_missing_or_inconsistent_counts():
+    malformed = [
+        {},
+        {"usage": {"input_tokens": 1, "output_tokens": 2, "total_tokens": 4}},
+        {"usage": {"input_tokens": True, "output_tokens": 2, "total_tokens": 3}},
+    ]
+    for payload in malformed:
+        try:
+            runtime._provider_usage(
+                payload,
+                provider_family="openai",
+                model_id="gpt-5.6-sol",
+                input_key="input_tokens",
+                output_key="output_tokens",
+                total_key="total_tokens",
+            )
+        except runtime.PilotRuntimeError:
+            pass
+        else:
+            raise AssertionError("malformed provider usage was accepted")
+
+
 def test_builder_output_rejects_unauthorized_or_duplicate_paths():
     valid = [
         {"path": path, "content": "x"}
@@ -201,6 +277,10 @@ def test_pilot_workflow_is_owner_dispatched_and_role_separated():
     assert "--expected-state PILOT_INSPECTING" in workflow
     assert "--next-state PILOT_RELEASE_READY" in workflow
     assert "--evidence \"$RUNNER_TEMP/release-evidence.json\"" in workflow
+    assert workflow.count("record-usage") == 3
+    assert "--usage-output \"$RUNNER_TEMP/inspector-usage.json\"" in workflow
+    assert "planner-evidence/provider-usage.json" in workflow
+    assert "builder-evidence/provider-usage.json" in workflow
     assert 'find "$RUNNER_TEMP/builder" -type d -name __pycache__' in workflow
     assert "-name '*.pyc' -o -name '*.pyo'" in workflow
     for action in (
@@ -211,6 +291,21 @@ def test_pilot_workflow_is_owner_dispatched_and_role_separated():
         "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
     ):
         assert action in workflow
+
+
+def test_post_pilot_control_verification_is_owner_only_and_model_free():
+    workflow = (ROOT / "config/github/pilot-repo/pilot-live.yml").read_text(encoding="utf-8")
+    verification = workflow.split("  verify-controls:", 1)[1].split("  preflight:", 1)[0]
+    assert "if: ${{ inputs.verify_controls }}" in verification
+    assert 'test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"' in verification
+    assert 'test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"' in verification
+    assert 'test "$PILOT_STATUS" = "RETIRED"' in verification
+    assert "verify-budget-controls" in verification
+    assert "provider-controls-evidence.json" in verification
+    assert "OPENAI_API_KEY" not in verification
+    assert "bedrock-runtime" not in verification
+    assert "inputs.recovery_pr == '' && !inputs.verify_controls" in workflow
+    assert "inputs.recovery_pr != '' && !inputs.verify_controls" in workflow
 
 
 def test_pilot_runtime_aws_role_is_immutable_and_owner_only():
