@@ -20,7 +20,7 @@ execution:
 repository:
   full_name: timbrydges/bonus-library
   visibility: private
-  current_status: RESERVED_NOT_CREATED
+  current_status: CREATED_LOCKED
 
 feature_slice:
   name: private_single_bonus_ingestion
@@ -92,11 +92,13 @@ activation:
     architecture_and_threat_model_approved:
       verified: true
       evidence: factory/evidence/bonus-library-architecture-approval-2026-09-17.json
+    private_repository_controls_verified:
+      verified: true
+      evidence: factory/evidence/bonus-library-repository-bootstrap-2026-09-17.json
     provider_budget_controls_verified:
       verified: true
       evidence: factory/evidence/pilot-closeout-2026-09-17.json
   pending_gates:
-    - private_repository_controls_verified
     - project_identity_and_oidc_verified
     - authentication_boundary_verified
     - private_storage_verified
@@ -155,9 +157,9 @@ acceptance_tests:
     criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
 
 owner_decision_required:
-  decision: AUTHORIZE_PRIVATE_REPOSITORY_CREATION
+  decision: AUTHORIZE_PROJECT_IDENTITY_AND_OIDC
   effect: >-
-    The architecture and threat model are approved. A separate owner action is
-    required before creating and hardening the private project repository;
+    The private repository is created and hardened. A separate owner action is
+    required before creating or binding project identities and OIDC;
     infrastructure changes, provider calls, implementation, and release remain
     denied until their explicit gates pass.
