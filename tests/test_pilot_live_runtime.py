@@ -147,6 +147,8 @@ def test_pilot_workflow_is_owner_dispatched_and_role_separated():
     assert "--expected-state PILOT_INSPECTING" in workflow
     assert "--next-state PILOT_RELEASE_READY" in workflow
     assert "--evidence \"$RUNNER_TEMP/release-evidence.json\"" in workflow
+    assert 'find "$RUNNER_TEMP/builder" -type d -name __pycache__' in workflow
+    assert "-name '*.pyc' -o -name '*.pyo'" in workflow
     for action in (
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
         "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1",

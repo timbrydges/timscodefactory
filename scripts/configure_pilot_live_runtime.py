@@ -22,6 +22,7 @@ ENVIRONMENT = "production"
 
 TEMPLATES = {
     ".gitattributes": "config/github/pilot-repo/gitattributes",
+    ".gitignore": "config/github/pilot-repo/gitignore",
     ".factory/pilot-task.json": "config/github/pilot-repo/pilot-task.json",
     ".factory/provider-policy.json": "config/github/pilot-repo/provider-policy.json",
     ".factory/pilot_runtime.py": "config/github/pilot-repo/pilot_runtime.py",
