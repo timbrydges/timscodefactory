@@ -77,7 +77,9 @@ def test_live_workflow_supports_ruleset_aware_exact_head_recovery():
     assert "Protected merge requirements did not pass before the deadline" in workflow
     assert '.commit_id == $head' in workflow
     assert '.user.login == "tims-factory-inspector[bot]"' in workflow
-    assert 'test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")"' in workflow
+    assert 'git diff --quiet "$INSPECTED_HEAD" HEAD -- architecture docs/adr src tests docs/implementation' in workflow
+    assert '--json state --jq .state)" = "MERGED"' in workflow
+    assert 'ref: ${{ steps.recovery.outputs.merge_commit }}' in workflow
     assert "--expected-state PILOT_INSPECTING" in workflow
     assert "--expected-version 2" in workflow
 

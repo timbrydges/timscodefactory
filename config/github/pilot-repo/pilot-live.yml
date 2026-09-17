@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       recovery_pr:
-        description: Existing inspected PR to resume without new model inference
+        description: Existing inspected and owner-merged PR to release without new model inference
         required: false
         type: string
       recovery_head:
@@ -535,15 +535,16 @@ jobs:
     permissions:
       actions: read
       checks: read
-      contents: write
+      contents: read
       id-token: write
-      pull-requests: write
+      pull-requests: read
     name: controller / resume inspected release
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
     steps:
-      - name: Validate exact-head recovery inputs and merge protected PR
+      - id: recovery
+        name: Validate exact-head Inspector evidence and owner merge
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -558,7 +559,7 @@ jobs:
           [[ "$PR" =~ ^[1-9][0-9]*$ ]]
           [[ "$HEAD" =~ ^[0-9a-f]{40}$ ]]
           [[ "$TASK_ID" =~ ^pilot-[0-9]+-[0-9]+$ ]]
-          test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)" = "OPEN"
+          test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)" = "MERGED"
           test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)" = "$HEAD"
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" > "$RUNNER_TEMP/reviews.json"
           jq -e --arg head "$HEAD" '
@@ -567,27 +568,22 @@ jobs:
               .commit_id == $head and
               .user.login == "tims-factory-inspector[bot]")
           ' "$RUNNER_TEMP/reviews.json"
-          deadline=$((SECONDS + 600))
-          until gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch; do
-            if (( SECONDS >= deadline )); then
-              echo "Protected merge requirements did not pass before the deadline" >&2
-              exit 1
-            fi
-            sleep 5
-          done
+          MERGE_COMMIT="$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)"
+          [[ "$MERGE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          echo "merge_commit=$MERGE_COMMIT" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: main
+          ref: ${{ steps.recovery.outputs.merge_commit }}
           fetch-depth: 0
       - id: source
-        name: Bind merged release tree to exact inspected Builder tree
+        name: Bind release package paths to exact inspected Builder tree
         shell: bash
         env:
           INSPECTED_HEAD: ${{ inputs.recovery_head }}
         run: |
           set -euo pipefail
           git fetch origin "$INSPECTED_HEAD"
-          test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")" = "$(git rev-parse "HEAD^{tree}")"
+          git diff --quiet "$INSPECTED_HEAD" HEAD -- architecture docs/adr src tests docs/implementation
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Re-run deterministic release tests
         shell: bash
