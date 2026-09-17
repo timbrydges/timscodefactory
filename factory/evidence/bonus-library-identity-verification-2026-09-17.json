@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "project_identity_and_oidc_verification",
+  "conclusion": "success",
+  "contract_id": "bonus-library-importer-001",
+  "owner_identity": "tim_brydges",
+  "authorized_on": "2026-09-17",
+  "verified_on": "2026-09-17T21:08:32Z",
+  "repository": "timbrydges/bonus-library",
+  "repository_id": 1375052827,
+  "repository_owner_id": 214414801,
+  "repository_head": "56100fe662b35e811edef1ef544120fe6be7649d",
+  "environment": "production",
+  "workflow": "bonus-library-identity-canary",
+  "workflow_run_id": 35274951694,
+  "workflow_run_url": "https://github.com/timbrydges/bonus-library/actions/runs/35274951694",
+  "workflow_conclusion": "success",
+  "aws_region": "ca-central-1",
+  "role_arn": "arn:aws:iam::666730517561:role/tims-software-factory-bonus-library-identity",
+  "verified_session_arn": "arn:aws:sts::666730517561:assumed-role/tims-software-factory-bonus-library-identity/bonus-library-identity-canary",
+  "oidc_subject": "repo:timbrydges@214414801/bonus-library@1375052827:environment:production",
+  "trust_conditions": [
+    "sts_audience",
+    "immutable_subject",
+    "repository_owner_id",
+    "repository_id",
+    "main_ref",
+    "production_environment",
+    "exact_workflow",
+    "tim_actor_id"
+  ],
+  "identity_permissions": [],
+  "runtime_authority_granted": false,
+  "verified_controls": [
+    "immutable_github_oidc_subject_enabled",
+    "exact_aws_role_created",
+    "role_has_no_identity_policy",
+    "role_has_no_policy_attachments",
+    "manual_canary_only",
+    "live_assume_role_succeeded",
+    "assumed_role_arn_matched"
+  ],
+  "not_authorized": [
+    "project_runtime_access",
+    "storage_access",
+    "provider_calls",
+    "implementation",
+    "release"
+  ],
+  "next_owner_decision": "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM"
+}

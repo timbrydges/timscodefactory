@@ -106,7 +106,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["decision", "effect"],
       "properties": {
-        "decision": {"enum": ["APPROVE_DRY_RUN_CONTRACT", "AUTHORIZE_PRIVATE_REPOSITORY_CREATION", "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC"]},
+        "decision": {"enum": ["APPROVE_DRY_RUN_CONTRACT", "AUTHORIZE_PRIVATE_REPOSITORY_CREATION", "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC", "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM"]},
         "effect": {"type": "string", "minLength": 20}
       }
     }

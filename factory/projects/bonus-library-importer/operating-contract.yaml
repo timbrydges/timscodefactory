@@ -95,11 +95,13 @@ activation:
     private_repository_controls_verified:
       verified: true
       evidence: factory/evidence/bonus-library-repository-bootstrap-2026-09-17.json
+    project_identity_and_oidc_verified:
+      verified: true
+      evidence: factory/evidence/bonus-library-identity-verification-2026-09-17.json
     provider_budget_controls_verified:
       verified: true
       evidence: factory/evidence/pilot-closeout-2026-09-17.json
   pending_gates:
-    - project_identity_and_oidc_verified
     - authentication_boundary_verified
     - private_storage_verified
     - acceptance_tests_bound
@@ -157,9 +159,9 @@ acceptance_tests:
     criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
 
 owner_decision_required:
-  decision: AUTHORIZE_PROJECT_IDENTITY_AND_OIDC
+  decision: SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM
   effect: >-
-    The private repository is created and hardened. A separate owner action is
-    required before creating or binding project identities and OIDC;
-    infrastructure changes, provider calls, implementation, and release remain
-    denied until their explicit gates pass.
+    The private repository and powerless project OIDC identity are verified.
+    The authentication and private-storage platform must be selected and its
+    bounded plan approved before any related infrastructure or implementation;
+    provider calls and release remain denied until their explicit gates pass.
