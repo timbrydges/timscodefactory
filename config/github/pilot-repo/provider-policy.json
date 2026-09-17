@@ -1,6 +1,10 @@
 {
   "default": "deny",
+  "budget_ledger_id": "tims-factory-pilot-001",
+  "cumulative_reservation_required": true,
   "hard_stop_usd": "10.00",
+  "maximum_dispatches": 3,
+  "maximum_remediation_cycles": 2,
   "max_provider_calls_per_run": 3,
   "operational_pilot_only": true,
   "owner_login": "timbrydges",

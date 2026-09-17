@@ -229,8 +229,8 @@ def main() -> int:
     print(json.dumps(evidence, indent=2, sort_keys=True))
     print(f"Evidence saved locally to {output}")
     print(
-        "Pilot runtime templates synced. Live execution remains fail-closed until "
-        "AWS runtime variables and provider credentials are configured."
+        "Retired pilot templates synced. Live execution remains denied; reuse requires "
+        "a new owner-approved contract and verified cumulative budget controls."
     )
     return 0
 

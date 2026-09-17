@@ -30,6 +30,10 @@ def test_live_pilot_contracts_are_exact_and_bounded():
     assert task["feature"]["name"] == "deterministic_release_readiness_checklist"
     assert [item["id"] for item in task["acceptance_tests"]] == [f"AT-{i:02d}" for i in range(1, 9)]
     assert policy["max_provider_calls_per_run"] == 3
+    assert policy["budget_ledger_id"] == "tims-factory-pilot-001"
+    assert policy["cumulative_reservation_required"] is True
+    assert policy["maximum_remediation_cycles"] == 2
+    assert policy["maximum_dispatches"] == 3
     assert sum(float(item["reserved_cost_usd"]) for item in policy["providers"].values()) == 3.0
     assert policy["providers"]["planner"]["model_id"] == "gpt-5.6-sol"
     assert policy["providers"]["builder"]["model_id"] == "gpt-5.6-sol"
@@ -85,6 +89,54 @@ def test_dynamodb_transaction_token_respects_aws_36_char_limit_and_surfaces_stde
     assert 'detail = (exc.stderr or "").strip()' in source
 
 
+def test_init_state_atomically_reserves_cumulative_budget_before_provider_calls():
+    captured = []
+    original = runtime._aws_json
+
+    def capture(arguments, *, timeout=60):
+        path = Path(arguments[arguments.index("--transact-items") + 1].removeprefix("file://"))
+        captured.append((arguments, json.loads(path.read_text(encoding="utf-8"))))
+        return {}
+
+    runtime._aws_json = capture
+    try:
+        runtime.init_state(
+            table="factory-state",
+            task_id="pilot-123-1",
+            run_id="123",
+            ledger_id="tims-factory-pilot-001",
+            provider_reserved_usd="3.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        )
+    finally:
+        runtime._aws_json = original
+
+    assert len(captured) == 1
+    arguments, transaction = captured[0]
+    assert arguments[:2] == ["dynamodb", "transact-write-items"]
+    assert len(arguments[arguments.index("--client-request-token") + 1]) <= 36
+    assert len(transaction) == 3
+
+    ledger = transaction[0]["Update"]
+    assert ledger["Key"]["PK"]["S"] == (
+        "FACTORY#tims-software-factory#BUDGET#tims-factory-pilot-001"
+    )
+    assert "dispatch_count < :maximum" in ledger["ConditionExpression"]
+    assert "reserved_microusd <= :max_before" in ledger["ConditionExpression"]
+    assert ledger["ExpressionAttributeValues"][":reserve"] == {"N": "3000000"}
+    assert ledger["ExpressionAttributeValues"][":max_before"] == {"N": "7000000"}
+    assert ledger["ExpressionAttributeValues"][":maximum"] == {"N": "3"}
+
+    reservation = transaction[1]["Put"]["Item"]
+    assert reservation["SK"]["S"] == "RESERVATION#pilot-123-1"
+    state = transaction[2]["Put"]["Item"]
+    assert state["PK"]["S"] == "FACTORY#tims-software-factory#TASK#pilot-123-1"
+    payload = json.loads(state["payload"]["S"])
+    assert payload["provider_reserved_usd"] == "3.00"
+    assert payload["budget_ledger_id"] == "tims-factory-pilot-001"
+
+
 def test_builder_output_rejects_unauthorized_or_duplicate_paths():
     valid = [
         {"path": path, "content": "x"}
@@ -138,6 +190,8 @@ def test_pilot_workflow_is_owner_dispatched_and_role_separated():
     assert "workflow_dispatch:" in workflow
     assert "pull_request_target" not in workflow
     assert "EXPECTED_OWNER: timbrydges" in workflow
+    assert "PILOT_STATUS: RETIRED" in workflow
+    assert workflow.count('test "$PILOT_STATUS" = "OWNER_APPROVED_LIVE_PILOT"') == 2
     assert "AWS_PILOT_RUNTIME_ROLE_ARN" in workflow
     assert "OPENAI_API_KEY" in workflow
     assert "planner / bind architecture provenance" in workflow
@@ -166,7 +220,7 @@ def test_pilot_runtime_aws_role_is_immutable_and_owner_only():
     assert 'variable = "token.actions.githubusercontent.com:actor_id"' in terraform
     assert 'values   = [var.pilot_github_repository_owner_id]' in terraform
     assert 'values   = ["pilot-live"]' in terraform
-    assert 'values   = ["workflow_dispatch"]' in terraform
+    assert 'token.actions.githubusercontent.com:event_name' not in terraform
     assert (
         'pilot_bedrock_profile_id       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"'
         in terraform
@@ -177,3 +231,6 @@ def test_pilot_runtime_aws_role_is_immutable_and_owner_only():
     )
     assert '"${aws_s3_bucket.factory_releases.arn}/pilot-releases/*"' in terraform
     assert 'policy_arn = aws_iam_policy.controller_state.arn' in terraform
+    assert '"FACTORY#tims-software-factory#BUDGET#*"' in (
+        ROOT / "infra/aws/main.tf"
+    ).read_text(encoding="utf-8")

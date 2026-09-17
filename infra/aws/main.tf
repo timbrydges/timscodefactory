@@ -224,7 +224,10 @@ data "aws_iam_policy_document" "controller_state" {
     condition {
       test     = "ForAllValues:StringLike"
       variable = "dynamodb:LeadingKeys"
-      values   = ["FACTORY#tims-software-factory#TASK#*"]
+      values = [
+        "FACTORY#tims-software-factory#TASK#*",
+        "FACTORY#tims-software-factory#BUDGET#*",
+      ]
     }
   }
 }

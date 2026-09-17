@@ -1,7 +1,7 @@
 schema_version: "1.0"
 contract_id: tims-factory-pilot-001
-contract_version: "1.0"
-status: OWNER_APPROVED_LIVE_PILOT
+contract_version: "1.1"
+status: RETIRED
 
 approval:
   owner_identity: tim_brydges
@@ -10,21 +10,21 @@ approval:
   approval_required_from_others: false
 
 execution:
-  phase: LIVE_PILOT
-  dry_run_simulation: ALLOW
-  infrastructure_provisioning: ALLOW
-  rollback_drill: ALLOW
-  operational_role_activation: ALLOW
-  pilot_repository_writes: ALLOW
-  live_task_transitions: ALLOW
-  real_release: ALLOW
+  phase: COMPLETE
+  dry_run_simulation: DENY
+  infrastructure_provisioning: DENY
+  rollback_drill: DENY
+  operational_role_activation: DENY
+  pilot_repository_writes: DENY
+  live_task_transitions: DENY
+  real_release: DENY
 
 pilot:
   repository:
     full_name: timbrydges/tims-factory-pilot
     visibility: private
     maximum_repository_count: 1
-    current_status: ACTIVE
+    current_status: ARCHIVED
   feature_slice:
     name: deterministic_release_readiness_checklist
     objective: >-
@@ -210,10 +210,19 @@ aws_escalation:
   escalation_window_start: "2026-09-03"
   escalation_deadline: "2026-09-09"
   status: RESOLVED
-  required_action: AWS account verified and Factory bootstrap applied successfully on 2026-09-13; continue staged infrastructure verification.
+  required_action: AWS account verified and Factory bootstrap applied successfully on 2026-09-13; no further pilot escalation is required.
 
 completion:
   require_pilot_shipped_within_contract: true
   require_rollback_drill_logged_successful: true
   require_no_ungated_merge: true
   factory_done_requires_all: true
+  outcome: OWNER_EXCEPTION_TECHNICAL_SUCCESS
+  clean_completion: false
+  technical_release_verified: true
+  owner_exception_approved_on: "2026-09-17"
+  closeout_evidence: factory/evidence/pilot-closeout-2026-09-17.json
+  next_live_project_requirements:
+    - Atomically reserve cumulative provider exposure before any model invocation.
+    - Enforce one initial dispatch plus at most two remediation dispatches.
+    - Persist actual provider usage when available and preserve the conservative reservation ledger.

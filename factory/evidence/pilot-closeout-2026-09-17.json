@@ -1,0 +1,61 @@
+{
+  "closeout": {
+    "clean_completion": false,
+    "outcome": "OWNER_EXCEPTION_TECHNICAL_SUCCESS",
+    "owner_authority": "factory_owner",
+    "owner_decision": "RETIRE_WITH_TRANSPARENT_EXCEPTION_AND_REQUIRE_BUDGET_ENFORCEMENT",
+    "owner_identity": "tim_brydges",
+    "recorded_on": "2026-09-17"
+  },
+  "contract_exception": {
+    "actual_cumulative_ai_spend_usd": "UNAVAILABLE",
+    "dispatches_observed": 14,
+    "maximum_remediation_cycles_in_contract": 2,
+    "potential_provider_invocation_jobs_observed": 21,
+    "reason_codes": [
+      "CUMULATIVE_PROVIDER_SPEND_WAS_NOT_PERSISTED",
+      "ORIGINAL_REMEDIATION_LIMIT_CANNOT_BE_PROVEN_ACROSS_COMMISSIONING_RUNS"
+    ]
+  },
+  "control_plane": {
+    "closeout_base_commit": "8bd73f2dce0f4b3229a8afc4955a2af3b18e74de",
+    "required_checks": {
+      "aws-infra-verify": "success",
+      "build-attest": "success",
+      "pilot-dry-run": "success",
+      "preflight": "success",
+      "registry": "success"
+    },
+    "runtime_repairs_merged": [74, 75, 76, 77]
+  },
+  "evidence_type": "pilot_closeout",
+  "next_live_project_gate": {
+    "required_controls": [
+      "ATOMIC_CUMULATIVE_PROVIDER_RESERVATION",
+      "MAXIMUM_THREE_PROVIDER_DISPATCHES",
+      "PERSISTED_PROVIDER_USAGE_WHEN_AVAILABLE",
+      "NEW_OWNER_APPROVED_OPERATING_CONTRACT"
+    ],
+    "status": "BLOCKED_UNTIL_CONTROLS_ARE_VERIFIED"
+  },
+  "release_and_recovery": {
+    "artifact_digest": "sha256:e9859636ec46872c326f9fb70f4daef6ffa7b8bb07c9d7509ff46cd5c8dc04d6",
+    "evidence_artifact_digest": "sha256:cae33a83db1ccb01776f25d74d1c9b412302bd5016df8bd6b7e1bb32a4becb0f",
+    "evidence_artifact_id": 10476677557,
+    "evidence_run_id": 35171417190,
+    "exact_version_recovery": "success",
+    "recovery_digest": "sha256:e9859636ec46872c326f9fb70f4daef6ffa7b8bb07c9d7509ff46cd5c8dc04d6",
+    "source_commit": "18e8e0e27d5cbe7a25c35395ef4703310efe62f0",
+    "task_id": "pilot-35170024312-1",
+    "version_id_recorded_in_private_release_evidence": true
+  },
+  "schema_version": "1.0",
+  "technical_result": {
+    "builder_head": "9ab2384917ebdf98e969f56022811b0afdaaefaa",
+    "deterministic_ci": "success",
+    "independent_inspector": "approved",
+    "merged_pull_request": 6,
+    "private_repository": "timbrydges/tims-factory-pilot",
+    "release_and_recovery": "success"
+  }
+}

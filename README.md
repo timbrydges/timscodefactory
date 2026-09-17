@@ -30,12 +30,13 @@ python scripts/preflight.py --mode static
 python -m unittest discover -s tests -v
 ```
 
-Production releases remain disabled until AWS verification completes, the `production` environment exists, and the Terraform outputs are bound to GitHub variables. The environment permits deployment only from `main` and imposes no approval step on Tim. Tim releases directly with the `OWNER_OVERRIDE` sentinels. Agent/controller releases additionally require an active release lease and Tim's persisted, commit-specific authorization event. Only Tim may dispatch the deterministic emergency rollback workflow.
+AWS verification, the `production` environment, and the Terraform output bindings are deployed. The environment permits deployment only from `main` and imposes no approval step on Tim. Tim releases directly with the `OWNER_OVERRIDE` sentinels. Agent/controller releases additionally require an active release lease and Tim's persisted, commit-specific authorization event. Only Tim may dispatch the deterministic emergency rollback workflow.
 
-The first operational Factory exercise is a single private-repository,
+The first operational Factory exercise was a single private-repository,
 three-system pilot governed by [`docs/PILOT_OPERATING_CONTRACT.md`](docs/PILOT_OPERATING_CONTRACT.md).
-Its Planner, Builder, and Inspector remain disabled until their distinct
-identities, the deployed Controller/state path, OIDC trust, protected release
-storage, and a deliberate rollback drill are all verified. Until then, only
-allowlisted local or CI dry runs are permitted; they cannot write the pilot
-repository, transition live state, enter `production`, or release anything.
+It completed a technically successful Planner → Builder → independent Inspector
+→ immutable release → exact-version recovery path on 2026-09-17. The pilot is
+now retired and all live capabilities are denied. Closeout is explicitly an
+owner exception rather than a clean contract pass because cumulative provider
+spend was not persisted across commissioning runs. A new live project is
+blocked until cumulative budget reservations and attempt limits are verified.
