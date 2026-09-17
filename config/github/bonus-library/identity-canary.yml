@@ -1,0 +1,36 @@
+name: bonus-library-identity-canary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bonus-library-identity-canary
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure exact AWS identity
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ vars.AWS_PROJECT_IDENTITY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: bonus-library-identity-canary
+
+      - name: Verify identity only
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(aws sts get-caller-identity --query Arn --output text)"
+          expected=":assumed-role/tims-software-factory-bonus-library-identity/bonus-library-identity-canary"
+          [[ "${actual}" == *"${expected}" ]] || {
+            echo "Unexpected AWS identity: ${actual}" >&2
+            exit 1
+          }
+          printf 'Verified identity: %s\n' "${actual}"
