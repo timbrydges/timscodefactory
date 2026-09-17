@@ -75,6 +75,8 @@ projects:
   instances:
     - contract_id: bonus-library-importer-001
       operating_contract: projects/bonus-library-importer/operating-contract.yaml
+      architecture_dry_run: projects/bonus-library-importer/planner-dry-run.yaml
+      architecture_schema: schemas/project-architecture-dry-run.schema.json
       status: OWNER_APPROVED_DRY_RUN_ONLY
 
 invariants:

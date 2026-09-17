@@ -253,6 +253,32 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
                         errors.append(f"registry project id drifted: {contract_id}")
                     if contract.get("status") != instance.get("status"):
                         errors.append(f"registry project status drifted: {contract_id}")
+                    dry_run_relative = instance.get("architecture_dry_run")
+                    dry_run_schema_relative = instance.get("architecture_schema")
+                    if not isinstance(dry_run_relative, str) or not isinstance(
+                        dry_run_schema_relative, str
+                    ):
+                        errors.append(f"registry project {contract_id} dry-run binding is incomplete")
+                        continue
+                    try:
+                        dry_run_schema = json.loads(
+                            (factory / dry_run_schema_relative).read_text(encoding="utf-8")
+                        )
+                        jsonschema.Draft202012Validator.check_schema(dry_run_schema)
+                        dry_run = load_yaml(factory / dry_run_relative)
+                        jsonschema.Draft202012Validator(
+                            dry_run_schema,
+                            format_checker=jsonschema.FormatChecker(),
+                        ).validate(dry_run)
+                    except Exception as exc:
+                        errors.append(f"invalid project architecture dry run {contract_id}: {exc}")
+                        continue
+                    if dry_run.get("contract_id") != contract_id:
+                        errors.append(f"project architecture dry-run id drifted: {contract_id}")
+                    if dry_run.get("authoritative") is not False:
+                        errors.append(f"project architecture dry run became authoritative: {contract_id}")
+                    if dry_run.get("source_contract") != f"factory/{relative}":
+                        errors.append(f"project architecture dry-run source drifted: {contract_id}")
 
     try:
         schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
