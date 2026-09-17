@@ -126,7 +126,7 @@ a4f17f45ed12ad910409ae55b8edd6dd1e9444827460e11c15bb4d428c922c38  factory/evals/
 52979db1e9b518833081d15b76da0c36e28584335546c421fe4910f9db92293e  factory/evidence/aws-bootstrap-2026-09-13.json
 7e250b0c5dcd913af3fbf8b5fa6fba80e6efebad9ed3288941f1c5fa00988659  factory/evidence/aws-rollback-drill-2026-09-13.json
 6d26ec0f1c2d689e3e4007e93c41006752c91c3b254f49ccfc04e80dcb712616  factory/evidence/controller-deployment-2026-09-13.json
-e072253bb3188e963f17b255892e84ffd3410bec07028b5c1028e749db0b1ad5  factory/evidence/pilot-closeout-2026-09-17.json
+fb4e06fef1cf42c0b6551142503cdb9c356d10a7398c1eaf2253b3e8c2ab1287  factory/evidence/pilot-closeout-2026-09-17.json
 2eb3a11706e61651806ef95adddbb44c27ca41eca0a597655b4f061920299b45  factory/evidence/pilot-identity-canary-2026-09-13.json
 9ca9b1f03f90f6813c2624957274bdfd8eff9d3f489b1af22409e461af1b1b5b  factory/evidence/private-pilot-repository-controls-2026-09-13.json
 e3010043df43b1397562e464fa036a40bb87111d993c0c63207ccaa6cbe9be01  factory/pilot/operating-contract.yaml
