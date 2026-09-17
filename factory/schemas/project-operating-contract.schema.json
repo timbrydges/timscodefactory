@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tims-software-factory.local/schemas/project-operating-contract.schema.json",
+  "title": "Factory project operating contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "contract_id", "contract_version", "status", "approval",
+    "execution", "repository", "feature_slice", "systems", "activation", "limits",
+    "release", "prohibited_data", "acceptance_tests", "owner_decision_required"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "contract_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "status": {"enum": ["DRAFT_OWNER_REVIEW", "OWNER_APPROVED_DRY_RUN_ONLY", "OWNER_APPROVED_LIVE", "RETIRED"]},
+    "approval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["owner_identity", "authority", "approved_on"],
+      "properties": {
+        "owner_identity": {"const": "tim_brydges"},
+        "authority": {"const": "factory_owner"},
+        "approved_on": {"type": ["string", "null"], "format": "date"}
+      }
+    },
+    "execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_validation", "architecture_dry_run", "repository_creation", "infrastructure_changes", "operational_role_activation", "live_provider_calls", "release"],
+      "properties": {
+        "contract_validation": {"enum": ["ALLOW", "DENY"]},
+        "architecture_dry_run": {"enum": ["ALLOW", "DENY"]},
+        "repository_creation": {"enum": ["ALLOW", "DENY"]},
+        "infrastructure_changes": {"enum": ["ALLOW", "DENY"]},
+        "operational_role_activation": {"enum": ["ALLOW", "DENY"]},
+        "live_provider_calls": {"enum": ["ALLOW", "DENY"]},
+        "release": {"enum": ["ALLOW", "DENY"]}
+      }
+    },
+    "repository": {
+      "type": "object", "additionalProperties": false,
+      "required": ["full_name", "visibility", "current_status"],
+      "properties": {
+        "full_name": {"type": "string", "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$"},
+        "visibility": {"const": "private"},
+        "current_status": {"enum": ["RESERVED_NOT_CREATED", "CREATED_LOCKED", "ACTIVE", "ARCHIVED"]}
+      }
+    },
+    "feature_slice": {"$ref": "#/$defs/featureSlice"},
+    "systems": {
+      "type": "object", "additionalProperties": false,
+      "required": ["planner", "builder", "inspector"],
+      "properties": {
+        "planner": {"$ref": "#/$defs/systemBinding"},
+        "builder": {"$ref": "#/$defs/systemBinding"},
+        "inspector": {"$ref": "#/$defs/systemBinding"}
+      }
+    },
+    "activation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["default", "required_gates", "verified_gates", "pending_gates"],
+      "properties": {
+        "default": {"const": "DENY"},
+        "required_gates": {"$ref": "#/$defs/nonemptyStrings"},
+        "verified_gates": {"type": "object", "additionalProperties": {"$ref": "#/$defs/gateEvidence"}},
+        "pending_gates": {"$ref": "#/$defs/nonemptyStrings"}
+      }
+    },
+    "limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["currency", "warning_spend", "hard_stop_spend", "maximum_provider_dispatches", "maximum_remediation_cycles", "automated_wall_clock_hours", "maximum_source_bytes"],
+      "properties": {
+        "currency": {"const": "USD"},
+        "warning_spend": {"type": "number", "minimum": 0},
+        "hard_stop_spend": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
+        "maximum_provider_dispatches": {"type": "integer", "minimum": 1, "maximum": 3},
+        "maximum_remediation_cycles": {"type": "integer", "minimum": 0, "maximum": 2},
+        "automated_wall_clock_hours": {"type": "integer", "minimum": 1, "maximum": 24},
+        "maximum_source_bytes": {"type": "integer", "minimum": 1, "maximum": 52428800}
+      }
+    },
+    "release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_identity", "other_release_authorities", "exact_commit_inspector_evidence_required", "deterministic_ci_required", "owner_override_preserved", "rollback_criteria"],
+      "properties": {
+        "authority_identity": {"const": "tim_brydges"},
+        "other_release_authorities": {"type": "array", "maxItems": 0},
+        "exact_commit_inspector_evidence_required": {"const": true},
+        "deterministic_ci_required": {"const": true},
+        "owner_override_preserved": {"const": true},
+        "rollback_criteria": {"$ref": "#/$defs/nonemptyStrings"}
+      }
+    },
+    "prohibited_data": {"$ref": "#/$defs/nonemptyStrings"},
+    "acceptance_tests": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "criterion"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Z]{2}-[0-9]{2}$"},
+          "criterion": {"type": "string", "minLength": 20}
+        }
+      }
+    },
+    "owner_decision_required": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "effect"],
+      "properties": {
+        "decision": {"const": "APPROVE_DRY_RUN_CONTRACT"},
+        "effect": {"type": "string", "minLength": 20}
+      }
+    }
+  },
+  "$defs": {
+    "nonemptyStrings": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "featureSlice": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "objective", "deliverable", "included", "excluded"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$"},
+        "objective": {"type": "string", "minLength": 20},
+        "deliverable": {"type": "string", "minLength": 20},
+        "included": {"$ref": "#/$defs/nonemptyStrings"},
+        "excluded": {"$ref": "#/$defs/nonemptyStrings"}
+      }
+    },
+    "systemBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["factory_role", "authoritative_identity", "responsibilities"],
+      "properties": {
+        "factory_role": {"type": "string", "minLength": 1},
+        "authoritative_identity": {"type": "string", "minLength": 1},
+        "responsibilities": {"$ref": "#/$defs/nonemptyStrings"}
+      }
+    },
+    "gateEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verified", "evidence"],
+      "properties": {
+        "verified": {"const": true},
+        "evidence": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

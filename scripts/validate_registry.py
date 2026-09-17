@@ -212,6 +212,48 @@ def validate(root: Path, *, check_manifest: bool = True) -> ValidationResult:
             for error in validate_pilot_contract(pilot_contract, root)
         )
 
+    projects = registry.get("projects")
+    if not isinstance(projects, dict):
+        errors.append("registry projects binding must be a mapping")
+    else:
+        project_schema_path = projects.get("contract_schema")
+        instances = projects.get("instances")
+        if projects.get("activation_default") != "deny":
+            errors.append("registry project activation must default deny")
+        if not isinstance(project_schema_path, str) or not isinstance(instances, list):
+            errors.append("registry projects binding is incomplete")
+        else:
+            try:
+                project_schema = json.loads((factory / project_schema_path).read_text(encoding="utf-8"))
+                jsonschema.Draft202012Validator.check_schema(project_schema)
+            except Exception as exc:
+                errors.append(f"project operating contract schema is invalid: {exc}")
+            else:
+                seen_contract_ids: set[str] = set()
+                for instance in instances:
+                    if not isinstance(instance, dict):
+                        errors.append("registry project instance must be a mapping")
+                        continue
+                    contract_id = instance.get("contract_id")
+                    relative = instance.get("operating_contract")
+                    if not isinstance(contract_id, str) or contract_id in seen_contract_ids:
+                        errors.append("registry project contract ids must be unique strings")
+                        continue
+                    seen_contract_ids.add(contract_id)
+                    if not isinstance(relative, str):
+                        errors.append(f"registry project {contract_id} contract path is invalid")
+                        continue
+                    try:
+                        contract = load_yaml(factory / relative)
+                        jsonschema.Draft202012Validator(project_schema).validate(contract)
+                    except Exception as exc:
+                        errors.append(f"invalid project contract {contract_id}: {exc}")
+                        continue
+                    if contract.get("contract_id") != contract_id:
+                        errors.append(f"registry project id drifted: {contract_id}")
+                    if contract.get("status") != instance.get("status"):
+                        errors.append(f"registry project status drifted: {contract_id}")
+
     try:
         schema = json.loads((factory / "schemas/role-contract.schema.json").read_text(encoding="utf-8"))
         state_schema = json.loads((factory / "state/task-state.schema.json").read_text(encoding="utf-8"))
