@@ -56,6 +56,7 @@ def test_operational_state_graph_is_bounded_and_release_terminal():
 def test_bootstrap_includes_live_runtime_templates():
     script = (ROOT / "scripts/bootstrap_pilot_repo.py").read_text(encoding="utf-8")
     for target in (
+        '.gitignore',
         '.factory/pilot-task.json',
         '.factory/provider-policy.json',
         '.factory/pilot_runtime.py',

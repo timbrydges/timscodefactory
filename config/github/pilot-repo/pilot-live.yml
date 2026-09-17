@@ -215,6 +215,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/builder"
           python .factory/pilot_runtime.py build --output-dir "$RUNNER_TEMP/builder"
           python -m compileall -q "$RUNNER_TEMP/builder/src"
+          find "$RUNNER_TEMP/builder" -type d -name __pycache__ -prune -exec rm -rf {} +
+          test -z "$(find "$RUNNER_TEMP/builder" -type f \( -name '*.pyc' -o -name '*.pyo' \) -print -quit)"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: builder-${{ needs.preflight.outputs.task_id }}
@@ -263,6 +265,7 @@ jobs:
           mkdir -p tests docs
           cp -R "$RUNNER_TEMP/builder/tests/unit" tests/
           cp -R "$RUNNER_TEMP/builder/docs/implementation" docs/
+          test -z "$(find src tests/unit docs/implementation \( -type d -name __pycache__ -o -type f \( -name '*.pyc' -o -name '*.pyo' \) \) -print -quit)"
           git config user.name "${{ vars.FACTORY_BUILDER_LOGIN }}"
           git config user.email "${{ vars.FACTORY_BUILDER_APP_ID }}+tims-factory-builder[bot]@users.noreply.github.com"
           BRANCH="builder/${TASK_ID}"
