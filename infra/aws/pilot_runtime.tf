@@ -49,8 +49,8 @@ locals {
   pilot_oidc_subject     = "repo:${local.pilot_repository_owner}@${var.pilot_github_repository_owner_id}/${local.pilot_repository_name}@${var.pilot_github_repository_id}:environment:${var.pilot_github_environment}"
 
   pilot_runtime_role_name        = "tims-software-factory-pilot-runtime"
-  pilot_bedrock_model_id         = "anthropic.claude-sonnet-5"
-  pilot_bedrock_profile_id       = "us.anthropic.claude-sonnet-5"
+  pilot_bedrock_model_id         = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+  pilot_bedrock_profile_id       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
   pilot_bedrock_profile_arn      = "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.pilot_bedrock_profile_id}"
   pilot_bedrock_foundation_model = "arn:${data.aws_partition.current.partition}:bedrock:*::foundation-model/${local.pilot_bedrock_model_id}"
 }
