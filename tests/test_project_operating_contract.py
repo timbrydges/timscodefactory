@@ -30,7 +30,7 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowed, ["contract_validation", "architecture_dry_run"])
         self.assertEqual(
             self.contract["owner_decision_required"]["decision"],
-            "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC",
+            "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM",
         )
 
     def test_owner_and_budget_bounds_are_exact(self):
@@ -58,6 +58,8 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertNotIn("provider_budget_controls_verified", activation["pending_gates"])
         self.assertNotIn("private_repository_controls_verified", activation["pending_gates"])
         self.assertIn("private_repository_controls_verified", activation["verified_gates"])
+        self.assertNotIn("project_identity_and_oidc_verified", activation["pending_gates"])
+        self.assertIn("project_identity_and_oidc_verified", activation["verified_gates"])
 
     def test_acceptance_ids_are_unique_and_complete(self):
         acceptance = self.contract["acceptance_tests"]
