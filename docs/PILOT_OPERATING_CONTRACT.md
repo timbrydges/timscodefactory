@@ -357,6 +357,12 @@ remediation limit cannot be proven across the full activation history. The
 durable closeout record is
 `factory/evidence/pilot-closeout-2026-09-17.json`.
 
-No new live project may activate until it atomically reserves cumulative
-provider exposure before inference, permits at most one initial dispatch plus
-two remediation dispatches, and persists actual usage when providers expose it.
+Run `35242932701` subsequently verified the deployed controls without model
+inference: atomic duplicate idempotency, conflicting duplicate and usage
+rejection, a three-dispatch ceiling, the cumulative hard stop, and persisted
+provider usage all passed. The retired `pilot-live` workflow was disabled again
+after verification.
+
+These control prerequisites are satisfied. A new live project remains blocked
+until Tim approves its own operating contract; this historical pilot remains an
+owner-exception technical success rather than a clean contractual completion.
