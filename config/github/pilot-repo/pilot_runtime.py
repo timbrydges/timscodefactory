@@ -185,6 +185,43 @@ def _extract_openai_output(payload: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _provider_usage(
+    payload: dict[str, Any],
+    *,
+    provider_family: str,
+    model_id: str,
+    input_key: str,
+    output_key: str,
+    total_key: str,
+) -> dict[str, Any]:
+    usage = payload.get("usage")
+    if not isinstance(usage, dict):
+        raise PilotRuntimeError(f"{provider_family} response omitted provider usage")
+    values = [usage.get(input_key), usage.get(output_key), usage.get(total_key)]
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in values):
+        raise PilotRuntimeError(f"{provider_family} response contained invalid provider usage")
+    input_tokens, output_tokens, total_tokens = values
+    if total_tokens != input_tokens + output_tokens:
+        raise PilotRuntimeError(f"{provider_family} provider usage total is inconsistent")
+    return {
+        "schema_version": "1.0",
+        "provider_family": provider_family,
+        "model_id": model_id,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+    }
+
+
+def _write_usage(path: Path, role: str, usage: dict[str, Any]) -> None:
+    if role not in {"planner", "builder", "inspector"}:
+        raise PilotRuntimeError("provider usage role is invalid")
+    record = dict(usage)
+    record["role"] = role
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def call_openai(
     *,
     api_key: str,
@@ -194,7 +231,7 @@ def call_openai(
     schema_name: str,
     schema: dict[str, Any],
     max_output_tokens: int,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if not isinstance(api_key, str) or len(api_key.strip()) < 20:
         raise PilotRuntimeError("OpenAI credential is unavailable or invalid")
     prompt = _bounded_text(prompt, "provider prompt")
@@ -242,7 +279,17 @@ def call_openai(
         raise PilotRuntimeError("OpenAI returned malformed JSON") from exc
     if not isinstance(payload, dict):
         raise PilotRuntimeError("OpenAI response root is malformed")
-    return _extract_openai_output(payload)
+    return (
+        _extract_openai_output(payload),
+        _provider_usage(
+            payload,
+            provider_family="openai",
+            model_id=model,
+            input_key="input_tokens",
+            output_key="output_tokens",
+            total_key="total_tokens",
+        ),
+    )
 
 
 def plan_schema() -> dict[str, Any]:
@@ -325,7 +372,7 @@ def run_plan(root: Path, output_dir: Path, api_key: str) -> None:
         "and ADR. Stay strictly inside the bounded feature and acceptance tests."
     )
     prompt = "AUTHORITATIVE PILOT TASK CONTRACT:\n" + _task_text(task)
-    result = call_openai(
+    result, usage = call_openai(
         api_key=api_key,
         model=provider["model_id"],
         instructions=instructions,
@@ -340,6 +387,7 @@ def run_plan(root: Path, output_dir: Path, api_key: str) -> None:
     (output_dir / "docs/adr").mkdir(parents=True, exist_ok=True)
     (output_dir / "architecture/plan.md").write_text(architecture.rstrip() + "\n", encoding="utf-8")
     (output_dir / "docs/adr/0001-pilot-design.md").write_text(adr.rstrip() + "\n", encoding="utf-8")
+    _write_usage(output_dir / "provider-usage.json", "planner", usage)
 
 
 def _read_architecture(root: Path) -> str:
@@ -395,7 +443,7 @@ def run_build(root: Path, output_dir: Path, api_key: str) -> None:
         + "\n\nPLANNER OUTPUTS:\n"
         + architecture
     )
-    result = call_openai(
+    result, usage = call_openai(
         api_key=api_key,
         model=provider["model_id"],
         instructions=instructions,
@@ -418,6 +466,7 @@ def run_build(root: Path, output_dir: Path, api_key: str) -> None:
         + "\n",
         encoding="utf-8",
     )
+    _write_usage(output_dir / "provider-usage.json", "builder", usage)
 
 
 def _decode_bedrock_structured_output(text: Any) -> dict[str, Any]:
@@ -448,7 +497,7 @@ def call_bedrock_review(
     system: str,
     prompt: str,
     max_output_tokens: int,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     prompt = _bounded_text(prompt, "Inspector prompt")
     request = {
         "modelId": model,
@@ -515,10 +564,26 @@ def call_bedrock_review(
         raise PilotRuntimeError("Inspector cannot approve with high/critical findings")
     if result["verdict"] == "REQUEST_CHANGES" and not findings:
         raise PilotRuntimeError("REQUEST_CHANGES requires at least one finding")
-    return result
+    return (
+        result,
+        _provider_usage(
+            payload,
+            provider_family="anthropic",
+            model_id=model,
+            input_key="inputTokens",
+            output_key="outputTokens",
+            total_key="totalTokens",
+        ),
+    )
 
 
-def run_review(root: Path, diff_path: Path, tests_path: Path, output_path: Path) -> None:
+def run_review(
+    root: Path,
+    diff_path: Path,
+    tests_path: Path,
+    output_path: Path,
+    usage_output_path: Path,
+) -> None:
     task, policy = load_contracts(root)
     provider = policy["providers"]["inspector"]
     architecture = _read_architecture(root)
@@ -545,13 +610,14 @@ def run_review(root: Path, diff_path: Path, tests_path: Path, output_path: Path)
         + "\n\nReturn strict JSON matching this schema:\n"
         + json.dumps(review_schema(), sort_keys=True)
     )
-    result = call_bedrock_review(
+    result, usage = call_bedrock_review(
         model=provider["model_id"],
         system=system,
         prompt=prompt,
         max_output_tokens=provider["max_output_tokens"],
     )
     output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _write_usage(usage_output_path, "inspector", usage)
 
 
 def _aws_json(args: list[str], *, timeout: int = 60) -> dict[str, Any]:
@@ -716,6 +782,339 @@ def init_state(
                 f"budget-{hashlib.sha256((budget_pk + task_id).encode()).hexdigest()[:28]}",
             ]
         )
+
+
+def record_provider_usage(
+    *,
+    table: str,
+    task_id: str,
+    ledger_id: str,
+    usage_path: Path,
+    providers: dict[str, Any],
+) -> None:
+    try:
+        usage = json.loads(usage_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PilotRuntimeError("provider usage evidence is unavailable or malformed") from exc
+    required = {
+        "schema_version",
+        "role",
+        "provider_family",
+        "model_id",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+    }
+    if not isinstance(usage, dict) or set(usage) != required or usage.get("schema_version") != "1.0":
+        raise PilotRuntimeError("provider usage evidence shape is invalid")
+    role = usage["role"]
+    provider = providers.get(role) if isinstance(providers, dict) else None
+    if (
+        role not in {"planner", "builder", "inspector"}
+        or not isinstance(provider, dict)
+        or usage["provider_family"] != provider.get("provider_family")
+        or usage["model_id"] != provider.get("model_id")
+    ):
+        raise PilotRuntimeError("provider usage evidence is not bound to the approved provider")
+    values = [usage["input_tokens"], usage["output_tokens"], usage["total_tokens"]]
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in values):
+        raise PilotRuntimeError("provider usage evidence contains invalid token counts")
+    input_tokens, output_tokens, total_tokens = values
+    if total_tokens <= 0 or total_tokens != input_tokens + output_tokens:
+        raise PilotRuntimeError("provider usage evidence token total is inconsistent")
+
+    budget_pk = _budget_pk(ledger_id)
+    task_pk = _state_pk(task_id)
+    now = datetime.now(timezone.utc).isoformat()
+
+    def s(value: object) -> dict[str, str]:
+        return {"S": str(value)}
+
+    usage_item = {
+        "PK": s(budget_pk),
+        "SK": s(f"USAGE#{task_id}#{role}"),
+        "task_id": s(task_id),
+        "role": s(role),
+        "provider_family": s(usage["provider_family"]),
+        "model_id": s(usage["model_id"]),
+        "input_tokens": {"N": str(input_tokens)},
+        "output_tokens": {"N": str(output_tokens)},
+        "total_tokens": {"N": str(total_tokens)},
+        "recorded_at": s(now),
+    }
+    transact = [
+        {
+            "ConditionCheck": {
+                "TableName": table,
+                "Key": {"PK": s(budget_pk), "SK": s(f"RESERVATION#{task_id}")},
+                "ConditionExpression": "attribute_exists(PK) AND attribute_exists(SK)",
+            }
+        },
+        {
+            "ConditionCheck": {
+                "TableName": table,
+                "Key": {"PK": s(task_pk), "SK": s("STATE")},
+                "ConditionExpression": "attribute_exists(PK) AND attribute_exists(SK)",
+            }
+        },
+        {
+            "Update": {
+                "TableName": table,
+                "Key": {"PK": s(budget_pk), "SK": s("LEDGER")},
+                "UpdateExpression": (
+                    "SET updated_at=:updated "
+                    "ADD actual_input_tokens :input,"
+                    "actual_output_tokens :output,"
+                    "actual_total_tokens :total,"
+                    "usage_record_count :one"
+                ),
+                "ConditionExpression": (
+                    "attribute_exists(dispatch_count) AND attribute_exists(reserved_microusd)"
+                ),
+                "ExpressionAttributeValues": {
+                    ":updated": s(now),
+                    ":input": {"N": str(input_tokens)},
+                    ":output": {"N": str(output_tokens)},
+                    ":total": {"N": str(total_tokens)},
+                    ":one": {"N": "1"},
+                },
+            }
+        },
+        {
+            "Put": {
+                "TableName": table,
+                "Item": usage_item,
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        },
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "provider-usage.json"
+        path.write_text(json.dumps(transact), encoding="utf-8")
+        token_source = f"{budget_pk}:{task_id}:{role}:{total_tokens}"
+        _aws_json(
+            [
+                "dynamodb",
+                "transact-write-items",
+                "--transact-items",
+                f"file://{path}",
+                "--client-request-token",
+                f"usage-{hashlib.sha256(token_source.encode()).hexdigest()[:29]}",
+            ]
+        )
+
+
+def verify_budget_controls(
+    *,
+    table: str,
+    run_id: str,
+    providers: dict[str, Any],
+    evidence_path: Path,
+) -> None:
+    suffix = hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:12]
+    dispatch_ledger = f"verify-dispatch-{suffix}"
+    budget_ledger = f"verify-budget-{suffix}"
+    dispatch_tasks = [f"verify-{suffix}-dispatch-{index}" for index in range(1, 5)]
+    budget_tasks = [f"verify-{suffix}-budget-{index}" for index in range(1, 3)]
+
+    def expect_rejected(action: Any, label: str) -> None:
+        try:
+            action()
+        except PilotRuntimeError:
+            return
+        raise PilotRuntimeError(f"{label} was not rejected")
+
+    init_state(
+        table=table,
+        task_id=dispatch_tasks[0],
+        run_id=run_id,
+        ledger_id=dispatch_ledger,
+        provider_reserved_usd="1.00",
+        hard_stop_usd="10.00",
+        maximum_dispatches=3,
+    )
+    init_state(
+        table=table,
+        task_id=dispatch_tasks[0],
+        run_id=run_id,
+        ledger_id=dispatch_ledger,
+        provider_reserved_usd="1.00",
+        hard_stop_usd="10.00",
+        maximum_dispatches=3,
+    )
+    expect_rejected(
+        lambda: init_state(
+            table=table,
+            task_id=dispatch_tasks[0],
+            run_id=f"{run_id}-changed",
+            ledger_id=dispatch_ledger,
+            provider_reserved_usd="1.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        ),
+        "conflicting duplicate reservation",
+    )
+    for task_id in dispatch_tasks[1:3]:
+        init_state(
+            table=table,
+            task_id=task_id,
+            run_id=run_id,
+            ledger_id=dispatch_ledger,
+            provider_reserved_usd="1.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        )
+    expect_rejected(
+        lambda: init_state(
+            table=table,
+            task_id=dispatch_tasks[3],
+            run_id=run_id,
+            ledger_id=dispatch_ledger,
+            provider_reserved_usd="1.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        ),
+        "fourth provider dispatch",
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        usage_path = Path(tmp) / "usage.json"
+        usage_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "role": "planner",
+                    "provider_family": providers["planner"]["provider_family"],
+                    "model_id": providers["planner"]["model_id"],
+                    "input_tokens": 10,
+                    "output_tokens": 5,
+                    "total_tokens": 15,
+                }
+            ),
+            encoding="utf-8",
+        )
+        record_provider_usage(
+            table=table,
+            task_id=dispatch_tasks[0],
+            ledger_id=dispatch_ledger,
+            usage_path=usage_path,
+            providers=providers,
+        )
+        record_provider_usage(
+            table=table,
+            task_id=dispatch_tasks[0],
+            ledger_id=dispatch_ledger,
+            usage_path=usage_path,
+            providers=providers,
+        )
+        usage_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "role": "planner",
+                    "provider_family": providers["planner"]["provider_family"],
+                    "model_id": providers["planner"]["model_id"],
+                    "input_tokens": 10,
+                    "output_tokens": 6,
+                    "total_tokens": 16,
+                }
+            ),
+            encoding="utf-8",
+        )
+        expect_rejected(
+            lambda: record_provider_usage(
+                table=table,
+                task_id=dispatch_tasks[0],
+                ledger_id=dispatch_ledger,
+                usage_path=usage_path,
+                providers=providers,
+            ),
+            "conflicting provider usage",
+        )
+
+    init_state(
+        table=table,
+        task_id=budget_tasks[0],
+        run_id=run_id,
+        ledger_id=budget_ledger,
+        provider_reserved_usd="6.00",
+        hard_stop_usd="10.00",
+        maximum_dispatches=3,
+    )
+    expect_rejected(
+        lambda: init_state(
+            table=table,
+            task_id=budget_tasks[1],
+            run_id=run_id,
+            ledger_id=budget_ledger,
+            provider_reserved_usd="6.00",
+            hard_stop_usd="10.00",
+            maximum_dispatches=3,
+        ),
+        "cumulative hard stop",
+    )
+
+    def read_ledger(ledger_id: str) -> dict[str, Any]:
+        key = {
+            "PK": {"S": _budget_pk(ledger_id)},
+            "SK": {"S": "LEDGER"},
+        }
+        response = _aws_json(
+            [
+                "dynamodb",
+                "get-item",
+                "--table-name",
+                table,
+                "--key",
+                json.dumps(key, separators=(",", ":")),
+                "--consistent-read",
+            ]
+        )
+        item = response.get("Item")
+        if not isinstance(item, dict):
+            raise PilotRuntimeError("budget verification ledger was not persisted")
+        return item
+
+    dispatch_item = read_ledger(dispatch_ledger)
+    budget_item = read_ledger(budget_ledger)
+
+    def number(item: dict[str, Any], key: str) -> int:
+        try:
+            return int(item[key]["N"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PilotRuntimeError(f"budget verification field is invalid: {key}") from exc
+
+    if (
+        number(dispatch_item, "dispatch_count") != 3
+        or number(dispatch_item, "reserved_microusd") != 3_000_000
+        or number(dispatch_item, "actual_input_tokens") != 10
+        or number(dispatch_item, "actual_output_tokens") != 5
+        or number(dispatch_item, "actual_total_tokens") != 15
+        or number(dispatch_item, "usage_record_count") != 1
+        or number(budget_item, "dispatch_count") != 1
+        or number(budget_item, "reserved_microusd") != 6_000_000
+    ):
+        raise PilotRuntimeError("budget verification ledger totals are inconsistent")
+
+    evidence = {
+        "schema_version": "1.0",
+        "verification": "provider_budget_and_usage_controls",
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "workflow_run_id": run_id,
+        "table": table,
+        "dispatch_ledger_id": dispatch_ledger,
+        "budget_ledger_id": budget_ledger,
+        "results": {
+            "atomic_duplicate_idempotency": "success",
+            "conflicting_duplicate_rejection": "success",
+            "maximum_three_dispatches": "success",
+            "cumulative_hard_stop": "success",
+            "provider_usage_persistence": "success",
+            "conflicting_usage_rejection": "success",
+        },
+    }
+    evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    evidence_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def transition_state(
@@ -970,6 +1369,7 @@ def main() -> int:
     review.add_argument("--diff", type=Path, required=True)
     review.add_argument("--tests", type=Path, required=True)
     review.add_argument("--output", type=Path, required=True)
+    review.add_argument("--usage-output", type=Path, required=True)
 
     package = sub.add_parser("package")
     package.add_argument("--output", type=Path, required=True)
@@ -979,6 +1379,16 @@ def main() -> int:
     init.add_argument("--table", required=True)
     init.add_argument("--task-id", required=True)
     init.add_argument("--run-id", required=True)
+
+    usage = sub.add_parser("record-usage")
+    usage.add_argument("--table", required=True)
+    usage.add_argument("--task-id", required=True)
+    usage.add_argument("--usage", type=Path, required=True)
+
+    verify = sub.add_parser("verify-budget-controls")
+    verify.add_argument("--table", required=True)
+    verify.add_argument("--run-id", required=True)
+    verify.add_argument("--evidence", type=Path, required=True)
 
     transition = sub.add_parser("transition-state")
     transition.add_argument("--table", required=True)
@@ -1010,7 +1420,7 @@ def main() -> int:
             run_build(root, args.output_dir, api_key)
         return 0
     if args.command == "review":
-        run_review(root, args.diff, args.tests, args.output)
+        run_review(root, args.diff, args.tests, args.output, args.usage_output)
         return 0
     if args.command == "package":
         digest = deterministic_package(root, args.output)
@@ -1031,6 +1441,25 @@ def main() -> int:
             provider_reserved_usd=f"{reserved:.2f}",
             hard_stop_usd=policy["hard_stop_usd"],
             maximum_dispatches=policy["maximum_dispatches"],
+        )
+        return 0
+    if args.command == "record-usage":
+        _, policy = load_contracts(root)
+        record_provider_usage(
+            table=args.table,
+            task_id=args.task_id,
+            ledger_id=policy["budget_ledger_id"],
+            usage_path=args.usage,
+            providers=policy["providers"],
+        )
+        return 0
+    if args.command == "verify-budget-controls":
+        _, policy = load_contracts(root)
+        verify_budget_controls(
+            table=args.table,
+            run_id=args.run_id,
+            providers=policy["providers"],
+            evidence_path=args.evidence,
         )
         return 0
     if args.command == "transition-state":
