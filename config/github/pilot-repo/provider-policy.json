@@ -19,7 +19,7 @@
       "data_geography": "US_AND_CANADA",
       "enabled": true,
       "max_output_tokens": 4096,
-      "model_id": "us.anthropic.claude-sonnet-5",
+      "model_id": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
       "provider_family": "anthropic",
       "reserved_cost_usd": "1.00",
       "transport": "amazon_bedrock"

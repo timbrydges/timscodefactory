@@ -94,7 +94,11 @@ def validate_contracts(task: dict[str, Any], policy: dict[str, Any]) -> None:
     expected = {
         "planner": ("openai", "gpt-5.6-sol", "openai_responses"),
         "builder": ("openai", "gpt-5.6-sol", "openai_responses"),
-        "inspector": ("anthropic", "us.anthropic.claude-sonnet-5", "amazon_bedrock"),
+        "inspector": (
+            "anthropic",
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "amazon_bedrock",
+        ),
     }
     total_reserved = 0.0
     for role, (family, model, transport) in expected.items():

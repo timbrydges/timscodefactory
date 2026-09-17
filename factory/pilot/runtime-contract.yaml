@@ -1,8 +1,14 @@
 schema_version: "1.0"
-contract_id: tims-factory-pilot-runtime-001
+contract_id: tims-factory-pilot-runtime-002
 status: OWNER_APPROVED_LIVE_PILOT
 repository: timbrydges/tims-factory-pilot
 workflow: pilot-live
+approval:
+  owner_identity: tim_brydges
+  authority: factory_owner
+  approved_on: "2026-09-17"
+  change: switch_inspector_to_claude_sonnet_4_5
+  supersedes: tims-factory-pilot-runtime-001
 dispatch:
   event: workflow_dispatch
   owner_login: timbrydges
@@ -30,7 +36,7 @@ roles:
     authoritative_identity: independent_inspector_service
     github_app: tims-factory-inspector
     provider_family: anthropic
-    model: us.anthropic.claude-sonnet-5
+    model: us.anthropic.claude-sonnet-4-5-20250929-v1:0
     repository_effect: exact_head_review_only
     writable_paths: []
 

@@ -33,7 +33,10 @@ def test_live_pilot_contracts_are_exact_and_bounded():
     assert sum(float(item["reserved_cost_usd"]) for item in policy["providers"].values()) == 3.0
     assert policy["providers"]["planner"]["model_id"] == "gpt-5.6-sol"
     assert policy["providers"]["builder"]["model_id"] == "gpt-5.6-sol"
-    assert policy["providers"]["inspector"]["model_id"] == "us.anthropic.claude-sonnet-5"
+    assert (
+        policy["providers"]["inspector"]["model_id"]
+        == "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    )
     assert policy["providers"]["builder"]["provider_family"] != policy["providers"]["inspector"]["provider_family"]
     assert policy["providers"]["planner"]["max_output_tokens"] == 8192
     assert policy["providers"]["builder"]["max_output_tokens"] == 16384
@@ -134,6 +137,13 @@ def test_pilot_runtime_aws_role_is_immutable_and_owner_only():
     assert 'values   = [var.pilot_github_repository_owner_id]' in terraform
     assert 'values   = ["pilot-live"]' in terraform
     assert 'values   = ["workflow_dispatch"]' in terraform
-    assert 'pilot_bedrock_profile_id       = "us.anthropic.claude-sonnet-5"' in terraform
+    assert (
+        'pilot_bedrock_profile_id       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"'
+        in terraform
+    )
+    assert (
+        'pilot_bedrock_model_id         = "anthropic.claude-sonnet-4-5-20250929-v1:0"'
+        in terraform
+    )
     assert '"${aws_s3_bucket.factory_releases.arn}/pilot-releases/*"' in terraform
     assert 'policy_arn = aws_iam_policy.controller_state.arn' in terraform

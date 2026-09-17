@@ -10,7 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_operational_contract_binds_three_system_pilot_without_owner_override():
     contract = yaml.safe_load((ROOT / "factory/pilot/runtime-contract.yaml").read_text(encoding="utf-8"))
+    assert contract["contract_id"] == "tims-factory-pilot-runtime-002"
     assert contract["status"] == "OWNER_APPROVED_LIVE_PILOT"
+    assert contract["approval"] == {
+        "owner_identity": "tim_brydges",
+        "authority": "factory_owner",
+        "approved_on": "2026-09-17",
+        "change": "switch_inspector_to_claude_sonnet_4_5",
+        "supersedes": "tims-factory-pilot-runtime-001",
+    }
     assert contract["repository"] == "timbrydges/tims-factory-pilot"
     assert contract["workflow"] == "pilot-live"
     assert contract["dispatch"] == {
@@ -25,6 +33,10 @@ def test_operational_contract_binds_three_system_pilot_without_owner_override():
     assert contract["roles"]["planner"]["repository_effect"] == "evidence_branch_only"
     assert contract["roles"]["builder"]["repository_effect"] == "implementation_pull_request"
     assert contract["roles"]["inspector"]["repository_effect"] == "exact_head_review_only"
+    assert (
+        contract["roles"]["inspector"]["model"]
+        == "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    )
     assert contract["roles"]["builder"]["provider_family"] != contract["roles"]["inspector"]["provider_family"]
     assert contract["failure_policy"]["owner_override_counts_as_clean_pilot_success"] is False
 
