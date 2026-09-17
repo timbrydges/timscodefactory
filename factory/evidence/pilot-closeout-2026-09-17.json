@@ -14,7 +14,8 @@
     "potential_provider_invocation_jobs_observed": 21,
     "reason_codes": [
       "CUMULATIVE_PROVIDER_SPEND_WAS_NOT_PERSISTED",
-      "ORIGINAL_REMEDIATION_LIMIT_CANNOT_BE_PROVEN_ACROSS_COMMISSIONING_RUNS"
+      "ORIGINAL_REMEDIATION_LIMIT_CANNOT_BE_PROVEN_ACROSS_COMMISSIONING_RUNS",
+      "LEGACY_PUSH_PROBE_RAN_DURING_RETIREMENT_SYNC"
     ]
   },
   "control_plane": {
@@ -29,6 +30,25 @@
     "runtime_repairs_merged": [74, 75, 76, 77]
   },
   "evidence_type": "pilot_closeout",
+  "retirement_execution": {
+    "bedrock_diagnostic_probe_runs_during_runtime_sync": [
+      35232326037,
+      35232327664,
+      35232331264,
+      35232335657,
+      35232339494
+    ],
+    "bedrock_diagnostic_probes_observed": 5,
+    "control_plane_merge_commit": "996a834f6f98b35dc13f02c97642286616955b58",
+    "control_plane_pull_request": 78,
+    "governed_live_dispatches_during_retirement": 0,
+    "legacy_probe_trigger": "push_to_private_main_during_sequential_runtime_file_sync",
+    "private_runtime_commit": "3b240c7d6b240684cc074f3dc1baa3d78023510e",
+    "workflow_states_after_retirement": {
+      ".github/workflows/bedrock-access-probe.yml": "disabled_manually",
+      ".github/workflows/pilot-live.yml": "disabled_manually"
+    }
+  },
   "next_live_project_gate": {
     "required_controls": [
       "ATOMIC_CUMULATIVE_PROVIDER_RESERVATION",
