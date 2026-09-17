@@ -190,9 +190,20 @@ def validate_contract(contract: dict[str, Any], root: Path = ROOT) -> tuple[str,
         "DRY_RUN_ONLY": "OWNER_APPROVED_DRY_RUN_ONLY",
         "INFRA_VERIFICATION": "OWNER_APPROVED_INFRA_VERIFICATION",
         "LIVE_PILOT": "OWNER_APPROVED_LIVE_PILOT",
+        "COMPLETE": "RETIRED",
     }.get(phase)
     if expected_status is not None and status != expected_status:
         errors.append("pilot contract status must match its execution phase")
+
+    completion = contract.get("completion", {})
+    evidence = completion.get("closeout_evidence")
+    if phase == "COMPLETE":
+        if completion.get("outcome") != "OWNER_EXCEPTION_TECHNICAL_SUCCESS":
+            errors.append("retired pilot must retain the owner-exception closeout outcome")
+        if completion.get("clean_completion") is not False:
+            errors.append("retired pilot must not claim a clean contract completion")
+        if not isinstance(evidence, str) or not (root / evidence).is_file():
+            errors.append("retired pilot closeout evidence is missing")
 
     return tuple(errors)
 
@@ -206,11 +217,12 @@ def simulate_current_policy(contract: dict[str, Any]) -> tuple[str, ...]:
     except PilotGateError as exc:
         return (f"cannot simulate invalid pilot policy: {exc}",)
 
-    for operation in sorted(DRY_RUN_ALLOWLIST):
-        try:
-            policy.assert_dry_run_allowed(operation)
-        except PilotGateError as exc:
-            errors.append(f"approved dry-run operation rejected ({operation}): {exc}")
+    if policy.phase != "COMPLETE":
+        for operation in sorted(DRY_RUN_ALLOWLIST):
+            try:
+                policy.assert_dry_run_allowed(operation)
+            except PilotGateError as exc:
+                errors.append(f"approved dry-run operation rejected ({operation}): {exc}")
 
     try:
         policy.assert_dry_run_allowed("real_release")
@@ -278,6 +290,22 @@ def simulate_current_policy(contract: dict[str, Any]) -> tuple[str, ...]:
                 policy.assert_role_activation_allowed(system)
             except PilotGateError as exc:
                 errors.append(f"verified live role rejected ({system}): {exc}")
+    elif policy.phase == "COMPLETE":
+        for system in sorted(PILOT_SYSTEMS):
+            try:
+                policy.assert_role_activation_allowed(system)
+                errors.append(f"{system} activated after pilot retirement")
+            except PilotGateError:
+                pass
+        for check, operation in (
+            (policy.assert_repository_write_allowed, "pilot repository write"),
+            (policy.assert_live_transition_allowed, "live task transition"),
+        ):
+            try:
+                check()
+                errors.append(f"{operation} was allowed after pilot retirement")
+            except PilotGateError:
+                pass
 
     return tuple(errors)
 

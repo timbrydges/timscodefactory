@@ -96,4 +96,4 @@ def test_bootstrap_targets_only_reserved_private_pilot():
     assert '"can_approve_pull_request_reviews": False' in script
     assert '"feature_code_written": False' in script
     assert "github_default_readme" in script
-    assert '== f"# {REPO}"' in script
+    assert "existing_text in known_github_default_readmes" in script

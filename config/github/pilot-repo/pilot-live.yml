@@ -28,6 +28,7 @@ env:
   EXPECTED_OWNER: timbrydges
   EXPECTED_REPOSITORY: timbrydges/tims-factory-pilot
   EXPECTED_AWS_ACCOUNT: "666730517561"
+  PILOT_STATUS: RETIRED
 
 jobs:
   preflight:
@@ -56,6 +57,7 @@ jobs:
           FACTORY_RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
         run: |
           set -euo pipefail
+          test "$PILOT_STATUS" = "OWNER_APPROVED_LIVE_PILOT"
           test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
           test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
           test "$GITHUB_REF" = "refs/heads/main"
@@ -553,6 +555,7 @@ jobs:
           TASK_ID: ${{ inputs.recovery_task_id }}
         run: |
           set -euo pipefail
+          test "$PILOT_STATUS" = "OWNER_APPROVED_LIVE_PILOT"
           test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
           test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
           test "$GITHUB_REF" = "refs/heads/main"

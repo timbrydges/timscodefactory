@@ -219,6 +219,19 @@ class PilotActivationGateTests(unittest.TestCase):
             actor_identity=OWNER_IDENTITY
         )
 
+    def test_pg15_retired_complete_contract_denies_every_capability(self):
+        policy = PilotActivationPolicy.from_contract(self.contract)
+        self.assertEqual(policy.phase, "COMPLETE")
+        for system in PILOT_SYSTEMS:
+            with self.subTest(system=system), self.assertRaises(PilotGateError):
+                policy.assert_role_activation_allowed(system)
+        with self.assertRaises(PilotGateError):
+            policy.assert_repository_write_allowed()
+        with self.assertRaises(PilotGateError):
+            policy.assert_live_transition_allowed()
+        with self.assertRaises(PilotGateError):
+            policy.assert_dry_run_allowed("contract_validation")
+
 
 if __name__ == "__main__":
     unittest.main()

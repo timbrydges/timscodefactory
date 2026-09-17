@@ -234,12 +234,29 @@
     "completion": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["require_pilot_shipped_within_contract", "require_rollback_drill_logged_successful", "require_no_ungated_merge", "factory_done_requires_all"],
+      "required": [
+        "require_pilot_shipped_within_contract",
+        "require_rollback_drill_logged_successful",
+        "require_no_ungated_merge",
+        "factory_done_requires_all",
+        "outcome",
+        "clean_completion",
+        "technical_release_verified",
+        "owner_exception_approved_on",
+        "closeout_evidence",
+        "next_live_project_requirements"
+      ],
       "properties": {
         "require_pilot_shipped_within_contract": {"const": true},
         "require_rollback_drill_logged_successful": {"const": true},
         "require_no_ungated_merge": {"const": true},
-        "factory_done_requires_all": {"const": true}
+        "factory_done_requires_all": {"const": true},
+        "outcome": {"const": "OWNER_EXCEPTION_TECHNICAL_SUCCESS"},
+        "clean_completion": {"const": false},
+        "technical_release_verified": {"const": true},
+        "owner_exception_approved_on": {"type": "string", "format": "date"},
+        "closeout_evidence": {"type": "string", "pattern": "^factory/evidence/[a-z0-9-]+\\.json$"},
+        "next_live_project_requirements": {"$ref": "#/$defs/nonemptyStrings"}
       }
     }
   },

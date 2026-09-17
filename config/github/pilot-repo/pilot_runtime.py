@@ -21,6 +21,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +89,14 @@ def validate_contracts(task: dict[str, Any], policy: dict[str, Any]) -> None:
         raise PilotRuntimeError("provider policy must be pilot-only")
     if policy.get("hard_stop_usd") != "10.00":
         raise PilotRuntimeError("pilot hard-stop budget drifted")
+    if policy.get("budget_ledger_id") != "tims-factory-pilot-001":
+        raise PilotRuntimeError("pilot budget ledger binding drifted")
+    if policy.get("cumulative_reservation_required") is not True:
+        raise PilotRuntimeError("cumulative provider reservation must be required")
+    if policy.get("maximum_remediation_cycles") != 2:
+        raise PilotRuntimeError("pilot remediation-cycle limit drifted")
+    if policy.get("maximum_dispatches") != 1 + policy["maximum_remediation_cycles"]:
+        raise PilotRuntimeError("pilot dispatch limit must equal one initial run plus remediations")
     providers = policy.get("providers")
     if not isinstance(providers, dict) or set(providers) != {"planner", "builder", "inspector"}:
         raise PilotRuntimeError("provider role set drifted")
@@ -577,8 +586,48 @@ def _state_pk(task_id: str) -> str:
     return f"FACTORY#tims-software-factory#TASK#{task_id}"
 
 
-def init_state(*, table: str, task_id: str, run_id: str) -> None:
+def _budget_pk(ledger_id: str) -> str:
+    if (
+        not isinstance(ledger_id, str)
+        or not ledger_id
+        or len(ledger_id) > 64
+        or any(ch not in "abcdefghijklmnopqrstuvwxyz0123456789-" for ch in ledger_id)
+    ):
+        raise PilotRuntimeError("pilot budget ledger id is invalid")
+    return f"FACTORY#tims-software-factory#BUDGET#{ledger_id}"
+
+
+def _usd_to_microusd(value: object, label: str) -> int:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise PilotRuntimeError(f"{label} is invalid") from exc
+    microusd = amount * Decimal(1_000_000)
+    if not amount.is_finite() or amount <= 0 or microusd != microusd.to_integral_value():
+        raise PilotRuntimeError(f"{label} is invalid")
+    return int(microusd)
+
+
+def init_state(
+    *,
+    table: str,
+    task_id: str,
+    run_id: str,
+    ledger_id: str,
+    provider_reserved_usd: str,
+    hard_stop_usd: str,
+    maximum_dispatches: int,
+) -> None:
     pk = _state_pk(task_id)
+    budget_pk = _budget_pk(ledger_id)
+    reserved_microusd = _usd_to_microusd(provider_reserved_usd, "provider reservation")
+    hard_stop_microusd = _usd_to_microusd(hard_stop_usd, "hard-stop budget")
+    if reserved_microusd > hard_stop_microusd:
+        raise PilotRuntimeError("provider reservation exceeds cumulative hard stop")
+    if isinstance(maximum_dispatches, bool) or not isinstance(maximum_dispatches, int):
+        raise PilotRuntimeError("maximum dispatch count is invalid")
+    if maximum_dispatches < 1 or maximum_dispatches > 3:
+        raise PilotRuntimeError("maximum dispatch count exceeds the pilot contract")
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         "schema_version": "1.0",
@@ -588,7 +637,8 @@ def init_state(*, table: str, task_id: str, run_id: str) -> None:
         "updated_at": now,
         "updated_by": "factory_controller_service",
         "workflow_run_id": run_id,
-        "provider_reserved_usd": "3.00",
+        "provider_reserved_usd": provider_reserved_usd,
+        "budget_ledger_id": ledger_id,
     }
     item = {
         "PK": {"S": pk},
@@ -598,19 +648,72 @@ def init_state(*, table: str, task_id: str, run_id: str) -> None:
         "updated_at": {"S": now},
         "payload": {"S": json.dumps(payload, sort_keys=True, separators=(",", ":"))},
     }
+
+    def s(value: object) -> dict[str, str]:
+        return {"S": str(value)}
+
+    transact = [
+        {
+            "Update": {
+                "TableName": table,
+                "Key": {"PK": s(budget_pk), "SK": s("LEDGER")},
+                "UpdateExpression": (
+                    "SET schema_version=if_not_exists(schema_version,:schema),"
+                    "updated_at=:updated,"
+                    "hard_stop_microusd=if_not_exists(hard_stop_microusd,:hard_stop),"
+                    "maximum_dispatches=if_not_exists(maximum_dispatches,:maximum) "
+                    "ADD dispatch_count :one,reserved_microusd :reserve"
+                ),
+                "ConditionExpression": (
+                    "(attribute_not_exists(dispatch_count) OR dispatch_count < :maximum) AND "
+                    "(attribute_not_exists(reserved_microusd) OR reserved_microusd <= :max_before) AND "
+                    "(attribute_not_exists(hard_stop_microusd) OR hard_stop_microusd = :hard_stop) AND "
+                    "(attribute_not_exists(maximum_dispatches) OR maximum_dispatches = :maximum)"
+                ),
+                "ExpressionAttributeValues": {
+                    ":schema": s("1.0"),
+                    ":updated": s(now),
+                    ":hard_stop": {"N": str(hard_stop_microusd)},
+                    ":maximum": {"N": str(maximum_dispatches)},
+                    ":one": {"N": "1"},
+                    ":reserve": {"N": str(reserved_microusd)},
+                    ":max_before": {"N": str(hard_stop_microusd - reserved_microusd)},
+                },
+            }
+        },
+        {
+            "Put": {
+                "TableName": table,
+                "Item": {
+                    "PK": s(budget_pk),
+                    "SK": s(f"RESERVATION#{task_id}"),
+                    "task_id": s(task_id),
+                    "workflow_run_id": s(run_id),
+                    "reserved_microusd": {"N": str(reserved_microusd)},
+                    "reserved_at": s(now),
+                },
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        },
+        {
+            "Put": {
+                "TableName": table,
+                "Item": item,
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        },
+    ]
     with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / "state.json"
-        path.write_text(json.dumps(item), encoding="utf-8")
+        path = Path(tmp) / "initial-state-and-budget.json"
+        path.write_text(json.dumps(transact), encoding="utf-8")
         _aws_json(
             [
                 "dynamodb",
-                "put-item",
-                "--table-name",
-                table,
-                "--item",
+                "transact-write-items",
+                "--transact-items",
                 f"file://{path}",
-                "--condition-expression",
-                "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                "--client-request-token",
+                f"budget-{hashlib.sha256((budget_pk + task_id).encode()).hexdigest()[:28]}",
             ]
         )
 
@@ -915,7 +1018,20 @@ def main() -> int:
         print(f"sha256:{digest}")
         return 0
     if args.command == "init-state":
-        init_state(table=args.table, task_id=args.task_id, run_id=args.run_id)
+        _, policy = load_contracts(root)
+        reserved = sum(
+            (Decimal(item["reserved_cost_usd"]) for item in policy["providers"].values()),
+            start=Decimal("0"),
+        )
+        init_state(
+            table=args.table,
+            task_id=args.task_id,
+            run_id=args.run_id,
+            ledger_id=policy["budget_ledger_id"],
+            provider_reserved_usd=f"{reserved:.2f}",
+            hard_stop_usd=policy["hard_stop_usd"],
+            maximum_dispatches=policy["maximum_dispatches"],
+        )
         return 0
     if args.command == "transition-state":
         try:

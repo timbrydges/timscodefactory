@@ -197,6 +197,7 @@ def validate(root: Path) -> list[str]:
         "github_repository_id",
         'variable = "token.actions.githubusercontent.com:sub"',
         "FACTORY#tims-software-factory#TASK#*",
+        "FACTORY#tims-software-factory#BUDGET#*",
         "FACTORY#tims-software-factory#RELEASE",
         '"dynamodb:TransactWriteItems"',
         '"s3:GetObjectVersion"',

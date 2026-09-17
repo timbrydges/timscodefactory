@@ -1,6 +1,6 @@
 schema_version: "1.0"
 contract_id: tims-factory-pilot-runtime-002
-status: OWNER_APPROVED_LIVE_PILOT
+status: RETIRED
 repository: timbrydges/tims-factory-pilot
 workflow: pilot-live
 approval:
@@ -85,3 +85,11 @@ failure_policy:
   provider_failure: STOP_WITHOUT_ADVANCING_GATE
   deterministic_test_failure: STOP_WITHOUT_INSPECTOR_APPROVAL
   owner_override_counts_as_clean_pilot_success: false
+
+closeout:
+  recorded_on: "2026-09-17"
+  outcome: OWNER_EXCEPTION_TECHNICAL_SUCCESS
+  clean_completion: false
+  technical_release_verified: true
+  live_dispatch_authorized: false
+  evidence: factory/evidence/pilot-closeout-2026-09-17.json

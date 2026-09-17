@@ -341,3 +341,22 @@ The Factory pilot is complete only when all of these are true:
 
 Until then, the Factory is not “done,” regardless of how much governance text
 or unexercised infrastructure code exists.
+
+## 14. Closeout record — 2026-09-17
+
+The pilot completed the technical path: distinct Planner, Builder, and
+Inspector identities produced and independently approved the exact Builder
+commit; deterministic CI passed; the implementation merged; an immutable,
+versioned artifact was released; and exact-version recovery reproduced the
+same SHA-256 digest.
+
+Tim retired the pilot with an explicit owner exception. This is **not** recorded
+as a clean completion under the original contract because cumulative provider
+spend was not persisted across commissioning runs and the original two-cycle
+remediation limit cannot be proven across the full activation history. The
+durable closeout record is
+`factory/evidence/pilot-closeout-2026-09-17.json`.
+
+No new live project may activate until it atomically reserves cumulative
+provider exposure before inference, permits at most one initial dispatch plus
+two remediation dispatches, and persists actual usage when providers expose it.

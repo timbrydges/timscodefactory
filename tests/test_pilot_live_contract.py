@@ -8,10 +8,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_operational_contract_binds_three_system_pilot_without_owner_override():
+def test_retired_operational_contract_preserves_three_system_pilot_evidence():
     contract = yaml.safe_load((ROOT / "factory/pilot/runtime-contract.yaml").read_text(encoding="utf-8"))
     assert contract["contract_id"] == "tims-factory-pilot-runtime-002"
-    assert contract["status"] == "OWNER_APPROVED_LIVE_PILOT"
+    assert contract["status"] == "RETIRED"
     assert contract["approval"] == {
         "owner_identity": "tim_brydges",
         "authority": "factory_owner",
@@ -39,6 +39,14 @@ def test_operational_contract_binds_three_system_pilot_without_owner_override():
     )
     assert contract["roles"]["builder"]["provider_family"] != contract["roles"]["inspector"]["provider_family"]
     assert contract["failure_policy"]["owner_override_counts_as_clean_pilot_success"] is False
+    assert contract["closeout"] == {
+        "recorded_on": "2026-09-17",
+        "outcome": "OWNER_EXCEPTION_TECHNICAL_SUCCESS",
+        "clean_completion": False,
+        "technical_release_verified": True,
+        "live_dispatch_authorized": False,
+        "evidence": "factory/evidence/pilot-closeout-2026-09-17.json",
+    }
 
 
 def test_operational_state_graph_is_bounded_and_release_terminal():
@@ -64,7 +72,7 @@ def test_bootstrap_includes_live_runtime_templates():
     ):
         assert target in script
     assert "Operational role activation remains DENY" not in script
-    assert "Live execution remains fail-closed" in script
+    assert "Live execution remains denied" in script
 
 
 def test_live_workflow_supports_ruleset_aware_exact_head_recovery():

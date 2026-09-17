@@ -166,6 +166,9 @@ class PilotActivationPolicy:
                 raise PilotGateError("LIVE_PILOT requires every readiness gate")
             if any(self.permissions.get(name) != "ALLOW" for name in self.permissions):
                 raise PilotGateError("LIVE_PILOT permissions must be explicitly enabled")
+        elif self.phase == "COMPLETE":
+            if any(self.permissions.get(name) != "DENY" for name in self.permissions):
+                raise PilotGateError("COMPLETE pilot permissions must all be denied")
 
     def assert_dry_run_allowed(self, operation: str) -> None:
         if self.permissions.get("dry_run_simulation") != "ALLOW":

@@ -140,7 +140,7 @@ def main() -> int:
     output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(evidence, indent=2, sort_keys=True))
     print(f"Evidence saved locally to {output}")
-    print("Live pilot runtime files and GitHub trust controls are configured.")
+    print("Retired pilot runtime files are configured; live dispatch remains denied.")
     return 0
 
 
