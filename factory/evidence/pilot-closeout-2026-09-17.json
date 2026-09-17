@@ -27,7 +27,7 @@
       "preflight": "success",
       "registry": "success"
     },
-    "runtime_repairs_merged": [74, 75, 76, 77]
+    "runtime_repairs_merged": [74, 75, 76, 77, 81, 82]
   },
   "evidence_type": "pilot_closeout",
   "retirement_execution": {
@@ -56,7 +56,23 @@
       "PERSISTED_PROVIDER_USAGE_WHEN_AVAILABLE",
       "NEW_OWNER_APPROVED_OPERATING_CONTRACT"
     ],
-    "status": "BLOCKED_UNTIL_CONTROLS_ARE_VERIFIED"
+    "status": "CONTROL_PREREQUISITES_VERIFIED_AWAITING_NEW_OWNER_APPROVED_CONTRACT",
+    "verification": {
+      "conclusion": "success",
+      "control_plane_commit": "4f550562eb837470c394cb7219d9ea5c2df11d1d",
+      "private_runtime_commit": "67dfd4ccc2004a092d540bbb7e32aed21c49c243",
+      "results": {
+        "atomic_duplicate_idempotency": "success",
+        "conflicting_duplicate_rejection": "success",
+        "conflicting_usage_rejection": "success",
+        "cumulative_hard_stop": "success",
+        "maximum_three_dispatches": "success",
+        "provider_usage_persistence": "success"
+      },
+      "verified_at": "2026-09-17T15:52:08.107594+00:00",
+      "workflow_run_id": 35242932701,
+      "workflow_state_after_verification": "disabled_manually"
+    }
   },
   "release_and_recovery": {
     "artifact_digest": "sha256:e9859636ec46872c326f9fb70f4daef6ffa7b8bb07c9d7509ff46cd5c8dc04d6",
