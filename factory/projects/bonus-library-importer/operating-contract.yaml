@@ -86,12 +86,16 @@ activation:
     - acceptance_tests_bound
     - rollback_path_verified
   verified_gates:
+    owner_contract_approved:
+      verified: true
+      evidence: factory/evidence/bonus-library-architecture-approval-2026-09-17.json
+    architecture_and_threat_model_approved:
+      verified: true
+      evidence: factory/evidence/bonus-library-architecture-approval-2026-09-17.json
     provider_budget_controls_verified:
       verified: true
       evidence: factory/evidence/pilot-closeout-2026-09-17.json
   pending_gates:
-    - owner_contract_approved
-    - architecture_and_threat_model_approved
     - private_repository_controls_verified
     - project_identity_and_oidc_verified
     - authentication_boundary_verified
@@ -151,8 +155,9 @@ acceptance_tests:
     criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
 
 owner_decision_required:
-  decision: APPROVE_DRY_RUN_CONTRACT
+  decision: AUTHORIZE_PRIVATE_REPOSITORY_CREATION
   effect: >-
-    Approval permits architecture and threat-model work only. Repository
-    creation, infrastructure changes, provider calls, implementation, and
-    release remain denied until their explicit gates pass.
+    The architecture and threat model are approved. A separate owner action is
+    required before creating and hardening the private project repository;
+    infrastructure changes, provider calls, implementation, and release remain
+    denied until their explicit gates pass.

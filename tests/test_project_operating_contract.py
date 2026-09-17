@@ -28,6 +28,10 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertEqual(self.contract["activation"]["default"], "DENY")
         allowed = [key for key, value in self.contract["execution"].items() if value == "ALLOW"]
         self.assertEqual(allowed, ["contract_validation", "architecture_dry_run"])
+        self.assertEqual(
+            self.contract["owner_decision_required"]["decision"],
+            "AUTHORIZE_PRIVATE_REPOSITORY_CREATION",
+        )
 
     def test_owner_and_budget_bounds_are_exact(self):
         self.assertEqual(self.contract["release"]["authority_identity"], "tim_brydges")

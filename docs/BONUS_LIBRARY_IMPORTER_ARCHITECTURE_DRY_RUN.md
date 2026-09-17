@@ -1,7 +1,7 @@
 # Bonus Library Importer — Architecture Dry Run
 
 Status: `NON_AUTHORITATIVE_DRY_RUN_COMPLETE`  
-Authority: none; owner approval is required  
+Authority: owner-approved design baseline; operational activation remains denied
 Bound contract: `bonus-library-importer-001`
 
 This is a design and threat-model rehearsal for the approved dry-run-only contract. It created no project repository, infrastructure, identity, provider call, implementation, or release. The machine-readable source is `factory/projects/bonus-library-importer/planner-dry-run.yaml`.
@@ -38,6 +38,6 @@ All ten acceptance criteria (`BL-01` through `BL-10`) map to named components an
 
 The web runtime, owner authentication provider, relational/object-storage services, text/image generation providers, and concrete archive expansion limits remain unbound. Selecting vendors during a non-authoritative rehearsal would create accidental implementation authority.
 
-## Owner gate
+## Owner approval
 
-The next decision is `APPROVE_ARCHITECTURE_AND_THREAT_MODEL`. Approval accepts this bounded design baseline only. It does not authorize repository creation, infrastructure, identities, provider calls, implementation, merge, or release; those remain denied until their own gates pass.
+Tim approved the architecture and threat model on 2026-09-17. The approval accepts this bounded design baseline only. It does not authorize repository creation, infrastructure, identities, provider calls, implementation, merge, or release; those remain denied until their own gates pass.
