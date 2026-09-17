@@ -106,7 +106,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["decision", "effect"],
       "properties": {
-        "decision": {"const": "APPROVE_DRY_RUN_CONTRACT"},
+        "decision": {"enum": ["APPROVE_DRY_RUN_CONTRACT", "AUTHORIZE_PRIVATE_REPOSITORY_CREATION"]},
         "effect": {"type": "string", "minLength": 20}
       }
     }

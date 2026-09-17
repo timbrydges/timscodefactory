@@ -38,7 +38,7 @@ class ProjectArchitectureDryRunTests(unittest.TestCase):
         self.assertIn("architecture_and_threat_model_approved", DRY_RUN["remaining_gates"])
         self.assertIn("implementation", DRY_RUN["owner_decision_required"]["effect"])
 
-    def test_contract_keeps_all_activation_denials(self) -> None:
+    def test_contract_records_owner_approval_and_keeps_activation_denials(self) -> None:
         execution = CONTRACT["execution"]
         for action in (
             "repository_creation",
@@ -48,9 +48,13 @@ class ProjectArchitectureDryRunTests(unittest.TestCase):
             "release",
         ):
             self.assertEqual(execution[action], "DENY")
-        self.assertNotIn(
+        self.assertIn(
             "architecture_and_threat_model_approved",
             CONTRACT["activation"]["verified_gates"],
+        )
+        self.assertNotIn(
+            "architecture_and_threat_model_approved",
+            CONTRACT["activation"]["pending_gates"],
         )
 
     def test_every_acceptance_test_is_mapped_once(self) -> None:

@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "owner_architecture_approval",
+  "contract_id": "bonus-library-importer-001",
+  "architecture_artifact_id": "bonus-library-importer-architecture-dry-run-001",
+  "architecture_commit": "d0abbf1da8c4d475ad76b829bac2a1138f0bf7ec",
+  "owner_identity": "tim_brydges",
+  "authority": "factory_owner",
+  "approved_on": "2026-09-17",
+  "approval_text": "I approve the Bonus Library architecture and threat model.",
+  "verified_gates": [
+    "owner_contract_approved",
+    "architecture_and_threat_model_approved"
+  ],
+  "does_not_authorize": [
+    "repository_creation",
+    "infrastructure_changes",
+    "operational_role_activation",
+    "live_provider_calls",
+    "implementation",
+    "release"
+  ],
+  "next_owner_decision": "AUTHORIZE_PRIVATE_REPOSITORY_CREATION"
+}
