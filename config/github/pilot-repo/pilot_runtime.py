@@ -411,6 +411,28 @@ def run_build(root: Path, output_dir: Path, api_key: str) -> None:
     )
 
 
+def _decode_bedrock_structured_output(text: Any) -> dict[str, Any]:
+    if not isinstance(text, str):
+        raise PilotRuntimeError("Bedrock Inspector returned malformed structured output")
+    candidate = text.strip()
+    lines = candidate.splitlines()
+    if (
+        len(lines) >= 3
+        and lines[0].strip().lower() in {"```json", "```"}
+        and lines[-1].strip() == "```"
+    ):
+        candidate = "\n".join(lines[1:-1]).strip()
+    elif candidate.startswith("```") or candidate.endswith("```"):
+        raise PilotRuntimeError("Bedrock Inspector returned malformed structured output")
+    try:
+        result = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise PilotRuntimeError("Bedrock Inspector returned malformed structured output") from exc
+    if not isinstance(result, dict):
+        raise PilotRuntimeError("Bedrock Inspector returned malformed structured output")
+    return result
+
+
 def call_bedrock_review(
     *,
     model: str,
@@ -456,9 +478,9 @@ def call_bedrock_review(
     try:
         payload = json.loads(completed.stdout)
         text = payload["output"]["message"]["content"][0]["text"]
-        result = json.loads(text)
     except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
         raise PilotRuntimeError("Bedrock Inspector returned malformed structured output") from exc
+    result = _decode_bedrock_structured_output(text)
     if not isinstance(result, dict) or set(result) != {"verdict", "summary", "findings"}:
         raise PilotRuntimeError("Inspector verdict shape is invalid")
     if result["verdict"] not in {"APPROVE", "REQUEST_CHANGES"}:
