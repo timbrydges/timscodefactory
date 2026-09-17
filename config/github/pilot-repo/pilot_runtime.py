@@ -674,6 +674,25 @@ def _usd_to_microusd(value: object, label: str) -> int:
     return int(microusd)
 
 
+def _get_dynamodb_item(table: str, pk: str, sk: str) -> dict[str, Any]:
+    response = _aws_json(
+        [
+            "dynamodb",
+            "get-item",
+            "--table-name",
+            table,
+            "--key",
+            json.dumps(
+                {"PK": {"S": pk}, "SK": {"S": sk}},
+                separators=(",", ":"),
+            ),
+            "--consistent-read",
+        ]
+    )
+    item = response.get("Item")
+    return item if isinstance(item, dict) else {}
+
+
 def _dispatch_already_committed(
     *,
     table: str,
@@ -684,28 +703,10 @@ def _dispatch_already_committed(
     hard_stop_microusd: int,
     maximum_dispatches: int,
 ) -> bool:
-    def get(pk: str, sk: str) -> dict[str, Any]:
-        response = _aws_json(
-            [
-                "dynamodb",
-                "get-item",
-                "--table-name",
-                table,
-                "--key",
-                json.dumps(
-                    {"PK": {"S": pk}, "SK": {"S": sk}},
-                    separators=(",", ":"),
-                ),
-                "--consistent-read",
-            ]
-        )
-        item = response.get("Item")
-        return item if isinstance(item, dict) else {}
-
     budget_pk = _budget_pk(ledger_id)
-    reservation = get(budget_pk, f"RESERVATION#{task_id}")
-    state = get(_state_pk(task_id), "STATE")
-    ledger = get(budget_pk, "LEDGER")
+    reservation = _get_dynamodb_item(table, budget_pk, f"RESERVATION#{task_id}")
+    state = _get_dynamodb_item(table, _state_pk(task_id), "STATE")
+    ledger = _get_dynamodb_item(table, budget_pk, "LEDGER")
     expected_strings = {
         "task_id": task_id,
         "workflow_run_id": run_id,
@@ -728,6 +729,47 @@ def _dispatch_already_committed(
         and ledger.get("hard_stop_microusd") == {"N": str(hard_stop_microusd)}
         and ledger.get("maximum_dispatches") == {"N": str(maximum_dispatches)}
     )
+
+
+def _usage_already_committed(
+    *,
+    table: str,
+    task_id: str,
+    ledger_id: str,
+    role: str,
+    provider_family: str,
+    model_id: str,
+    input_tokens: int,
+    output_tokens: int,
+    total_tokens: int,
+) -> bool:
+    budget_pk = _budget_pk(ledger_id)
+    usage = _get_dynamodb_item(table, budget_pk, f"USAGE#{task_id}#{role}")
+    reservation = _get_dynamodb_item(table, budget_pk, f"RESERVATION#{task_id}")
+    state = _get_dynamodb_item(table, _state_pk(task_id), "STATE")
+    ledger = _get_dynamodb_item(table, budget_pk, "LEDGER")
+    expected_usage = {
+        "task_id": {"S": task_id},
+        "role": {"S": role},
+        "provider_family": {"S": provider_family},
+        "model_id": {"S": model_id},
+        "input_tokens": {"N": str(input_tokens)},
+        "output_tokens": {"N": str(output_tokens)},
+        "total_tokens": {"N": str(total_tokens)},
+    }
+    if any(usage.get(key) != value for key, value in expected_usage.items()):
+        return False
+    if not reservation or state.get("state") != {"S": "PILOT_PLANNING"}:
+        return False
+    try:
+        return (
+            int(ledger["usage_record_count"]["N"]) >= 1
+            and int(ledger["actual_input_tokens"]["N"]) >= input_tokens
+            and int(ledger["actual_output_tokens"]["N"]) >= output_tokens
+            and int(ledger["actual_total_tokens"]["N"]) >= total_tokens
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def init_state(
@@ -964,16 +1006,34 @@ def record_provider_usage(
         path = Path(tmp) / "provider-usage.json"
         path.write_text(json.dumps(transact), encoding="utf-8")
         token_source = f"{budget_pk}:{task_id}:{role}:{total_tokens}"
-        _aws_json(
-            [
-                "dynamodb",
-                "transact-write-items",
-                "--transact-items",
-                f"file://{path}",
-                "--client-request-token",
-                f"usage-{hashlib.sha256(token_source.encode()).hexdigest()[:29]}",
-            ]
-        )
+        try:
+            _aws_json(
+                [
+                    "dynamodb",
+                    "transact-write-items",
+                    "--transact-items",
+                    f"file://{path}",
+                    "--client-request-token",
+                    f"usage-{hashlib.sha256(token_source.encode()).hexdigest()[:29]}",
+                ]
+            )
+        except PilotRuntimeError as exc:
+            try:
+                committed = _usage_already_committed(
+                    table=table,
+                    task_id=task_id,
+                    ledger_id=ledger_id,
+                    role=role,
+                    provider_family=usage["provider_family"],
+                    model_id=usage["model_id"],
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    total_tokens=total_tokens,
+                )
+            except PilotRuntimeError:
+                raise exc
+            if not committed:
+                raise
 
 
 def verify_budget_controls(

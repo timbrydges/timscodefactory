@@ -264,6 +264,88 @@ def test_provider_usage_is_validated_and_persisted_atomically():
     assert record["model_id"]["S"] == "gpt-5.6-sol"
 
 
+def test_provider_usage_retry_accepts_only_matching_committed_record():
+    policy = json.loads(
+        (ROOT / "config/github/pilot-repo/provider-policy.json").read_text(encoding="utf-8")
+    )
+    provider = policy["providers"]["planner"]
+    original = runtime._aws_json
+
+    def existing_usage(arguments, *, timeout=60):
+        if arguments[1] == "transact-write-items":
+            raise runtime.PilotRuntimeError("idempotent request parameters changed")
+        key = json.loads(arguments[arguments.index("--key") + 1])
+        sk = key["SK"]["S"]
+        if sk.startswith("USAGE#"):
+            item = {
+                "task_id": {"S": "pilot-123-1"},
+                "role": {"S": "planner"},
+                "provider_family": {"S": provider["provider_family"]},
+                "model_id": {"S": provider["model_id"]},
+                "input_tokens": {"N": "10"},
+                "output_tokens": {"N": "5"},
+                "total_tokens": {"N": "15"},
+            }
+        elif sk.startswith("RESERVATION#"):
+            item = {"task_id": {"S": "pilot-123-1"}}
+        elif sk == "STATE":
+            item = {"state": {"S": "PILOT_PLANNING"}}
+        else:
+            item = {
+                "usage_record_count": {"N": "1"},
+                "actual_input_tokens": {"N": "10"},
+                "actual_output_tokens": {"N": "5"},
+                "actual_total_tokens": {"N": "15"},
+            }
+        return {"Item": item}
+
+    runtime._aws_json = existing_usage
+    try:
+        with tempfile.TemporaryDirectory() as raw:
+            usage_path = Path(raw) / "usage.json"
+            usage_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "role": "planner",
+                        "provider_family": provider["provider_family"],
+                        "model_id": provider["model_id"],
+                        "input_tokens": 10,
+                        "output_tokens": 5,
+                        "total_tokens": 15,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runtime.record_provider_usage(
+                table="factory-state",
+                task_id="pilot-123-1",
+                ledger_id="tims-factory-pilot-001",
+                usage_path=usage_path,
+                providers=policy["providers"],
+            )
+            usage_path.write_text(
+                usage_path.read_text(encoding="utf-8").replace(
+                    '"output_tokens": 5', '"output_tokens": 6'
+                ).replace('"total_tokens": 15', '"total_tokens": 16'),
+                encoding="utf-8",
+            )
+            try:
+                runtime.record_provider_usage(
+                    table="factory-state",
+                    task_id="pilot-123-1",
+                    ledger_id="tims-factory-pilot-001",
+                    usage_path=usage_path,
+                    providers=policy["providers"],
+                )
+            except runtime.PilotRuntimeError:
+                pass
+            else:
+                raise AssertionError("conflicting provider usage was accepted")
+    finally:
+        runtime._aws_json = original
+
+
 def test_provider_usage_rejects_missing_or_inconsistent_counts():
     malformed = [
         {},
