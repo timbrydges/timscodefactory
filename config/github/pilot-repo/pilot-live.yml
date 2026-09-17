@@ -2,6 +2,19 @@ name: pilot-live
 
 on:
   workflow_dispatch:
+    inputs:
+      recovery_pr:
+        description: Existing inspected PR to resume without new model inference
+        required: false
+        type: string
+      recovery_head:
+        description: Exact Inspector-approved Builder commit
+        required: false
+        type: string
+      recovery_task_id:
+        description: Existing authoritative task ID
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -18,6 +31,7 @@ env:
 
 jobs:
   preflight:
+    if: ${{ inputs.recovery_pr == '' }}
     permissions:
       actions: read
       contents: read
@@ -421,7 +435,10 @@ jobs:
           PR: ${{ needs.builder-publish.outputs.pr_number }}
         run: |
           set -euo pipefail
-          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required --watch --interval 5
+          # Rulesets are authoritative, but gh CLI's --required lookup only
+          # consults classic branch protection. Wait for every reported check;
+          # the active ruleset independently enforces the required contexts.
+          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --watch --interval 5
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -503,6 +520,101 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-evidence-${{ needs.preflight.outputs.task_id }}
+          path: ${{ runner.temp }}/release-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+
+  recovery:
+    if: ${{ inputs.recovery_pr != '' }}
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+      pull-requests: write
+    name: controller / resume inspected release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Validate exact-head recovery inputs and merge protected PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.recovery_pr }}
+          HEAD: ${{ inputs.recovery_head }}
+          TASK_ID: ${{ inputs.recovery_task_id }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$EXPECTED_OWNER"
+          test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]]
+          [[ "$HEAD" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TASK_ID" =~ ^pilot-[0-9]+-[0-9]+$ ]]
+          test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)" = "OPEN"
+          test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)" = "$HEAD"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" > "$RUNNER_TEMP/reviews.json"
+          jq -e --arg head "$HEAD" '
+            any(.[];
+              .state == "APPROVED" and
+              .commit_id == $head and
+              .user.login == "tims-factory-inspector[bot]")
+          ' "$RUNNER_TEMP/reviews.json"
+          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --watch --interval 5
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: source
+        name: Bind merged release tree to exact inspected Builder tree
+        shell: bash
+        env:
+          INSPECTED_HEAD: ${{ inputs.recovery_head }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$INSPECTED_HEAD"
+          test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")" = "$(git rev-parse "HEAD^{tree}")"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Re-run deterministic release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q src
+          python -m unittest discover -s tests -v
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: pilot-recovery-${{ github.run_id }}
+      - name: Advance state, publish immutable artifact, and prove exact-version recovery
+        shell: bash
+        env:
+          TASK_ID: ${{ inputs.recovery_task_id }}
+          STATE_TABLE: ${{ vars.FACTORY_STATE_TABLE }}
+          RELEASE_BUCKET: ${{ vars.FACTORY_RELEASE_BUCKET }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+          PR: ${{ inputs.recovery_pr }}
+          HEAD: ${{ inputs.recovery_head }}
+        run: |
+          set -euo pipefail
+          python .factory/pilot_runtime.py transition-state \
+            --table "$STATE_TABLE" \
+            --task-id "$TASK_ID" \
+            --expected-state PILOT_INSPECTING \
+            --next-state PILOT_RELEASE_READY \
+            --expected-version 2 \
+            --details-json "{\"builder_pr\":${PR},\"inspected_head\":\"${HEAD}\"}"
+          python .factory/pilot_runtime.py release \
+            --table "$STATE_TABLE" \
+            --bucket "$RELEASE_BUCKET" \
+            --task-id "$TASK_ID" \
+            --source-commit "$SOURCE_COMMIT" \
+            --evidence "$RUNNER_TEMP/release-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-evidence-${{ inputs.recovery_task_id }}
           path: ${{ runner.temp }}/release-evidence.json
           if-no-files-found: error
           retention-days: 90
