@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "private_project_repository_bootstrap",
+  "conclusion": "success",
+  "contract_id": "bonus-library-importer-001",
+  "owner_identity": "tim_brydges",
+  "authorized_on": "2026-09-17",
+  "repository": "timbrydges/bonus-library",
+  "repository_id": 1375052827,
+  "visibility": "private",
+  "default_branch": "main",
+  "initial_main_commit": "9ab6c84ff19ede44182966274a8ecc95148bb38f",
+  "ruleset_id": 23624021,
+  "ruleset_name": "bonus-library-main-protected",
+  "ruleset_enforcement": "active",
+  "owner_bypass_actor_id": 214414801,
+  "owner_bypass_mode": "always",
+  "default_workflow_permissions": "read",
+  "actions_can_approve_pull_requests": false,
+  "merge_methods": {
+    "squash": true,
+    "merge_commit": false,
+    "rebase": false
+  },
+  "repository_features": {
+    "issues": false,
+    "projects": false,
+    "wiki": false
+  },
+  "verified_controls": [
+    "private_visibility",
+    "immutable_repository_id",
+    "main_branch_protected",
+    "pull_request_required",
+    "one_independent_approval_required",
+    "last_push_approval_required",
+    "review_threads_resolved",
+    "force_push_blocked",
+    "branch_deletion_blocked",
+    "linear_history_required",
+    "squash_only_merge",
+    "read_only_default_github_token",
+    "actions_cannot_approve_pull_requests",
+    "tim_owner_bypass_preserved"
+  ],
+  "not_created_or_activated": [
+    "project_infrastructure",
+    "project_operational_identity",
+    "project_oidc_role",
+    "provider_calls",
+    "implementation",
+    "release"
+  ],
+  "next_owner_decision": "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC"
+}

@@ -30,7 +30,7 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowed, ["contract_validation", "architecture_dry_run"])
         self.assertEqual(
             self.contract["owner_decision_required"]["decision"],
-            "AUTHORIZE_PRIVATE_REPOSITORY_CREATION",
+            "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC",
         )
 
     def test_owner_and_budget_bounds_are_exact(self):
@@ -42,6 +42,7 @@ class ProjectOperatingContractTests(unittest.TestCase):
 
     def test_private_single_item_boundary_is_explicit(self):
         self.assertEqual(self.contract["repository"]["visibility"], "private")
+        self.assertEqual(self.contract["repository"]["current_status"], "CREATED_LOCKED")
         self.assertEqual(
             self.contract["feature_slice"]["name"], "private_single_bonus_ingestion"
         )
@@ -55,6 +56,8 @@ class ProjectOperatingContractTests(unittest.TestCase):
         accounted = set(activation["verified_gates"]) | set(activation["pending_gates"])
         self.assertEqual(accounted, set(activation["required_gates"]))
         self.assertNotIn("provider_budget_controls_verified", activation["pending_gates"])
+        self.assertNotIn("private_repository_controls_verified", activation["pending_gates"])
+        self.assertIn("private_repository_controls_verified", activation["verified_gates"])
 
     def test_acceptance_ids_are_unique_and_complete(self):
         acceptance = self.contract["acceptance_tests"]
