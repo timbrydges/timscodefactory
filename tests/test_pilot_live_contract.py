@@ -72,8 +72,9 @@ def test_live_workflow_supports_ruleset_aware_exact_head_recovery():
     assert "recovery_pr:" in workflow
     assert "recovery_head:" in workflow
     assert "recovery_task_id:" in workflow
-    assert "gh pr checks \"$PR\" --repo \"$GITHUB_REPOSITORY\" --watch --interval 5" in workflow
-    assert "gh pr checks \"$PR\" --repo \"$GITHUB_REPOSITORY\" --required" not in workflow
+    assert "gh pr checks" not in workflow
+    assert 'until gh pr merge "$PR"' in workflow
+    assert "Protected merge requirements did not pass before the deadline" in workflow
     assert '.commit_id == $head' in workflow
     assert '.user.login == "tims-factory-inspector[bot]"' in workflow
     assert 'test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")"' in workflow

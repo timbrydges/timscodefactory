@@ -435,11 +435,17 @@ jobs:
           PR: ${{ needs.builder-publish.outputs.pr_number }}
         run: |
           set -euo pipefail
-          # Rulesets are authoritative, but gh CLI's --required lookup only
-          # consults classic branch protection. Wait for every reported check;
-          # the active ruleset independently enforces the required contexts.
-          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --watch --interval 5
-          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+          # Let the active ruleset make the authoritative decision. gh CLI's
+          # check listing cannot distinguish superseded reruns and its
+          # --required lookup only consults classic branch protection.
+          deadline=$((SECONDS + 600))
+          until gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch; do
+            if (( SECONDS >= deadline )); then
+              echo "Protected merge requirements did not pass before the deadline" >&2
+              exit 1
+            fi
+            sleep 5
+          done
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
@@ -561,8 +567,14 @@ jobs:
               .commit_id == $head and
               .user.login == "tims-factory-inspector[bot]")
           ' "$RUNNER_TEMP/reviews.json"
-          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --watch --interval 5
-          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+          deadline=$((SECONDS + 600))
+          until gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch; do
+            if (( SECONDS >= deadline )); then
+              echo "Protected merge requirements did not pass before the deadline" >&2
+              exit 1
+            fi
+            sleep 5
+          done
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
