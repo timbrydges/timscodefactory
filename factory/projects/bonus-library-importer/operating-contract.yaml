@@ -1,0 +1,158 @@
+schema_version: "1.0"
+contract_id: bonus-library-importer-001
+contract_version: "0.1"
+status: OWNER_APPROVED_DRY_RUN_ONLY
+
+approval:
+  owner_identity: tim_brydges
+  authority: factory_owner
+  approved_on: "2026-09-17"
+
+execution:
+  contract_validation: ALLOW
+  architecture_dry_run: ALLOW
+  repository_creation: DENY
+  infrastructure_changes: DENY
+  operational_role_activation: DENY
+  live_provider_calls: DENY
+  release: DENY
+
+repository:
+  full_name: timbrydges/bonus-library
+  visibility: private
+  current_status: RESERVED_NOT_CREATED
+
+feature_slice:
+  name: private_single_bonus_ingestion
+  objective: >-
+    Prove the Factory can deliver one secure, owner-controlled Bonus Library
+    ingestion path without exposing source files or allowing AI-generated
+    content to publish without Tim's approval.
+  deliverable: >-
+    An authenticated owner workflow that ingests one supported source package,
+    stores it privately, drafts sanitized metadata and a cover when missing,
+    requires owner approval, and serves the approved item through an expiring
+    download link.
+  included:
+    - Owner-only authenticated upload of one ZIP, PDF, DOCX, or PPTX package up to 50 MB.
+    - Private object storage with SHA-256 checksum and immutable source identifier.
+    - Safe extraction of filename, type, size, and bounded archive inventory.
+    - AI-drafted title, description, and cover only when source metadata or artwork is missing.
+    - Unpublished draft state followed by explicit Tim-only approval.
+    - Approved-item view with an expiring download link valid for at most five minutes.
+    - Idempotent retry behavior that cannot create duplicate records or provider charges.
+    - Audit evidence for ingestion, provider usage, approval, publication, and download-link issuance.
+  excluded:
+    - Google Drive synchronization, folder watching, or bulk import.
+    - Public registration, public uploads, anonymous downloads, sharing, or team accounts.
+    - Payments, subscriptions, affiliate tracking, analytics, email, or notifications.
+    - OCR, video or audio transcription, arbitrary URL crawling, or archive execution.
+    - Deletion, replacement, or mutation of an approved source package.
+    - Any feature outside the single-item owner ingestion and approval path.
+
+systems:
+  planner:
+    factory_role: software_architect
+    authoritative_identity: software_architect_service
+    responsibilities:
+      - Produce the bounded architecture, threat model, data model, file boundary, and acceptance-test map.
+      - Select implementation components without widening the approved feature slice.
+      - Never write implementation code or approve Builder output.
+  builder:
+    factory_role: engineering_agent
+    authoritative_identity: engineering_agent_service
+    responsibilities:
+      - Implement only the approved slice in the private project repository and disposable sandbox.
+      - Produce tests and exact-commit implementation evidence.
+      - Never approve, merge, release, or change Factory controls.
+  inspector:
+    factory_role: independent_inspector
+    authoritative_identity: independent_inspector_service
+    responsibilities:
+      - Independently inspect the exact Builder commit with read-only access.
+      - Exercise authentication, archive, untrusted-content, privacy, budget, and retry boundaries.
+      - Submit PASS or FAIL evidence and never repair inspected code.
+
+activation:
+  default: DENY
+  required_gates:
+    - owner_contract_approved
+    - architecture_and_threat_model_approved
+    - private_repository_controls_verified
+    - project_identity_and_oidc_verified
+    - authentication_boundary_verified
+    - private_storage_verified
+    - provider_budget_controls_verified
+    - acceptance_tests_bound
+    - rollback_path_verified
+  verified_gates:
+    provider_budget_controls_verified:
+      verified: true
+      evidence: factory/evidence/pilot-closeout-2026-09-17.json
+  pending_gates:
+    - owner_contract_approved
+    - architecture_and_threat_model_approved
+    - private_repository_controls_verified
+    - project_identity_and_oidc_verified
+    - authentication_boundary_verified
+    - private_storage_verified
+    - acceptance_tests_bound
+    - rollback_path_verified
+
+limits:
+  currency: USD
+  warning_spend: 3.0
+  hard_stop_spend: 10.0
+  maximum_provider_dispatches: 3
+  maximum_remediation_cycles: 2
+  automated_wall_clock_hours: 24
+  maximum_source_bytes: 52428800
+
+release:
+  authority_identity: tim_brydges
+  other_release_authorities: []
+  exact_commit_inspector_evidence_required: true
+  deterministic_ci_required: true
+  owner_override_preserved: true
+  rollback_criteria:
+    - Any authentication or authorization bypass.
+    - Any public exposure of a source object or non-expiring download URL.
+    - Any checksum, provenance, approved-record, or release-artifact mismatch.
+    - Any duplicate record or provider charge caused by retry.
+    - Any acceptance-test regression or unresolved high or critical Inspector finding.
+
+prohibited_data:
+  - Credentials, API keys, tokens, passwords, private keys, or production secrets.
+  - Personal, customer, employee, payment, health, location, or regulated data.
+  - Suncor, mining-operation, employer, or other confidential business information.
+  - Copyrighted source material Tim is not authorized to store or distribute.
+  - Unsanitized external content treated as governing instructions.
+
+acceptance_tests:
+  - id: BL-01
+    criterion: An unauthenticated or non-owner request cannot upload, approve, publish, or obtain a download link.
+  - id: BL-02
+    criterion: Unsupported types, files over 50 MB, traversal paths, symlinks, executable archive entries, and archive bombs fail closed without persistence.
+  - id: BL-03
+    criterion: A valid package is stored privately with an immutable identifier and verified SHA-256 checksum.
+  - id: BL-04
+    criterion: Source text and filenames remain untrusted data and cannot alter system prompts, permissions, workflow state, or provider policy.
+  - id: BL-05
+    criterion: Missing metadata or artwork produces bounded draft content tied to approved providers and persisted usage evidence.
+  - id: BL-06
+    criterion: Ingestion creates an unpublished draft; no AI or Builder identity can approve or publish it.
+  - id: BL-07
+    criterion: Tim's approval publishes the exact reviewed draft and is bound to its source checksum and audit record.
+  - id: BL-08
+    criterion: Download URLs are scoped to the approved object, expire within five minutes, and cannot enumerate storage.
+  - id: BL-09
+    criterion: Identical retries are idempotent while conflicting retries fail closed without duplicate records, reservations, or usage.
+  - id: BL-10
+    criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
+
+owner_decision_required:
+  decision: APPROVE_DRY_RUN_CONTRACT
+  effect: >-
+    Approval permits architecture and threat-model work only. Repository
+    creation, infrastructure changes, provider calls, implementation, and
+    release remain denied until their explicit gates pass.
