@@ -38,10 +38,11 @@ class ProjectArchitectureDryRunTests(unittest.TestCase):
         self.assertIn("architecture_and_threat_model_approved", DRY_RUN["remaining_gates"])
         self.assertIn("implementation", DRY_RUN["owner_decision_required"]["effect"])
 
-    def test_contract_records_owner_approval_and_keeps_activation_denials(self) -> None:
+    def test_contract_records_owner_approval_and_keeps_high_risk_actions_denied(self) -> None:
         execution = CONTRACT["execution"]
+        self.assertEqual(execution["repository_creation"], "ALLOW")
+        self.assertEqual(execution["implementation"], "ALLOW")
         for action in (
-            "repository_creation",
             "infrastructure_changes",
             "operational_role_activation",
             "live_provider_calls",

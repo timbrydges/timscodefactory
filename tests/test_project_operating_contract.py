@@ -22,15 +22,15 @@ class ProjectOperatingContractTests(unittest.TestCase):
     def test_contract_validates(self):
         jsonschema.Draft202012Validator(self.schema).validate(self.contract)
 
-    def test_owner_approved_contract_allows_only_architecture_dry_run(self):
-        self.assertEqual(self.contract["status"], "OWNER_APPROVED_DRY_RUN_ONLY")
-        self.assertEqual(self.contract["approval"]["approved_on"], "2026-09-17")
+    def test_owner_approved_contract_allows_bounded_implementation_only(self):
+        self.assertEqual(self.contract["status"], "OWNER_APPROVED_IMPLEMENTATION")
+        self.assertEqual(self.contract["approval"]["approved_on"], "2026-09-18")
         self.assertEqual(self.contract["activation"]["default"], "DENY")
         allowed = [key for key, value in self.contract["execution"].items() if value == "ALLOW"]
-        self.assertEqual(allowed, ["contract_validation", "architecture_dry_run"])
+        self.assertEqual(allowed, ["contract_validation", "architecture_dry_run", "repository_creation", "implementation"])
         self.assertEqual(
             self.contract["owner_decision_required"]["decision"],
-            "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM",
+            "AUTHORIZE_BOUNDED_RELEASE",
         )
 
     def test_owner_and_budget_bounds_are_exact(self):
@@ -42,7 +42,7 @@ class ProjectOperatingContractTests(unittest.TestCase):
 
     def test_private_single_item_boundary_is_explicit(self):
         self.assertEqual(self.contract["repository"]["visibility"], "private")
-        self.assertEqual(self.contract["repository"]["current_status"], "CREATED_LOCKED")
+        self.assertEqual(self.contract["repository"]["current_status"], "ACTIVE")
         self.assertEqual(
             self.contract["feature_slice"]["name"], "private_single_bonus_ingestion"
         )
@@ -60,6 +60,9 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertIn("private_repository_controls_verified", activation["verified_gates"])
         self.assertNotIn("project_identity_and_oidc_verified", activation["pending_gates"])
         self.assertIn("project_identity_and_oidc_verified", activation["verified_gates"])
+        self.assertIn("authentication_boundary_verified", activation["verified_gates"])
+        self.assertIn("private_storage_verified", activation["verified_gates"])
+        self.assertEqual(activation["pending_gates"], ["acceptance_tests_bound", "rollback_path_verified"])
 
     def test_acceptance_ids_are_unique_and_complete(self):
         acceptance = self.contract["acceptance_tests"]

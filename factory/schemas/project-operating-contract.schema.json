@@ -13,7 +13,7 @@
     "schema_version": {"const": "1.0"},
     "contract_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
     "contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
-    "status": {"enum": ["DRAFT_OWNER_REVIEW", "OWNER_APPROVED_DRY_RUN_ONLY", "OWNER_APPROVED_LIVE", "RETIRED"]},
+    "status": {"enum": ["DRAFT_OWNER_REVIEW", "OWNER_APPROVED_DRY_RUN_ONLY", "OWNER_APPROVED_IMPLEMENTATION", "OWNER_APPROVED_LIVE", "RETIRED"]},
     "approval": {
       "type": "object", "additionalProperties": false,
       "required": ["owner_identity", "authority", "approved_on"],
@@ -25,11 +25,12 @@
     },
     "execution": {
       "type": "object", "additionalProperties": false,
-      "required": ["contract_validation", "architecture_dry_run", "repository_creation", "infrastructure_changes", "operational_role_activation", "live_provider_calls", "release"],
+      "required": ["contract_validation", "architecture_dry_run", "repository_creation", "implementation", "infrastructure_changes", "operational_role_activation", "live_provider_calls", "release"],
       "properties": {
         "contract_validation": {"enum": ["ALLOW", "DENY"]},
         "architecture_dry_run": {"enum": ["ALLOW", "DENY"]},
         "repository_creation": {"enum": ["ALLOW", "DENY"]},
+        "implementation": {"enum": ["ALLOW", "DENY"]},
         "infrastructure_changes": {"enum": ["ALLOW", "DENY"]},
         "operational_role_activation": {"enum": ["ALLOW", "DENY"]},
         "live_provider_calls": {"enum": ["ALLOW", "DENY"]},
@@ -106,7 +107,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["decision", "effect"],
       "properties": {
-        "decision": {"enum": ["APPROVE_DRY_RUN_CONTRACT", "AUTHORIZE_PRIVATE_REPOSITORY_CREATION", "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC", "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM"]},
+        "decision": {"enum": ["APPROVE_DRY_RUN_CONTRACT", "AUTHORIZE_PRIVATE_REPOSITORY_CREATION", "AUTHORIZE_PROJECT_IDENTITY_AND_OIDC", "SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM", "AUTHORIZE_BOUNDED_RELEASE"]},
         "effect": {"type": "string", "minLength": 20}
       }
     }

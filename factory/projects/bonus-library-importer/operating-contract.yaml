@@ -1,17 +1,18 @@
 schema_version: "1.0"
 contract_id: bonus-library-importer-001
-contract_version: "0.1"
-status: OWNER_APPROVED_DRY_RUN_ONLY
+contract_version: "0.2"
+status: OWNER_APPROVED_IMPLEMENTATION
 
 approval:
   owner_identity: tim_brydges
   authority: factory_owner
-  approved_on: "2026-09-17"
+  approved_on: "2026-09-18"
 
 execution:
   contract_validation: ALLOW
   architecture_dry_run: ALLOW
-  repository_creation: DENY
+  repository_creation: ALLOW
+  implementation: ALLOW
   infrastructure_changes: DENY
   operational_role_activation: DENY
   live_provider_calls: DENY
@@ -20,7 +21,7 @@ execution:
 repository:
   full_name: timbrydges/bonus-library
   visibility: private
-  current_status: CREATED_LOCKED
+  current_status: ACTIVE
 
 feature_slice:
   name: private_single_bonus_ingestion
@@ -101,9 +102,13 @@ activation:
     provider_budget_controls_verified:
       verified: true
       evidence: factory/evidence/pilot-closeout-2026-09-17.json
+    authentication_boundary_verified:
+      verified: true
+      evidence: factory/evidence/bonus-library-live-slice-verification-2026-09-18.json
+    private_storage_verified:
+      verified: true
+      evidence: factory/evidence/bonus-library-live-slice-verification-2026-09-18.json
   pending_gates:
-    - authentication_boundary_verified
-    - private_storage_verified
     - acceptance_tests_bound
     - rollback_path_verified
 
@@ -159,9 +164,9 @@ acceptance_tests:
     criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
 
 owner_decision_required:
-  decision: SELECT_AUTHENTICATION_AND_STORAGE_PLATFORM
+  decision: AUTHORIZE_BOUNDED_RELEASE
   effect: >-
-    The private repository and powerless project OIDC identity are verified.
-    The authentication and private-storage platform must be selected and its
-    bounded plan approved before any related infrastructure or implementation;
-    provider calls and release remain denied until their explicit gates pass.
+    Supabase authentication and private storage, the Vercel production runtime,
+    and the bounded AWS description path are selected and verified for implementation.
+    Release and any further live provider activation remain denied until acceptance
+    evidence and the rollback exercise pass and Tim gives exact-version authorization.
