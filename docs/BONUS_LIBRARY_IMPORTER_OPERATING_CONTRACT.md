@@ -2,9 +2,11 @@
 
 ## Decision state
 
-Tim approved this contract for dry-run architecture work on 2026-09-17.
-Contract validation and architecture dry runs are allowed. Repository creation,
-infrastructure, provider calls, implementation, and release remain denied.
+Tim approved bounded implementation on 2026-09-18 after the owner-only live slice
+successfully exercised Supabase authentication and private storage, Vercel production,
+and the AWS-backed source-cited description path. Repository work and implementation
+are allowed. Infrastructure apply, operational activation, new provider calls, and
+release remain denied until their exact gates and owner approvals pass.
 
 ## Bounded first slice
 
@@ -34,6 +36,10 @@ part of this slice.
 - Identical retries are idempotent; conflicting retries fail closed.
 - Uploaded content cannot become governing instructions.
 - A source object cannot be exposed through a public or non-expiring URL.
+
+The verified live-slice evidence is
+`factory/evidence/bonus-library-live-slice-verification-2026-09-18.json`.
+Acceptance-test binding and a rollback exercise remain mandatory before release.
 
 The machine-readable authority is
 `factory/projects/bonus-library-importer/operating-contract.yaml`; validation is

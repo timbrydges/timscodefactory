@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "owner_live_slice_verification",
+  "conclusion": "success",
+  "contract_id": "bonus-library-importer-001",
+  "contract_version": "0.2",
+  "owner_identity": "tim_brydges",
+  "authorized_scope": "bounded_implementation_only",
+  "owner_instruction": "proceed",
+  "verified_on": "2026-09-18",
+  "repository": "timbrydges/bonus-library",
+  "application_commit": "8cce277c622431bf139b1287aff31b4c66ccbaed",
+  "production_deployment": "dpl_5i6gdAG5nNS1qquG1yyW1WRjAHiz",
+  "production_url": "https://bonus-library.vercel.app",
+  "selected_platforms": {
+    "runtime": "Vercel",
+    "authentication_and_private_storage": "Supabase",
+    "generation_and_budget_ledger": "AWS Bedrock and DynamoDB"
+  },
+  "owner_observed": [
+    "authenticated owner-only dashboard access",
+    "private immutable ZIP upload and checksum-bound draft",
+    "safe archive inspection and bundled artwork selection",
+    "source-backed description generation and citation review",
+    "manual use, save, and exact-version approval",
+    "no automatic publication"
+  ],
+  "verified_gates": [
+    "authentication_boundary_verified",
+    "private_storage_verified"
+  ],
+  "remaining_gates": [
+    "acceptance_tests_bound",
+    "rollback_path_verified"
+  ],
+  "explicitly_denied": [
+    "infrastructure_apply",
+    "new_live_provider_calls",
+    "release"
+  ]
+}
