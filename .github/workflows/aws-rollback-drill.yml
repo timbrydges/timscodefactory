@@ -1,10 +1,6 @@
 name: aws-rollback-drill
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/aws-rollback-drill.yml"
   workflow_dispatch:
 
 permissions:
