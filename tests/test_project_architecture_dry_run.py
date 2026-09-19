@@ -38,17 +38,18 @@ class ProjectArchitectureDryRunTests(unittest.TestCase):
         self.assertIn("architecture_and_threat_model_approved", DRY_RUN["remaining_gates"])
         self.assertIn("implementation", DRY_RUN["owner_decision_required"]["effect"])
 
-    def test_contract_records_owner_approval_and_keeps_high_risk_actions_denied(self) -> None:
+    def test_contract_records_exact_release_authorization_and_keeps_unapproved_actions_denied(self) -> None:
         execution = CONTRACT["execution"]
         self.assertEqual(execution["repository_creation"], "ALLOW")
         self.assertEqual(execution["implementation"], "ALLOW")
-        for action in (
-            "infrastructure_changes",
-            "operational_role_activation",
-            "live_provider_calls",
-            "release",
-        ):
+        self.assertEqual(execution["live_provider_calls"], "ALLOW")
+        self.assertEqual(execution["release"], "ALLOW")
+        for action in ("infrastructure_changes", "operational_role_activation"):
             self.assertEqual(execution[action], "DENY")
+        self.assertEqual(
+            CONTRACT["release"]["authorized_version"]["commit"],
+            "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+        )
         self.assertIn(
             "architecture_and_threat_model_approved",
             CONTRACT["activation"]["verified_gates"],

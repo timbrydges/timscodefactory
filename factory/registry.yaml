@@ -77,7 +77,7 @@ projects:
       operating_contract: projects/bonus-library-importer/operating-contract.yaml
       architecture_dry_run: projects/bonus-library-importer/planner-dry-run.yaml
       architecture_schema: schemas/project-architecture-dry-run.schema.json
-      status: OWNER_APPROVED_IMPLEMENTATION
+      status: OWNER_APPROVED_LIVE
 
 invariants:
   dispatch_authorities: [factory_controller, factory_owner]

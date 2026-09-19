@@ -2,17 +2,17 @@
 
 ## Decision state
 
-Tim approved bounded implementation on 2026-09-18 after the owner-only live slice
-successfully exercised Supabase authentication and private storage, Vercel production,
-and the AWS-backed source-cited description path. Repository work and implementation
-are allowed. Infrastructure apply, operational activation, new provider calls, and
-release remain denied until their exact gates and owner approvals pass.
+Tim authorized the exact ZIP-only release on 2026-09-19 after all acceptance and
+rollback gates passed. The authorization is bound to Bonus Library commit
+`236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7` and current READY production deployment
+`dpl_GS9tWc8spnisPi64biBi4fgk9fMM`. Bounded live provider calls and release are
+allowed. Infrastructure changes and Factory operational-role activation remain denied.
 
 ## Bounded first slice
 
 Project #2 will prove one complete, private ingestion path:
 
-1. Tim authenticates and uploads one supported package up to 50 MB.
+1. Tim authenticates and uploads one ZIP package up to 50 MB.
 2. The source is stored privately with an immutable identifier and checksum.
 3. The system extracts bounded metadata and treats every source value as
    untrusted data.
@@ -21,9 +21,9 @@ Project #2 will prove one complete, private ingestion path:
 5. The item remains unpublished until Tim approves it.
 6. An approved item receives a download link that expires within five minutes.
 
-Google Drive sync, folder watching, bulk import, public users, payments,
-analytics, notifications, arbitrary URL crawling, and source deletion are not
-part of this slice.
+Direct PDF, DOCX, and PPTX inputs remain deferred. Google Drive sync, folder
+watching, bulk import, public users, payments, analytics, notifications,
+arbitrary URL crawling, and source deletion are not part of this slice.
 
 ## Non-negotiable controls
 
@@ -37,9 +37,10 @@ part of this slice.
 - Uploaded content cannot become governing instructions.
 - A source object cannot be exposed through a public or non-expiring URL.
 
-The verified live-slice evidence is
-`factory/evidence/bonus-library-live-slice-verification-2026-09-18.json`.
-Acceptance-test binding and a rollback exercise remain mandatory before release.
+The exact-version authorization is recorded in
+`factory/evidence/bonus-library-release-authorization-2026-09-19.json`; acceptance
+and rollback closeout is recorded in
+`factory/evidence/bonus-library-acceptance-closeout-2026-09-19.json`.
 
 The machine-readable authority is
 `factory/projects/bonus-library-importer/operating-contract.yaml`; validation is

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -22,15 +23,27 @@ class ProjectOperatingContractTests(unittest.TestCase):
     def test_contract_validates(self):
         jsonschema.Draft202012Validator(self.schema).validate(self.contract)
 
-    def test_owner_approved_contract_allows_bounded_implementation_only(self):
-        self.assertEqual(self.contract["status"], "OWNER_APPROVED_IMPLEMENTATION")
-        self.assertEqual(self.contract["approval"]["approved_on"], "2026-09-18")
+    def test_owner_approved_contract_allows_only_the_bounded_live_slice(self):
+        self.assertEqual(self.contract["status"], "OWNER_APPROVED_LIVE")
+        self.assertEqual(self.contract["approval"]["approved_on"], "2026-09-19")
         self.assertEqual(self.contract["activation"]["default"], "DENY")
         allowed = [key for key, value in self.contract["execution"].items() if value == "ALLOW"]
-        self.assertEqual(allowed, ["contract_validation", "architecture_dry_run", "repository_creation", "implementation"])
+        self.assertEqual(
+            allowed,
+            [
+                "contract_validation",
+                "architecture_dry_run",
+                "repository_creation",
+                "implementation",
+                "live_provider_calls",
+                "release",
+            ],
+        )
+        self.assertEqual(self.contract["execution"]["infrastructure_changes"], "DENY")
+        self.assertEqual(self.contract["execution"]["operational_role_activation"], "DENY")
         self.assertEqual(
             self.contract["owner_decision_required"]["decision"],
-            "AUTHORIZE_BOUNDED_RELEASE",
+            "AUTHORIZE_SCOPE_EXPANSION",
         )
 
     def test_owner_and_budget_bounds_are_exact(self):
@@ -67,11 +80,37 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertEqual(activation["pending_gates"], [])
 
     def test_closeout_is_bound_to_the_accepted_zip_only_slice(self):
-        self.assertEqual(self.contract["contract_version"], "0.3")
+        self.assertEqual(self.contract["contract_version"], "0.4")
         included = " ".join(self.contract["feature_slice"]["included"])
         excluded = " ".join(self.contract["feature_slice"]["excluded"])
         self.assertIn("one ZIP package", included)
         self.assertIn("Direct PDF, DOCX, or PPTX package inputs", excluded)
+
+    def test_release_is_bound_to_the_exact_authorized_version(self):
+        authorized = self.contract["release"]["authorized_version"]
+        self.assertEqual(authorized["repository"], "timbrydges/bonus-library")
+        self.assertEqual(
+            authorized["commit"],
+            "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+        )
+        self.assertEqual(
+            authorized["deployment"],
+            "dpl_GS9tWc8spnisPi64biBi4fgk9fMM",
+        )
+        self.assertEqual(authorized["scope"], "zip_only")
+
+    def test_live_status_fails_closed_without_exact_version_binding(self):
+        contract = copy.deepcopy(self.contract)
+        del contract["release"]["authorized_version"]
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.Draft202012Validator(self.schema).validate(contract)
+
+    def test_live_status_cannot_authorize_infrastructure_or_factory_roles(self):
+        for action in ("infrastructure_changes", "operational_role_activation"):
+            contract = copy.deepcopy(self.contract)
+            contract["execution"][action] = "ALLOW"
+            with self.assertRaises(jsonschema.ValidationError):
+                jsonschema.Draft202012Validator(self.schema).validate(contract)
 
     def test_acceptance_ids_are_unique_and_complete(self):
         acceptance = self.contract["acceptance_tests"]
