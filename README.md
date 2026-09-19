@@ -41,3 +41,6 @@ owner exception rather than a clean contract pass because cumulative provider
 spend was not persisted across commissioning runs. The replacement controls
 are verified. New live projects may proceed only under their own owner-approved
 operating contracts.
+
+Bonus Library production operation and incident handling are documented in
+[`docs/BONUS_LIBRARY_OPERATIONS.md`](docs/BONUS_LIBRARY_OPERATIONS.md).
