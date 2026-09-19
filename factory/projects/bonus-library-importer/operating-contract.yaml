@@ -1,6 +1,6 @@
 schema_version: "1.0"
 contract_id: bonus-library-importer-001
-contract_version: "0.2"
+contract_version: "0.3"
 status: OWNER_APPROVED_IMPLEMENTATION
 
 approval:
@@ -35,7 +35,7 @@ feature_slice:
     requires owner approval, and serves the approved item through an expiring
     download link.
   included:
-    - Owner-only authenticated upload of one ZIP, PDF, DOCX, or PPTX package up to 50 MB.
+    - Owner-only authenticated upload of one ZIP package up to 50 MB.
     - Private object storage with SHA-256 checksum and immutable source identifier.
     - Safe extraction of filename, type, size, and bounded archive inventory.
     - AI-drafted title, description, and cover only when source metadata or artwork is missing.
@@ -48,6 +48,7 @@ feature_slice:
     - Public registration, public uploads, anonymous downloads, sharing, or team accounts.
     - Payments, subscriptions, affiliate tracking, analytics, email, or notifications.
     - OCR, video or audio transcription, arbitrary URL crawling, or archive execution.
+    - Direct PDF, DOCX, or PPTX package inputs; these remain deferred future scope.
     - Deletion, replacement, or mutation of an approved source package.
     - Any feature outside the single-item owner ingestion and approval path.
 
@@ -108,9 +109,13 @@ activation:
     private_storage_verified:
       verified: true
       evidence: factory/evidence/bonus-library-live-slice-verification-2026-09-18.json
-  pending_gates:
-    - acceptance_tests_bound
-    - rollback_path_verified
+    acceptance_tests_bound:
+      verified: true
+      evidence: factory/evidence/bonus-library-acceptance-closeout-2026-09-19.json
+    rollback_path_verified:
+      verified: true
+      evidence: factory/evidence/bonus-library-acceptance-closeout-2026-09-19.json
+  pending_gates: []
 
 limits:
   currency: USD

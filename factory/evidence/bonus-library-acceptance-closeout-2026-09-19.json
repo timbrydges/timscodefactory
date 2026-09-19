@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_zip_pilot_acceptance_closeout",
+  "conclusion": "success",
+  "contract_id": "bonus-library-importer-001",
+  "contract_version": "0.3",
+  "verified_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "accepted_scope": {
+    "package_type": "ZIP",
+    "maximum_source_bytes": 52428800,
+    "deferred_package_types": [
+      "PDF",
+      "DOCX",
+      "PPTX"
+    ]
+  },
+  "repository": {
+    "full_name": "timbrydges/bonus-library",
+    "acceptance_evidence_commit": "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+    "acceptance_evidence_path": "docs/ACCEPTANCE_STATUS.md",
+    "acceptance_evidence_blob": "8a3c400e2310194251db2678dcdf56436fe787ec",
+    "closeout_pull_request": 25
+  },
+  "acceptance_results": {
+    "BL-01": "live_verified",
+    "BL-02": "automated",
+    "BL-03": "automated",
+    "BL-04": "automated",
+    "BL-05": "live_verified",
+    "BL-06": "live_verified",
+    "BL-07": "live_verified",
+    "BL-08": "live_verified",
+    "BL-09": "automated",
+    "BL-10": "live_verified"
+  },
+  "rollback_exercise": {
+    "result": "success",
+    "rollback_deployment": "dpl_xEHKsjcnh5G15MKrEnfEy76pHVnh",
+    "rollback_commit": "025e4acda6b73e875c614174aa4c51d12866819b",
+    "checks": [
+      "owner session remained authenticated",
+      "dashboard rendered",
+      "private cover rendered through the authenticated blob path",
+      "private ZIP download started",
+      "deployment remained READY"
+    ],
+    "restored_deployment": "dpl_2qK8WcghB3X9FiqJRAtUB7fuEJFm",
+    "restored_commit": "5d220f9e519784bf5ca1ff0d4b91fb12ccf36eeb",
+    "restoration_checks": [
+      "deployment READY with production aliases",
+      "signed-in dashboard rendered",
+      "no runtime errors in the checked 30-minute window"
+    ]
+  },
+  "provider_preflight": {
+    "workflow_run_id": 35405069662,
+    "application_commit": "3d41caeb0e6063578d6c62df6846db2f4f5cca2e",
+    "result": "success",
+    "inference_performed": false,
+    "writes_performed": false
+  },
+  "verified_gates": [
+    "acceptance_tests_bound",
+    "rollback_path_verified"
+  ],
+  "remaining_gates": [],
+  "release_state": {
+    "authorized": false,
+    "reason": "Exact-version release remains reserved for a separate owner decision."
+  }
+}
