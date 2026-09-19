@@ -1,12 +1,12 @@
 schema_version: "1.0"
 contract_id: bonus-library-importer-001
-contract_version: "0.3"
-status: OWNER_APPROVED_IMPLEMENTATION
+contract_version: "0.4"
+status: OWNER_APPROVED_LIVE
 
 approval:
   owner_identity: tim_brydges
   authority: factory_owner
-  approved_on: "2026-09-18"
+  approved_on: "2026-09-19"
 
 execution:
   contract_validation: ALLOW
@@ -15,8 +15,8 @@ execution:
   implementation: ALLOW
   infrastructure_changes: DENY
   operational_role_activation: DENY
-  live_provider_calls: DENY
-  release: DENY
+  live_provider_calls: ALLOW
+  release: ALLOW
 
 repository:
   full_name: timbrydges/bonus-library
@@ -132,6 +132,13 @@ release:
   exact_commit_inspector_evidence_required: true
   deterministic_ci_required: true
   owner_override_preserved: true
+  authorized_version:
+    repository: timbrydges/bonus-library
+    commit: 236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7
+    deployment: dpl_GS9tWc8spnisPi64biBi4fgk9fMM
+    production_url: https://bonus-library.vercel.app
+    scope: zip_only
+    evidence: factory/evidence/bonus-library-release-authorization-2026-09-19.json
   rollback_criteria:
     - Any authentication or authorization bypass.
     - Any public exposure of a source object or non-expiring download URL.
@@ -169,9 +176,8 @@ acceptance_tests:
     criterion: The released exact version is reproducible, health-checked, and recoverable through the approved rollback path.
 
 owner_decision_required:
-  decision: AUTHORIZE_BOUNDED_RELEASE
+  decision: AUTHORIZE_SCOPE_EXPANSION
   effect: >-
-    Supabase authentication and private storage, the Vercel production runtime,
-    and the bounded AWS description path are selected and verified for implementation.
-    Release and any further live provider activation remain denied until acceptance
-    evidence and the rollback exercise pass and Tim gives exact-version authorization.
+    No further owner decision is required to operate the authorized ZIP-only release.
+    Any added package type, integration, infrastructure change, public access, or other
+    scope expansion requires a new contract version and Tim's explicit authorization.

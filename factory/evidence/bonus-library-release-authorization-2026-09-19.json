@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_exact_version_release_authorization",
+  "conclusion": "owner_authorized",
+  "contract_id": "bonus-library-importer-001",
+  "contract_version": "0.4",
+  "authorized_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "authorized",
+  "control_plane_base_commit": "6aa41d3b003187617014041054fc4f08ba4e31df",
+  "authorized_version": {
+    "repository": "timbrydges/bonus-library",
+    "commit": "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+    "deployment": "dpl_GS9tWc8spnisPi64biBi4fgk9fMM",
+    "production_url": "https://bonus-library.vercel.app",
+    "scope": "zip_only"
+  },
+  "authorization_basis": {
+    "all_required_gates_verified": true,
+    "pending_gates": [],
+    "acceptance_evidence": "factory/evidence/bonus-library-acceptance-closeout-2026-09-19.json",
+    "deployment_status": "READY",
+    "deployment_is_latest": true,
+    "deployment_is_current_production": true,
+    "observed_log_window": "last_30_minutes",
+    "observed_log_levels": {
+      "warning": 0,
+      "error": 0,
+      "fatal": 0
+    },
+    "observed_routes": {
+      "/": "307 authentication redirect",
+      "/login": "200"
+    }
+  },
+  "allowed": [
+    "release of the exact authorized commit and deployment",
+    "bounded live provider calls within the contract limits",
+    "continued implementation inside the authorized ZIP-only feature slice"
+  ],
+  "still_denied": [
+    "infrastructure changes",
+    "Factory operational role activation",
+    "direct PDF, DOCX, or PPTX package inputs",
+    "public access or any other unapproved scope expansion",
+    "release of any commit or deployment other than the authorized version"
+  ]
+}
