@@ -63,7 +63,11 @@
         "default": {"const": "DENY"},
         "required_gates": {"$ref": "#/$defs/nonemptyStrings"},
         "verified_gates": {"type": "object", "additionalProperties": {"$ref": "#/$defs/gateEvidence"}},
-        "pending_gates": {"$ref": "#/$defs/nonemptyStrings"}
+        "pending_gates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
       }
     },
     "limits": {

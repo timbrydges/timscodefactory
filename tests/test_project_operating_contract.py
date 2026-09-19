@@ -62,7 +62,16 @@ class ProjectOperatingContractTests(unittest.TestCase):
         self.assertIn("project_identity_and_oidc_verified", activation["verified_gates"])
         self.assertIn("authentication_boundary_verified", activation["verified_gates"])
         self.assertIn("private_storage_verified", activation["verified_gates"])
-        self.assertEqual(activation["pending_gates"], ["acceptance_tests_bound", "rollback_path_verified"])
+        self.assertIn("acceptance_tests_bound", activation["verified_gates"])
+        self.assertIn("rollback_path_verified", activation["verified_gates"])
+        self.assertEqual(activation["pending_gates"], [])
+
+    def test_closeout_is_bound_to_the_accepted_zip_only_slice(self):
+        self.assertEqual(self.contract["contract_version"], "0.3")
+        included = " ".join(self.contract["feature_slice"]["included"])
+        excluded = " ".join(self.contract["feature_slice"]["excluded"])
+        self.assertIn("one ZIP package", included)
+        self.assertIn("Direct PDF, DOCX, or PPTX package inputs", excluded)
 
     def test_acceptance_ids_are_unique_and_complete(self):
         acceptance = self.contract["acceptance_tests"]
