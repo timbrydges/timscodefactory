@@ -102,6 +102,12 @@ def validate(root: Path) -> list[str]:
     if re.search(r"\b(openai|anthropic|bedrock|model|prompt|agent)\b", rollback, re.IGNORECASE):
         errors.append("rollback-oidc.yml: rollback path must remain AI-independent")
 
+    rollback_drill = (workflow_dir / "aws-rollback-drill.yml").read_text(encoding="utf-8")
+    if "workflow_dispatch:" not in rollback_drill:
+        errors.append("aws-rollback-drill.yml: owner dispatch trigger is required")
+    if "pull_request:" in rollback_drill or "push:" in rollback_drill:
+        errors.append("aws-rollback-drill.yml: live AWS drill must be explicitly dispatched")
+
     build_attest = (workflow_dir / "build-attest.yml").read_text(encoding="utf-8")
     if "sha256sum factory-control-plane.tar.gz > factory-control-plane.tar.gz.sha256" not in build_attest:
         errors.append("build-attest.yml: checksum must use a portable relative artifact path")
