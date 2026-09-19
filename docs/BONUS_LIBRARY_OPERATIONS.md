@@ -74,14 +74,17 @@ authorization. The safe sequence is:
 Do not treat a green Vercel deployment, a green product pull request, or a merge
 to product `main` as release authorization.
 
-## Known control gap and next hardening
+## Explicit-promotion control
 
-Vercel currently deploys product `main` automatically. That can place a newer
-commit in production before its exact-version Factory authorization is merged.
-Until this is hardened, product merges must be held and coordinated with the
-release protocol above.
+Product commit `b5b3486939c3b0e944b1357371d7b8780079cfca` closed the
+automatic-production-alias gap by setting Vercel's GitHub `autoAlias` policy to
+`false`. Post-merge verification confirmed that its READY deployment
+`dpl_6JAkAigxxrWwxst8J3SSAwADszLD` had no production target and did not replace
+the authorized deployment at `bonus-library.vercel.app`.
 
-The recommended hardening is to separate ordinary product integration from the
-Vercel production branch, then allow production promotion only after the Factory
-has recorded Tim's authorization for the exact candidate commit and deployment.
-Changing that deployment behavior requires a separate owner-approved operation.
+Durable verification is recorded in
+`factory/evidence/bonus-library-explicit-promotion-control-2026-09-19.json`.
+Merging product `main` may still create a READY deployment and a branch alias;
+neither is release authorization. Production promotion remains a separate,
+owner-authorized operation performed only after the Factory records the exact
+candidate commit and deployment.

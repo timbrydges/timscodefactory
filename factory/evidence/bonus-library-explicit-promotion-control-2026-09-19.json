@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_explicit_promotion_control_verification",
+  "conclusion": "success",
+  "verified_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "product_repository": "timbrydges/bonus-library",
+  "policy_change": {
+    "pull_request": 26,
+    "merge_commit": "b5b3486939c3b0e944b1357371d7b8780079cfca",
+    "policy": "vercel.github.autoAlias=false"
+  },
+  "post_merge_checks": {
+    "bedrock_test_validation": {
+      "workflow_run_id": 35421741366,
+      "conclusion": "success"
+    },
+    "description_app_validation": {
+      "workflow_run_id": 35421741400,
+      "conclusion": "success"
+    }
+  },
+  "unpromoted_main_deployment": {
+    "deployment": "dpl_6JAkAigxxrWwxst8J3SSAwADszLD",
+    "commit": "b5b3486939c3b0e944b1357371d7b8780079cfca",
+    "status": "READY",
+    "target": null,
+    "branch_alias": "bonus-library-git-main-tim-brydges-projects.vercel.app"
+  },
+  "preserved_production_binding": {
+    "production_url": "https://bonus-library.vercel.app",
+    "deployment": "dpl_GS9tWc8spnisPi64biBi4fgk9fMM",
+    "commit": "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+    "status": "READY",
+    "target": "production"
+  },
+  "control_result": {
+    "automatic_main_build_replaced_production": false,
+    "explicit_production_promotion_required": true,
+    "new_product_version_authorized": false
+  }
+}
