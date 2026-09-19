@@ -1,5 +1,9 @@
 # Bonus Library Phase 2: Google Drive import plan
 
+Architecture status: owner-approved bounded baseline on 2026-09-19. Google
+Cloud, Drive, Supabase, implementation, scheduling, and release actions remain
+denied until their individual gates are authorized and verified.
+
 ## Recommended first slice
 
 Add an owner-triggered, one-way scan of one private Google Drive folder. Import
