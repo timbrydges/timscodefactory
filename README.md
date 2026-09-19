@@ -38,5 +38,6 @@ It completed a technically successful Planner → Builder → independent Inspec
 → immutable release → exact-version recovery path on 2026-09-17. The pilot is
 now retired and all live capabilities are denied. Closeout is explicitly an
 owner exception rather than a clean contract pass because cumulative provider
-spend was not persisted across commissioning runs. A new live project is
-blocked until cumulative budget reservations and attempt limits are verified.
+spend was not persisted across commissioning runs. The replacement controls
+are verified. New live projects may proceed only under their own owner-approved
+operating contracts.
