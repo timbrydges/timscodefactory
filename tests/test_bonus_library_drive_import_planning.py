@@ -43,6 +43,7 @@ class BonusLibraryDriveImportPlanningTests(unittest.TestCase):
 
     def test_only_planning_is_authorized(self) -> None:
         self.assertEqual(self.contract["status"], "OWNER_APPROVED_DRY_RUN_ONLY")
+        self.assertEqual(self.contract["contract_version"], "0.2")
         allowed = [
             key for key, value in self.contract["execution"].items() if value == "ALLOW"
         ]
@@ -80,6 +81,14 @@ class BonusLibraryDriveImportPlanningTests(unittest.TestCase):
         self.assertEqual(
             [test["id"] for test in self.dry_run["acceptance_mapping"]],
             [f"BL-{number:02d}" for number in range(11, 21)],
+        )
+        self.assertIn(
+            "architecture_and_threat_model_approved",
+            activation["verified_gates"],
+        )
+        self.assertNotIn(
+            "architecture_and_threat_model_approved",
+            activation["pending_gates"],
         )
 
     def test_dry_run_stops_at_the_owner_architecture_gate(self) -> None:

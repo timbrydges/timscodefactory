@@ -1,6 +1,6 @@
 schema_version: "1.0"
 contract_id: bonus-library-drive-import-001
-contract_version: "0.1"
+contract_version: "0.2"
 status: OWNER_APPROVED_DRY_RUN_ONLY
 
 approval:
@@ -86,8 +86,10 @@ activation:
     owner_planning_approved:
       verified: true
       evidence: factory/evidence/bonus-library-drive-import-planning-approval-2026-09-19.json
+    architecture_and_threat_model_approved:
+      verified: true
+      evidence: factory/evidence/bonus-library-drive-import-architecture-approval-2026-09-19.json
   pending_gates:
-    - architecture_and_threat_model_approved
     - google_project_and_drive_api_approved
     - keyless_workload_identity_verified
     - drive_folder_scope_verified

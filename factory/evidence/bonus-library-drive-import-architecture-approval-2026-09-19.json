@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_architecture_approval",
+  "conclusion": "owner_approved",
+  "approved_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "approved",
+  "control_plane_commit": "baab6f86cc14907a96a532c7d6a72356a29a7128",
+  "contract": "factory/projects/bonus-library-drive-import/operating-contract.yaml",
+  "architecture": "factory/projects/bonus-library-drive-import/planner-dry-run.yaml",
+  "approved_baseline": {
+    "drive_access": "read-only access to one explicitly shared folder",
+    "google_identity": "short-lived Vercel OIDC federation with no static Google credential",
+    "source_scope": "direct ZIP children only, maximum 50 MB per file",
+    "run_scope": "maximum 10 files and 250 MB per run",
+    "persistence": "validated immutable private Supabase source and unpublished draft",
+    "review_authority": "tim_brydges only"
+  },
+  "still_denied": [
+    "Google Cloud or Drive configuration changes",
+    "Drive folder sharing",
+    "Supabase schema or storage changes",
+    "application implementation",
+    "live Drive access or scheduled execution",
+    "provider calls",
+    "production release"
+  ],
+  "next_gate": "google_project_and_drive_api_approved"
+}
