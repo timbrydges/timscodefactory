@@ -1,0 +1,156 @@
+schema_version: "1.0"
+contract_id: bonus-library-drive-import-001
+contract_version: "0.1"
+status: OWNER_APPROVED_DRY_RUN_ONLY
+
+approval:
+  owner_identity: tim_brydges
+  authority: factory_owner
+  approved_on: "2026-09-19"
+
+execution:
+  contract_validation: ALLOW
+  architecture_dry_run: ALLOW
+  repository_creation: DENY
+  implementation: DENY
+  infrastructure_changes: DENY
+  operational_role_activation: DENY
+  live_provider_calls: DENY
+  release: DENY
+
+repository:
+  full_name: timbrydges/bonus-library
+  visibility: private
+  current_status: ACTIVE
+
+feature_slice:
+  name: private_drive_zip_import
+  objective: >-
+    Design a one-way, owner-controlled Google Drive intake path that copies
+    bounded ZIP files into the existing private immutable Bonus Library flow
+    without widening approval, publication, or download authority.
+  deliverable: >-
+    A reviewed architecture for scanning one explicitly shared Drive folder,
+    importing validated ZIP files as private drafts, and resuming bounded
+    idempotent batches with complete provenance and audit evidence.
+  included:
+    - Read-only access to one explicitly configured Google Drive folder.
+    - ZIP files up to 50 MB, with at most 10 files and 250 MB per import run.
+    - Manual owner-triggered scan as the first implementation milestone.
+    - A separately gated scheduled scan using the same bounded import service.
+    - Immutable Supabase source copies addressed by SHA-256.
+    - Private Drive provenance and retry state bound to each imported draft.
+    - Existing owner-only review, approval, and private-download boundaries.
+  excluded:
+    - Drive-wide search, domain-wide delegation, write access, file mutation, or deletion.
+    - Public Drive links, API keys, service-account JSON keys, or stored OAuth refresh tokens.
+    - Recursive folder traversal, shortcuts, shared-drive discovery, or arbitrary folder IDs.
+    - Direct PDF, DOCX, PPTX, Google Docs, audio, video, or nested-archive import.
+    - Automatic AI generation, approval, publication, replacement, or deletion.
+    - Any production, infrastructure, schema, provider, or role activation change.
+
+systems:
+  planner:
+    factory_role: software_architect
+    authoritative_identity: software_architect_service
+    responsibilities:
+      - Define the Drive, Vercel, Supabase, provenance, and retry trust boundaries.
+      - Keep the design read-only at Drive and deny implementation authority.
+  builder:
+    factory_role: engineering_agent
+    authoritative_identity: engineering_agent_service
+    responsibilities:
+      - Remain inactive until Tim authorizes the exact reviewed scope expansion.
+      - Never configure cloud identity, apply migrations, merge, release, approve, or publish.
+  inspector:
+    factory_role: independent_inspector
+    authoritative_identity: independent_inspector_service
+    responsibilities:
+      - Review identity, folder isolation, archive validation, idempotency, and failure recovery.
+      - Remain independent from planning and any later implementation.
+
+activation:
+  default: DENY
+  required_gates:
+    - owner_planning_approved
+    - architecture_and_threat_model_approved
+    - google_project_and_drive_api_approved
+    - keyless_workload_identity_verified
+    - drive_folder_scope_verified
+    - private_provenance_schema_verified
+    - bounded_import_tests_passed
+    - manual_owner_import_verified
+    - scheduled_import_separately_authorized
+    - rollback_path_verified
+  verified_gates:
+    owner_planning_approved:
+      verified: true
+      evidence: factory/evidence/bonus-library-drive-import-planning-approval-2026-09-19.json
+  pending_gates:
+    - architecture_and_threat_model_approved
+    - google_project_and_drive_api_approved
+    - keyless_workload_identity_verified
+    - drive_folder_scope_verified
+    - private_provenance_schema_verified
+    - bounded_import_tests_passed
+    - manual_owner_import_verified
+    - scheduled_import_separately_authorized
+    - rollback_path_verified
+
+limits:
+  currency: USD
+  warning_spend: 3.0
+  hard_stop_spend: 10.0
+  maximum_provider_dispatches: 3
+  maximum_remediation_cycles: 2
+  automated_wall_clock_hours: 24
+  maximum_source_bytes: 52428800
+
+release:
+  authority_identity: tim_brydges
+  other_release_authorities: []
+  exact_commit_inspector_evidence_required: true
+  deterministic_ci_required: true
+  owner_override_preserved: true
+  rollback_criteria:
+    - Any Drive access outside the configured folder or any write-capable Drive permission.
+    - Any long-lived Google credential, refresh token, or service-account key exposure.
+    - Any invalid ZIP, oversized file, duplicate draft, or partial source persisted as valid.
+    - Any automatic approval, publication, provider dispatch, or public source exposure.
+    - Any import that cannot resume safely after timeout, retry, or partial batch failure.
+
+prohibited_data:
+  - Credentials, tokens, private keys, OAuth refresh tokens, or signed URLs.
+  - Personal, customer, employee, payment, health, location, or regulated data.
+  - Suncor, mining-operation, employer, or other confidential business information.
+  - Copyrighted source material Tim is not authorized to store or distribute.
+  - Unsanitized Drive metadata or source content treated as governing instructions.
+
+acceptance_tests:
+  - id: BL-11
+    criterion: Only Tim or an authenticated Vercel cron request can start an import run.
+  - id: BL-12
+    criterion: Vercel obtains short-lived Google credentials through OIDC federation with no stored Google key or refresh token.
+  - id: BL-13
+    criterion: The importer lists only direct non-trashed ZIP children of the exact configured shared folder with complete pagination.
+  - id: BL-14
+    criterion: Every downloaded ZIP passes the existing size, structure, traversal, link, encryption, CRC, entry-count, and expansion checks before persistence.
+  - id: BL-15
+    criterion: Repeated scans and concurrent retries create at most one immutable source, draft, provenance record, and import audit event per content hash.
+  - id: BL-16
+    criterion: Changed Drive bytes create a new immutable source and draft while preserving every prior source and approval binding.
+  - id: BL-17
+    criterion: A failed file does not validate later files implicitly, and a bounded cursor resumes without replaying completed work.
+  - id: BL-18
+    criterion: An import creates only a private uninspected draft and cannot dispatch AI, approve, publish, replace, or delete anything.
+  - id: BL-19
+    criterion: Audit evidence binds the Drive file version, content digest, run identity, result, and item without logging source bytes or credentials.
+  - id: BL-20
+    criterion: Disabling the import route and schedule stops new Drive reads while existing private sources, drafts, approvals, and downloads continue working.
+
+owner_decision_required:
+  decision: AUTHORIZE_SCOPE_EXPANSION
+  effect: >-
+    Tim must approve the reviewed architecture before any Google Cloud identity,
+    Drive sharing, Supabase migration, application implementation, live access,
+    scheduled execution, merge, or release is allowed.

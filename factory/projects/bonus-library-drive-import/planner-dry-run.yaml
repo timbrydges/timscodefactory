@@ -1,0 +1,225 @@
+schema_version: "1.0"
+artifact_id: bonus-library-drive-import-architecture-dry-run-001
+contract_id: bonus-library-drive-import-001
+status: NON_AUTHORITATIVE_DRY_RUN_COMPLETE
+authoritative: false
+generated_by: codex_interactive_dry_run
+generated_on: "2026-09-19"
+source_contract: factory/projects/bonus-library-drive-import/operating-contract.yaml
+
+constraints:
+  - Planning only; implementation, infrastructure, migration, live Drive access, and release remain denied.
+  - Drive access is read-only and limited by sharing to one exact folder; no domain-wide delegation is permitted.
+  - Vercel exchanges its deployment OIDC token for short-lived Google credentials; no Google key or refresh token is stored.
+  - Only direct ZIP children are eligible, with a 50 MB file cap, 10-file cap, and 250 MB run cap.
+  - Imported bytes pass the existing ZIP validator before immutable private persistence.
+  - Import never invokes AI, approves, publishes, replaces, deletes, or creates a public link.
+  - The existing authorized production version remains unchanged.
+
+components:
+  - id: owner_sync_control
+    description: Owner-only dashboard control that starts a bounded manual scan and displays per-file outcomes.
+  - id: authenticated_cron_boundary
+    description: Separately gated Vercel cron endpoint that requires the configured bearer secret and runs the same import service.
+  - id: vercel_oidc_exchange
+    description: Exchanges a deployment-bound Vercel OIDC assertion for short-lived Google credentials.
+  - id: drive_read_identity
+    description: Dedicated Google service account with Drive API read-only scope and access only through explicit folder sharing.
+  - id: drive_folder_scanner
+    description: Paginates direct, non-trashed children of one configured folder and accepts only ordinary ZIP blobs.
+  - id: bounded_zip_importer
+    description: Downloads with byte ceilings, validates every ZIP entry, hashes bytes, and fails closed before persistence.
+  - id: private_source_storage
+    description: Reuses the private immutable content-addressed Supabase source bucket.
+  - id: provenance_store
+    description: Private schema records Drive file ID, version, content hash, item binding, run state, and retry cursor.
+  - id: atomic_draft_finalizer
+    description: Extends the owner-checked finalization boundary to atomically reuse or create one private draft and audit event.
+  - id: import_audit_log
+    description: Records bounded metadata-only evidence for run start, per-file disposition, completion, and failure.
+
+data_entities:
+  - id: drive_source_binding
+    description: Private binding of provider, configured folder, external file ID, version, and immutable content digest.
+  - id: import_run
+    description: Owner, trigger, deployment, started time, caps, cursor, counters, and terminal result.
+  - id: import_file_attempt
+    description: Run-scoped file version, observed size and MIME, disposition, digest, and bounded error code.
+  - id: bonus_source
+    description: Existing private immutable ZIP object addressed by owner and SHA-256.
+  - id: bonus_draft
+    description: Existing unpublished item bound to one immutable source checksum.
+  - id: audit_event
+    description: Append-only metadata evidence linking the import run, source, draft, and disposition.
+
+workflow_states: [REQUESTED, AUTHENTICATED, SCANNING, DOWNLOADING, VALIDATING, FINALIZING, COMPLETED, PARTIAL, FAILED, DISABLED]
+
+workflow:
+  - step: 1
+    actor: tim_brydges_or_vercel_cron
+    action: Request an import through the owner session or authenticated scheduled endpoint.
+    result: REQUESTED
+  - step: 2
+    actor: import_service
+    action: Verify the owner or cron bearer boundary, deployment policy, and run caps.
+    result: AUTHENTICATED or FAILED
+  - step: 3
+    actor: vercel_oidc_exchange
+    action: Exchange the deployment assertion for short-lived credentials impersonating the dedicated Drive reader.
+    result: SCANNING or FAILED
+  - step: 4
+    actor: drive_folder_scanner
+    action: Page direct non-trashed children of the exact configured folder and select ordinary ZIP blobs only.
+    result: SCANNING
+  - step: 5
+    actor: bounded_zip_importer
+    action: Claim a file version, enforce file and run byte caps, and download without logging content or credentials.
+    result: DOWNLOADING or PARTIAL
+  - step: 6
+    actor: bounded_zip_importer
+    action: Run the complete existing ZIP validation corpus and compute SHA-256 before persistence.
+    result: VALIDATING or PARTIAL
+  - step: 7
+    actor: atomic_draft_finalizer
+    action: Persist or reuse the immutable source and atomically bind one private draft, provenance record, and audit event.
+    result: FINALIZING or PARTIAL
+  - step: 8
+    actor: import_service
+    action: Save the next cursor and bounded per-file result, stopping at file, byte, or time limits.
+    result: COMPLETED, PARTIAL, or FAILED
+  - step: 9
+    actor: tim_brydges
+    action: Review imported drafts through the existing workflow; import authority ends before generation or approval.
+    result: COMPLETED
+
+trust_boundaries:
+  - id: trigger_to_import_service
+    description: Manual requests require Tim's live session; scheduled requests require the Vercel cron bearer secret.
+  - id: vercel_to_google_sts
+    description: Deployment-bound OIDC claims are validated before short-lived service-account impersonation.
+  - id: drive_folder_to_downloader
+    description: All Drive names, MIME claims, sizes, versions, and bytes are hostile data limited to one shared folder.
+  - id: downloaded_zip_to_validator
+    description: Nothing persists until byte caps and all existing archive safety checks pass.
+  - id: importer_to_supabase
+    description: Private provenance and atomic finalization preserve RLS, immutability, checksum, and owner bindings.
+  - id: import_to_review
+    description: Import produces uninspected drafts only and has no provider, approval, publication, or deletion authority.
+
+threats:
+  - id: T01
+    threat: An unauthenticated caller starts a costly or privileged import.
+    control: Require Tim's server-validated session or exact cron bearer secret before any Google exchange.
+    failure_mode: Return unauthorized before creating a run or contacting Google.
+  - id: T02
+    threat: A long-lived Google credential is leaked or replayed.
+    control: Use Vercel OIDC federation and short-lived service-account impersonation with no key or refresh token.
+    failure_mode: Deny exchange and disable imports if any static Google credential is detected.
+  - id: T03
+    threat: The identity reads outside Tim's intended folder.
+    control: Use a dedicated service account shared only into one exact folder, no domain delegation, and assert the parent ID on every file.
+    failure_mode: Reject the file and halt the run on any parent or identity mismatch.
+  - id: T04
+    threat: Pagination gaps or arbitrary ordering cause missed or replayed files.
+    control: Request explicit fields, consume every page token, bind cursors to the run, and make finalization idempotent.
+    failure_mode: Mark the run partial and resume from durable state without treating it as complete.
+  - id: T05
+    threat: MIME, extension, size, or Drive metadata is forged.
+    control: Accept only ordinary ZIP blobs and enforce downloaded byte count, magic bytes, SHA-256, and full archive validation.
+    failure_mode: Record a bounded rejection and persist no source or draft.
+  - id: T06
+    threat: A malicious ZIP traverses paths, links files, executes content, or exhausts resources.
+    control: Reuse the accepted ZIP validator and enforce entry, expansion, nesting, encryption, CRC, and execution denials.
+    failure_mode: Reject the entire file before immutable storage.
+  - id: T07
+    threat: Concurrent scans or retries create duplicates or conflicting provenance.
+    control: Uniquely claim provider, external file ID and version, then serialize finalization by owner and content hash.
+    failure_mode: Return the prior result for identical bytes and reject conflicting bindings.
+  - id: T08
+    threat: A Drive file changes during download.
+    control: Bind metadata version to the attempt and re-read version metadata before finalization.
+    failure_mode: Discard the attempt and retry the new version in a later run.
+  - id: T09
+    threat: One bad file aborts evidence for successful files or implicitly validates later files.
+    control: Persist a terminal disposition per file and isolate failures while respecting run-wide caps.
+    failure_mode: Mark PARTIAL with an exact resume cursor and never infer unprocessed results.
+  - id: T10
+    threat: Import bypasses Tim's review or spends provider budget automatically.
+    control: Keep the import service incapable of provider dispatch, approval, publication, replacement, or deletion.
+    failure_mode: Fail tests and block release on any forbidden capability path.
+  - id: T11
+    threat: Drive identifiers, filenames, source bytes, credentials, or signed URLs leak through logs.
+    control: Log bounded result codes and digests only; keep raw provider identifiers in a private unexposed schema.
+    failure_mode: Stop import, revoke access, and treat disclosure as a security incident.
+  - id: T12
+    threat: Disabling or rolling back the importer damages existing library content.
+    control: Use additive schema and routes; rollback removes scheduling and Drive access without deleting immutable records.
+    failure_mode: Restore the prior application deployment and leave sources, drafts, approvals, and audit events unchanged.
+
+acceptance_mapping:
+  - id: BL-11
+    components: [owner_sync_control, authenticated_cron_boundary]
+    evidence: Negative tests for anonymous, non-owner, missing-secret, and wrong-secret triggers.
+  - id: BL-12
+    components: [vercel_oidc_exchange, drive_read_identity]
+    evidence: Identity canary proves short-lived impersonation and repository/deployment claim binding with no static credential.
+  - id: BL-13
+    components: [drive_folder_scanner]
+    evidence: Paginated fixtures reject wrong-parent, trashed, folder, shortcut, native Google, and non-ZIP entries.
+  - id: BL-14
+    components: [bounded_zip_importer]
+    evidence: Existing adversarial ZIP corpus plus download truncation, size, MIME, and magic-byte cases pass.
+  - id: BL-15
+    components: [provenance_store, atomic_draft_finalizer, private_source_storage]
+    evidence: Concurrent identical scan test produces exactly one source, draft, provenance record, and audit event.
+  - id: BL-16
+    components: [provenance_store, private_source_storage]
+    evidence: Changed-version fixture creates a new content-addressed draft and leaves prior bindings byte-for-byte unchanged.
+  - id: BL-17
+    components: [drive_folder_scanner, provenance_store, import_audit_log]
+    evidence: Injected mid-batch failures resume exactly once from the durable cursor within all run caps.
+  - id: BL-18
+    components: [atomic_draft_finalizer, owner_sync_control]
+    evidence: Capability and database tests prove imported items remain private drafts with zero provider or approval action.
+  - id: BL-19
+    components: [provenance_store, import_audit_log]
+    evidence: Audit schema binds version, digest, run, disposition, and item while secret and source-content scanners remain clean.
+  - id: BL-20
+    components: [authenticated_cron_boundary, private_source_storage, provenance_store]
+    evidence: Rollback drill disables Drive access and schedule while existing approved and draft workflows remain healthy.
+
+rollback:
+  - Disable the Vercel cron definition and owner sync control before revoking Google federation and folder sharing.
+  - Promote the prior exact application deployment without reverting immutable source or approval protections.
+  - Leave additive private provenance records and audit evidence intact; rollback never deletes or rewrites imported content.
+  - Verify existing login, dashboard, approval, private cover, and five-minute download flows before reopening work.
+
+open_decisions:
+  - id: google_project
+    description: Select or create the dedicated Google Cloud project that owns the Drive API and workload identity pool.
+  - id: folder_binding
+    description: Record the exact source folder ID and service-account share only as protected configuration, never in public evidence.
+  - id: execution_schedule
+    description: Select the scheduled cadence only after the manual owner-triggered import passes live acceptance.
+  - id: server_upload_identity
+    description: Choose the narrowly scoped server-side Supabase upload and finalization mechanism without exposing service-role authority.
+  - id: failure_retention
+    description: Set bounded retention for private failed-attempt metadata while keeping append-only audit evidence.
+
+remaining_gates:
+  - architecture_and_threat_model_approved
+  - google_project_and_drive_api_approved
+  - keyless_workload_identity_verified
+  - drive_folder_scope_verified
+  - private_provenance_schema_verified
+  - bounded_import_tests_passed
+  - manual_owner_import_verified
+  - scheduled_import_separately_authorized
+  - rollback_path_verified
+
+owner_decision_required:
+  decision: APPROVE_ARCHITECTURE_AND_THREAT_MODEL
+  effect: >-
+    Approval accepts this dry-run design as the bounded Phase 2 baseline but
+    does not authorize Google Cloud changes, Drive sharing, Supabase migration,
+    implementation, live access, scheduling, merge, or release.

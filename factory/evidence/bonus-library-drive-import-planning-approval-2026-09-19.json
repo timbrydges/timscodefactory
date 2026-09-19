@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_planning_approval",
+  "conclusion": "owner_approved_dry_run_only",
+  "approved_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "approved",
+  "approved_scope": "Phase 2 planning for one-way Google Drive bulk import",
+  "allowed": [
+    "contract validation",
+    "architecture and threat-model dry run",
+    "deterministic planning tests"
+  ],
+  "denied": [
+    "Google Cloud or Drive configuration changes",
+    "Supabase schema or storage changes",
+    "application implementation",
+    "live Drive access",
+    "provider calls",
+    "production release"
+  ]
+}
