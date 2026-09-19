@@ -61,7 +61,7 @@ jobs:
           test "${{ inputs.recovery_pr }}" = ""
           test "${{ inputs.recovery_head }}" = ""
           test "${{ inputs.recovery_task_id }}" = ""
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -125,7 +125,7 @@ jobs:
           python .factory/pilot_runtime.py validate-config
           TASK_ID="pilot-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "task_id=$TASK_ID" >> "$GITHUB_OUTPUT"
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -242,7 +242,7 @@ jobs:
         with:
           name: planner-${{ needs.preflight.outputs.task_id }}
           path: ${{ runner.temp }}/planner-evidence
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -400,7 +400,7 @@ jobs:
           python -m unittest discover -s tests -v 2>&1 | tee "$RUNNER_TEMP/tests.log"
           git diff --no-ext-diff --unified=80 "$BASE" "${{ needs.builder-publish.outputs.head_sha }}" > "$RUNNER_TEMP/builder.diff"
           test -s "$RUNNER_TEMP/builder.diff"
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -538,7 +538,7 @@ jobs:
           git fetch origin "$INSPECTED_HEAD"
           test "$(git rev-parse "${INSPECTED_HEAD}^{tree}")" = "$(git rev-parse "HEAD^{tree}")"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -581,7 +581,7 @@ jobs:
           set -euo pipefail
           python -m compileall -q src
           python -m unittest discover -s tests -v
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -670,7 +670,7 @@ jobs:
           set -euo pipefail
           python -m compileall -q src
           python -m unittest discover -s tests -v
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_PILOT_RUNTIME_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
