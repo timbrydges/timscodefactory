@@ -441,7 +441,7 @@ def test_pilot_workflow_is_owner_dispatched_and_role_separated():
     for action in (
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
         "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1",
-        "aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c",
+        "aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c",
         "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
         "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
     ):
