@@ -43,7 +43,7 @@ class BonusLibraryDriveImportPlanningTests(unittest.TestCase):
 
     def test_only_planning_is_authorized(self) -> None:
         self.assertEqual(self.contract["status"], "OWNER_APPROVED_DRY_RUN_ONLY")
-        self.assertEqual(self.contract["contract_version"], "0.2")
+        self.assertEqual(self.contract["contract_version"], "0.3")
         allowed = [
             key for key, value in self.contract["execution"].items() if value == "ALLOW"
         ]
@@ -90,6 +90,18 @@ class BonusLibraryDriveImportPlanningTests(unittest.TestCase):
             "architecture_and_threat_model_approved",
             activation["pending_gates"],
         )
+
+    def test_google_infrastructure_is_evidenced_without_overclaiming_canary(self) -> None:
+        activation = self.contract["activation"]
+        gate = activation["verified_gates"]["google_project_and_drive_api_approved"]
+        evidence = json.loads((ROOT / gate["evidence"]).read_text(encoding="utf-8"))
+        self.assertEqual(evidence["conclusion"], "provisioned_pending_runtime_canary")
+        self.assertFalse(evidence["workload_identity"]["static_google_credentials_created"])
+        self.assertEqual(evidence["drive_scope"]["shared_role"], "viewer")
+        self.assertEqual(evidence["drive_scope"]["general_access"], "restricted")
+        self.assertFalse(evidence["drive_scope"]["folder_identifier_recorded_in_public_evidence"])
+        self.assertIn("keyless_workload_identity_verified", activation["pending_gates"])
+        self.assertIn("drive_folder_scope_verified", activation["pending_gates"])
 
     def test_dry_run_stops_at_the_owner_architecture_gate(self) -> None:
         self.assertFalse(self.dry_run["authoritative"])

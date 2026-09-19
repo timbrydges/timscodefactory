@@ -1,6 +1,6 @@
 schema_version: "1.0"
 contract_id: bonus-library-drive-import-001
-contract_version: "0.2"
+contract_version: "0.3"
 status: OWNER_APPROVED_DRY_RUN_ONLY
 
 approval:
@@ -89,8 +89,10 @@ activation:
     architecture_and_threat_model_approved:
       verified: true
       evidence: factory/evidence/bonus-library-drive-import-architecture-approval-2026-09-19.json
+    google_project_and_drive_api_approved:
+      verified: true
+      evidence: factory/evidence/bonus-library-drive-import-google-infrastructure-2026-09-19.json
   pending_gates:
-    - google_project_and_drive_api_approved
     - keyless_workload_identity_verified
     - drive_folder_scope_verified
     - private_provenance_schema_verified
@@ -153,6 +155,7 @@ acceptance_tests:
 owner_decision_required:
   decision: AUTHORIZE_SCOPE_EXPANSION
   effect: >-
-    Tim must approve the reviewed architecture before any Google Cloud identity,
-    Drive sharing, Supabase migration, application implementation, live access,
-    scheduled execution, merge, or release is allowed.
+    Google Cloud identity and exact-folder Viewer sharing are provisioned. Tim
+    must separately authorize application implementation, Supabase migration,
+    scheduled execution, merge, and release; keyless exchange and folder
+    isolation remain unverified until a bounded canary passes.

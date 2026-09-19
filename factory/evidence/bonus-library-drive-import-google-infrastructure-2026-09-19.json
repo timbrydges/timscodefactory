@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_google_infrastructure",
+  "conclusion": "provisioned_pending_runtime_canary",
+  "verified_on": "2026-09-19",
+  "owner_identity": "tim_brydges",
+  "owner_instructions": [
+    "i authorize",
+    "i confirm"
+  ],
+  "contract_id": "bonus-library-drive-import-001",
+  "google_project": "bonus-library-drive-import",
+  "service_account": "bonus-library-drive-reader@bonus-library-drive-import.iam.gserviceaccount.com",
+  "workload_identity": {
+    "pool": "vercel-production",
+    "provider": "bonus-library",
+    "issuer": "https://oidc.vercel.com/tim-brydges-projects",
+    "audience": "https://vercel.com/tim-brydges-projects",
+    "subject": "owner:tim-brydges-projects:project:bonus-library:environment:production",
+    "static_google_credentials_created": false
+  },
+  "drive_scope": {
+    "folder_identifier_recorded_in_public_evidence": false,
+    "shared_role": "viewer",
+    "general_access": "restricted",
+    "domain_wide_delegation": false
+  },
+  "verified_controls": [
+    "dedicated_google_project_created",
+    "drive_and_short_lived_identity_apis_enabled",
+    "dedicated_service_account_created",
+    "vercel_oidc_provider_created",
+    "exact_production_subject_bound_to_service_account",
+    "exact_source_folder_shared_as_viewer",
+    "drive_general_access_remains_restricted",
+    "no_service_account_key_or_oauth_refresh_token_created"
+  ],
+  "not_yet_verified": [
+    "live_vercel_oidc_token_exchange",
+    "service_account_can_list_exact_shared_folder",
+    "service_account_cannot_list_unshared_drive_content",
+    "application_import_or_persistence"
+  ],
+  "still_denied": [
+    "supabase_schema_or_storage_changes",
+    "application implementation",
+    "scheduled_execution",
+    "production_release"
+  ],
+  "next_gate": "keyless_workload_identity_verified"
+}
