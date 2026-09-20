@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_release_candidate",
+  "recorded_on": "2026-09-20",
+  "conclusion": "prepared_not_released",
+  "owner_instruction": "ok",
+  "authorization_interpretation": "Approval to apply the reviewed PR #28 migration and advance the merge/release preparation. Exact production publication remains pending.",
+  "repository": "timbrydges/bonus-library",
+  "merged_pull_requests": [
+    27,
+    28
+  ],
+  "candidate": {
+    "commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+    "tree": "72555f5c5da1750ce0c43e8ec4eafe8220f0124c",
+    "deployment": "dpl_EPfSBw7u1JjaigHHwbNCwZ6dQKFw",
+    "deployment_state": "READY",
+    "environment": "preview",
+    "production_domains_assigned": false,
+    "tree_identical_to_tested_commit": "f8e557703d754d83cb2f4b6906bf457daeba7c93",
+    "ci": {
+      "app_tests": "success",
+      "offline_tests": "success"
+    }
+  },
+  "migration": {
+    "repository_file": "supabase/migrations/20260920021545_private_drive_import.sql",
+    "applied_version": "20260920024151",
+    "applied_name": "private_drive_import",
+    "enabled": false,
+    "protected_folder_configured": true,
+    "deployment_sha_bound": true,
+    "private_tables": 6,
+    "all_private_tables_rls": true,
+    "anonymous_and_authenticated_direct_select": false,
+    "anonymous_rpc_execute": false,
+    "authenticated_rpc_execute": true
+  },
+  "data_counts": {
+    "before": {
+      "items": 5,
+      "approved": 2,
+      "audit_events": 9
+    },
+    "after": {
+      "items": 5,
+      "approved": 2,
+      "audit_events": 9
+    }
+  },
+  "staged_vercel_configuration": {
+    "target": "production",
+    "storage_type": "secret",
+    "keys": [
+      "GCP_PROJECT_NUMBER",
+      "GCP_WORKLOAD_IDENTITY_POOL_ID",
+      "GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID",
+      "GCP_SERVICE_ACCOUNT_EMAIL",
+      "GOOGLE_DRIVE_SOURCE_FOLDER_ID",
+      "BONUS_DRIVE_IMPORT_ACTIVATION_SHA"
+    ],
+    "activation_sha": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+    "requires_new_deployment": true,
+    "preview_federation": "remains_revoked",
+    "credentials_in_evidence": false
+  },
+  "validation": {
+    "local_tests_passed": 58,
+    "preexisting_skips": 2,
+    "typescript": "passed",
+    "eslint": "passed",
+    "production_build": "passed",
+    "database_engine": "PGlite with isolated auth/storage fixtures",
+    "live_import": "not_run",
+    "live_multi_connection_test": "pending"
+  },
+  "advisors": {
+    "private_rls_no_policy": "Expected for private RPC-only tables without direct grants.",
+    "unused_indexes": "Informational; new import tables have not been exercised live.",
+    "auth_leaked_password_protection": "Warning in existing Auth configuration; not modified by this migration.",
+    "references": [
+      "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+      "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    ]
+  },
+  "current_production": {
+    "commit": "236eb2fe5bc80f8c3e826bd2e40dea3651e2d0c7",
+    "deployment": "dpl_GS9tWc8spnisPi64biBi4fgk9fMM",
+    "unchanged": true
+  },
+  "proposed_next_action": {
+    "exact_source_commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+    "build": "Vercel production redeploy from this exact source with staged production settings",
+    "impact": "The Vercel dialog assigns bonus-library.vercel.app to the new deployment.",
+    "after_build": "Verify returned deployment commit and READY status, record exact deployment, then enable database control and perform bounded owner-triggered live acceptance.",
+    "scope": {
+      "max_files_per_batch": 10,
+      "max_source_bytes": 52428800,
+      "max_batch_bytes": 262144000,
+      "scheduling": false,
+      "ai_generation": false,
+      "automatic_approval": false,
+      "publication_of_products": false
+    }
+  },
+  "approval_status": "pending_exact_source_production_release",
+  "rollback": "Disable private.drive_import_control first; restore the prior known-good production deployment; preserve all sources, drafts, provenance and audit."
+}

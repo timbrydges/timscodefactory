@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_owner_release_authorization",
+  "authorized_on": "2026-09-20",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "i approve",
+  "approved_question": "May I publish commit 451f27b and run the first bounded Drive import?",
+  "conclusion": "owner_authorized",
+  "exact_source_commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+  "source_tree": "72555f5c5da1750ce0c43e8ec4eafe8220f0124c",
+  "verified_candidate_deployment": "dpl_EPfSBw7u1JjaigHHwbNCwZ6dQKFw",
+  "authorized_action": "Production rebuild of this exact source with the staged production-only settings and assignment of bonus-library.vercel.app, followed by verification and a bounded manual Drive import.",
+  "deployment_binding": "Record the newly issued production deployment ID and verify its exact commit before enabling the database importer.",
+  "limits": {
+    "files": 10,
+    "file_bytes": 52428800,
+    "batch_bytes": 262144000
+  },
+  "excluded": [
+    "other source commits",
+    "scheduled import",
+    "AI generation",
+    "automatic approval",
+    "publication of products",
+    "Google access beyond existing folder and production identity"
+  ],
+  "rollback_deployment": "dpl_GS9tWc8spnisPi64biBi4fgk9fMM",
+  "live_acceptance": "pending"
+}
