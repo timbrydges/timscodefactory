@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_500mib_production_release",
+  "verified_on": "2026-09-20",
+  "conclusion": "released_and_large_import_verified",
+  "authorization": "factory/evidence/bonus-library-500mib-release-authorization-2026-09-20.json",
+  "production": {
+    "repository": "timbrydges/bonus-library",
+    "commit": "34d2751faf3421f192a526a9398d41e12dc0864a",
+    "deployment_id": "dpl_78j3TiZV3fTEki4mSTJBkcXuwWVQ",
+    "url": "https://bonus-library.vercel.app",
+    "state": "READY",
+    "alias_matches_authorized_sha": true
+  },
+  "database": {
+    "project_id": "mjusbpruhcabxvedozgc",
+    "migration": "background_large_drive_import",
+    "migration_applied": true,
+    "activation_migration": "activate_background_large_drive_import_34d2751",
+    "activation_sha_matches": true
+  },
+  "storage": {
+    "global_limit_bytes": 524288000,
+    "global_limit_saved_in_bytes_and_persisted_as_500_mb": true,
+    "bonus_sources_limit_bytes": 524288000,
+    "bonus_sources_public": false,
+    "manual_upload_limit_bytes": 52428800
+  },
+  "checks": {
+    "anonymous_status_http": 401,
+    "anonymous_import_http": 401,
+    "foreign_origin_import_http": 403,
+    "owner_sign_in_and_dashboard": true,
+    "status_persists_after_reload": true,
+    "background_import_survives_reload": true,
+    "approved_items_before": 2,
+    "approved_items_after": 2,
+    "large_draft_storage_sizes_and_provenance_hashes_match": true,
+    "production_error_fatal_logs_last_10_minutes": 0
+  },
+  "large_files": [
+    {
+      "name": "streaming-profits-authority-gold.zip",
+      "bytes": 279125699,
+      "outcome": "created_private_draft"
+    },
+    {
+      "name": "facebook-messenger-bot-marketing-unleashed.zip",
+      "bytes": 222403702,
+      "outcome": "created_private_draft"
+    },
+    {
+      "name": "26-business-building-software-tools.zip",
+      "bytes": 176086632,
+      "outcome": "rejected_nested_archives"
+    },
+    {
+      "name": "StockImage Blowout.zip",
+      "bytes": 493312167,
+      "outcome": "rejected_more_than_500_entries"
+    }
+  ],
+  "remaining_content_blocks": [
+    "Nested archives remain disallowed.",
+    "Archives exceeding 500 entries remain disallowed.",
+    "Google malware/spam blocks are not overridden."
+  ],
+  "rollback": {
+    "prior_deployment_id": "dpl_EbSeeUKJW4BUhn7uEbg121BspYNK",
+    "prior_commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+    "note": "Application rollback also requires rebinding production import activation and private control to the rollback SHA; do not lower Storage limits while larger private sources remain stored."
+  },
+  "scan": {
+    "complete": true,
+    "total_files": 11,
+    "created": 2,
+    "unchanged": 5,
+    "rejected": 3,
+    "failed": 1,
+    "running_imports_after": 0,
+    "drive_sources_before": 5,
+    "drive_sources_after": 7,
+    "other_rejection": {
+      "name": "turbo-bot-builder-pro.zip",
+      "bytes": 23544308,
+      "reason": "nested_archives"
+    },
+    "provider_block": {
+      "name": "TheInternetMarketingOnlineGoldmine.zip",
+      "reason": "google_malware_or_spam_block",
+      "downloaded": false
+    }
+  }
+}
