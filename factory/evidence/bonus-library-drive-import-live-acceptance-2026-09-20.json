@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_drive_import_live_acceptance",
+  "verified_on": "2026-09-20",
+  "source_commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+  "production_deployment": "dpl_EbSeeUKJW4BUhn7uEbg121BspYNK",
+  "production_url": "https://bonus-library.vercel.app/dashboard",
+  "authorization_pr": 104,
+  "production_state": "READY",
+  "importer_enabled": true,
+  "owner_session_verified": true,
+  "baseline": {
+    "items": 5,
+    "source_objects": 5,
+    "approved": 2
+  },
+  "after": {
+    "items": 10,
+    "source_objects": 10,
+    "approved": 2,
+    "drive_provenance": 5,
+    "drive_import_audits": 5
+  },
+  "approved_fingerprint_before_and_after": "0b0b54a4e732475a5c473c03e2fc0669",
+  "first_batch": {
+    "checked": 10,
+    "created": 5,
+    "rejected_ineligible": 4,
+    "drive_read_failed": 1
+  },
+  "retry": {
+    "checked": 10,
+    "unchanged": 5,
+    "rejected_ineligible": 4,
+    "drive_read_failed": 1,
+    "new_items": 0,
+    "new_objects": 0
+  },
+  "continuation": {
+    "checked": 1,
+    "rejected_invalid_zip": 1,
+    "scan_complete": true
+  },
+  "conclusion": "deployed_and_enabled_partial_import",
+  "limitations": [
+    "One source repeatedly returned drive_unavailable; underlying Google response not exposed by current error handling.",
+    "One source failed archive validation; invalid_zip may cover archive policy rejection as well as malformed ZIP.",
+    "Four sources were ineligible. No eligibility, archive-validation, or access safeguards were relaxed."
+  ],
+  "runtime_error_or_fatal_logs_observed": 0,
+  "rollback_deployment": "dpl_GS9tWc8spnisPi64biBi4fgk9fMM"
+}
