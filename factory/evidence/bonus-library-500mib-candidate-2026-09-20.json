@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_large_drive_import_release_candidate",
+  "verified_on": "2026-09-20",
+  "conclusion": "candidate_verified_release_authorization_pending",
+  "product_repository": "timbrydges/bonus-library",
+  "pull_request": 30,
+  "commit": "34d2751faf3421f192a526a9398d41e12dc0864a",
+  "candidate": {
+    "deployment": "dpl_was7NPKvtag3CmAJTGhtcAoBx44j",
+    "url": "https://bonus-library-l6arug5ne-tim-brydges-projects.vercel.app",
+    "state": "READY",
+    "target": null
+  },
+  "preserved_production": {
+    "deployment": "dpl_EbSeeUKJW4BUhn7uEbg121BspYNK",
+    "commit": "451f27ba5de191a92fdc2dee9c4d98e117294841",
+    "url": "https://bonus-library.vercel.app"
+  },
+  "checks": {
+    "local_tests": {
+      "passed": 67,
+      "skipped": 2,
+      "failed": 0
+    },
+    "lint": "passed",
+    "production_build": "passed",
+    "near_500_mib_mocked_provider_pipeline": {
+      "bytes": 524287158,
+      "chunks": 84,
+      "elapsed_seconds": 4,
+      "peak_rss_mib": 157,
+      "finalized": true,
+      "temporary_file_cleanup": true
+    },
+    "post_merge_ci": [
+      {
+        "id": 35515917769,
+        "name": "bedrock-test-validation",
+        "conclusion": "success"
+      },
+      {
+        "id": 35515917741,
+        "name": "description-app-validation",
+        "conclusion": "success"
+      }
+    ],
+    "candidate_import_endpoint": {
+      "status": 404,
+      "message": "Drive import is disabled.",
+      "cache_control": "private, no-store"
+    },
+    "candidate_dashboard": "Vercel SSO redirect; signed-in application acceptance remains outstanding"
+  },
+  "scope": {
+    "source_limit_bytes": 524288000,
+    "expanded_limit_bytes": 2147483648,
+    "files_per_run": 1,
+    "manual_browser_upload_limit_bytes": 52428800,
+    "job_deadline_seconds": 260,
+    "host_duration_seconds": 300,
+    "lease_seconds": 330,
+    "background_implementation": "Next.js after(); bounded manual retry, not durable automatic scheduling",
+    "google_security_blocks_overridden": false
+  },
+  "pending_release_work": [
+    "Authorize the exact product version under docs/RELEASE_PROCESS.md",
+    "Apply reviewed 20260920140116_background_large_drive_import.sql with no active import",
+    "Set Pro global Storage upload limit to at least 524288000 bytes",
+    "Bind production build and private activation to the authorized SHA; record exact production deployment before promotion",
+    "Live Google/Supabase TUS integration, temporary-disk headroom and large-draft inspection acceptance",
+    "Owner-only concurrency, interrupted restart, duplicate import, approved-item preservation and kill-switch checks"
+  ],
+  "migration_applied": false,
+  "global_storage_limit_changed": false,
+  "production_promoted": false,
+  "release_authorized": false,
+  "billing": {
+    "project_transfer_to_existing_pro_org": "previously_completed",
+    "additional_compute_usd_per_month": 10,
+    "owner_approval": "previously_received"
+  }
+}

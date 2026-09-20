@@ -130,6 +130,7 @@ ad9e820cc6b3f3831d4eb3894a967112cc0e5cab07ed8061ed5ef1a6da3a7d05  factory/evals/
 a4f17f45ed12ad910409ae55b8edd6dd1e9444827460e11c15bb4d428c922c38  factory/evals/provider-repair-corpus-v1.json
 52979db1e9b518833081d15b76da0c36e28584335546c421fe4910f9db92293e  factory/evidence/aws-bootstrap-2026-09-13.json
 7e250b0c5dcd913af3fbf8b5fa6fba80e6efebad9ed3288941f1c5fa00988659  factory/evidence/aws-rollback-drill-2026-09-13.json
+cbe8b86361589c194f65762c419b933df12f7242146c25184031bb9e79269d3a  factory/evidence/bonus-library-500mib-candidate-2026-09-20.json
 480957e40bbe65b603517c4aa556b4d47552dc1639f9f2cc21e9e36bc2e1dbc8  factory/evidence/bonus-library-acceptance-closeout-2026-09-19.json
 fbaac178fbf9f87658b1b026b313f4489f986fbf05eefa2c09dcc35ae042c201  factory/evidence/bonus-library-architecture-approval-2026-09-17.json
 475ef604bb4db9af3119197a36e705b2af6ea249202e6e230f2cf582ef3f4a32  factory/evidence/bonus-library-drive-import-architecture-approval-2026-09-19.json
