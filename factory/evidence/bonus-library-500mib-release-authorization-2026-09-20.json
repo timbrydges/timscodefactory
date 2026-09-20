@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_exact_version_release_authorization",
+  "conclusion": "owner_authorized",
+  "authorized_on": "2026-09-20",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "i Approve releasing `34d2751`, including its database migration and Storage limit increase to 500 MiB",
+  "authorized_version": {
+    "repository": "timbrydges/bonus-library",
+    "commit": "34d2751faf3421f192a526a9398d41e12dc0864a",
+    "prepared_preview_deployment": "dpl_was7NPKvtag3CmAJTGhtcAoBx44j",
+    "production_url": "https://bonus-library.vercel.app"
+  },
+  "scope": [
+    "Production rebuild and release of exactly the authorized Git commit with production activation SHA",
+    "Apply background_large_drive_import migration",
+    "Raise global and private bonus-sources Storage limits to 524288000 bytes",
+    "Bind private import control to the authorized SHA",
+    "Bounded owner-triggered live import acceptance and post-release health checks"
+  ],
+  "excluded": [
+    "Release of a different source commit",
+    "Scheduled imports or background automatic retries",
+    "Google malware/spam override or weaker archive checks",
+    "Automatic item approval or public source exposure",
+    "Factory operational role activation"
+  ],
+  "verification_basis": "factory/evidence/bonus-library-500mib-candidate-2026-09-20.json",
+  "migration": {
+    "name": "background_large_drive_import",
+    "applied": true,
+    "verified": true
+  },
+  "storage": {
+    "private_bucket_limit_bytes": 524288000,
+    "global_limit_dashboard_mb": 500,
+    "global_limit_persisted_after_reload": true
+  },
+  "release_state": "production_build_pending",
+  "followup": "Record exact resulting production deployment, SHA and live acceptance outcomes before closing release."
+}
