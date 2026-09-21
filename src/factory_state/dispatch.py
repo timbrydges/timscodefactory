@@ -21,12 +21,16 @@ from .model import (COMMIT_SHA, SHA256_DIGEST, SAFE_IDENTIFIER, CONTROLLER_IDENT
 @dataclass(frozen=True)
 class DispatchRequest:
     lease_id: str
+    objective_id: str
+    capability_id: str
     source_commit: str
     contract_digest: str
     input_digest: str
 
     def __post_init__(self) -> None:
         for value, pattern in ((self.lease_id, SAFE_IDENTIFIER),
+                               (self.objective_id, SAFE_IDENTIFIER),
+                               (self.capability_id, SAFE_IDENTIFIER),
                                (self.source_commit, COMMIT_SHA),
                                (self.contract_digest, SHA256_DIGEST),
                                (self.input_digest, SHA256_DIGEST)):
@@ -75,6 +79,36 @@ class DynamoDBDispatchStore:
                 "ExpressionAttributeNames": {"#v": "version"},
                 "ExpressionAttributeValues": {":v": serialized["version"], ":payload": serialized["payload"]}}}
 
+    def _scope_guards(self, state: TaskState, request: DispatchRequest) -> list[dict]:
+        """Check trusted scope records atomically; worker text is never approval.
+
+        Record writers must authenticate owner approvals and independent review
+        evidence before persistence. This store cannot create either record.
+        Closing a capability invalidates READY work without deleting history.
+        """
+        lease = next(x for x in state.leases if x.lease_id == request.lease_id)
+        capability = {"ConditionCheck": {
+            "TableName": self.table_name,
+            "Key": {"PK": {"S": f"FACTORY#{state.factory_id}#OBJECTIVE#{request.objective_id}"},
+                    "SK": {"S": f"CAPABILITY#{request.capability_id}"}},
+            "ConditionExpression": "#s = :open AND owner_identity = :owner AND contract_digest = :contract",
+            "ExpressionAttributeNames": {"#s": "status"},
+            "ExpressionAttributeValues": {":open": {"S": "OPEN"}, ":owner": {"S": "tim_brydges"},
+                                          ":contract": {"S": request.contract_digest}}}}
+        review = {"ConditionCheck": {
+            "TableName": self.table_name,
+            "Key": {"PK": self._key(state, request)["PK"], "SK": {"S": f"SCOPE#{request.lease_id}"}},
+            "ConditionExpression": "#s = :accepted AND binding = :binding AND "
+                "reviewer_identity IN (:inspector, :spec_reviewer) AND reviewer_identity <> :executor "
+                "AND attribute_exists(review_evidence_digest)",
+            "ExpressionAttributeNames": {"#s": "status"},
+            "ExpressionAttributeValues": {":accepted": {"S": "ACCEPTED"},
+                ":binding": {"S": self._binding(request)},
+                ":inspector": {"S": "independent_inspector_service"},
+                ":spec_reviewer": {"S": "product_spec_reviewer_service"},
+                ":executor": {"S": lease.authoritative_identity}}}}
+        return [capability, review]
+
     def enqueue(self, state: TaskState, request: DispatchRequest, *, caller_identity: str, now: datetime) -> str:
         self._owner(caller_identity)
         guard = self._state_guard(state, request, now)
@@ -83,7 +117,7 @@ class DynamoDBDispatchStore:
         dispatch_id = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()
         item = {**key, "dispatch_id": {"S": dispatch_id}, "binding": {"S": self._binding(request)},
                 "status": {"S": "READY"}, "queued_at": {"S": now.isoformat()}}
-        self.client.transact_write_items(TransactItems=[guard, {"Put": {
+        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request), {"Put": {
             "TableName": self.table_name, "Item": item,
             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}}])
         return dispatch_id
@@ -94,7 +128,7 @@ class DynamoDBDispatchStore:
         if not isinstance(worker_id, str) or not SAFE_IDENTIFIER.fullmatch(worker_id):
             raise StateError("invalid worker identity")
         guard = self._state_guard(state, request, now)
-        self.client.transact_write_items(TransactItems=[guard, {"Update": {
+        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request), {"Update": {
             "TableName": self.table_name, "Key": self._key(state, request),
             "UpdateExpression": "SET #s = :started, worker_id = :worker, started_at = :now",
             "ConditionExpression": "#s = :ready AND binding = :binding",

@@ -16,7 +16,7 @@ from factory_state.dynamodb import DynamoDBStateStore
 from factory_state.model import AuthorityError, StateError, LeaseError, Lease, TaskState, CONTROLLER_IDENTITY
 
 NOW = datetime(2026, 9, 21, tzinfo=timezone.utc)
-REQUEST = DispatchRequest('lease-1', 'a' * 40, 'sha256:' + 'b' * 64, 'sha256:' + 'c' * 64)
+REQUEST = DispatchRequest('lease-1', 'factory-autonomy', 'durable-dispatch', 'a' * 40, 'sha256:' + 'b' * 64, 'sha256:' + 'c' * 64)
 
 
 class RecordingClient:
@@ -54,7 +54,7 @@ class DispatchLedgerTests(unittest.TestCase):
 
     def test_enqueue_checks_full_persisted_state_atomically_with_unique_insert(self):
         self.enqueue()
-        guard, put = self.client.calls[-1]['TransactItems']
+        guard, _, _, put = self.client.calls[-1]['TransactItems']
         check = guard['ConditionCheck']
         self.assertEqual(check['ExpressionAttributeValues'][':payload'],
                          DynamoDBStateStore._serialize_state(self.state)['payload'])
@@ -65,16 +65,16 @@ class DispatchLedgerTests(unittest.TestCase):
 
     def test_changed_commit_or_input_cannot_create_another_job_for_same_lease(self):
         first = self.enqueue()
-        original = self.client.calls[-1]['TransactItems'][1]['Put']['Item']
+        original = self.client.calls[-1]['TransactItems'][-1]['Put']['Item']
         second = self.enqueue(request=replace(REQUEST, source_commit='d' * 40, input_digest='sha256:' + 'e' * 64))
-        changed = self.client.calls[-1]['TransactItems'][1]['Put']['Item']
+        changed = self.client.calls[-1]['TransactItems'][-1]['Put']['Item']
         self.assertEqual(first, second)
         self.assertEqual(original['SK'], changed['SK'])
         self.assertNotEqual(original['binding'], changed['binding'])
 
     def test_claim_has_ready_only_condition_and_rechecks_authoritative_state(self):
         self.claim()
-        guard, update = self.client.calls[-1]['TransactItems']
+        guard, _, _, update = self.client.calls[-1]['TransactItems']
         self.assertEqual(guard['ConditionCheck']['Key']['SK'], {'S': 'STATE'})
         self.assertEqual(update['Update']['ConditionExpression'], '#s = :ready AND binding = :binding')
         self.assertEqual(update['Update']['ExpressionAttributeValues'][':ready'], {'S': 'READY'})
@@ -108,7 +108,7 @@ class DispatchLedgerTests(unittest.TestCase):
 
     def test_restart_reads_started_record_without_mutation_or_reclaim(self):
         self.enqueue()
-        item = self.client.calls[-1]['TransactItems'][1]['Put']['Item']
+        item = self.client.calls[-1]['TransactItems'][-1]['Put']['Item']
         self.client.item = {**item, 'status': {'S': 'STARTED'}, 'worker_id': {'S': 'lost-worker'}}
         self.client.calls.clear()
         restarted = DynamoDBDispatchStore('state-table', self.client)
@@ -118,7 +118,7 @@ class DispatchLedgerTests(unittest.TestCase):
 
     def test_read_conflicting_binding_fails_without_modifying_record(self):
         self.enqueue()
-        self.client.item = self.client.calls[-1]['TransactItems'][1]['Put']['Item']
+        self.client.item = self.client.calls[-1]['TransactItems'][-1]['Put']['Item']
         with self.assertRaises(StateError):
             self.store.read(self.state, replace(REQUEST, contract_digest='sha256:' + 'd' * 64))
 
@@ -132,6 +132,50 @@ class DispatchLedgerTests(unittest.TestCase):
         self.assertEqual(call['ExpressionAttributeValues'][':recorded'], {'S': 'RECEIPT_RECORDED'})
         self.assertEqual(call['Key']['SK'], {'S': 'DISPATCH#lease-1'})
         self.assertEqual(paused.state, 'PAUSED')
+
+    def test_enqueue_and_claim_both_require_owner_objective_and_independent_scope(self):
+        for action in (self.enqueue, self.claim):
+            action()
+            checks = self.client.calls[-1]['TransactItems']
+            self.assertEqual(len(checks), 4)
+            capability, review = [x['ConditionCheck'] for x in checks[1:3]]
+            self.assertEqual(capability['Key']['PK'], {'S': 'FACTORY#factory#OBJECTIVE#factory-autonomy'})
+            self.assertEqual(capability['Key']['SK'], {'S': 'CAPABILITY#durable-dispatch'})
+            self.assertEqual(capability['ExpressionAttributeValues'][':open'], {'S': 'OPEN'})
+            self.assertEqual(capability['ExpressionAttributeValues'][':owner'], {'S': 'tim_brydges'})
+            self.assertIn('contract_digest = :contract', capability['ConditionExpression'])
+            self.assertIn('reviewer_identity <> :executor', review['ConditionExpression'])
+            self.assertEqual(review['ExpressionAttributeValues'][':executor'], {'S': 'engineering_agent_service'})
+            self.assertIn('attribute_exists(review_evidence_digest)', review['ConditionExpression'])
+            self.assertEqual(review['ExpressionAttributeValues'][':binding'],
+                             {'S': self.store._binding(REQUEST)})
+
+    def test_completed_or_missing_scope_cannot_fall_back_to_lease_only_dispatch(self):
+        class RejectScope(RecordingClient):
+            def transact_write_items(self, **kwargs):
+                # Represents the database rejecting either scope condition.
+                if len(kwargs['TransactItems']) != 4:
+                    raise AssertionError('scope checks missing')
+                raise StateError('TransactionCanceledException: scope condition failed')
+        self.client = RejectScope()
+        self.store = DynamoDBDispatchStore('state-table', self.client)
+        for action in (self.enqueue, self.claim):
+            with self.assertRaisesRegex(StateError, 'scope condition failed'):
+                action()
+        self.assertEqual(self.client.calls, [])
+
+    def test_scope_binding_changes_require_new_review_but_never_reopen_same_lease(self):
+        first = self.enqueue()
+        binding = self.client.calls[-1]['TransactItems'][2]['ConditionCheck']['ExpressionAttributeValues'][':binding']
+        changed = replace(REQUEST, capability_id='unrelated-product-polish')
+        self.assertEqual(first, self.enqueue(request=changed))
+        next_binding = self.client.calls[-1]['TransactItems'][2]['ConditionCheck']['ExpressionAttributeValues'][':binding']
+        self.assertNotEqual(binding, next_binding)
+
+    def test_scope_identifiers_are_required_and_cannot_be_blank(self):
+        for key in ('objective_id', 'capability_id'):
+            with self.assertRaises(StateError):
+                replace(REQUEST, **{key: ''})
 
     def test_invalid_time_and_binding_rejected_before_io(self):
         for now in (NOW.replace(tzinfo=None), NOW - timedelta(seconds=1)):

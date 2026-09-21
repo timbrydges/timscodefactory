@@ -68,3 +68,51 @@ roles, change project contracts, or spend provider budget. Next: a model-free
 DynamoDB contention/crash canary, then a concrete bounded cloud-worker activation
 proposal with its own task allowance. The Bonus Library description test's US$1
 allowance must not be reused as Factory agent funding.
+
+## Objective enforcement at dispatch
+
+Tim's Software Factory has always been the deliverable. Bonus Library is only a
+replaceable test fixture; feature shipping there does not itself count as Factory
+progress. This rule also applies to manual work directed through chat.
+
+Every proposed task must name an unfinished Factory capability, the evidence it
+will produce, and a stop criterion. A reviewer must examine that connection, not
+accept a capability label as proof. Examples:
+
+- Proving independent Builder/Inspector identities on a bounded test change is
+  relevant to Factory autonomy.
+- Polishing a Bonus Library cover, marketing description or product workflow is
+  out of scope unless a concrete unfinished Factory acceptance test requires it.
+- Once the required evidence is accepted, mark the capability complete; a generic
+  “proceed” does not authorize extending the fixture or reopening that capability.
+
+The dispatch ledger now requires two persisted scope records in the same atomic
+transaction as enqueue and claim:
+
+1. `FACTORY#<factory>#OBJECTIVE#<objective>` / `CAPABILITY#<capability>` with
+   `status=OPEN`, `owner_identity=tim_brydges`, and the exact `contract_digest`.
+2. The task partition's `SCOPE#<lease>` record with `status=ACCEPTED`, the exact
+   serialized dispatch `binding`, a `review_evidence_digest`, and an independently
+   authenticated `independent_inspector_service` or `product_spec_reviewer_service`
+   identity different from the executing lease identity.
+
+Missing, closed, changed-contract, withdrawn-review and mismatched-input records
+fail the transaction. A capability closed after enqueue blocks a later claim.
+Scope identities are immutable parts of the request binding; changing them cannot
+create another job under the same lease. Existing queued requests without scope
+fields need fresh review, not an automatic default or migration approval.
+
+These rows are trusted controller records, not agent-supplied approval flags.
+Before live use, the controller adapter must validate owner authorization and
+signed independent review evidence before writing them, restrict agents from
+writing them, and bind capability completion to accepted evidence. This PR does
+not provide those writers or claim a completed live anti-drift system. It adds a
+mandatory consumer gate which fails closed until those prerequisites exist.
+
+Closure blocks future claims; it cannot undo an external operation already
+started. The worker must recheck activation before external effects and reconcile
+in-flight jobs under the existing pause/termination policy. Budget reservation,
+role activation, source review, and Tim's release authorization remain separate.
+
+Progress reports must state the Factory capability, evidence, remaining blocker,
+and next action. Count accepted capabilities, not product features or commits.
