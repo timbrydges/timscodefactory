@@ -139,7 +139,7 @@ class DispatchLedgerTests(unittest.TestCase):
             checks = self.client.calls[-1]['TransactItems']
             self.assertEqual(len(checks), 4)
             capability, review = [x['ConditionCheck'] for x in checks[1:3]]
-            self.assertEqual(capability['Key']['PK'], {'S': 'FACTORY#factory#OBJECTIVE#factory-autonomy'})
+            self.assertEqual(capability['Key']['PK'], {'S': 'FACTORY#factory#TASK#SCOPE#OBJECTIVE#factory-autonomy'})
             self.assertEqual(capability['Key']['SK'], {'S': 'CAPABILITY#durable-dispatch'})
             self.assertEqual(capability['ExpressionAttributeValues'][':open'], {'S': 'OPEN'})
             self.assertEqual(capability['ExpressionAttributeValues'][':owner'], {'S': 'tim_brydges'})

@@ -79,7 +79,7 @@ class DynamoDBDispatchStore:
                 "ExpressionAttributeNames": {"#v": "version"},
                 "ExpressionAttributeValues": {":v": serialized["version"], ":payload": serialized["payload"]}}}
 
-    def _scope_guards(self, state: TaskState, request: DispatchRequest) -> list[dict]:
+    def _scope_guards(self, state: TaskState, request: DispatchRequest, now: datetime) -> list[dict]:
         """Check trusted scope records atomically; worker text is never approval.
 
         Record writers must authenticate owner approvals and independent review
@@ -89,24 +89,24 @@ class DynamoDBDispatchStore:
         lease = next(x for x in state.leases if x.lease_id == request.lease_id)
         capability = {"ConditionCheck": {
             "TableName": self.table_name,
-            "Key": {"PK": {"S": f"FACTORY#{state.factory_id}#OBJECTIVE#{request.objective_id}"},
+            "Key": {"PK": {"S": f"FACTORY#{state.factory_id}#TASK#SCOPE#OBJECTIVE#{request.objective_id}"},
                     "SK": {"S": f"CAPABILITY#{request.capability_id}"}},
-            "ConditionExpression": "#s = :open AND owner_identity = :owner AND contract_digest = :contract",
+            "ConditionExpression": "#s = :open AND owner_identity = :owner AND contract_digest = :contract AND expires_at > :now",
             "ExpressionAttributeNames": {"#s": "status"},
             "ExpressionAttributeValues": {":open": {"S": "OPEN"}, ":owner": {"S": "tim_brydges"},
-                                          ":contract": {"S": request.contract_digest}}}}
+                                          ":contract": {"S": request.contract_digest}, ":now": {"N": str(int(now.timestamp()))}}}}
         review = {"ConditionCheck": {
             "TableName": self.table_name,
             "Key": {"PK": self._key(state, request)["PK"], "SK": {"S": f"SCOPE#{request.lease_id}"}},
             "ConditionExpression": "#s = :accepted AND binding = :binding AND "
                 "reviewer_identity IN (:inspector, :spec_reviewer) AND reviewer_identity <> :executor "
-                "AND attribute_exists(review_evidence_digest)",
+                "AND attribute_exists(review_evidence_digest) AND expires_at > :now",
             "ExpressionAttributeNames": {"#s": "status"},
             "ExpressionAttributeValues": {":accepted": {"S": "ACCEPTED"},
                 ":binding": {"S": self._binding(request)},
                 ":inspector": {"S": "independent_inspector_service"},
                 ":spec_reviewer": {"S": "product_spec_reviewer_service"},
-                ":executor": {"S": lease.authoritative_identity}}}}
+                ":executor": {"S": lease.authoritative_identity}, ":now": {"N": str(int(now.timestamp()))}}}}
         return [capability, review]
 
     def enqueue(self, state: TaskState, request: DispatchRequest, *, caller_identity: str, now: datetime) -> str:
@@ -117,7 +117,7 @@ class DynamoDBDispatchStore:
         dispatch_id = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()
         item = {**key, "dispatch_id": {"S": dispatch_id}, "binding": {"S": self._binding(request)},
                 "status": {"S": "READY"}, "queued_at": {"S": now.isoformat()}}
-        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request), {"Put": {
+        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request, now), {"Put": {
             "TableName": self.table_name, "Item": item,
             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}}])
         return dispatch_id
@@ -128,7 +128,7 @@ class DynamoDBDispatchStore:
         if not isinstance(worker_id, str) or not SAFE_IDENTIFIER.fullmatch(worker_id):
             raise StateError("invalid worker identity")
         guard = self._state_guard(state, request, now)
-        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request), {"Update": {
+        self.client.transact_write_items(TransactItems=[guard, *self._scope_guards(state, request, now), {"Update": {
             "TableName": self.table_name, "Key": self._key(state, request),
             "UpdateExpression": "SET #s = :started, worker_id = :worker, started_at = :now",
             "ConditionExpression": "#s = :ready AND binding = :binding",

@@ -89,7 +89,7 @@ accept a capability label as proof. Examples:
 The dispatch ledger now requires two persisted scope records in the same atomic
 transaction as enqueue and claim:
 
-1. `FACTORY#<factory>#OBJECTIVE#<objective>` / `CAPABILITY#<capability>` with
+1. `FACTORY#<factory>#TASK#SCOPE#OBJECTIVE#<objective>` / `CAPABILITY#<capability>` with
    `status=OPEN`, `owner_identity=tim_brydges`, and the exact `contract_digest`.
 2. The task partition's `SCOPE#<lease>` record with `status=ACCEPTED`, the exact
    serialized dispatch `binding`, a `review_evidence_digest`, and an independently
@@ -116,3 +116,29 @@ role activation, source review, and Tim's release authorization remain separate.
 
 Progress reports must state the Factory capability, evidence, remaining blocker,
 and next action. Count accepted capabilities, not product features or commits.
+
+## Signed scope writer and model-free cloud verification
+
+`SignedScopeStore` verifies canonical JSON with Ed25519 signatures using OpenSSL
+before writing immutable capability and task-review records. Trusted public keys
+come from controller configuration, never job input. Binding, rationale, evidence
+and stop criteria, signer separation, freshness and replay are checked. Dispatch
+also checks persisted approval expiry atomically at enqueue and claim.
+
+The reserved objective namespace is under `TASK#SCOPE#OBJECTIVE#`; a normal task
+identifier cannot contain `#`. This fits the controller's existing IAM partition
+allowlist without adding cloud rights. The earlier unactivated objective prefix
+is superseded; no production data migration is needed.
+
+The `controller-runtime` workflow has a Tim-only `scope-canary` mode on main.
+Its session policy confines writes to two run-specific fixture partitions and
+explicitly denies Bedrock. It uses ephemeral synthetic owner/reviewer keys to
+verify signature mechanics, missing/replayed/tampered approvals, closure after
+queueing, duplicate claims and idempotent receipts. It closes the capability and
+pauses the fixture at completion; it never deletes evidence.
+
+Synthetic signatures are NOT proof of actual independent agent review, owner
+key enrollment, or a continuously running worker. Production key provisioning,
+authenticated signing adapters and worker integration remain required. The
+canary is model-free and creates no production deployment. Unexpected failures
+abort rather than being counted as successful conditional rejection.

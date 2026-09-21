@@ -2,6 +2,13 @@ name: controller-runtime
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Controller verification mode
+        type: choice
+        options: [bootstrap, scope-canary]
+        default: bootstrap
+        required: true
   push:
     branches: [main]
     paths:
@@ -20,6 +27,7 @@ concurrency:
 
 jobs:
   controller-canary:
+    if: github.event_name != 'workflow_dispatch' || inputs.mode == 'bootstrap'
     name: controller / authoritative-state canary
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -231,5 +239,53 @@ jobs:
         with:
           name: factory-controller-deployment-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/controller-deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+  scope-canary:
+    name: controller / signed scope and dispatch canary
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.mode == 'scope-canary' &&
+      github.ref == 'refs/heads/main' && github.actor_id == '214414801'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+        with:
+          role-to-assume: ${{ vars.AWS_CONTROLLER_ROLE_ARN }}
+          aws-region: ca-central-1
+          allowed-account-ids: '666730517561'
+          role-duration-seconds: 900
+          role-session-name: scope-canary-${{ github.run_id }}
+          inline-session-policy: >-
+            {"Version":"2012-10-17","Statement":[
+            {"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:ConditionCheckItem","dynamodb:TransactWriteItems"],
+            "Resource":"arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+            "Condition":{"ForAllValues:StringEquals":{"dynamodb:LeadingKeys":[
+            "FACTORY#tims-software-factory#TASK#scope-canary-${{ github.run_id }}-${{ github.run_attempt }}",
+            "FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#scope-canary-${{ github.run_id }}-${{ github.run_attempt }}"]}}},
+            {"Effect":"Deny","Action":"bedrock:*","Resource":"*"}]}
+      - name: Verify controller identity and isolated signed-scope mechanics
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(aws sts get-caller-identity --query Arn --output text)"
+          [[ "$actual" == "arn:aws:sts::666730517561:assumed-role/tims-software-factory-github-controller/scope-canary-${GITHUB_RUN_ID}" ]]
+          python scripts/scope_dispatch_canary.py "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/scope-canary.json"
+          cat "$RUNNER_TEMP/scope-canary.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: factory-scope-canary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scope-canary.json
           if-no-files-found: error
           retention-days: 30

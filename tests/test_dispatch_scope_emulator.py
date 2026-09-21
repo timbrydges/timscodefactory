@@ -28,10 +28,12 @@ def check():
  enqueue=lambda:store.enqueue(state,REQUEST,caller_identity=CONTROLLER_IDENTITY,now=NOW)
  claim=lambda:store.claim(state,REQUEST,worker_id='worker-1',caller_identity=CONTROLLER_IDENTITY,now=NOW)
  blocked(enqueue)
- cap={'PK':{'S':'FACTORY#factory#OBJECTIVE#factory-autonomy'},'SK':{'S':'CAPABILITY#durable-dispatch'},'status':{'S':'OPEN'},'owner_identity':{'S':'tim_brydges'},'contract_digest':{'S':REQUEST.contract_digest}}
+ cap={'PK':{'S':'FACTORY#factory#TASK#SCOPE#OBJECTIVE#factory-autonomy'},'SK':{'S':'CAPABILITY#durable-dispatch'},'status':{'S':'OPEN'},'owner_identity':{'S':'tim_brydges'},'contract_digest':{'S':REQUEST.contract_digest}}
+ cap['expires_at']={'N':str(int(NOW.timestamp())+300)}
  db.put_item(TableName='state-table',Item=cap)
  blocked(enqueue)
  review={'PK':item['PK'],'SK':{'S':'SCOPE#lease-1'},'status':{'S':'ACCEPTED'},'binding':{'S':store._binding(REQUEST)},'reviewer_identity':{'S':'engineering_agent_service'},'review_evidence_digest':{'S':'sha256:'+'f'*64}}
+ review['expires_at']={'N':str(int(NOW.timestamp())+300)}
  db.put_item(TableName='state-table',Item=review);blocked(enqueue)
  review['reviewer_identity']={'S':'independent_inspector_service'}
  db.put_item(TableName='state-table',Item=review);enqueue()
