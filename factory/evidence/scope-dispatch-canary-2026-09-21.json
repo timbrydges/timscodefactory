@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "source_commit": "94e9ca52859fb07b21879a1bba9353e7898e5f09",
+  "run_id": "35663169496-1",
+  "task_id": "scope-canary-35663169496-1",
+  "conclusion": "success",
+  "checks": [
+    "missing_scope_denied",
+    "tampered_owner_receipt_denied",
+    "owner_receipt_replay_denied",
+    "missing_independent_review_denied",
+    "wrong_signer_denied",
+    "verified_records_allow_enqueue",
+    "completed_capability_blocks_queued_claim",
+    "expired_signed_review_denied",
+    "verified_records_allow_claim",
+    "duplicate_claim_denied",
+    "receipt_retry_idempotent",
+    "fixture_closed_and_paused"
+  ],
+  "model_calls": 0,
+  "production_deployments": 0,
+  "synthetic_signers": true,
+  "independent_review_proven": false,
+  "worker_activated": false,
+  "evidence_source": "https://github.com/timbrydges/timscodefactory/actions/runs/35663169496/job/106542894712",
+  "capture_method": "Transcribed from successful workflow step JSON; workflow conclusion separately verified through GitHub API."
+}

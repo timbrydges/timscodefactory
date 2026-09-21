@@ -105,9 +105,9 @@ fields need fresh review, not an automatic default or migration approval.
 These rows are trusted controller records, not agent-supplied approval flags.
 Before live use, the controller adapter must validate owner authorization and
 signed independent review evidence before writing them, restrict agents from
-writing them, and bind capability completion to accepted evidence. This PR does
-not provide those writers or claim a completed live anti-drift system. It adds a
-mandatory consumer gate which fails closed until those prerequisites exist.
+writing them, and bind capability completion to accepted evidence. The signed writer below supplies signature verification; production signer
+enrollment and authenticated adapters remain prerequisites. The consumer gate
+fails closed when required records are absent.
 
 Closure blocks future claims; it cannot undo an external operation already
 started. The worker must recheck activation before external effects and reconcile
@@ -142,3 +142,18 @@ key enrollment, or a continuously running worker. Production key provisioning,
 authenticated signing adapters and worker integration remain required. The
 canary is model-free and creates no production deployment. Unexpected failures
 abort rather than being counted as successful conditional rejection.
+
+### Live verification — 2026-09-21
+
+PR112 merged as `94e9ca52859fb07b21879a1bba9353e7898e5f09`.
+[Controller run 35663169496](https://github.com/timbrydges/timscodefactory/actions/runs/35663169496)
+succeeded against AWS DynamoDB with all 12 signed-scope and dispatch checks.
+The run made zero model calls and zero production deployments, then closed its
+capability and paused its task. Durable evidence is in
+`factory/evidence/scope-dispatch-canary-2026-09-21.json`.
+
+This closes live verification of the signed-record dispatch mechanics. It does
+not close autonomous operation: production signer enrollment, authenticated
+review adapters, and the continuously running worker remain unfinished. The next
+Factory capability is connecting those real identities and worker execution to
+these verified gates. Bonus Library remains only a test project.
