@@ -44,3 +44,9 @@ operating contracts.
 
 Bonus Library production operation and incident handling are documented in
 [`docs/BONUS_LIBRARY_OPERATIONS.md`](docs/BONUS_LIBRARY_OPERATIONS.md).
+
+## Autonomous operation
+
+The next delivery priority is the reusable cloud worker and automatic task
+progression. See [`docs/FACTORY_AUTONOMY.md`](docs/FACTORY_AUTONOMY.md) for the
+current evidence, completion milestones, and restart-safe dispatch boundary.
