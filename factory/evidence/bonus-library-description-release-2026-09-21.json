@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "bonus_library_description_activation_release",
+  "verified_on": "2026-09-21",
+  "conclusion": "released_and_activated_model_draft_rejected_by_citation_validation",
+  "authorization": {
+    "user_approval": "approved",
+    "scope": "Release PR31; up to seven additional attempts for seven days within existing USD1 cumulative cap",
+    "additional_attempts": 7,
+    "additional_days": 7,
+    "cap_micro_usd": 1000000
+  },
+  "production": {
+    "repository": "timbrydges/bonus-library",
+    "commit": "1103e81fb261b87861f9fcc0f99bfb447639d33d",
+    "deployment_id": "dpl_8pGyHCVvcNfD6pDqrAgm838dxpeN",
+    "url": "https://bonus-library.vercel.app",
+    "state": "READY",
+    "alias_matches_authorized_sha": true
+  },
+  "operations": {
+    "pull_requests": [
+      31,
+      32,
+      33,
+      34
+    ],
+    "activation_run": "https://github.com/timbrydges/bonus-library/actions/runs/35609594043",
+    "diagnostic_run": "https://github.com/timbrydges/bonus-library/actions/runs/35610523544",
+    "yaml_correction_pr": 33,
+    "aws_console_unavailable": true,
+    "existing_owner_gated_workflow_used": true,
+    "iam_expanded": false
+  },
+  "budget": {
+    "partition": "BONUS_LIBRARY#DESCRIPTION_TEST#20260918",
+    "authorization_id": "tim-approved-pr31-20260921",
+    "dispatches_before": 4,
+    "reserved_micro_usd_before": 84852,
+    "dispatch_limit": 11,
+    "expires_at": "2026-09-28T14:03:52Z",
+    "dispatches_after": 5,
+    "reserved_micro_usd_after": 118996,
+    "remaining_attempts": 6,
+    "limit_micro_usd": 1000000,
+    "activation_rerun_was_noop": true,
+    "history_preserved": true
+  },
+  "verification": {
+    "owner_sign_in_and_dashboard": true,
+    "drive_status_http": 200,
+    "description_availability_http": 200,
+    "description_generation_http": 409,
+    "saved_result_recovery_http": 409,
+    "model_response_saved": true,
+    "model_stop_reason": "end_turn",
+    "model_input_tokens": 1519,
+    "model_output_tokens": 599,
+    "description_words": 98,
+    "citations_total": 6,
+    "citations_exact": 3,
+    "citations_rejected": 3,
+    "paid_dispatches_for_live_verification": 1,
+    "automatic_paid_retry": false,
+    "review_unchanged": true,
+    "approved_items_before": 2,
+    "approved_items_after": 2,
+    "production_error_fatal_logs": 0,
+    "limitation": "Usable description not produced: exact citation validation rejected three model quotes. Raw attempt retained and not reopened."
+  },
+  "database": {
+    "project_id": "mjusbpruhcabxvedozgc",
+    "activation_migration": "activate_description_release_1103e81",
+    "drive_import_control_enabled": true,
+    "activation_sha": "1103e81fb261b87861f9fcc0f99bfb447639d33d"
+  },
+  "storage": {
+    "bonus_sources_limit_bytes": 524288000,
+    "bonus_sources_public": false
+  },
+  "rollback": {
+    "prior_commit": "34d2751faf3421f192a526a9398d41e12dc0864a",
+    "prior_deployment": "dpl_78j3TiZV3fTEki4mSTJBkcXuwWVQ",
+    "note": "Rebind Drive activation on rollback and disable description generation; do not reset ledger or reduce Storage capacity."
+  }
+}
