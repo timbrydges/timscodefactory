@@ -260,6 +260,9 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
+      - name: Install locked worker runtime dependencies
+        if: inputs.mode == 'worker-canary'
+        run: python -m pip install --require-hashes -r requirements-ci.txt
       - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ vars.AWS_CONTROLLER_ROLE_ARN }}
