@@ -1,0 +1,236 @@
+{
+  "schema_version": "1.0",
+  "recorded_on": "2026-09-22",
+  "stack_name": "tims-factory-signing",
+  "region": "ca-central-1",
+  "account_id": "666730517561",
+  "deployment": {
+    "source_commit": "95774e3deae0866184da9bad545125a8e385b7dc",
+    "template_sha256": "318a07855d712716d60e51e2a29ea5634f2bcf9f385589d1742ad2426087e94f",
+    "status": "CREATE_COMPLETE",
+    "status_source": "Tim's CloudShell screenshots supplied in conversation on 2026-09-22",
+    "keys_created": 4,
+    "roles_created": 4,
+    "aliases_created": 4
+  },
+  "verification": {
+    "conclusion": "success",
+    "own_key_signatures_verified": 4,
+    "cross_role_signing_denials": 12,
+    "public_proof_source": "JSON transcribed from the expanded GitHub Actions job logs; artifact digests retrieved from GitHub Actions API",
+    "artifact_download_verified": false,
+    "model_calls": 0,
+    "approval_receipts_created": 0,
+    "continuous_worker_activated": false,
+    "local_review": "All four signatures reverified with OpenSSL at recorded challenge issue times; fingerprints, exact CloudShell key ARNs, workflow commit, actor and role session checked. Historical identity evidence only; challenges are not operating approvals."
+  },
+  "canary_gate": {
+    "requested_value": "false",
+    "saved_value": "true",
+    "status": "SWITCH_OFF_BLOCKED_BY_GITHUB_PASSWORD_CONFIRMATION",
+    "runs_in_progress": 0
+  },
+  "enrollment_status": "VERIFIED_CANDIDATES_NOT_ENROLLED",
+  "signers": [
+    {
+      "workflow": {
+        "run_id": 35682709805,
+        "url": "https://github.com/timbrydges/timscodefactory/actions/runs/35682709805",
+        "head_sha": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "actor_id": 214414801,
+        "job_id": 106602911926,
+        "conclusion": "success",
+        "artifact_id": 10675556143,
+        "artifact_name": "factory-signing-owner-35682709805-1",
+        "artifact_digest": "sha256:2f4ccedaade4661484ce8f13a115f3a172eac93872acc81b182f71eb2caa63a4"
+      },
+      "proof": {
+        "schema_version": "1.0",
+        "conclusion": "success",
+        "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "workflow_run": "35682709805-1",
+        "signer": "owner",
+        "identity": "tim_brydges",
+        "aws_caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-owner/signing-owner-35682709805",
+        "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/4cdc8470-77f4-4c5a-a772-7b379f34fbbb",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA5BQtC6yBhasAz7A4tZgh+5tX9Z5t+xtvUR5OrHxPREs=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:1e3436db052d4812f762a43ae34f48d99403d01da86c3aad049381e1c80821ea",
+        "challenge": {
+          "kind": "identity_challenge",
+          "identity": "tim_brydges",
+          "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+          "workflow_run": "35682709805-1",
+          "issued_at": 1790047164,
+          "expires_at": 1790047764,
+          "purpose": "key-custody-verification-only"
+        },
+        "signature_base64": "6IdQF0QpRC1xe0PZbASzfUiLB5Z7SMNTgRyDLPg7f24+TnDcC8+mKlxXAWAoL9wucGn1xzYdHBLyk9NoN/3LAQ==",
+        "cross_role_signing_denied": [
+          "planner",
+          "builder",
+          "inspector"
+        ],
+        "enrollment_status": "CANDIDATE_REQUIRES_REVIEW",
+        "model_calls": 0,
+        "approval_receipts_created": 0,
+        "continuous_worker_activated": false
+      },
+      "local_review": {
+        "signature_verified_at_challenge_issue_time": true,
+        "challenge_digest": "sha256:7a1d9aff5bd0b89292876390d96d1938e7d59263646b0245fb535675c288604c",
+        "fingerprint_verified": true,
+        "key_arn_matches_owner_cloudshell_output": true
+      }
+    },
+    {
+      "workflow": {
+        "run_id": 35682815614,
+        "url": "https://github.com/timbrydges/timscodefactory/actions/runs/35682815614",
+        "head_sha": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "actor_id": 214414801,
+        "job_id": 106603244147,
+        "conclusion": "success",
+        "artifact_id": 10675411520,
+        "artifact_name": "factory-signing-planner-35682815614-1",
+        "artifact_digest": "sha256:fcffae82988de00fd86b88f31a82171521906c512b839f2076d4c037260032d7"
+      },
+      "proof": {
+        "schema_version": "1.0",
+        "conclusion": "success",
+        "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "workflow_run": "35682815614-1",
+        "signer": "planner",
+        "identity": "software_architect_service",
+        "aws_caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-planner/signing-planner-35682815614",
+        "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/e89c5974-1134-4e26-9c25-147eb2fde5f6",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAhO15585VYfLuB139krvqSw53mmALBJRkwC21IVQkLIk=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:f69c1982b40d867f6fe936c365a4cd0842187fb82801b993a642db34f610e01f",
+        "challenge": {
+          "kind": "identity_challenge",
+          "identity": "software_architect_service",
+          "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+          "workflow_run": "35682815614-1",
+          "issued_at": 1790047262,
+          "expires_at": 1790047862,
+          "purpose": "key-custody-verification-only"
+        },
+        "signature_base64": "IdaQprHqbUUsCmiD96lEN2Q5z3G1N24+w/8QuNvJSVQe3ANwg2vKSiz5pNAyNY+/0SOsrJML0lvGRelrV40ZCw==",
+        "cross_role_signing_denied": [
+          "owner",
+          "builder",
+          "inspector"
+        ],
+        "enrollment_status": "CANDIDATE_REQUIRES_REVIEW",
+        "model_calls": 0,
+        "approval_receipts_created": 0,
+        "continuous_worker_activated": false
+      },
+      "local_review": {
+        "signature_verified_at_challenge_issue_time": true,
+        "challenge_digest": "sha256:df19bac83a6eb01427d9b9bd782e6c7e76eea59273d32ff2728daf077e334f12",
+        "fingerprint_verified": true,
+        "key_arn_matches_owner_cloudshell_output": true
+      }
+    },
+    {
+      "workflow": {
+        "run_id": 35682741893,
+        "url": "https://github.com/timbrydges/timscodefactory/actions/runs/35682741893",
+        "head_sha": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "actor_id": 214414801,
+        "job_id": 106603015461,
+        "conclusion": "success",
+        "artifact_id": 10675611044,
+        "artifact_name": "factory-signing-builder-35682741893-1",
+        "artifact_digest": "sha256:dd2732735c7856f048ef7ef722894cb0b9290dc462cd6b17b7152cfa273c0692"
+      },
+      "proof": {
+        "schema_version": "1.0",
+        "conclusion": "success",
+        "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "workflow_run": "35682741893-1",
+        "signer": "builder",
+        "identity": "engineering_agent_service",
+        "aws_caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-builder/signing-builder-35682741893",
+        "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/9c24941f-563b-4dc9-bcc3-394384c655eb",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA0xhuSYZkwBb57KyFPBZ1ZaaC1JoqGB0TonLoFNUbBjM=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:ecea01029d27d5f3512f25b5614143b0e7d8c65824944a58cbe43b2521ad1d10",
+        "challenge": {
+          "kind": "identity_challenge",
+          "identity": "engineering_agent_service",
+          "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+          "workflow_run": "35682741893-1",
+          "issued_at": 1790047193,
+          "expires_at": 1790047793,
+          "purpose": "key-custody-verification-only"
+        },
+        "signature_base64": "8etqkUVbjKVJ2PmFNC9m7RpFDeYLBAyRoPdp9PKWCBrUFIwgdzJ6+OiDyJ3r91YaCZ3lgNYDb+RZAJvRqBG5DQ==",
+        "cross_role_signing_denied": [
+          "owner",
+          "planner",
+          "inspector"
+        ],
+        "enrollment_status": "CANDIDATE_REQUIRES_REVIEW",
+        "model_calls": 0,
+        "approval_receipts_created": 0,
+        "continuous_worker_activated": false
+      },
+      "local_review": {
+        "signature_verified_at_challenge_issue_time": true,
+        "challenge_digest": "sha256:d7f7bff3f9561d4ee1397a99617bd45fe25cf502a6904cd35cffce9ea3b020c0",
+        "fingerprint_verified": true,
+        "key_arn_matches_owner_cloudshell_output": true
+      }
+    },
+    {
+      "workflow": {
+        "run_id": 35682776125,
+        "url": "https://github.com/timbrydges/timscodefactory/actions/runs/35682776125",
+        "head_sha": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "actor_id": 214414801,
+        "job_id": 106603123240,
+        "conclusion": "success",
+        "artifact_id": 10675481303,
+        "artifact_name": "factory-signing-inspector-35682776125-1",
+        "artifact_digest": "sha256:23c91e171d42ad58b6afa4da11ca7c28df6698699a5241bc02f27c5544809a8e"
+      },
+      "proof": {
+        "schema_version": "1.0",
+        "conclusion": "success",
+        "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+        "workflow_run": "35682776125-1",
+        "signer": "inspector",
+        "identity": "independent_inspector_service",
+        "aws_caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-inspector/signing-inspector-35682776125",
+        "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/7885556b-627c-4d95-a635-8849477fc00e",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAjz/vf6Pd3Jl51E9ZyBop70ple5jqMbgg6vz0NHF6ynY=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:0076b42c6428bb659deae3a6fd74283682d16a0d9040b4935ec3ae7c98d81cd9",
+        "challenge": {
+          "kind": "identity_challenge",
+          "identity": "independent_inspector_service",
+          "source_commit": "f58711eec4cf026ef5ff12fba43433ce628aba8d",
+          "workflow_run": "35682776125-1",
+          "issued_at": 1790047234,
+          "expires_at": 1790047834,
+          "purpose": "key-custody-verification-only"
+        },
+        "signature_base64": "B9BRkNI4evheK6GlUMUEqSYdaoFHd+bLQt4hJIxAvGj2wvfC6ODMGhQo255Ch//yxe5e1k5STnhzLxySXsc2DQ==",
+        "cross_role_signing_denied": [
+          "owner",
+          "planner",
+          "builder"
+        ],
+        "enrollment_status": "CANDIDATE_REQUIRES_REVIEW",
+        "model_calls": 0,
+        "approval_receipts_created": 0,
+        "continuous_worker_activated": false
+      },
+      "local_review": {
+        "signature_verified_at_challenge_issue_time": true,
+        "challenge_digest": "sha256:7e7634b0ce9f1d94c97a41fb65118d26133af9b5f2812a7ece2326492a76710a",
+        "fingerprint_verified": true,
+        "key_arn_matches_owner_cloudshell_output": true
+      }
+    }
+  ]
+}
