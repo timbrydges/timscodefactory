@@ -272,3 +272,17 @@ The deterministic map covers Specification through Security Review and stops at
 `RELEASE_READY`. It cannot issue leases, create approvals, invoke roles, retry an
 unknown outcome, enable scheduling or dispatch production. Automatic intake,
 next-role lease creation and the unattended scheduler remain separate work.
+
+### Authenticated automatic intake — 2026-09-22
+
+`AuthenticatedIntakeService` prepares a deterministic next-role lease and exact
+dispatch binding for isolated owner and reviewer signatures. Activation verifies
+both signatures before mutation, persists the lease, stores immutable scope and
+queues one request. Re-entry after any completed boundary reuses the exact lease,
+scope and queue instead of creating duplicate work.
+
+Role selection is fixed by the current Factory stage. The service cannot create
+signatures, choose an arbitrary role, invoke the worker, spend provider budget,
+enable a schedule or queue release automation. The remaining autonomy boundary
+is the authenticated owner/reviewer receipt transport followed by a disabled-by-
+default scheduler that composes intake, worker and signed-result progression.

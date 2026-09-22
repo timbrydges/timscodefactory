@@ -73,8 +73,16 @@ class SignedScopeStore:
         return 'sha256:' + hashlib.sha256(raw).hexdigest()
 
     def _write(self, item: dict) -> None:
-        self.client.put_item(TableName=self.table_name, Item=item,
-            ConditionExpression='attribute_not_exists(PK) AND attribute_not_exists(SK)')
+        try:
+            self.client.put_item(TableName=self.table_name, Item=item,
+                ConditionExpression='attribute_not_exists(PK) AND attribute_not_exists(SK)')
+        except Exception as error:
+            if getattr(error, 'response', {}).get('Error', {}).get('Code') != 'ConditionalCheckFailedException':
+                raise
+            existing = self.client.get_item(TableName=self.table_name,
+                Key={'PK': item['PK'], 'SK': item['SK']}, ConsistentRead=True).get('Item')
+            if existing != item:
+                raise StateError('signed scope record conflicts with immutable approval') from error
 
     def _capability_item(self, state: TaskState, request: DispatchRequest, payload: dict,
                            signature: bytes, *, now: datetime) -> dict:
