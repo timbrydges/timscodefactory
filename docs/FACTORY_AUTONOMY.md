@@ -25,7 +25,7 @@ milestone. AI-generated product descriptions are not Factory worker calls.
 | Milestone | Completion evidence | Status |
 | --- | --- | --- |
 | Durable dispatch | One claim under contention; crash cannot duplicate a provider call; paused/stale work rejected | Signed-scope and claim mechanics verified live in run 35663169496; integrated worker proof below |
-| Cloud worker | Approved task intake → claimed job → independently identified role → persisted result, survives worker restart | Bounded worker integration implemented; real adapters and activation pending |
+| Cloud worker | Approved task intake → claimed job → independently identified role → persisted result, survives worker restart | Worker integration verified live in run 35673170867; real adapters and continuous activation pending |
 | Automatic progression | Planner → Builder → Inspector → QA/security; bounded repairs; exact source/evidence binding; cumulative budget before every call | Components exist; integrated project run pending |
 | Owner controls | Visible queue, progress, spend, failure reason; pause/stop/resume; clear release request | End-to-end operator interface pending |
 | Acceptance and operation | Approved project runs with chat closed, two-worker contention and crash/pause tests, release authorization and rollback | Pending |
@@ -203,3 +203,17 @@ signers are synthetic. It neither enrolls real identities nor enables a schedule
   the retired pilot and Bonus Library description allowance do not authorize it.
 - Wire the scheduler/intake and result-to-state evidence adapter, then verify a
   complete independently reviewed run while chat is closed.
+
+### Live worker evidence
+
+[Run 35673170867](https://github.com/timbrydges/timscodefactory/actions/runs/35673170867)
+passed all eight worker checks at source
+`0fdad0d528eb577e611abfd4ec5f2846e2cc3c9f`. Safe evidence is retained in
+`factory/evidence/worker-integration-2026-09-22.json`. The initial import failure
+was corrected with the existing hash-locked runtime dependencies. Local validation
+passed 450 tests; PR CI also passed the real Docker and HTTP/TLS broker checks.
+
+The proven milestone is bounded dispatch-to-signed-result worker mechanics in
+AWS, including restart, lost response, signer revocation and pause enforcement.
+Real identity custody, remote role execution and unattended scheduling are still
+not proven or activated. No model calls or production deployments occurred.

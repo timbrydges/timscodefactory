@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "conclusion": "success",
+  "source_commit": "0fdad0d528eb577e611abfd4ec5f2846e2cc3c9f",
+  "run_id": "35673170867-1",
+  "task_id": "scope-canary-35673170867-1",
+  "checks": [
+    "input_and_activation_rejected_before_claim",
+    "signed_role_result_persisted",
+    "restart_does_not_repeat_completed_call",
+    "lost_response_not_retried",
+    "wrong_result_signer_rejected",
+    "revoked_reviewer_blocks_ready_work",
+    "pause_after_reservation_blocks_external_call",
+    "fixture_closed_and_paused"
+  ],
+  "model_calls": 0,
+  "production_deployments": 0,
+  "synthetic_signers": true,
+  "independent_review_proven": false,
+  "continuous_worker_activated": false,
+  "evidence_source": "https://github.com/timbrydges/timscodefactory/actions/runs/35673170867/job/106573977047",
+  "artifact": {
+    "id": 10671937429,
+    "digest": "sha256:5bacc4727d7d00a68de1c6388c7222df9a17f8fee15ec10b567decbf0ba61238"
+  },
+  "capture_method": "Safe result JSON transcribed from workflow logs; success independently checked through GitHub API.",
+  "prior_attempt": {
+    "run_id": 35673018479,
+    "conclusion": "failure",
+    "reason": "PyYAML missing during package import; failed before task-state writes. Fixed by installing existing hash-locked requirements."
+  }
+}
