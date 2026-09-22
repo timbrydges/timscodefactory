@@ -237,3 +237,14 @@ exact KMS ARN bindings now reference verified evidence commit
 revoked, expired, disabled or mismatched enrollment before signing. This completes
 key enrollment and the signing configuration boundary; it does not deploy
 remote AI role services or prove autonomous operation.
+
+
+### Cloud role transport implemented — 2026-09-22
+
+`LambdaRoleExecutor` and `RoleExecutionService` now implement the controller-to-role
+boundary, including exact function versions, bounded synchronous responses,
+role-side durable claims, signed results and duplicate/lost-response handling.
+All three roles pass the local integration checks with simulated AWS and real
+signatures. See `docs/FACTORY_CLOUD_ROLES.md` for evidence limits and deployment
+requirements. Cloud functions, scoped execution permissions and concrete model
+backends are not deployed. No model allowance or autonomous scheduling is enabled.
