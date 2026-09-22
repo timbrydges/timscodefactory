@@ -2,7 +2,7 @@
 
 ## Reviewable deployment
 
-The next deployment creates four non-exportable Ed25519 KMS keys, four aliases
+The deployed stack contains four non-exportable Ed25519 KMS keys, four aliases
 and four isolated IAM roles in account `666730517561`, region `ca-central-1`.
 The dedicated CloudFormation stack is `tims-factory-signing`; it owns new names
 only and does not modify Terraform-managed state, release or product resources.
@@ -33,7 +33,8 @@ new Factory expense; existing Bonus Library approvals do not fund it.
 
 Source checked 2026-09-22: https://aws.amazon.com/kms/pricing/
 
-No key has been created by this change. Code publication incurs no KMS key charge.
+Tim executed the approved change set on 2026-09-22 and supplied CloudShell
+output showing CREATE_COMPLETE. Four keys now exist and incur the approved charge.
 The first verification is four manual workflows, each with two public-key reads,
 one successful signing call and three expected cross-role signing denials. Each
 workflow disables SDK/CLI retry attempts beyond the initial call. No model calls,
@@ -45,13 +46,28 @@ disable the relevant signer, preserve its public evidence, then have Tim explici
 authorize scheduling key deletion with the configured 30-day recovery window.
 AWS does not charge key storage while a key is scheduled for deletion.
 
-## Approved deployment; AWS access required
+## Approved deployment and live verification
 
 Tim approved this exact deployment and the US$4/month plus metered KMS request
 charge on 2026-09-22. The authorization audit is
 `factory/evidence/signing-deployment-authorization-2026-09-22.json`. Do not request
-the same cost approval again. No keys were created: CloudShell returned HTTP 502
-and the connected desktop has no authenticated AWS command-line session.
+the same cost approval again. The earlier access blocker in that historical audit
+was resolved by Tim running the prepared commands in his authenticated CloudShell.
+
+Live evidence is `factory/evidence/signing-verification-2026-09-22.json`. All four
+workflows passed on main at `f58711eec4cf026ef5ff12fba43433ce628aba8d`: four own-key
+signatures and twelve cross-role AccessDeniedException results. Public keys match
+Tim's stack outputs. Their fingerprints and historical challenge signatures were
+also verified locally. Artifact archive digests are recorded from GitHub; the
+JSON proofs were recovered from visible job logs, not downloaded archives.
+
+GitHub password confirmation completed and the saved
+`FACTORY_SIGNING_CANARY_ENABLED` value is false. All four runs have finished.
+There is no schedule, and dispatch remains restricted to Tim on main. The trusted
+registry remains disabled pending human review of these exact public keys.
+
+The deployment procedure below is retained for audit; do not recreate this stack
+or repeat the verification without a specific reason.
 
 1. From a clean checkout of the approved commit, run
    `python scripts/prepare_signing_changeset.py` in authenticated AWS CloudShell.
@@ -98,7 +114,8 @@ interop through a simulated KMS boundary, role/key/fingerprint mismatch rejectio
 oversize/lifetime checks, cross-role denial handling and least-privilege template
 bindings. These are local tests, not claims of live KMS custody verification.
 
-The AWS console was unreachable during preparation. No live change set or cloud
-validation has been completed; retry the console before deployment. The existing
-AWS controller role deliberately lacks KMS/IAM provisioning permissions and must
-not be broadened to bypass owner-controlled provisioning.
+The AWS console was unreachable during preparation, but Tim subsequently deployed
+the stack and the live signing checks passed. The existing AWS controller role
+retains its original permissions. Real role execution and unattended scheduling
+remain separate unfinished Factory work; successful signing checks do not prove
+an autonomous Factory run.
