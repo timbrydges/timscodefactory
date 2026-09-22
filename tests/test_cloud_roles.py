@@ -38,6 +38,10 @@ class CloudRoleTests(unittest.TestCase):
             KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}],
             AttributeDefinitions=[{'AttributeName': x, 'AttributeType': 'S'} for x in ('PK', 'SK')],
             BillingMode='PAY_PER_REQUEST')
+        self.db.create_table(TableName='role-executions',
+            KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}],
+            AttributeDefinitions=[{'AttributeName': x, 'AttributeType': 'S'} for x in ('PK', 'SK')],
+            BillingMode='PAY_PER_REQUEST')
         self.states = DynamoDBStateStore('role-state', self.db)
         self.ledger = DynamoDBDispatchStore('role-state', self.db)
         self.calls = self.invocations = 0
@@ -92,7 +96,7 @@ class CloudRoleTests(unittest.TestCase):
                 test.calls += 1
                 if test.mode == 'crash': raise TimeoutError('uncertain provider outcome')
                 return b'role result'
-        self.service = RoleExecutionService(self.states, self.ledger, deployed_commit='a'*40,
+        self.service = RoleExecutionService(self.states, self.ledger, execution_table='role-executions', deployed_commit='a'*40,
             identity=identity, key_loader=lambda now: self.keys, signer=signer,
             backend=Backend(), clock=lambda: NOW)
         class Client:

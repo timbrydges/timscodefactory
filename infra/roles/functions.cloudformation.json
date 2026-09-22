@@ -1,0 +1,530 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Three isolated Factory deployment probes; operational execution disabled. Metered Lambda/DynamoDB/log/S3 use.",
+  "Parameters": {
+    "ArtifactKey": {
+      "Type": "String"
+    },
+    "ArtifactVersion": {
+      "Type": "String"
+    },
+    "CodeSha256": {
+      "Type": "String"
+    },
+    "ArtifactBucket": {
+      "Type": "String",
+      "Default": "tims-software-factory-666730517561-ca-central-1",
+      "AllowedValues": [
+        "tims-software-factory-666730517561-ca-central-1"
+      ]
+    }
+  },
+  "Resources": {
+    "RoleExecutions": {
+      "Type": "AWS::DynamoDB::Table",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "TableName": "tims-factory-role-executions",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE"
+          }
+        ],
+        "SSESpecification": {
+          "SSEEnabled": true
+        }
+      }
+    },
+    "PlannerLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-planner",
+        "RetentionInDays": 14
+      }
+    },
+    "PlannerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-executor-planner",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "bounded-role-execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "OwnSigningSession",
+                  "Effect": "Allow",
+                  "Action": [
+                    "sts:AssumeRole"
+                  ],
+                  "Resource": "arn:aws:iam::666730517561:role/tims-factory-signing-planner"
+                },
+                {
+                  "Sid": "OwnLogs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-planner:*"
+                },
+                {
+                  "Sid": "CanaryStateReadAndConditionsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:ConditionCheckItem"
+                  ],
+                  "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "FACTORY#tims-software-factory#TASK#cloud-role-canary-*",
+                        "FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "OwnExecutionRecordsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "RoleExecutions",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "ROLE#software_architect_service#FACTORY#tims-software-factory#TASK#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PlannerFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "PlannerLogs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-planner",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.lambda_role.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "PlannerRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "MemorySize": 256,
+        "Timeout": 60,
+        "ReservedConcurrentExecutions": 1,
+        "Environment": {
+          "Variables": {
+            "FACTORY_ROLE": "planner"
+          }
+        },
+        "Description": "Factory deployment identity probe only; no operational model execution"
+      }
+    },
+    "PlannerVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "PlannerFunction"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    },
+    "BuilderLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-builder",
+        "RetentionInDays": 14
+      }
+    },
+    "BuilderRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-executor-builder",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "bounded-role-execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "OwnSigningSession",
+                  "Effect": "Allow",
+                  "Action": [
+                    "sts:AssumeRole"
+                  ],
+                  "Resource": "arn:aws:iam::666730517561:role/tims-factory-signing-builder"
+                },
+                {
+                  "Sid": "OwnLogs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-builder:*"
+                },
+                {
+                  "Sid": "CanaryStateReadAndConditionsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:ConditionCheckItem"
+                  ],
+                  "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "FACTORY#tims-software-factory#TASK#cloud-role-canary-*",
+                        "FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "OwnExecutionRecordsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "RoleExecutions",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "ROLE#engineering_agent_service#FACTORY#tims-software-factory#TASK#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BuilderFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "BuilderLogs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-builder",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.lambda_role.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "BuilderRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "MemorySize": 256,
+        "Timeout": 60,
+        "ReservedConcurrentExecutions": 1,
+        "Environment": {
+          "Variables": {
+            "FACTORY_ROLE": "builder"
+          }
+        },
+        "Description": "Factory deployment identity probe only; no operational model execution"
+      }
+    },
+    "BuilderVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "BuilderFunction"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    },
+    "InspectorLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-inspector",
+        "RetentionInDays": 14
+      }
+    },
+    "InspectorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-executor-inspector",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "bounded-role-execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "OwnSigningSession",
+                  "Effect": "Allow",
+                  "Action": [
+                    "sts:AssumeRole"
+                  ],
+                  "Resource": "arn:aws:iam::666730517561:role/tims-factory-signing-inspector"
+                },
+                {
+                  "Sid": "OwnLogs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-inspector:*"
+                },
+                {
+                  "Sid": "CanaryStateReadAndConditionsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:ConditionCheckItem"
+                  ],
+                  "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "FACTORY#tims-software-factory#TASK#cloud-role-canary-*",
+                        "FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "OwnExecutionRecordsOnly",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "RoleExecutions",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "ROLE#independent_inspector_service#FACTORY#tims-software-factory#TASK#cloud-role-canary-*"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InspectorFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "InspectorLogs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-inspector",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.lambda_role.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "InspectorRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "MemorySize": 256,
+        "Timeout": 60,
+        "ReservedConcurrentExecutions": 1,
+        "Environment": {
+          "Variables": {
+            "FACTORY_ROLE": "inspector"
+          }
+        },
+        "Description": "Factory deployment identity probe only; no operational model execution"
+      }
+    },
+    "InspectorVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "InspectorFunction"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    },
+    "ControllerInvoke": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "factory-isolated-role-versions",
+        "Roles": [
+          "tims-software-factory-github-controller"
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:InvokeFunction"
+              ],
+              "Resource": [
+                {
+                  "Ref": "PlannerVersion"
+                },
+                {
+                  "Ref": "BuilderVersion"
+                },
+                {
+                  "Ref": "InspectorVersion"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "PlannerVersionArn": {
+      "Value": {
+        "Ref": "PlannerVersion"
+      }
+    },
+    "BuilderVersionArn": {
+      "Value": {
+        "Ref": "BuilderVersion"
+      }
+    },
+    "InspectorVersionArn": {
+      "Value": {
+        "Ref": "InspectorVersion"
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime
@@ -45,6 +46,20 @@ class SignedScopeStore:
                 raise StateError('invalid scope receipt time')
         if not payload['issued_at'] <= now.timestamp() < payload['expires_at']:
             raise StateError('scope receipt expired or future-dated')
+        if shutil.which(self.openssl) is None:
+            # Lambda ZIP runtimes need not provide an openssl executable. The
+            # deployment packages hash-pinned cryptography wheels for this path.
+            from cryptography.exceptions import InvalidSignature
+            from cryptography.hazmat.primitives.serialization import load_pem_public_key
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+            key = load_pem_public_key(self.trusted_keys[identity])
+            if not isinstance(key, Ed25519PublicKey):
+                raise StateError('scope signer must use Ed25519')
+            try:
+                key.verify(signature, raw)
+            except InvalidSignature as error:
+                raise StateError('scope signature verification failed') from error
+            return 'sha256:' + hashlib.sha256(raw).hexdigest()
         with tempfile.TemporaryDirectory(prefix='factory-scope-') as directory:
             root = Path(directory)
             (root/'key.pem').write_bytes(self.trusted_keys[identity])

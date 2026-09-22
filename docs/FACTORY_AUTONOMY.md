@@ -248,3 +248,12 @@ All three roles pass the local integration checks with simulated AWS and real
 signatures. See `docs/FACTORY_CLOUD_ROLES.md` for evidence limits and deployment
 requirements. Cloud functions, scoped execution permissions and concrete model
 backends are not deployed. No model allowance or autonomous scheduling is enabled.
+
+
+### Role deployment package prepared — 2026-09-22
+
+The three Lambda identity-probe packages, separate execution-table IAM boundary,
+exact signing-role trust update and owner CloudShell preparation/execution/verification
+scripts are prepared. Operational backend calls remain disabled. The agent AWS
+browser is unavailable; no Lambda deployment is claimed without the resulting
+cloud evidence. Details: `docs/FACTORY_CLOUD_ROLES.md`.

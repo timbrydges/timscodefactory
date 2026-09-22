@@ -123,12 +123,15 @@ class RoleExecutionService:
     idempotency key, shared with the controller reservation. The backend's execute
     returns bounded bytes; agent output is never a signature request or approval.
     """
-    def __init__(self, states, ledger, *, deployed_commit, identity, key_loader,
+    def __init__(self, states, ledger, *, execution_table, deployed_commit, identity, key_loader,
                  signer, backend, clock):
         from factory_state.model import COMMIT_SHA
         if (identity not in ROLE_IDENTITIES.values() or signer.identity != identity or
                 not isinstance(deployed_commit, str) or not COMMIT_SHA.fullmatch(deployed_commit)):
             raise StateError('invalid isolated role deployment')
+        if not isinstance(execution_table, str) or not execution_table or execution_table == ledger.table_name:
+            raise StateError('role execution writes require a separate table')
+        self.execution_table = execution_table
         self.states, self.ledger = states, ledger
         self.commit, self.identity = deployed_commit, identity
         self.key_loader, self.signer, self.backend, self.clock = key_loader, signer, backend, clock
@@ -158,10 +161,10 @@ class RoleExecutionService:
                 record.get('worker_id') != {'S': event['worker_id']} or
                 record.get('status') not in ({'S': 'STARTED'}, {'S': 'RECEIPT_RECORDED'})):
             raise StateError('role dispatch is not claimed by this controller worker')
-        key = {'PK': {'S': f'FACTORY#{state.factory_id}#TASK#{state.task_id}'},
+        key = {'PK': {'S': f'ROLE#{self.identity}#FACTORY#{state.factory_id}#TASK#{state.task_id}'},
                'SK': {'S': f'EXECUTION#{request.lease_id}'}}
         event_digest = digest(canonical(event))
-        prior = self.ledger.client.get_item(TableName=self.ledger.table_name, Key=key,
+        prior = self.ledger.client.get_item(TableName=self.execution_table, Key=key,
                                             ConsistentRead=True).get('Item')
         if prior:
             if prior.get('event_digest') != {'S': event_digest} or prior.get('identity') != {'S': self.identity}:
@@ -183,7 +186,7 @@ class RoleExecutionService:
                 'ExpressionAttributeNames': {'#s': 'status'}, 'ExpressionAttributeValues': {
                     ':s': {'S': 'STARTED'}, ':w': {'S': event['worker_id']},
                     ':d': {'S': event['dispatch_id']}, ':b': {'S': self.ledger._binding(request)}}}},
-            {'Put': {'TableName': self.ledger.table_name,
+            {'Put': {'TableName': self.execution_table,
                 'Item': {**key, 'status': {'S': 'STARTED'}, 'event_digest': {'S': event_digest},
                          'identity': {'S': self.identity}},
                 'ConditionExpression': 'attribute_not_exists(PK) AND attribute_not_exists(SK)'}}])
@@ -205,7 +208,7 @@ class RoleExecutionService:
             payload, signature, self.identity, now)
         result = {'payload': payload, 'signature_base64': base64.b64encode(signature).decode(),
                   'output_base64': base64.b64encode(output).decode()}
-        self.ledger.client.update_item(TableName=self.ledger.table_name, Key=key,
+        self.ledger.client.update_item(TableName=self.execution_table, Key=key,
             UpdateExpression='SET #s=:done, #r=:r',
             ConditionExpression='#s=:started AND event_digest=:d AND #i=:i',
             ExpressionAttributeNames={'#s': 'status', '#r': 'response', '#i': 'identity'}, ExpressionAttributeValues={

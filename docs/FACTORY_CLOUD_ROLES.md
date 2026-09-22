@@ -17,7 +17,8 @@ reads; the existing worker verifies the signed identity, dispatch and output.
 state and dispatch from DynamoDB rather than accepting task-supplied authority.
 It requires the correct role lease, exact deployed source/input binding, STARTED
 controller claim and worker ID, and current owner/reviewer scope signatures.
-It then atomically creates `EXECUTION#<lease>` while rechecking state, scope and
+It then atomically creates `EXECUTION#<lease>` in a separate execution table,
+under a role-prefixed partition, while rechecking state, scope and
 the controller claim. A duplicate delivery cannot execute the backend twice.
 
 The role backend must implement check_activation, reserve and execute. Its
@@ -74,3 +75,67 @@ Python service identity is not a substitute for verified cloud permissions.
 AWS API references used for transport behavior:
 - https://docs.aws.amazon.com/boto3/latest/reference/services/lambda/client/invoke.html
 - https://docs.aws.amazon.com/botocore/latest/reference/config.html
+
+## Deployment package prepared — 2026-09-22
+
+The first cloud package enables only an `identity_probe` event: a fixed,
+short-lived deployment challenge signed by the appropriate enrolled key.
+Operational dispatches fail closed. The full service is packaged for subsequent
+backend integration; deployment probes are not autonomous role execution.
+
+`infra/roles/functions.cloudformation.json` creates 14 resources: three functions,
+three published versions, three execution roles, three 14-day log groups, one
+on-demand execution table and an exact-version controller invocation policy.
+Functions use Python 3.12 x86_64, 256 MiB, a 60-second timeout and concurrency one.
+There are no public Function URLs, model permissions, provisioned concurrency or
+schedules. Lambda, DynamoDB, logs and artifact storage incur metered AWS charges;
+the existing four-key charge is unchanged and no additional keys are created.
+
+Role execution records now live in `tims-factory-role-executions`, partitioned by
+role identity. This fixes a deployment problem in the earlier shared-table layout:
+partition-scoped IAM could not isolate execution writes from controller state.
+Each execution role may read/condition-check only the cloud-role-canary state
+namespace and write only its own execution partition in the separate table.
+It cannot mutate controller state, approve scope, delete claims, invoke a model,
+assume another signing role or sign directly.
+
+The signing stack's new `EnableRoleExecutionTrust` parameter defaults false.
+Setting it true adds an exact-principal trust for each corresponding execution
+role to Planner, Builder and Inspector signing roles. Owner trust and all key
+policies are unchanged. Short-lived signing sessions have no state permissions.
+
+The package includes hash-pinned Linux cryptography dependencies for signature
+verification when the Lambda runtime lacks an OpenSSL command. Existing OpenSSL
+verification remains the default where available. Source, wheel hashes, ZIP hash,
+S3 object version and published Lambda CodeSha256 are bound into the deployment.
+
+From a clean checkout of the reviewed commit in an owner-authenticated CloudShell:
+
+```bash
+python3 scripts/build_role_package.py /tmp/factory-role-package.zip
+python3 scripts/prepare_role_deployment.py prepare /tmp/factory-role-package.zip /tmp/factory-role-plan.json
+```
+
+Preparation uploads the package to the existing versioned artifact bucket and
+creates two change sets without executing them. It rejects any role-stack change
+other than the exact 14 additions, and any signing-stack change other than three
+non-replacing role modifications. It must not replace a key or modify OwnerRole.
+
+With the already-authorized, expected change sets prepared:
+
+```bash
+python3 scripts/prepare_role_deployment.py execute /tmp/factory-role-plan.json
+python3 scripts/prepare_role_deployment.py verify /tmp/factory-role-plan.json
+```
+
+Execution creates the role stack, then enables the exact signing trust. The
+verifier invokes each exact published function once and checks deployed code
+hash, execution role, returned nonce/source/identity and its signature using the
+reviewed public registry. It saves `role-deployment-evidence.json` next to the plan.
+If an invocation outcome is uncertain, inspect the saved response and logs before
+running verification again; it does not retry automatically.
+
+At preparation time the agent's AWS browser reports Site Unavailable. No deployment
+or live Lambda proof is claimed until these commands complete in authenticated AWS.
+The owner's instruction for this step was “proceed, approved”; another generic
+approval is not required. Never use this deployment approval as a model budget.
