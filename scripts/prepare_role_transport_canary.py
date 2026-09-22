@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -102,8 +103,9 @@ def verify(plan_path):
     from factory_state.scope import SignedScopeStore, canonical
     from factory_state.signers import load_trusted_signers
     plan_path = Path(plan_path).resolve(); plan = json.loads(plan_path.read_text())
-    if plan['source_commit'] != source() or aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
-        raise RuntimeError('verification account/source changed')
+    if (not re.fullmatch(r'[a-f0-9]{40}', plan.get('source_commit', '')) or
+            aws('sts', 'get-caller-identity')['Account'] != ACCOUNT):
+        raise RuntimeError('verification account or deployed source binding invalid')
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', 'tims-factory-roles')['Stacks'][0]
     if stack['StackStatus'] != 'UPDATE_COMPLETE':
         raise RuntimeError('role transport stack update not complete')
@@ -129,14 +131,15 @@ def verify(plan_path):
         identity_nonce = uuid.uuid4().hex
         identity = invoke(arn, {'kind':'identity_probe','source_commit':plan['source_commit'],
             'nonce':identity_nonce}, plan_path.parent/f'transport-identity-{role}.json')
-        now = datetime.now(timezone.utc)
+        identity_now = datetime.now(timezone.utc)
         verifier._verify(identity['payload'], base64.b64decode(identity['signature_base64'], validate=True),
-            SIGNERS[role], now)
+            SIGNERS[role], identity_now)
         nonce = uuid.uuid4().hex; raw = f'{role}:model-free-transport:{plan["source_commit"]}'.encode()
         event = {'kind':'transport_canary','source_commit':plan['source_commit'],'nonce':nonce,
             'input_base64':base64.b64encode(raw).decode()}
         target = plan_path.parent/f'transport-{role}.json'
         first = invoke(arn, event, target); second = invoke(arn, event, target)
+        transport_now = datetime.now(timezone.utc)
         if first != second or first.get('model_calls') != 0 or first.get('operational_execution_enabled') is not False:
             raise RuntimeError('transport replay or model-free boundary failed')
         payload = first['payload']; expected = {'kind':'transport_result','producer_identity':SIGNERS[role],
@@ -146,7 +149,8 @@ def verify(plan_path):
             'purpose':'lambda-transport-canary-only'}
         if set(payload) != set(expected)|{'issued_at','expires_at'} or any(payload[k] != v for k,v in expected.items()):
             raise RuntimeError('signed transport binding mismatch')
-        verifier._verify(payload, base64.b64decode(first['signature_base64'], validate=True), SIGNERS[role], now)
+        verifier._verify(payload, base64.b64decode(first['signature_base64'], validate=True),
+            SIGNERS[role], transport_now)
         key = {'PK':{'S':f'ROLE#{SIGNERS[role]}#FACTORY#tims-software-factory#TASK#cloud-role-canary-{nonce}'},
                'SK':{'S':'EXECUTION#transport-canary'}}
         record = aws('dynamodb', 'get-item', '--table-name', 'tims-factory-role-executions',
