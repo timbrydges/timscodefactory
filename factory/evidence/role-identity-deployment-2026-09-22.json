@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "observed_at": "2026-09-22",
+  "source_commit": "5ca830c9e2e3d590891f41b31515335edb20ca75",
+  "deployment": {
+    "stack": "tims-factory-roles",
+    "region": "ca-central-1",
+    "status": "THREE_LAMBDA_IDENTITIES_VERIFIED",
+    "functions": [
+      "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-planner:1",
+      "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:1",
+      "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:1"
+    ]
+  },
+  "verification": {
+    "command": "python3 scripts/prepare_role_deployment.py verify <reviewed-plan>",
+    "owner_observed_clean_return": true,
+    "all_three_identity_signatures_verified": true,
+    "model_calls": 0,
+    "operational_execution_enabled": false,
+    "autonomous_scheduling_enabled": false
+  },
+  "evidence_limit": "Owner-supplied terminal capture confirms the verifier completed and returned to the shell. The full transient proof file remained in owner CloudShell and is not reproduced here. This record does not claim operational role execution."
+}
