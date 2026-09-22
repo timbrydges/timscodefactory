@@ -45,7 +45,13 @@ disable the relevant signer, preserve its public evidence, then have Tim explici
 authorize scheduling key deletion with the configured 30-day recovery window.
 AWS does not charge key storage while a key is scheduled for deletion.
 
-## Execute only after Tim authorizes the new expense
+## Approved deployment; AWS access required
+
+Tim approved this exact deployment and the US$4/month plus metered KMS request
+charge on 2026-09-22. The authorization audit is
+`factory/evidence/signing-deployment-authorization-2026-09-22.json`. Do not request
+the same cost approval again. No keys were created: CloudShell returned HTTP 502
+and the connected desktop has no authenticated AWS command-line session.
 
 1. From a clean checkout of the approved commit, run
    `python scripts/prepare_signing_changeset.py` in authenticated AWS CloudShell.
