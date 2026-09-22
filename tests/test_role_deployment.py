@@ -31,7 +31,8 @@ class RoleDeploymentTests(unittest.TestCase):
                 [f'ROLE#{SIGNERS[role]}#FACTORY#tims-software-factory#TASK#cloud-role-canary-*'])
             self.assertFalse(any(a.startswith(('kms:','bedrock:','iam:')) for s in statements for a in s['Action']))
             props = resources[name+'Function']['Properties']
-            self.assertEqual(props['Timeout'],60);self.assertEqual(props['ReservedConcurrentExecutions'],1)
+            self.assertEqual(props['Timeout'],60)
+            self.assertNotIn('ReservedConcurrentExecutions',props)
         self.assertFalse(any(v['Type']=='AWS::Lambda::Url' for v in template['Resources'].values()))
 
     def test_signing_trust_excludes_owner_and_is_exact_role_and_disabled_by_default(self):
