@@ -6,6 +6,7 @@ an independent reviewer must actually examine the capability/evidence/stop link.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import subprocess
@@ -15,6 +16,7 @@ from pathlib import Path
 
 from .dispatch import DispatchRequest, DynamoDBDispatchStore
 from .model import CONTROLLER_IDENTITY, StateError, TaskState
+from .signers import public_key_der
 
 
 def canonical(payload: dict) -> bytes:
@@ -25,6 +27,9 @@ class SignedScopeStore:
     def __init__(self, table_name: str, client, trusted_keys: dict[str, bytes], *, openssl='openssl'):
         self.table_name, self.client = table_name, client
         self.trusted_keys = dict(trusted_keys)
+        material = [public_key_der(key) for key in self.trusted_keys.values()]
+        if len(material) != len(set(material)):
+            raise StateError('independent identities cannot share a signing key')
         self.openssl = openssl
 
     def _verify(self, payload: dict, signature: bytes, identity: str, now: datetime) -> str:
@@ -56,8 +61,8 @@ class SignedScopeStore:
         self.client.put_item(TableName=self.table_name, Item=item,
             ConditionExpression='attribute_not_exists(PK) AND attribute_not_exists(SK)')
 
-    def approve_capability(self, state: TaskState, request: DispatchRequest, payload: dict,
-                           signature: bytes, *, now: datetime) -> None:
+    def _capability_item(self, state: TaskState, request: DispatchRequest, payload: dict,
+                           signature: bytes, *, now: datetime) -> dict:
         expected = {'kind': 'capability', 'factory_id': state.factory_id,
             'objective_id': request.objective_id, 'capability_id': request.capability_id,
             'contract_digest': request.contract_digest, 'owner_identity': 'tim_brydges'}
@@ -69,14 +74,14 @@ class SignedScopeStore:
             if not isinstance(payload[name], str) or not payload[name].strip() or len(payload[name]) > 2000:
                 raise StateError('capability needs bounded evidence and stop criteria')
         digest = self._verify(payload, signature, 'tim_brydges', now)
-        self._write({'PK': {'S': f'FACTORY#{state.factory_id}#TASK#SCOPE#OBJECTIVE#{request.objective_id}'},
+        return {'signature': {'S': base64.b64encode(signature).decode()}, 'PK': {'S': f'FACTORY#{state.factory_id}#TASK#SCOPE#OBJECTIVE#{request.objective_id}'},
             'SK': {'S': f'CAPABILITY#{request.capability_id}'}, 'status': {'S': 'OPEN'},
             'owner_identity': {'S': 'tim_brydges'}, 'contract_digest': {'S': request.contract_digest},
             'approval_evidence_digest': {'S': digest}, 'expires_at': {'N': str(payload['expires_at'])},
-            'signed_payload': {'S': canonical(payload).decode()}})
+            'signed_payload': {'S': canonical(payload).decode()}}
 
-    def approve_task(self, state: TaskState, request: DispatchRequest, payload: dict,
-                     signature: bytes, *, now: datetime) -> None:
+    def _review_item(self, state: TaskState, request: DispatchRequest, payload: dict,
+                     signature: bytes, *, now: datetime) -> dict:
         expected = {'kind': 'scope_review', 'factory_id': state.factory_id, 'task_id': state.task_id,
             'binding': DynamoDBDispatchStore._binding(request), 'verdict': 'ACCEPTED'}
         if set(payload) != set(expected) | {'reviewer_identity', 'issued_at', 'expires_at', 'rationale'}:
@@ -92,8 +97,33 @@ class SignedScopeStore:
         if not isinstance(payload['rationale'], str) or not payload['rationale'].strip() or len(payload['rationale']) > 2000:
             raise StateError('scope review needs bounded rationale')
         digest = self._verify(payload, signature, identity, now)
-        self._write({'PK': DynamoDBDispatchStore._key(state, request)['PK'],
+        return {'signature': {'S': base64.b64encode(signature).decode()}, 'PK': DynamoDBDispatchStore._key(state, request)['PK'],
             'SK': {'S': f'SCOPE#{request.lease_id}'}, 'status': {'S': 'ACCEPTED'},
             'binding': {'S': expected['binding']}, 'reviewer_identity': {'S': identity},
             'review_evidence_digest': {'S': digest}, 'expires_at': {'N': str(payload['expires_at'])},
-            'signed_payload': {'S': canonical(payload).decode()}})
+            'signed_payload': {'S': canonical(payload).decode()}}
+
+    def approve_capability(self, state, request, payload, signature, *, now):
+        self._write(self._capability_item(state, request, payload, signature, now=now))
+
+    def approve_task(self, state, request, payload, signature, *, now):
+        self._write(self._review_item(state, request, payload, signature, now=now))
+
+    def verify_persisted(self, state, request, *, now):
+        """Reverify with current trusted keys; old unsigned rows cannot dispatch workers."""
+        keys = [
+            {'PK': {'S': f'FACTORY#{state.factory_id}#TASK#SCOPE#OBJECTIVE#{request.objective_id}'},
+             'SK': {'S': f'CAPABILITY#{request.capability_id}'}},
+            {'PK': DynamoDBDispatchStore._key(state, request)['PK'],
+             'SK': {'S': f'SCOPE#{request.lease_id}'}}]
+        for key, validate in zip(keys, (self._capability_item, self._review_item)):
+            item = self.client.get_item(TableName=self.table_name, Key=key,
+                                        ConsistentRead=True).get('Item')
+            try:
+                payload = json.loads(item['signed_payload']['S'])
+                signature = base64.b64decode(item['signature']['S'], validate=True)
+                expected = validate(state, request, payload, signature, now=now)
+            except (KeyError, TypeError, ValueError) as error:
+                raise StateError('persisted scope signature is missing or malformed') from error
+            if item != expected:
+                raise StateError('persisted scope has changed or is closed')

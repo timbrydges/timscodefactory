@@ -4,7 +4,7 @@ The priority is a reusable autonomous software delivery service. Bonus Library
 is the acceptance project; further product features should serve a named Factory
 milestone. AI-generated product descriptions are not Factory worker calls.
 
-## Current evidence, 2026-09-21
+## Current evidence, 2026-09-22
 
 - Cloud identities, authoritative DynamoDB state, immutable release storage and
   rollback were verified: `factory/evidence/controller-deployment-2026-09-13.json`,
@@ -15,8 +15,8 @@ milestone. AI-generated product descriptions are not Factory worker calls.
   `factory/evidence/pilot-closeout-2026-09-17.json`.
 - Runtime sandbox, bounded repair and liveness components exist. Their presence
   does not prove a continuously operating end-to-end worker.
-- `.github/workflows/controller-runtime.yml` is a one-shot bootstrap canary,
-  not a reusable scheduler. The retired pilot must not be reactivated by changing
+- `.github/workflows/controller-runtime.yml` provides bounded manual verification
+  modes, not a reusable scheduler. The retired pilot must not be reactivated by changing
   its status labels. Bonus Library's contract still denies operational role
   activation, even though the product itself is live.
 
@@ -24,8 +24,8 @@ milestone. AI-generated product descriptions are not Factory worker calls.
 
 | Milestone | Completion evidence | Status |
 | --- | --- | --- |
-| Durable dispatch | One claim under contention; crash cannot duplicate a provider call; paused/stale work rejected | Ledger implemented and locally tested; live canary pending |
-| Cloud worker | Approved task intake → claimed job → independently identified role → persisted result, survives worker restart | Not wired or activated |
+| Durable dispatch | One claim under contention; crash cannot duplicate a provider call; paused/stale work rejected | Signed-scope and claim mechanics verified live in run 35663169496; integrated worker proof below |
+| Cloud worker | Approved task intake → claimed job → independently identified role → persisted result, survives worker restart | Bounded worker integration implemented; real adapters and activation pending |
 | Automatic progression | Planner → Builder → Inspector → QA/security; bounded repairs; exact source/evidence binding; cumulative budget before every call | Components exist; integrated project run pending |
 | Owner controls | Visible queue, progress, spend, failure reason; pause/stop/resume; clear release request | End-to-end operator interface pending |
 | Acceptance and operation | Approved project runs with chat closed, two-worker contention and crash/pause tests, release authorization and rollback | Pending |
@@ -157,3 +157,49 @@ not close autonomous operation: production signer enrollment, authenticated
 review adapters, and the continuously running worker remain unfinished. The next
 Factory capability is connecting those real identities and worker execution to
 these verified gates. Bonus Library remains only a test project.
+
+## Bounded worker integration — 2026-09-22
+
+`DispatchWorker` consumes an existing READY record under an authenticated
+controller adapter. It checks exact deployed source and actual input/contract
+bytes, reverifies retained scope signatures using current trusted keys, checks
+role activation, claims once, and requires the adapter to reserve its cumulative
+budget before execution. It rechecks activation, signatures, state and scope
+before calling the role adapter. It verifies a role-signed result bound to the
+exact dispatch and output bytes, then atomically stores payload, signature,
+output and receipt. It never advances a gate or dispatches a release.
+
+A restarted worker returns the existing receipt or NEEDS_RECONCILIATION for
+STARTED work; neither repeats the external call. A claim error is propagated,
+not assumed to be a safe retry. Invalid/expired result signatures leave STARTED
+for reconciliation. Late valid results remain audit records and cannot resume a
+paused task. The role adapter must also enforce pause, credential and budget
+checks at each external effect; a database guard cannot make a remote call atomic.
+
+Scope records now retain signatures. Earlier rows without signatures are denied
+by the worker; they require new reviewed leases/records, not an unsigned fallback.
+`scope-signers.json` is intentionally disabled and empty: real key ownership has
+not been enrolled. `load_trusted_signers` validates exact Ed25519 material,
+fingerprints, distinct keys, enrollment-commit references, activation windows and
+revocation. The path is controller deployment configuration, never task input.
+The enrollment commit must actually be reviewed for identity/key custody; a hash
+shaped string alone is not proof. Private keys must stay with their respective
+owner/role signer, outside the controller and repository.
+
+`worker-canary` exercises deterministic fixture execution, signed result
+retention, completed-work restart, lost response, wrong signer, revoked reviewer,
+and pause after reservation against the same two isolated AWS partitions. All
+signers are synthetic. It neither enrolls real identities nor enables a scheduler.
+
+### Remaining activation inputs
+
+- Enroll independently held owner, executor and reviewer public keys with verified
+  custody and reviewed enrollment commit references. Existing GitHub App IDs
+  alone cannot be substituted for Ed25519 signing identities.
+- Deploy authenticated executor/reviewer transports. A Python identity property
+  is not authentication; the controller must not run untrusted agent code in its
+  own process or expose its DynamoDB credentials to a role.
+- Approve a fresh bounded Factory operating contract and provider allowance;
+  the retired pilot and Bonus Library description allowance do not authorize it.
+- Wire the scheduler/intake and result-to-state evidence adapter, then verify a
+  complete independently reviewed run while chat is closed.

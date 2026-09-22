@@ -37,9 +37,9 @@ class AwsCliDynamoDB:
             return json.loads(result.stdout or b'{}')
         return call
 
-def fixture_keys(directory):
+def fixture_keys(directory, identities=('tim_brydges', 'independent_inspector_service')):
     keys, private = {}, {}
-    for identity in ('tim_brydges', 'independent_inspector_service'):
+    for identity in identities:
         key = Path(directory)/identity
         subprocess.run(['openssl', 'genpkey', '-algorithm', 'ED25519', '-out', str(key)], check=True, capture_output=True)
         keys[identity] = subprocess.check_output(['openssl', 'pkey', '-in', str(key), '-pubout'], stderr=subprocess.DEVNULL)

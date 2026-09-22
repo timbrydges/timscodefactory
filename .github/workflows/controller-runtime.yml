@@ -6,7 +6,7 @@ on:
       mode:
         description: Controller verification mode
         type: choice
-        options: [bootstrap, scope-canary]
+        options: [bootstrap, scope-canary, worker-canary]
         default: bootstrap
         required: true
   push:
@@ -245,7 +245,7 @@ jobs:
   scope-canary:
     name: controller / signed scope and dispatch canary
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.mode == 'scope-canary' &&
+      github.event_name == 'workflow_dispatch' && (inputs.mode == 'scope-canary' || inputs.mode == 'worker-canary') &&
       github.ref == 'refs/heads/main' && github.actor_id == '214414801'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -277,11 +277,17 @@ jobs:
             {"Effect":"Deny","Action":"bedrock:*","Resource":"*"}]}
       - name: Verify controller identity and isolated signed-scope mechanics
         shell: bash
+        env:
+          CANARY_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
           actual="$(aws sts get-caller-identity --query Arn --output text)"
           [[ "$actual" == "arn:aws:sts::666730517561:assumed-role/tims-software-factory-github-controller/scope-canary-${GITHUB_RUN_ID}" ]]
-          python scripts/scope_dispatch_canary.py "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/scope-canary.json"
+          if [[ "$CANARY_MODE" == "worker-canary" ]]; then
+            python scripts/worker_dispatch_canary.py "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/scope-canary.json"
+          else
+            python scripts/scope_dispatch_canary.py "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/scope-canary.json"
+          fi
           cat "$RUNNER_TEMP/scope-canary.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
