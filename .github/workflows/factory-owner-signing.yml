@@ -1,0 +1,49 @@
+name: factory-owner-signing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: factory-owner-signing
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: >-
+      github.ref == 'refs/heads/main' && github.actor_id == '214414801' &&
+      vars.FACTORY_SIGNING_CANARY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      AWS_MAX_ATTEMPTS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+        with:
+          role-to-assume: arn:aws:iam::666730517561:role/tims-factory-signing-owner
+          aws-region: ca-central-1
+          allowed-account-ids: '666730517561'
+          role-duration-seconds: 900
+          role-session-name: signing-owner-${{ github.run_id }}
+      - name: Prove signing identity and cross-role denial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/kms_signing_canary.py owner "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/signing-evidence.json"
+          cat "$RUNNER_TEMP/signing-evidence.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: factory-signing-owner-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/signing-evidence.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,600 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Four isolated Factory signing identities. Creates recurring KMS charges; execution requires Tim approval. No models, state writes or scheduler.",
+  "Resources": {
+    "OwnerKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Tim Software Factory owner isolated signing key",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-owner"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "System",
+            "Value": "tims-software-factory"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "factory-signing-cloudformation"
+          },
+          {
+            "Key": "Signer",
+            "Value": "owner"
+          }
+        ]
+      }
+    },
+    "OwnerAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-signing-owner",
+        "TargetKeyId": {
+          "Ref": "OwnerKey"
+        }
+      }
+    },
+    "OwnerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-signing-owner",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Principal": {
+                "Federated": "arn:aws:iam::666730517561:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:timbrydges@214414801/timscodefactory@1345656137:environment:production",
+                  "token.actions.githubusercontent.com:repository_owner_id": "214414801",
+                  "token.actions.githubusercontent.com:repository_id": "1345656137",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": "production",
+                  "token.actions.githubusercontent.com:workflow": "factory-owner-signing",
+                  "token.actions.githubusercontent.com:actor_id": "214414801"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnSigningKeyOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "OwnerKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "OwnerKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PlannerKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Tim Software Factory planner isolated signing key",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-planner"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "System",
+            "Value": "tims-software-factory"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "factory-signing-cloudformation"
+          },
+          {
+            "Key": "Signer",
+            "Value": "planner"
+          }
+        ]
+      }
+    },
+    "PlannerAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-signing-planner",
+        "TargetKeyId": {
+          "Ref": "PlannerKey"
+        }
+      }
+    },
+    "PlannerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-signing-planner",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Principal": {
+                "Federated": "arn:aws:iam::666730517561:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:timbrydges@214414801/timscodefactory@1345656137:environment:production",
+                  "token.actions.githubusercontent.com:repository_owner_id": "214414801",
+                  "token.actions.githubusercontent.com:repository_id": "1345656137",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": "production",
+                  "token.actions.githubusercontent.com:workflow": "factory-planner-signing",
+                  "token.actions.githubusercontent.com:actor_id": "214414801"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnSigningKeyOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "PlannerKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "PlannerKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BuilderKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Tim Software Factory builder isolated signing key",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-builder"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "System",
+            "Value": "tims-software-factory"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "factory-signing-cloudformation"
+          },
+          {
+            "Key": "Signer",
+            "Value": "builder"
+          }
+        ]
+      }
+    },
+    "BuilderAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-signing-builder",
+        "TargetKeyId": {
+          "Ref": "BuilderKey"
+        }
+      }
+    },
+    "BuilderRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-signing-builder",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Principal": {
+                "Federated": "arn:aws:iam::666730517561:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:timbrydges@214414801/timscodefactory@1345656137:environment:production",
+                  "token.actions.githubusercontent.com:repository_owner_id": "214414801",
+                  "token.actions.githubusercontent.com:repository_id": "1345656137",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": "production",
+                  "token.actions.githubusercontent.com:workflow": "factory-builder-signing",
+                  "token.actions.githubusercontent.com:actor_id": "214414801"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnSigningKeyOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "BuilderKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "BuilderKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InspectorKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Tim Software Factory inspector isolated signing key",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-inspector"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "System",
+            "Value": "tims-software-factory"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "factory-signing-cloudformation"
+          },
+          {
+            "Key": "Signer",
+            "Value": "inspector"
+          }
+        ]
+      }
+    },
+    "InspectorAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-signing-inspector",
+        "TargetKeyId": {
+          "Ref": "InspectorKey"
+        }
+      }
+    },
+    "InspectorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-signing-inspector",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Principal": {
+                "Federated": "arn:aws:iam::666730517561:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:timbrydges@214414801/timscodefactory@1345656137:environment:production",
+                  "token.actions.githubusercontent.com:repository_owner_id": "214414801",
+                  "token.actions.githubusercontent.com:repository_id": "1345656137",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": "production",
+                  "token.actions.githubusercontent.com:workflow": "factory-inspector-signing",
+                  "token.actions.githubusercontent.com:actor_id": "214414801"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnSigningKeyOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "InspectorKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "InspectorKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "OwnerKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "OwnerKey",
+          "Arn"
+        ]
+      }
+    },
+    "OwnerRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "OwnerRole",
+          "Arn"
+        ]
+      }
+    },
+    "PlannerKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PlannerKey",
+          "Arn"
+        ]
+      }
+    },
+    "PlannerRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PlannerRole",
+          "Arn"
+        ]
+      }
+    },
+    "BuilderKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BuilderKey",
+          "Arn"
+        ]
+      }
+    },
+    "BuilderRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BuilderRole",
+          "Arn"
+        ]
+      }
+    },
+    "InspectorKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "InspectorKey",
+          "Arn"
+        ]
+      }
+    },
+    "InspectorRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "InspectorRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}
