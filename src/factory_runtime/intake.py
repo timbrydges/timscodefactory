@@ -99,6 +99,11 @@ class AuthenticatedIntakeService:
         state = self.states.load_state(plan.factory_id, plan.task_id)
         if state is None or state.state != plan.state:
             raise StateError('intake state changed after review preparation')
+        expected_role = STATE_ROLES.get(state.state)
+        if (expected_role != plan.lease.role_id or
+                ROLE_IDENTITIES.get(expected_role) != plan.lease.authoritative_identity or
+                plan.request.lease_id != plan.lease.lease_id):
+            raise StateError('reviewed intake plan has an invalid stage or role binding')
         existing = next((item for item in state.leases if item.lease_id == plan.lease.lease_id), None)
         machine = None
         if existing is None:

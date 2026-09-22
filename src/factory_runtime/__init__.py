@@ -51,6 +51,9 @@ from .liveness import (
     RuntimeWatchPolicy,
 )
 from .intake import AuthenticatedIntakeService, IntakePlan
+from .autonomy import AutonomousCycle
+from .receipt_transport import (ReceiptVersions, SignedReceiptBundle,
+                                VersionedS3ReceiptTransport, receipt_plan_digest, s3_client)
 from .openai_provider import (
     OpenAIProviderCredentialError,
     OpenAIProviderDisabledError,
