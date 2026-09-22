@@ -56,6 +56,10 @@ class KmsSignerTests(unittest.TestCase):
         self.assertEqual(self.sign_calls[0]['MessageType'], 'RAW')
         self.assertEqual(json.loads(self.sign_calls[0]['Message']), self.payload)
 
+    def test_role_can_sign_bounded_transport_result(self):
+        payload={**self.payload,'kind':'transport_result'}
+        self.assertEqual(len(self.adapter().sign(payload,now=NOW)),64)
+
     def test_alias_fingerprint_and_authenticated_role_mismatch_fail(self):
         for patch in ({'key_arn': 'alias/tims-factory-signing-builder'},
                       {'expected_fingerprint': 'sha256:' + '0' * 64}, {'signer': 'inspector'}):

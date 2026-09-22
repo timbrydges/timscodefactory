@@ -143,3 +143,20 @@ At preparation time the agent's AWS browser reports Site Unavailable. No deploym
 or live Lambda proof is claimed until these commands complete in authenticated AWS.
 The owner's instruction for this step was “proceed, approved”; another generic
 approval is not required. Never use this deployment approval as a model budget.
+
+## Live identity deployment — 2026-09-22
+
+The corrected role stack deployed from commit
+`5ca830c9e2e3d590891f41b31515335edb20ca75`. The verifier completed for Planner,
+Builder and Inspector exact version `:1` functions and returned cleanly to the
+owner's CloudShell. All three KMS identity signatures verified, with zero model
+calls and operational execution disabled. The bounded record is
+`factory/evidence/role-identity-deployment-2026-09-22.json`.
+
+The next package adds a `transport_canary` event. It writes a role-prefixed claim
+to the separate execution table, produces deterministic output, signs a bounded
+`transport_result`, persists it, and returns the identical result on replay. It
+does not call a model, execute project work, schedule itself or enable the full
+`RoleExecutionService`. `scripts/prepare_role_transport_canary.py` updates the
+three functions to fresh immutable versions, repins the controller policy and
+verifies identity, signing, durable completion and replay protection live.

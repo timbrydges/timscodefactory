@@ -65,11 +65,12 @@ class KmsReceiptSigner:
     def sign(self, payload, *, now):
         kind = payload.get('kind')
         identity_field = {'capability': 'owner_identity', 'scope_review': 'reviewer_identity',
-                          'role_result': 'producer_identity', 'identity_challenge': 'identity'}.get(kind)
+                          'role_result': 'producer_identity', 'transport_result': 'producer_identity',
+                          'identity_challenge': 'identity'}.get(kind)
         allowed = {'owner': {'capability', 'identity_challenge'},
-                   'planner': {'role_result', 'identity_challenge'},
-                   'builder': {'role_result', 'identity_challenge'},
-                   'inspector': {'scope_review', 'role_result', 'identity_challenge'}}
+                   'planner': {'role_result', 'transport_result', 'identity_challenge'},
+                   'builder': {'role_result', 'transport_result', 'identity_challenge'},
+                   'inspector': {'scope_review', 'role_result', 'transport_result', 'identity_challenge'}}
         if kind not in allowed[self.signer] or payload.get(identity_field) != self.identity:
             raise StateError('signer cannot attest this receipt kind or identity')
         if (now.tzinfo is None or now.utcoffset() is None or

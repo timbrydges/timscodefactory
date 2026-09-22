@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Three isolated Factory deployment probes; operational execution disabled. Metered Lambda/DynamoDB/log/S3 use.",
+  "Description": "Three isolated Factory identity and model-free transport canaries; operational execution disabled. Metered Lambda/DynamoDB/log/S3 use.",
   "Parameters": {
     "ArtifactKey": {
       "Type": "String"
@@ -176,10 +176,13 @@
         "Timeout": 60,
         "Environment": {
           "Variables": {
-            "FACTORY_ROLE": "planner"
+            "FACTORY_ROLE": "planner",
+            "EXECUTION_TABLE": {
+              "Ref": "RoleExecutions"
+            }
           }
         },
-        "Description": "Factory deployment identity probe only; no operational model execution"
+        "Description": "Factory identity and durable model-free transport canaries; no operational model execution"
       }
     },
     "PlannerVersion": {
@@ -317,10 +320,13 @@
         "Timeout": 60,
         "Environment": {
           "Variables": {
-            "FACTORY_ROLE": "builder"
+            "FACTORY_ROLE": "builder",
+            "EXECUTION_TABLE": {
+              "Ref": "RoleExecutions"
+            }
           }
         },
-        "Description": "Factory deployment identity probe only; no operational model execution"
+        "Description": "Factory identity and durable model-free transport canaries; no operational model execution"
       }
     },
     "BuilderVersion": {
@@ -458,10 +464,13 @@
         "Timeout": 60,
         "Environment": {
           "Variables": {
-            "FACTORY_ROLE": "inspector"
+            "FACTORY_ROLE": "inspector",
+            "EXECUTION_TABLE": {
+              "Ref": "RoleExecutions"
+            }
           }
         },
-        "Description": "Factory deployment identity probe only; no operational model execution"
+        "Description": "Factory identity and durable model-free transport canaries; no operational model execution"
       }
     },
     "InspectorVersion": {
