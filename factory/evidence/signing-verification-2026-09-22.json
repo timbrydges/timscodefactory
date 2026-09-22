@@ -26,9 +26,10 @@
   },
   "canary_gate": {
     "requested_value": "false",
-    "saved_value": "true",
-    "status": "SWITCH_OFF_BLOCKED_BY_GITHUB_PASSWORD_CONFIRMATION",
-    "runs_in_progress": 0
+    "saved_value": "false",
+    "status": "DISABLED_CONFIRMED_IN_GITHUB_SETTINGS",
+    "runs_in_progress": 0,
+    "authentication": "GitHub password confirmation completed through secure browser authentication"
   },
   "enrollment_status": "VERIFIED_CANDIDATES_NOT_ENROLLED",
   "signers": [

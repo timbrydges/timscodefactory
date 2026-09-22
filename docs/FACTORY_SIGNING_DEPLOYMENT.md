@@ -61,8 +61,8 @@ Tim's stack outputs. Their fingerprints and historical challenge signatures were
 also verified locally. Artifact archive digests are recorded from GitHub; the
 JSON proofs were recovered from visible job logs, not downloaded archives.
 
-The switch-off request is blocked by GitHub password confirmation; the saved
-`FACTORY_SIGNING_CANARY_ENABLED` value remains true. All four runs have finished.
+GitHub password confirmation completed and the saved
+`FACTORY_SIGNING_CANARY_ENABLED` value is false. All four runs have finished.
 There is no schedule, and dispatch remains restricted to Tim on main. The trusted
 registry remains disabled pending human review of these exact public keys.
 
