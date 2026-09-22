@@ -57,7 +57,8 @@ Python service identity is not a substitute for verified cloud permissions.
    Existing retired-pilot and Bonus Library budgets cannot fund these calls.
 2. Prepare and review the deployment: separate execution roles and credentials,
    exact published function versions, controller-only invocation, no public
-   Function URLs, bounded concurrency/timeouts, and redacted operational logs.
+   Function URLs, bounded timeouts, durable duplicate prevention, and redacted
+   operational logs.
 3. Scope role DynamoDB access to the permitted project and execution records.
    Roles may read state/scope/dispatch and condition-check them; they may write
    only their own execution records, never controller state, owner approvals,
@@ -86,7 +87,10 @@ backend integration; deployment probes are not autonomous role execution.
 `infra/roles/functions.cloudformation.json` creates 14 resources: three functions,
 three published versions, three execution roles, three 14-day log groups, one
 on-demand execution table and an exact-version controller invocation policy.
-Functions use Python 3.12 x86_64, 256 MiB, a 60-second timeout and concurrency one.
+Functions use Python 3.12 x86_64, 256 MiB and a 60-second timeout. The controller
+invokes exact published versions, while durable role-side claims prevent duplicate
+execution. Reserved concurrency is deliberately unset because AWS accounts must
+retain at least ten unreserved executions and may reject smaller account quotas.
 There are no public Function URLs, model permissions, provisioned concurrency or
 schedules. Lambda, DynamoDB, logs and artifact storage incur metered AWS charges;
 the existing four-key charge is unchanged and no additional keys are created.
