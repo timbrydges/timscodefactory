@@ -162,6 +162,7 @@ from .provider_targets import (
     StaticProviderSelectorValueSource,
     build_dry_run_provider_backend,
 )
+from .progression import SignedResultProgressor
 from .repair import (
     BoundedCIRepairController,
     DockerRuntimePipelineFactory,

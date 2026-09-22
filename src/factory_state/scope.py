@@ -131,6 +131,7 @@ class SignedScopeStore:
              'SK': {'S': f'CAPABILITY#{request.capability_id}'}},
             {'PK': DynamoDBDispatchStore._key(state, request)['PK'],
              'SK': {'S': f'SCOPE#{request.lease_id}'}}]
+        verified = []
         for key, validate in zip(keys, (self._capability_item, self._review_item)):
             item = self.client.get_item(TableName=self.table_name, Key=key,
                                         ConsistentRead=True).get('Item')
@@ -142,3 +143,5 @@ class SignedScopeStore:
                 raise StateError('persisted scope signature is missing or malformed') from error
             if item != expected:
                 raise StateError('persisted scope has changed or is closed')
+            verified.append(payload)
+        return {'capability': verified[0], 'review': verified[1]}
