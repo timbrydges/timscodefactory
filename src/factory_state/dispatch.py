@@ -161,3 +161,35 @@ class DynamoDBDispatchStore:
         if item and item.get("binding") != {"S": self._binding(request)}:
             raise StateError("dispatch lease already has different immutable inputs")
         return item
+
+    def assert_started(self, state, request, *, worker_id, now):
+        """Last atomic check before an external effect; never authorizes a retry."""
+        self.client.transact_write_items(TransactItems=[
+            self._state_guard(state, request, now), *self._scope_guards(state, request, now),
+            {'ConditionCheck': {'TableName': self.table_name, 'Key': self._key(state, request),
+                'ConditionExpression': '#s=:started AND worker_id=:worker AND binding=:binding',
+                'ExpressionAttributeNames': {'#s': 'status'},
+                'ExpressionAttributeValues': {':started': {'S': 'STARTED'},
+                    ':worker': {'S': worker_id}, ':binding': {'S': self._binding(request)}}}}])
+
+    def record_signed_result(self, state, request, *, worker_id, payload, signature, output):
+        """Atomically retain signed bytes and receipt; late results never advance state."""
+        import base64
+        from .scope import canonical
+        raw = canonical(payload)
+        if len(raw) > 16000 or len(output) > 65536 or len(signature) != 64:
+            raise StateError('signed result exceeds bounded receipt format')
+        digest = 'sha256:' + hashlib.sha256(raw).hexdigest()
+        self.client.update_item(TableName=self.table_name, Key=self._key(state, request),
+            UpdateExpression='SET #s=:recorded, receipt_digest=:digest, result_payload=:payload, '
+                'result_signature=:signature, result_output=:output',
+            ConditionExpression='binding=:binding AND worker_id=:worker AND '
+                '(#s=:started OR (#s=:recorded AND receipt_digest=:digest AND '
+                'result_payload=:payload AND result_signature=:signature AND result_output=:output))',
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={':recorded': {'S': 'RECEIPT_RECORDED'}, ':started': {'S': 'STARTED'},
+                ':digest': {'S': digest}, ':payload': {'S': raw.decode()},
+                ':signature': {'S': base64.b64encode(signature).decode()},
+                ':output': {'S': base64.b64encode(output).decode()},
+                ':binding': {'S': self._binding(request)}, ':worker': {'S': worker_id}})
+        return digest
