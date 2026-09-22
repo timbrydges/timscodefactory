@@ -115,5 +115,14 @@ class AuthenticatedIntakeTests(unittest.TestCase):
         self.states.state=TaskState('factory','task-1','RELEASE_READY',5,NOW,CONTROLLER_IDENTITY)
         with self.assertRaises(StateError): self.plan()
 
+    def test_fabricated_plan_cannot_bypass_stage_locked_role(self):
+        plan=self.plan()
+        from dataclasses import replace
+        forged=replace(plan,lease=replace(plan.lease,role_id='software_architect',
+            authoritative_identity='software_architect_service'))
+        with self.assertRaisesRegex(StateError,'invalid stage or role binding'):
+            self.service.activate(forged,**self.signatures(plan))
+        self.assertEqual(self.states.writes,0);self.assertEqual(self.ledger.enqueues,0)
+
 
 if __name__=='__main__': unittest.main()

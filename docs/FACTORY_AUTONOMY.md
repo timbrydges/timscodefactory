@@ -286,3 +286,20 @@ signatures, choose an arbitrary role, invoke the worker, spend provider budget,
 enable a schedule or queue release automation. The remaining autonomy boundary
 is the authenticated owner/reviewer receipt transport followed by a disabled-by-
 default scheduler that composes intake, worker and signed-result progression.
+
+### Disabled autonomous cycle and immutable receipt transport — 2026-09-22
+
+`VersionedS3ReceiptTransport` reads only the exact owner and reviewer object
+versions under a plan-derived key in the existing versioned Factory bucket. The
+envelopes bind the full intake plan, signer identity and signed payload; intake
+still performs the cryptographic verification. Dynamic buckets, prefixes,
+unversioned reads, SDK retries, oversized/duplicate JSON and changed bindings
+are denied.
+
+`AutonomousCycle` composes that transport with authenticated intake, one
+`DispatchWorker` run and one `SignedResultProgressor` transition. It is disabled
+unless explicitly constructed with `enabled=True`, performs at most one new role
+invocation per step, and returns `NEEDS_RECONCILIATION` rather than repeating a
+`STARTED` outcome. It cannot dispatch release automation and stops at
+`RELEASE_READY`. No schedule, receipt-writing permissions or provider allowance
+are deployed yet; those remain the final activation boundary.
