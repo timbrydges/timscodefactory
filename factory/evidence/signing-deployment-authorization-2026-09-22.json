@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "owner_conversation_authorization_record",
+  "owner_identity": "tim_brydges",
+  "recorded_on": "2026-09-22",
+  "user_response": "approved",
+  "approved_proposal": "Deploy four isolated Factory signing identities at US$4/month plus metered KMS requests; no AI spending included.",
+  "source_commit": "95774e3deae0866184da9bad545125a8e385b7dc",
+  "template_sha256": "318a07855d712716d60e51e2a29ea5634f2bcf9f385589d1742ad2426087e94f",
+  "aws_account": "666730517561",
+  "aws_region": "ca-central-1",
+  "stack_name": "tims-factory-signing",
+  "authorized_resources": {
+    "kms_keys": 4,
+    "kms_aliases": 4,
+    "iam_roles": 4
+  },
+  "authorized_verification": "One bounded identity challenge workflow per signer and preservation of public evidence; no operating-task approvals or continuous activation.",
+  "recurring_key_storage_usd_month": "4.00",
+  "metered_kms_requests_authorized": true,
+  "provider_spending_authorized": false,
+  "deployment_status": "BLOCKED_AWS_ACCESS",
+  "resources_created_by_this_attempt": 0,
+  "blocking_evidence": [
+    "AWS CloudShell browser returned 502 Bad Gateway: [Errno 111] Connection refused",
+    "Connected desktop has no AWS CLI, AWS config/credentials files, or AWS environment credentials"
+  ],
+  "cryptographic_owner_receipt": false,
+  "note": "Audit of explicit conversation approval; not a signed operational capability or independent review. Approval persists for this exact deployment without requiring reapproval."
+}

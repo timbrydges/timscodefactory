@@ -223,8 +223,9 @@ not proven or activated. No model calls or production deployments occurred.
 The four-role KMS deployment and real signing adapter are prepared in
 `docs/FACTORY_SIGNING_DEPLOYMENT.md`. The deployment adds four independently
 permissioned, non-exportable Ed25519 keys with separate GitHub OIDC workflows.
-It requires approval of a new US$4/month key-storage charge plus metered requests.
+Tim approved the new US$4/month key-storage charge plus metered requests on
+2026-09-22; see the signing deployment authorization audit.
 The workflows remain disabled; no keys, live signing evidence or enrollment have
 been created. CloudFormation lint and 458 local tests passed. Live validation
-awaits AWS console access and authorized provisioning. This closes preparation
+awaits AWS access; deployment authorization is already recorded. This closes preparation
 only, not real signer deployment or autonomous operation.
