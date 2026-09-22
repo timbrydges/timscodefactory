@@ -50,6 +50,7 @@ from .liveness import (
     RuntimeWatchEvaluation,
     RuntimeWatchPolicy,
 )
+from .intake import AuthenticatedIntakeService, IntakePlan
 from .openai_provider import (
     OpenAIProviderCredentialError,
     OpenAIProviderDisabledError,
