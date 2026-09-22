@@ -160,3 +160,11 @@ does not call a model, execute project work, schedule itself or enable the full
 `RoleExecutionService`. `scripts/prepare_role_transport_canary.py` updates the
 three functions to fresh immutable versions, repins the controller policy and
 verifies identity, signing, durable completion and replay protection live.
+
+## Live model-free transport — 2026-09-22
+
+Tim deployed source `4faff65894a2d95286f3d657e84972ff37a09b03` and the corrected
+verifier completed for Planner, Builder and Inspector exact version `:2`
+functions. Each role returned a valid enrolled-key signature, persisted a
+`COMPLETE` execution record and returned an identical replay result. All proofs
+reported `model_calls: 0`; operational execution and scheduling remain disabled.

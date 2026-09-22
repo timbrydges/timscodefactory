@@ -245,9 +245,11 @@ remote AI role services or prove autonomous operation.
 boundary, including exact function versions, bounded synchronous responses,
 role-side durable claims, signed results and duplicate/lost-response handling.
 All three roles pass the local integration checks with simulated AWS and real
-signatures. See `docs/FACTORY_CLOUD_ROLES.md` for evidence limits and deployment
-requirements. Cloud functions, scoped execution permissions and concrete model
-backends are not deployed. No model allowance or autonomous scheduling is enabled.
+signatures. The model-free `transport_canary` was then deployed from
+`4faff65894a2d95286f3d657e84972ff37a09b03` and verified for all three exact
+version `:2` functions: signed responses, identical replay and durable `COMPLETE`
+records passed with zero model calls. Concrete model backends and autonomous
+scheduling remain disabled. See `docs/FACTORY_CLOUD_ROLES.md`.
 
 
 ### Role deployment package prepared — 2026-09-22
@@ -257,3 +259,16 @@ exact signing-role trust update and owner CloudShell preparation/execution/verif
 scripts are prepared. Operational backend calls remain disabled. The agent AWS
 browser is unavailable; no Lambda deployment is claimed without the resulting
 cloud evidence. Details: `docs/FACTORY_CLOUD_ROLES.md`.
+
+### Signed-result progression adapter — 2026-09-22
+
+`SignedResultProgressor` closes the controller-side result-to-state gap. It reads
+only a retained `RECEIPT_RECORDED` dispatch, revalidates the exact payload,
+output digest, role signature and still-active signed owner/reviewer scope, then
+persists one evidence-backed state transition through the authoritative state
+store. Replays return the already-consumed evidence without another write.
+
+The deterministic map covers Specification through Security Review and stops at
+`RELEASE_READY`. It cannot issue leases, create approvals, invoke roles, retry an
+unknown outcome, enable scheduling or dispatch production. Automatic intake,
+next-role lease creation and the unattended scheduler remain separate work.
