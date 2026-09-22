@@ -221,6 +221,26 @@
                   "token.actions.githubusercontent.com:actor_id": "214414801"
                 }
               }
+            },
+            {
+              "Fn::If": [
+                "RoleExecutionTrustEnabled",
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "AWS": "arn:aws:iam::666730517561:root"
+                  },
+                  "Action": "sts:AssumeRole",
+                  "Condition": {
+                    "ArnEquals": {
+                      "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-executor-planner"
+                    }
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           ]
         },
@@ -353,6 +373,26 @@
                   "token.actions.githubusercontent.com:actor_id": "214414801"
                 }
               }
+            },
+            {
+              "Fn::If": [
+                "RoleExecutionTrustEnabled",
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "AWS": "arn:aws:iam::666730517561:root"
+                  },
+                  "Action": "sts:AssumeRole",
+                  "Condition": {
+                    "ArnEquals": {
+                      "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-executor-builder"
+                    }
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           ]
         },
@@ -485,6 +525,26 @@
                   "token.actions.githubusercontent.com:actor_id": "214414801"
                 }
               }
+            },
+            {
+              "Fn::If": [
+                "RoleExecutionTrustEnabled",
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "AWS": "arn:aws:iam::666730517561:root"
+                  },
+                  "Action": "sts:AssumeRole",
+                  "Condition": {
+                    "ArnEquals": {
+                      "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-executor-inspector"
+                    }
+                  }
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           ]
         },
@@ -595,6 +655,26 @@
           "Arn"
         ]
       }
+    }
+  },
+  "Parameters": {
+    "EnableRoleExecutionTrust": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
+    }
+  },
+  "Conditions": {
+    "RoleExecutionTrustEnabled": {
+      "Fn::Equals": [
+        {
+          "Ref": "EnableRoleExecutionTrust"
+        },
+        "true"
+      ]
     }
   }
 }
