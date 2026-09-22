@@ -178,8 +178,8 @@ checks at each external effect; a database guard cannot make a remote call atomi
 
 Scope records now retain signatures. Earlier rows without signatures are denied
 by the worker; they require new reviewed leases/records, not an unsigned fallback.
-`scope-signers.json` is intentionally disabled and empty: real key ownership has
-not been enrolled. `load_trusted_signers` validates exact Ed25519 material,
+`scope-signers.json` now contains the four live-verified public keys approved by
+Tim on 2026-09-22. Their initial enrollment expires on 2026-12-21 UTC. `load_trusted_signers` validates exact Ed25519 material,
 fingerprints, distinct keys, enrollment-commit references, activation windows and
 revocation. The path is controller deployment configuration, never task input.
 The enrollment commit must actually be reviewed for identity/key custody; a hash
@@ -193,9 +193,9 @@ signers are synthetic. It neither enrolls real identities nor enables a schedule
 
 ### Remaining activation inputs
 
-- Enroll independently held owner, executor and reviewer public keys with verified
-  custody and reviewed enrollment commit references. Existing GitHub App IDs
-  alone cannot be substituted for Ed25519 signing identities.
+- Public-key enrollment is complete for the four isolated KMS roles. Preserve
+  their custody boundary when deploying role services and propagate registry
+  revocations to those deployments. GitHub App IDs alone are not signing proof.
 - Deploy authenticated executor/reviewer transports. A Python identity property
   is not authentication; the controller must not run untrusted agent code in its
   own process or expose its DynamoDB credentials to a role.
@@ -215,17 +215,25 @@ passed 450 tests; PR CI also passed the real Docker and HTTP/TLS broker checks.
 
 The proven milestone is bounded dispatch-to-signed-result worker mechanics in
 AWS, including restart, lost response, signer revocation and pause enforcement.
-Real identity custody, remote role execution and unattended scheduling are still
-not proven or activated. No model calls or production deployments occurred.
+Real identity custody was subsequently verified in PR #119. Remote role execution
+and unattended scheduling remain unfinished. No model calls or production
+deployments occurred during the worker verification.
 
-### Real signer deployment prepared — 2026-09-22
+### Real signer deployment and enrollment — 2026-09-22
 
 The four-role KMS deployment and real signing adapter are prepared in
 `docs/FACTORY_SIGNING_DEPLOYMENT.md`. The deployment adds four independently
 permissioned, non-exportable Ed25519 keys with separate GitHub OIDC workflows.
 Tim approved the new US$4/month key-storage charge plus metered requests on
 2026-09-22; see the signing deployment authorization audit.
-The workflows remain disabled; no keys, live signing evidence or enrollment have
-been created. CloudFormation lint and 458 local tests passed. Live validation
-awaits AWS access; deployment authorization is already recorded. This closes preparation
-only, not real signer deployment or autonomous operation.
+Tim deployed the stack and all four identity workflows passed: four valid
+signatures and twelve cross-role signing denials. PR #119 retains public proof
+and artifact digests. The canary switch is confirmed false.
+
+Tim then approved enrollment of those exact keys. The public-key registry and
+exact KMS ARN bindings now reference verified evidence commit
+`1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5`, with a 90-day validity window.
+`EnrolledKmsReceiptSigner` connects role-side signing to that registry and rejects
+revoked, expired, disabled or mismatched enrollment before signing. This completes
+key enrollment and the signing configuration boundary; it does not deploy
+remote AI role services or prove autonomous operation.

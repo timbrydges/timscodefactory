@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "signers": [
+    {
+      "signer": "owner",
+      "identity": "tim_brydges",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/4cdc8470-77f4-4c5a-a772-7b379f34fbbb",
+      "fingerprint": "sha256:1e3436db052d4812f762a43ae34f48d99403d01da86c3aad049381e1c80821ea",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5"
+    },
+    {
+      "signer": "planner",
+      "identity": "software_architect_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/e89c5974-1134-4e26-9c25-147eb2fde5f6",
+      "fingerprint": "sha256:f69c1982b40d867f6fe936c365a4cd0842187fb82801b993a642db34f610e01f",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5"
+    },
+    {
+      "signer": "builder",
+      "identity": "engineering_agent_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/9c24941f-563b-4dc9-bcc3-394384c655eb",
+      "fingerprint": "sha256:ecea01029d27d5f3512f25b5614143b0e7d8c65824944a58cbe43b2521ad1d10",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5"
+    },
+    {
+      "signer": "inspector",
+      "identity": "independent_inspector_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/7885556b-627c-4d95-a635-8849477fc00e",
+      "fingerprint": "sha256:0076b42c6428bb659deae3a6fd74283682d16a0d9040b4935ec3ae7c98d81cd9",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5"
+    }
+  ]
+}

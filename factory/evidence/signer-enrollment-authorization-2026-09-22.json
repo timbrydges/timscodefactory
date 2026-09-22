@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "owner_identity": "tim_brydges",
+  "owner_instruction": "proceed, approved",
+  "approval_context": "Following successful PR #119 live signing verification, approve reviewed key enrollment and continued Planner/Builder/Inspector integration.",
+  "reviewed_evidence_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+  "reviewed_evidence_path": "factory/evidence/signing-verification-2026-09-22.json",
+  "identities": [
+    "tim_brydges",
+    "software_architect_service",
+    "engineering_agent_service",
+    "independent_inspector_service"
+  ],
+  "valid_from": "2026-09-22T00:00:00+00:00",
+  "valid_until": "2026-12-21T00:00:00+00:00",
+  "validity_policy": "Initial 90-day enrollment; expiry fails closed and renewal requires owner review.",
+  "scope": "Trust the four public keys and pin their exact KMS ARNs; implement registry-bound signing.",
+  "model_budget_authorized": false,
+  "continuous_worker_activated": false,
+  "production_release_authorized": false
+}

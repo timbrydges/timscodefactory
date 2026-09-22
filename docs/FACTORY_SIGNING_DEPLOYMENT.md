@@ -63,8 +63,9 @@ JSON proofs were recovered from visible job logs, not downloaded archives.
 
 GitHub password confirmation completed and the saved
 `FACTORY_SIGNING_CANARY_ENABLED` value is false. All four runs have finished.
-There is no schedule, and dispatch remains restricted to Tim on main. The trusted
-registry remains disabled pending human review of these exact public keys.
+There is no schedule, and dispatch remains restricted to Tim on main. Tim approved enrollment of these exact keys with “proceed, approved”. The trusted
+registry is enabled for 2026-09-22 through 2026-12-21 UTC; see
+`factory/evidence/signer-enrollment-authorization-2026-09-22.json`.
 
 The deployment procedure below is retained for audit; do not recreate this stack
 or repeat the verification without a specific reason.
@@ -119,3 +120,30 @@ the stack and the live signing checks passed. The existing AWS controller role
 retains its original permissions. Real role execution and unattended scheduling
 remain separate unfinished Factory work; successful signing checks do not prove
 an autonomous Factory run.
+
+## Owner-approved enrollment — 2026-09-22
+
+`factory/profiles/scope-signers.json` enrolls the four public keys verified in
+commit `1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5`, approved by Tim in this session.
+`factory/profiles/kms-signers.json` pins each role to its exact key ARN, public-key
+fingerprint and the same evidence commit. Initial enrollment expires at
+2026-12-21 00:00 UTC. Renew it under owner review before that date; expiry denies
+signing and verification rather than silently extending trust.
+
+Role services use `EnrolledKmsReceiptSigner`, passing both paths from trusted
+service deployment configuration, never a task payload. It reloads active
+public-key enrollment, validates the binding, authenticates the isolated AWS
+role and checks the KMS public key before signing. It rereads enrollment after
+remote key lookup so revocation during that lookup prevents the signing call.
+The lower-level `KmsReceiptSigner` remains available for bootstrap custody
+verification, which by definition precedes enrollment.
+
+A deployment must propagate revocation to its mounted configuration; a stale
+checkout cannot discover a later registry change by itself. Configuration checks
+cannot make a remote KMS call atomic with a simultaneous owner stop. Services
+must check authoritative pause, activation and budget controls at each effect.
+
+Enrollment grants no provider budget, role-service IAM permissions, operating
+contract or automatic release authority. The signing workflows remain disabled
+and their owner-only OIDC trust is unchanged. Authenticated remote role services
+and their wiring into `DispatchWorker` are the next implementation boundary.
