@@ -47,6 +47,7 @@ Bonus Library production operation and incident handling are documented in
 
 ## Autonomous operation
 
-The next delivery priority is the reusable cloud worker and automatic task
-progression. See [`docs/FACTORY_AUTONOMY.md`](docs/FACTORY_AUTONOMY.md) for the
-current evidence, completion milestones, and restart-safe dispatch boundary.
+The reusable cloud worker, automatic task progression, authenticated intake and
+a bounded unattended scheduler are implemented behind disabled-by-default
+activation. See [`docs/FACTORY_AUTONOMY.md`](docs/FACTORY_AUTONOMY.md) for the
+current evidence, remaining live-activation boundary and restart-safe controls.

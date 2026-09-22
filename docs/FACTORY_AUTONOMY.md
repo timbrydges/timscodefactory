@@ -303,3 +303,20 @@ invocation per step, and returns `NEEDS_RECONCILIATION` rather than repeating a
 `STARTED` outcome. It cannot dispatch release automation and stops at
 `RELEASE_READY`. No schedule, receipt-writing permissions or provider allowance
 are deployed yet; those remain the final activation boundary.
+
+### Bounded unattended scheduler — 2026-09-22
+
+`AutonomousScheduler` adds the reusable scheduler-side tick without deploying a
+schedule. Each tick is bound to one exact factory, task, source commit, contract
+digest and time window. It rereads authoritative state, stops without loading job
+material when the task is paused, stalled, terminal or `RELEASE_READY`, and may
+compose at most one worker invocation. Any job-source binding change, multi-call
+result or release assertion fails closed.
+
+The scheduler and cycle each require separate explicit enablement. External
+concurrency remains safe through the existing deterministic lease, conditional
+dispatch claim and unknown-outcome reconciliation rules. This closes the local
+unattended orchestration component; it does not approve a Factory operating
+contract, provider spend, receipt-writing authority or an EventBridge/GitHub
+schedule. Those live inputs still require exact owner-authorized deployment and
+an independently reviewed acceptance run.
