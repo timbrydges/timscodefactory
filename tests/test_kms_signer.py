@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'src'))
 from scripts.scope_dispatch_canary import fixture_keys, sign
 from scripts.kms_signing_canary import AwsError, run
-from factory_state.kms_signer import ALGORITHM, SIGNERS, KmsReceiptSigner
+from factory_state.kms_signer import ALGORITHM, SIGNERS, KmsReceiptSigner, EnrolledKmsReceiptSigner
 from factory_state.signers import public_key_der
 from factory_state.model import StateError
 from test_dispatch_ledger import NOW
@@ -93,6 +93,75 @@ class KmsSignerTests(unittest.TestCase):
         self.sign = fail
         with self.assertRaises(AwsError):
             run('builder', '456-1', 'b' * 40, kms=self, sts=self, now=NOW)
+
+    def enrolled_adapter(self):
+        self.registry_path = Path(self.directory.name) / 'registry.json'
+        self.bindings_path = Path(self.directory.name) / 'bindings.json'
+        fingerprint = 'sha256:' + hashlib.sha256(public_key_der(self.keys[SIGNERS[self.role]])).hexdigest()
+        self.enrollment = {'identity': SIGNERS[self.role],
+            'public_key_pem': self.keys[SIGNERS[self.role]].decode(),
+            'fingerprint': fingerprint, 'enrollment_commit': 'a' * 40,
+            'not_before': int(NOW.timestamp()) - 1, 'expires_at': int(NOW.timestamp()) + 300,
+            'revoked': False}
+        self.binding = {key: self.enrollment[key] for key in ('identity', 'fingerprint', 'enrollment_commit')}
+        self.binding.update(signer=self.role, key_arn=self.arn)
+        self.save_enrollment()
+        return EnrolledKmsReceiptSigner(self, self, signer=self.role,
+            registry_path=self.registry_path, bindings_path=self.bindings_path)
+
+    def save_enrollment(self, *, enabled=True):
+        self.registry_path.write_text(json.dumps({'schema_version': '1.0', 'enabled': enabled,
+            'signers': [self.enrollment]}))
+        self.bindings_path.write_text(json.dumps({'schema_version': '1.0', 'signers': [self.binding]}))
+
+    def test_enrolled_signer_rechecks_revocation_on_reused_instance(self):
+        adapter = self.enrolled_adapter()
+        self.assertEqual(len(adapter.sign(self.payload, now=NOW)), 64)
+        self.enrollment['revoked'] = True
+        self.save_enrollment()
+        with self.assertRaises(StateError): adapter.sign(self.payload, now=NOW)
+        self.assertEqual(len(self.sign_calls), 1)
+
+    def test_disabled_expired_or_mismatched_enrollment_cannot_sign(self):
+        mutations = [('enabled', False), ('expires_at', int(NOW.timestamp())),
+                     ('key_arn', 'alias/not-an-enrollment'), ('enrollment_commit', 'b' * 40),
+                     ('fingerprint', 'sha256:' + '0' * 64), ('identity', SIGNERS['inspector'])]
+        for field, value in mutations:
+            with self.subTest(field=field):
+                adapter = self.enrolled_adapter()
+                if field == 'expires_at': self.enrollment[field] = value
+                elif field != 'enabled': self.binding[field] = value
+                self.save_enrollment(enabled=field != 'enabled')
+                with self.assertRaises(StateError): adapter.sign(self.payload, now=NOW)
+        self.assertEqual(self.sign_calls, [])
+
+    def test_revocation_during_remote_key_read_prevents_signing(self):
+        adapter = self.enrolled_adapter()
+        original = self.get_public_key
+        def revoke(**request):
+            self.enrollment['revoked'] = True
+            self.save_enrollment()
+            return original(**request)
+        self.get_public_key = revoke
+        with self.assertRaises(StateError): adapter.sign(self.payload, now=NOW)
+        self.assertEqual(self.sign_calls, [])
+
+    def test_persisted_live_keys_match_owner_approved_evidence(self):
+        registry = json.loads((ROOT / 'factory/profiles/scope-signers.json').read_text())
+        bindings = json.loads((ROOT / 'factory/profiles/kms-signers.json').read_text())
+        evidence = json.loads((ROOT / 'factory/evidence/signing-verification-2026-09-22.json').read_text())
+        self.assertTrue(registry['enabled'])
+        self.assertEqual(len(registry['signers']), 4)
+        self.assertEqual(len(bindings['signers']), 4)
+        for record in evidence['signers']:
+            proof = record['proof']
+            entry = next(x for x in registry['signers'] if x['identity'] == proof['identity'])
+            binding = next(x for x in bindings['signers'] if x['signer'] == proof['signer'])
+            for key in ('public_key_pem', 'fingerprint'):
+                self.assertEqual(entry[key], proof[key])
+            self.assertEqual(binding['key_arn'], proof['key_arn'])
+            self.assertEqual(binding['fingerprint'], entry['fingerprint'])
+            self.assertEqual(binding['enrollment_commit'], entry['enrollment_commit'])
 
 
 class SigningInfrastructureTests(unittest.TestCase):

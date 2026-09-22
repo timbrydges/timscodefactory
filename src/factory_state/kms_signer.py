@@ -6,12 +6,13 @@ The controller receives public keys and signatures, never private key material.
 """
 import base64
 import hashlib
+import json
 import re
 import textwrap
 
 from .model import StateError
 from .scope import SignedScopeStore, canonical
-from .signers import public_key_der
+from .signers import public_key_der, validate_trusted_signers
 
 SIGNERS = {
     'owner': 'tim_brydges',
@@ -88,3 +89,65 @@ class KmsReceiptSigner:
         SignedScopeStore('unused', None, {self.identity: self.pem})._verify(
             payload, signature, self.identity, now)
         return signature
+
+
+class EnrolledKmsReceiptSigner:
+    """Role-side signer using trusted deployment paths, never task-supplied keys.
+
+    Re-read enrollment before every signing request. This does not authorize a
+    task or review: the role service must enforce its contract, pause and budget
+    controls separately. No private material or signing credentials belong in
+    the controller process.
+    """
+
+    def __init__(self, kms, sts, *, signer, registry_path, bindings_path):
+        if signer not in SIGNERS:
+            raise StateError('unknown Factory signer')
+        self.kms, self.sts, self.signer = kms, sts, signer
+        self.identity = SIGNERS[signer]
+        self.registry_path, self.bindings_path = registry_path, bindings_path
+
+    def _enrollment(self, now):
+        registry = json.loads(self.registry_path.read_bytes())
+        keys = validate_trusted_signers(registry, now=now)
+        if self.identity not in keys:
+            raise StateError('signing identity is revoked, expired or not enrolled')
+        entries = {entry['identity']: entry for entry in registry['signers']}
+        document = json.loads(self.bindings_path.read_bytes())
+        if (set(document) != {'schema_version', 'signers'} or
+                document['schema_version'] != '1.0' or not isinstance(document['signers'], list)):
+            raise StateError('invalid KMS enrollment bindings')
+        bindings, arns = {}, set()
+        for entry in document['signers']:
+            if (not isinstance(entry, dict) or set(entry) !=
+                    {'signer', 'identity', 'key_arn', 'fingerprint', 'enrollment_commit'}):
+                raise StateError('invalid KMS signer binding fields')
+            role = entry['signer']
+            if (not isinstance(role, str) or role not in SIGNERS or role in bindings or
+                    entry['identity'] != SIGNERS[role] or not isinstance(entry['key_arn'], str) or
+                    not KEY_ARN.fullmatch(entry['key_arn']) or entry['key_arn'] in arns):
+                raise StateError('KMS signer role or exact key binding invalid')
+            enrolled = entries.get(entry['identity'])
+            if (enrolled is None or any(entry[field] != enrolled[field]
+                    for field in ('fingerprint', 'enrollment_commit'))):
+                raise StateError('KMS binding differs from reviewed public-key enrollment')
+            bindings[role] = entry
+            arns.add(entry['key_arn'])
+        if self.signer not in bindings:
+            raise StateError('KMS signing role is not enrolled')
+        selected = bindings[self.signer]
+        fingerprint = 'sha256:' + hashlib.sha256(public_key_der(keys[self.identity])).hexdigest()
+        if selected['fingerprint'] != fingerprint:
+            raise StateError('KMS enrollment changed while loading')
+        return selected, keys[self.identity]
+
+    def sign(self, payload, *, now):
+        binding, pem = self._enrollment(now)
+        signer = KmsReceiptSigner(self.kms, self.sts, signer=self.signer,
+            key_arn=binding['key_arn'], expected_fingerprint=binding['fingerprint'])
+        if signer.pem != pem:
+            raise StateError('KMS public key differs from active enrollment')
+        # Fail closed if enrollment changes during remote authentication/key reads.
+        if self._enrollment(now) != (binding, pem):
+            raise StateError('KMS enrollment changed before signing')
+        return signer.sign(payload, now=now)

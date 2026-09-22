@@ -1,5 +1,42 @@
 {
   "schema_version": "1.0",
-  "enabled": false,
-  "signers": []
+  "enabled": true,
+  "signers": [
+    {
+      "identity": "tim_brydges",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA5BQtC6yBhasAz7A4tZgh+5tX9Z5t+xtvUR5OrHxPREs=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:1e3436db052d4812f762a43ae34f48d99403d01da86c3aad049381e1c80821ea",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+      "not_before": 1790035200,
+      "expires_at": 1797811200,
+      "revoked": false
+    },
+    {
+      "identity": "software_architect_service",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAhO15585VYfLuB139krvqSw53mmALBJRkwC21IVQkLIk=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:f69c1982b40d867f6fe936c365a4cd0842187fb82801b993a642db34f610e01f",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+      "not_before": 1790035200,
+      "expires_at": 1797811200,
+      "revoked": false
+    },
+    {
+      "identity": "engineering_agent_service",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA0xhuSYZkwBb57KyFPBZ1ZaaC1JoqGB0TonLoFNUbBjM=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:ecea01029d27d5f3512f25b5614143b0e7d8c65824944a58cbe43b2521ad1d10",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+      "not_before": 1790035200,
+      "expires_at": 1797811200,
+      "revoked": false
+    },
+    {
+      "identity": "independent_inspector_service",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAjz/vf6Pd3Jl51E9ZyBop70ple5jqMbgg6vz0NHF6ynY=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:0076b42c6428bb659deae3a6fd74283682d16a0d9040b4935ec3ae7c98d81cd9",
+      "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+      "not_before": 1790035200,
+      "expires_at": 1797811200,
+      "revoked": false
+    }
+  ]
 }

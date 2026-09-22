@@ -27,9 +27,13 @@ def load_trusted_signers(path: Path, *, now) -> dict[str, bytes]:
     Enrollment commits record human-reviewed identity ownership. A valid key or
     commit-shaped string alone is not evidence of that review.
     """
+    return validate_trusted_signers(json.loads(path.read_bytes()), now=now)
+
+
+def validate_trusted_signers(document: dict, *, now) -> dict[str, bytes]:
+    """Validate one immutable in-memory snapshot of the deployment registry."""
     if now.tzinfo is None or now.utcoffset() is None:
         raise StateError('signer time must be timezone-aware')
-    document = json.loads(path.read_bytes())
     if (set(document) != {'schema_version', 'enabled', 'signers'} or
             document['schema_version'] != '1.0' or document['enabled'] is not True or
             not isinstance(document['signers'], list) or not document['signers']):
