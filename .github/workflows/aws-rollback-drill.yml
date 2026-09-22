@@ -63,7 +63,7 @@ jobs:
             echo "CANDIDATE_KEY=releases/drill/${DRILL_ID}/candidate.txt"
           } >> "$GITHUB_ENV"
 
-      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
         with:
           role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
