@@ -23,6 +23,17 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowance.provider_family, 'openai')
         self.assertEqual(allowance.model_id, 'gpt-5.6-sol')
         self.assertEqual(allowance.target_alias, 'coding_primary_sol_live')
+        self.assertEqual(
+            allowance.acceptance_repository,
+            'timbrydges/tims-factory-autonomy-acceptance')
+        self.assertEqual(allowance.acceptance_repository_id, 1382496429)
+        self.assertEqual(
+            allowance.acceptance_contract_commit,
+            'fcb4c535d4ea00962b26db14f59e34917ef2389f')
+        self.assertEqual(
+            allowance.acceptance_contract_sha256,
+            '7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa')
+        self.assertEqual(allowance.acceptance_task_id, 'deterministic-text-fingerprint')
         self.assertEqual(allowance.maximum_total_cost, Decimal('5.00'))
         self.assertEqual(allowance.maximum_cost_per_call, Decimal('0.25'))
         self.assertEqual(allowance.maximum_provider_calls, 3)
@@ -78,6 +89,18 @@ class AutonomyOperatingContractTests(unittest.TestCase):
                 'factory/evidence/not-real.json')
         with self.assertRaisesRegex(StateError, 'evidence is missing'):
             load_autonomy_operating_allowance(self.mutate(change))
+
+    def test_acceptance_target_evidence_drift_fails_closed(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        shutil.copytree(ROOT / 'factory', root / 'factory')
+        path = root / 'factory/evidence/autonomy-acceptance-repository-2026-09-23.json'
+        evidence = json.loads(path.read_text())
+        evidence['contract_sha256'] = '0' * 64
+        path.write_text(json.dumps(evidence))
+        with self.assertRaisesRegex(StateError, 'acceptance target evidence'):
+            load_autonomy_operating_allowance(root)
 
 
 if __name__ == '__main__':

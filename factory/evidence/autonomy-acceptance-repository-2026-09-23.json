@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "event_id": "autonomy-acceptance-repository-2026-09-23",
+  "recorded_on": "2026-09-23",
+  "repository_full_name": "timbrydges/tims-factory-autonomy-acceptance",
+  "repository_id": 1382496429,
+  "visibility": "private",
+  "default_branch": "main",
+  "contract_path": ".factory/acceptance-contract.json",
+  "contract_commit": "fcb4c535d4ea00962b26db14f59e34917ef2389f",
+  "contract_blob_sha": "d07d12bf88c84a02f72bd7250808ec8b0c915f11",
+  "contract_sha256": "7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "task_id": "deterministic-text-fingerprint",
+  "contract_id": "tims-factory-autonomy-acceptance-001",
+  "definition_pull_request": "https://github.com/timbrydges/tims-factory-autonomy-acceptance/pull/1",
+  "definition_head_commit": "ad2c02e6cbf7977686ee06dd32cc2715d5671edd",
+  "production_release_authorized": false,
+  "provider_activation_performed": false
+}
