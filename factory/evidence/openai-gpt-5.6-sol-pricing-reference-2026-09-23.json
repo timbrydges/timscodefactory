@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "official_provider_pricing_reference",
+  "conclusion": "verified_reference_not_activation_quote",
+  "provider_family": "openai",
+  "model_id": "gpt-5.6-sol",
+  "processing_mode": "standard",
+  "context_class": "short",
+  "long_context_threshold_input_tokens": 272000,
+  "input_usd_per_million_tokens": "4.00",
+  "cached_input_usd_per_million_tokens": "0.40",
+  "output_usd_per_million_tokens": "20.00",
+  "observed_at": "2026-09-23T00:56:33Z",
+  "expires_at": "2026-09-24T00:56:33Z",
+  "maximum_request_bytes_at_cost_cap": 42020,
+  "maximum_output_tokens_per_call": 4096,
+  "conservative_maximum_cost_per_call": "0.25000000",
+  "source_model_documentation": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+  "source_pricing_documentation": "https://developers.openai.com/api/docs/pricing",
+  "fresh_provider_pricing_gate_closed": false,
+  "reason_gate_remains_open": "Activation requires a newly observed quote no older than 86400 seconds at the moment of activation.",
+  "provider_call_performed": false
+}

@@ -14,6 +14,7 @@ limits:
   max_cost_usd_per_candidate_run: "2.00"
   max_cost_usd_per_qualification_session: "5.00"
   max_output_tokens_per_call: 4096
+  max_request_bytes_at_cost_cap: 42020
   max_credential_ttl_seconds: 900
   max_pricing_age_seconds: 86400
 approved_live_targets:

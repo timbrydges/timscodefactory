@@ -365,3 +365,20 @@ The active `Factory acceptance main` ruleset (ID `23853140`) protects the
 default branch with no bypass actors. It requires a pull request, an up-to-date
 `test` status check, and blocks deletions and force-pushes. These controls are
 also bound into the operating contract and evidence record.
+
+### Official provider pricing reference — 2026-09-23
+
+Official OpenAI documentation confirms that `gpt-5.6-sol` is available on the
+Responses API with Standard short-context rates of USD 4.00 per million input
+tokens and USD 20.00 per million output tokens. Long-context pricing begins
+above 272,000 input tokens.
+
+The operating contract binds a 42,020-byte conservative request ceiling and
+4,096 output-token ceiling. Treating every request byte as one input token,
+the maximum modeled Standard call cost is exactly USD 0.25000000. The live
+adapter still recomputes the actual request bound before obtaining credentials.
+
+This retained reference does not close the activation-time
+`fresh_provider_pricing` gate. A quote no older than 86,400 seconds must still
+be observed immediately before activation. No credential was created and no
+provider call was made.
