@@ -53,6 +53,8 @@ from .liveness import (
 from .intake import AuthenticatedIntakeService, IntakePlan
 from .autonomy import (AutonomousCycle, AutonomousScheduler, AutonomyActivation,
                        ScheduledAutonomyJob, ScheduledJobSource)
+from .autonomy_contract import (AutonomyOperatingAllowance,
+                                load_autonomy_operating_allowance)
 from .receipt_transport import (ReceiptPublication, ReceiptVersions, SignedReceiptBundle,
                                 VersionedS3ReceiptPublisher, VersionedS3ReceiptTransport,
                                 receipt_plan_digest, s3_client)
