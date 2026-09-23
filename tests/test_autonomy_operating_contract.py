@@ -40,6 +40,12 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowance.maximum_cost_per_call, Decimal('0.25'))
         self.assertEqual(allowance.maximum_provider_calls, 3)
         self.assertEqual(allowance.maximum_wall_clock_hours, 24)
+        self.assertEqual(
+            allowance.pricing_input_usd_per_million_tokens, Decimal('4.00'))
+        self.assertEqual(
+            allowance.pricing_output_usd_per_million_tokens, Decimal('20.00'))
+        self.assertEqual(allowance.maximum_request_bytes_at_cost_cap, 42020)
+        self.assertIn('fresh_provider_pricing', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
 
@@ -102,6 +108,18 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         evidence['contract_sha256'] = '0' * 64
         path.write_text(json.dumps(evidence))
         with self.assertRaisesRegex(StateError, 'acceptance target evidence'):
+            load_autonomy_operating_allowance(root)
+
+    def test_pricing_reference_drift_fails_closed(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        shutil.copytree(ROOT / 'factory', root / 'factory')
+        path = root / 'factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json'
+        evidence = json.loads(path.read_text())
+        evidence['input_usd_per_million_tokens'] = '3.99'
+        path.write_text(json.dumps(evidence))
+        with self.assertRaisesRegex(StateError, 'pricing reference evidence'):
             load_autonomy_operating_allowance(root)
 
 

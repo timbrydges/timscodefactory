@@ -37,8 +37,21 @@ limits:
   maximum_cost_per_call: "0.25"
   maximum_provider_calls: 3
   maximum_output_tokens_per_call: 4096
+  maximum_request_bytes_at_cost_cap: 42020
   maximum_automated_wall_clock_hours: 24
   maximum_remediation_cycles: 0
+
+pricing_reference:
+  model_id: gpt-5.6-sol
+  processing_mode: standard
+  context_class: short
+  long_context_threshold_input_tokens: 272000
+  input_usd_per_million_tokens: "4.00"
+  output_usd_per_million_tokens: "20.00"
+  observed_at: "2026-09-23T00:56:33Z"
+  expires_at: "2026-09-24T00:56:33Z"
+  conservative_maximum_cost_per_call: "0.25000000"
+  evidence: factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json
 
 authority:
   autonomous_task_progression: ALLOW_AFTER_ALL_GATES
@@ -67,6 +80,8 @@ activation:
       evidence: factory/evidence/autonomy-acceptance-repository-2026-09-23.json
     exact_acceptance_task_and_contract_digest:
       evidence: factory/evidence/autonomy-acceptance-repository-2026-09-23.json
+    official_provider_pricing_reference:
+      evidence: factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json
   pending_gates:
     - fresh_provider_pricing
     - ephemeral_provider_credential_path

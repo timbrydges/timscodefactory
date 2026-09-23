@@ -32,6 +32,9 @@ class AutonomyOperatingAllowance:
     maximum_cost_per_call: Decimal
     maximum_provider_calls: int
     maximum_wall_clock_hours: int
+    pricing_input_usd_per_million_tokens: Decimal
+    pricing_output_usd_per_million_tokens: Decimal
+    maximum_request_bytes_at_cost_cap: int
     pending_gates: tuple[str, ...]
     production_release_authorized: bool
 
@@ -101,6 +104,45 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
     }
     if any(target_evidence.get(key) != value for key, value in target_expected.items()):
         raise StateError('autonomy contract differs from acceptance target evidence')
+    pricing = contract['pricing_reference']
+    try:
+        pricing_evidence = json.loads(
+            (root / pricing['evidence']).read_text(encoding='utf-8'))
+    except (OSError, ValueError) as error:
+        raise StateError('autonomy pricing reference evidence is invalid') from error
+    pricing_expected = {
+        'model_id': pricing['model_id'],
+        'processing_mode': pricing['processing_mode'],
+        'context_class': pricing['context_class'],
+        'long_context_threshold_input_tokens':
+            pricing['long_context_threshold_input_tokens'],
+        'input_usd_per_million_tokens':
+            pricing['input_usd_per_million_tokens'],
+        'output_usd_per_million_tokens':
+            pricing['output_usd_per_million_tokens'],
+        'observed_at': pricing['observed_at'],
+        'expires_at': pricing['expires_at'],
+        'conservative_maximum_cost_per_call':
+            pricing['conservative_maximum_cost_per_call'],
+    }
+    if any(pricing_evidence.get(key) != value
+           for key, value in pricing_expected.items()):
+        raise StateError('autonomy contract differs from pricing reference evidence')
+    input_price = _decimal(
+        pricing['input_usd_per_million_tokens'], 'pricing input rate')
+    output_price = _decimal(
+        pricing['output_usd_per_million_tokens'], 'pricing output rate')
+    conservative_cost = (
+        Decimal(limits['maximum_request_bytes_at_cost_cap']) * input_price
+        + Decimal(limits['maximum_output_tokens_per_call']) * output_price
+    ) / Decimal(1_000_000)
+    if conservative_cost != _decimal(
+            pricing['conservative_maximum_cost_per_call'],
+            'conservative maximum cost per call'):
+        raise StateError('autonomy pricing cost bound is inconsistent')
+    if conservative_cost > _decimal(
+            limits['maximum_cost_per_call'], 'maximum cost per call'):
+        raise StateError('autonomy pricing cost bound exceeds owner authorization')
     for gate in contract['activation']['verified_gates'].values():
         path = root / gate['evidence']
         if not path.is_file():
@@ -116,4 +158,5 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
         limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
+        input_price, output_price, limits['maximum_request_bytes_at_cost_cap'],
         pending, contract['authority']['production_release'] != 'DENY')

@@ -121,7 +121,7 @@ class OpenAIProviderPolicy:
     live_enabled: bool = False
     endpoint: str = _OPENAI_ENDPOINT
     timeout_seconds: int = 60
-    max_request_bytes: int = 256 * 1024
+    max_request_bytes: int = 42020
     max_response_bytes: int = 256 * 1024
     max_output_tokens: int = 4096
     max_credential_ttl_seconds: int = 900

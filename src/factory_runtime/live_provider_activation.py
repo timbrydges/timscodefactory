@@ -126,6 +126,8 @@ def validate_live_provider_preparation(repository_root: Path) -> LiveProviderPre
         raise LiveProviderActivationError("qualification session cap exceeds the locked USD 5.00 ceiling")
     if limits.get("max_output_tokens_per_call") != 4096:
         raise LiveProviderActivationError("live activation output-token cap drifted")
+    if limits.get("max_request_bytes_at_cost_cap") != 42020:
+        raise LiveProviderActivationError("live activation request-byte cap drifted")
     if limits.get("max_credential_ttl_seconds") != 900:
         raise LiveProviderActivationError("live activation credential TTL cap drifted")
     if limits.get("max_pricing_age_seconds") != 86400:
