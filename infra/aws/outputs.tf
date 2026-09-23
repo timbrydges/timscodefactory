@@ -41,3 +41,8 @@ output "reviewer_receipt_writer_policy_arn" {
   description = "Attach only to the isolated independent-review receipt publisher identity."
   value       = aws_iam_policy.reviewer_receipt_writer.arn
 }
+
+output "disabled_autonomy_schedule_name" {
+  description = "Name of the acceptance schedule when explicitly deployed; it is always created disabled."
+  value       = try(aws_scheduler_schedule.autonomy_acceptance[0].name, null)
+}
