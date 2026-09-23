@@ -382,3 +382,22 @@ This retained reference does not close the activation-time
 `fresh_provider_pricing` gate. A quote no older than 86,400 seconds must still
 be observed immediately before activation. No credential was created and no
 provider call was made.
+
+### Broker-only provider credential path prepared — 2026-09-23
+
+The runtime now includes an AWS Secrets Manager credential source that reads
+only the exact Factory OpenAI secret at `AWSCURRENT`, using a no-retry,
+exact-region client, and exposes it only as a 300-second in-memory lease to the
+provider adapter. Secret values are never represented in Terraform, evidence,
+logs, or role payloads.
+
+Terraform prepares a dedicated rotating KMS key, recoverable secret metadata,
+and a standalone least-privilege reader policy restricted to the exact secret,
+exact version stage, and KMS decryption through Secrets Manager in
+`ca-central-1`. The policy is intentionally unattached until an isolated
+provider-broker runtime role exists.
+
+This closes only the implementation-preparation subgate. The
+`ephemeral_provider_credential_path` activation gate remains open until the
+secret, runtime role and policy are deployed and independently verified. No
+credential was created and no provider call was made.

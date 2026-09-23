@@ -21,3 +21,13 @@ output "release_oidc_subject" {
 output "controller_role_arn" {
   value = aws_iam_role.github_controller.arn
 }
+
+output "provider_openai_secret_arn" {
+  description = "Exact secret ARN to bind into the isolated provider broker deployment."
+  value       = aws_secretsmanager_secret.provider_openai.arn
+}
+
+output "provider_broker_secret_reader_policy_arn" {
+  description = "Attach only to the future isolated provider-broker runtime role."
+  value       = aws_iam_policy.provider_broker_secret_reader.arn
+}
