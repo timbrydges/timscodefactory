@@ -16,6 +16,7 @@ from factory_state.model import StateError
 from factory_state.scope import canonical
 
 MAX_CANARY_INPUT = 4096
+OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 
 
 def validate_probe(event, *, role, commit):
@@ -36,6 +37,30 @@ def handle_probe(event, *, role, commit, signer, now):
     signature = signer.sign(payload, now=now)
     return {'payload': payload, 'signature_base64': base64.b64encode(signature).decode(),
             'model_calls': 0, 'operational_execution_enabled': False}
+
+
+def handle_operational_boundary_probe(event, *, role, commit, signer, now):
+    expected = {'kind', 'source_commit', 'nonce', 'task_id'}
+    if (role != 'builder' or not isinstance(event, dict) or set(event) != expected or
+            event.get('kind') != 'operational_boundary_probe' or
+            event.get('source_commit') != commit or
+            event.get('task_id') != 'deterministic-text-fingerprint' or
+            not isinstance(event.get('nonce'), str) or
+            not re.fullmatch(r'[a-zA-Z0-9-]{16,64}', event['nonce']) or
+            signer.identity != SIGNERS['builder']):
+        raise StateError('invalid operational boundary probe')
+    payload = {'kind': 'operational_boundary_attestation',
+        'producer_identity': SIGNERS['builder'], 'source_commit': commit,
+        'nonce': event['nonce'], 'task_id': event['task_id'],
+        'target_alias': 'coding_primary_sol_live', 'model_id': 'gpt-5.6-sol',
+        'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 3,
+        'maximum_request_bytes': 42020, 'provider_credentials_in_role': False,
+        'operational_execution_enabled': False,
+        'purpose': 'operational-boundary-deployment-verification-only',
+        'issued_at': int(now.timestamp()), 'expires_at': int(now.timestamp()) + 300}
+    return {'payload': payload, 'signature_base64': base64.b64encode(
+        signer.sign(payload, now=now)).decode(), 'model_calls': 0,
+        'operational_execution_enabled': False}
 
 
 def _transport_event(event, *, role, commit):
@@ -106,11 +131,14 @@ def handler(event, context):
     role = os.environ['FACTORY_ROLE']
     if role not in {'planner', 'builder', 'inspector'}:
         raise StateError('invalid deployed role')
-    if not isinstance(event, dict) or event.get('kind') not in {'identity_probe', 'transport_canary'}:
+    if os.environ.get(OPERATIONAL_FLAG) != 'false':
+        raise StateError('operational role kill switch must remain false')
+    if not isinstance(event, dict) or event.get('kind') not in {
+            'identity_probe', 'transport_canary', 'operational_boundary_probe'}:
         raise StateError('unsupported role invocation')
     if event['kind'] == 'identity_probe':
         validate_probe(event, role=role, commit=commit)
-    else:
+    elif event['kind'] == 'transport_canary':
         _transport_event(event, role=role, commit=commit)
     config = Config(connect_timeout=3, read_timeout=5, retries={'total_max_attempts': 1, 'mode': 'standard'})
     # Execution credentials cannot sign or modify controller state. A short-lived
@@ -127,6 +155,9 @@ def handler(event, context):
     now = datetime.now(timezone.utc)
     if event['kind'] == 'identity_probe':
         return handle_probe(event, role=role, commit=commit, signer=signer, now=now)
+    if event['kind'] == 'operational_boundary_probe':
+        return handle_operational_boundary_probe(
+            event, role=role, commit=commit, signer=signer, now=now)
     database = boto3.client('dynamodb', region_name='ca-central-1', config=config)
     return handle_transport(event, role=role, commit=commit, signer=signer, now=now,
         database=database, table=os.environ['EXECUTION_TABLE'])
