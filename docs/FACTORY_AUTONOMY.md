@@ -401,3 +401,17 @@ This closes only the implementation-preparation subgate. The
 `ephemeral_provider_credential_path` activation gate remains open until the
 secret, runtime role and policy are deployed and independently verified. No
 credential was created and no provider call was made.
+
+### Exact live-target authorization path prepared — 2026-09-23
+
+The live qualification authorizer now binds the checked-in owner event to the
+exact `coding_primary_sol_live` / `gpt-5.6-sol` pair. It independently requires
+Tim's identity, the locked corpus digest, an exact source commit, a bounded spend
+reservation, and matching enable switches in both the live policy and model
+catalog. The unapproved challenger remains denied even if its switches drift on.
+
+Both approved-target switches remain false. This closes only the authorization
+implementation-preparation subgate; `approved_target_technical_enablement`
+remains pending until an owner-reviewed activation commit deliberately changes
+both switches after the other gates pass. No credential was requested, no
+provider call was made, and production release remains denied.

@@ -91,6 +91,64 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
             preparation = validate_live_provider_preparation(copy_root)
             self.assertFalse(preparation.all_live_targets_disabled)
 
+    def test_exact_owner_approved_target_can_authorize_only_after_two_enable_switches(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            shutil.copytree(ROOT / "factory", root / "factory")
+            models = root / "factory/profiles/provider-models.yaml"
+            policy = root / "factory/profiles/provider-live-activation.yaml"
+            models.write_text(models.read_text().replace(
+                'model_id: "gpt-5.6-sol"\n    execution_mode: live\n    enabled: false',
+                'model_id: "gpt-5.6-sol"\n    execution_mode: live\n    enabled: true',
+                1,
+            ))
+            policy.write_text(policy.read_text().replace(
+                "coding_primary_sol_live:\n    model_id: gpt-5.6-sol\n    role: quality_baseline\n    enabled: false",
+                "coding_primary_sol_live:\n    model_id: gpt-5.6-sol\n    role: quality_baseline\n    enabled: true",
+                1,
+            ))
+            preparation = validate_live_provider_preparation(root)
+            authorization = authorize_live_qualification(
+                root,
+                actor="timbrydges",
+                target_alias="coding_primary_sol_live",
+                corpus_digest=preparation.corpus_digest,
+                source_commit="1" * 40,
+                reserved_cost_usd=Decimal("1.00"),
+            )
+            self.assertEqual(authorization.model_id, "gpt-5.6-sol")
+            self.assertEqual(
+                authorization.owner_authorization_event,
+                "autonomy-financial-authorization-2026-09-23",
+            )
+
+    def test_unapproved_challenger_stays_denied_even_if_enabled(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            shutil.copytree(ROOT / "factory", root / "factory")
+            for relative in (
+                "factory/profiles/provider-models.yaml",
+                "factory/profiles/provider-live-activation.yaml",
+            ):
+                path = root / relative
+                text = path.read_text()
+                marker = "coding_primary_terra_live:"
+                before, after = text.split(marker, 1)
+                after = after.replace("enabled: false", "enabled: true", 1)
+                path.write_text(before + marker + after)
+            preparation = validate_live_provider_preparation(root)
+            with self.assertRaisesRegex(
+                LiveProviderActivationError, "lacks exact owner authorization"
+            ):
+                authorize_live_qualification(
+                    root,
+                    actor="timbrydges",
+                    target_alias="coding_primary_terra_live",
+                    corpus_digest=preparation.corpus_digest,
+                    source_commit="1" * 40,
+                    reserved_cost_usd=Decimal("1.00"),
+                )
+
     async def test_credential_source_returns_only_bounded_in_memory_lease(self):
         source = EnvironmentProviderCredentialLeaseSource(
             environment={"FACTORY_OPENAI_API_KEY": "sk-test-provider-secret-1234567890"},
