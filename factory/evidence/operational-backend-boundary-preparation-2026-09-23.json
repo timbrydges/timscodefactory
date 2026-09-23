@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "event_id": "operational-backend-boundary-preparation-2026-09-23",
+  "status": "IMPLEMENTED_DISABLED_NOT_DEPLOYED",
+  "role_identity": "engineering_agent_service",
+  "task_id": "deterministic-text-fingerprint",
+  "target_alias": "coding_primary_sol_live",
+  "model_id": "gpt-5.6-sol",
+  "maximum_cost_usd_per_call": "0.25",
+  "maximum_provider_calls": 3,
+  "maximum_request_bytes": 42020,
+  "provider_credentials_in_role": false,
+  "production_release_authority": false,
+  "operational_backend_enabled": false,
+  "operational_backend_deployed": false,
+  "provider_call_made": false
+}
