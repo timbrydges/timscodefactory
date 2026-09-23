@@ -195,3 +195,13 @@ The update preparation accepts an existing role stack only in `CREATE_COMPLETE`
 or `UPDATE_COMPLETE`, including the verified transport `:2` deployment. Any
 in-progress or rollback status remains blocked before artifact upload or change
 set creation.
+
+## Boundary probe signer repair — 2026-09-23
+
+The model-free rollout of source `33ac1884000d48a00618ed35c1798a74d5b83ad3`
+updated the role stack, but live verification stopped at the Builder probe: the
+signer rejected its new receipt kind before signing. The signer now permits only
+the Builder identity to sign an exact, disabled operational boundary attestation,
+with fixed task, target, model and limits. Owner, Planner and Inspector remain
+unable to sign that kind. A fresh immutable role version and a new live proof are
+required; the failed verification is not an activation gate.
