@@ -415,3 +415,17 @@ implementation-preparation subgate; `approved_target_technical_enablement`
 remains pending until an owner-reviewed activation commit deliberately changes
 both switches after the other gates pass. No credential was requested, no
 provider call was made, and production release remains denied.
+
+### Least-privilege receipt-writer IAM prepared — 2026-09-23
+
+Terraform now defines separate, unattached owner and independent-review writer
+policies. Each permits only `s3:PutObject` to its exact receipt suffix beneath
+`factory-scope-receipts/*/` and requires AES256 server-side encryption. Neither
+policy grants reads, listing, deletion, version deletion, ACL changes, Factory
+state access, release access, or cross-writer publication.
+
+This closes only the IAM implementation-preparation subgate. The
+`least_privilege_receipt_writer_iam` activation gate remains pending until the
+policies are deployed, attached to separately verified publisher identities,
+and canaried. No policy was attached, no receipt was published, and production
+release remains denied.
