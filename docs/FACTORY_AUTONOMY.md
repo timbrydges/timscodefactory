@@ -416,6 +416,22 @@ remains pending until an owner-reviewed activation commit deliberately changes
 both switches after the other gates pass. No credential was requested, no
 provider call was made, and production release remains denied.
 
+### Operational backend boundary prepared — 2026-09-23
+
+The role-side operational backend now re-loads the retained operating allowance
+at every activation, reservation and execution boundary. It accepts only the
+exact `deterministic-text-fingerprint` task, `coding_primary_sol_live` target,
+`gpt-5.6-sol` model, activation source and contract digest. Its injected task
+executor receives no provider credential, and requests remain bounded to 42,020
+bytes, USD 0.25 per call and three calls.
+
+The backend defaults disabled and the checked-in allowance still has pending
+gates, so both controls independently deny execution. This closes only the
+backend-boundary implementation subgate; `operational_role_backend_deployment`
+remains pending until this boundary is composed into a fresh immutable Builder
+Lambda version and independently verified. No operational backend was deployed,
+no provider call was made, and production release remains denied.
+
 ### Least-privilege receipt-writer IAM prepared — 2026-09-23
 
 Terraform now defines separate, unattached owner and independent-review writer
