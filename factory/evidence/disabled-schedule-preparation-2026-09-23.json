@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "event_id": "disabled-schedule-preparation-2026-09-23",
+  "status": "IMPLEMENTED_NOT_DEPLOYED",
+  "schedule_name": "tims-software-factory-autonomy-acceptance",
+  "deployment_opt_in_default": false,
+  "deployed_state": "DISABLED",
+  "schedule_expression": "rate(15 minutes)",
+  "target_alias": "tims-software-factory-autonomy-controller:acceptance",
+  "task_id": "deterministic-text-fingerprint",
+  "maximum_retry_attempts": 0,
+  "maximum_event_age_seconds": 60,
+  "canary_mode": "read_only",
+  "infrastructure_deployed": false,
+  "schedule_enabled": false,
+  "provider_call_made": false,
+  "production_release_authorized": false
+}

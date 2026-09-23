@@ -429,3 +429,18 @@ This closes only the IAM implementation-preparation subgate. The
 policies are deployed, attached to separately verified publisher identities,
 and canaried. No policy was attached, no receipt was published, and production
 release remains denied.
+
+### Disabled scheduler deployment and canary prepared — 2026-09-23
+
+Terraform now contains an explicit opt-in for creating the acceptance schedule,
+with the opt-in false by default and the deployed schedule hard-coded
+`DISABLED`. Its service role can invoke only the exact acceptance Lambda alias,
+is source-account and source-schedule bound, sends only the approved task
+identity, retains events for at most 60 seconds, and performs zero retries.
+
+A read-only canary verifies the schedule name, disabled state, cadence, target,
+role, payload and retry limits without invoking or modifying it. This closes
+only the implementation-preparation subgate; `disabled_schedule_deployment_and_canary`
+remains pending until the operational backend exists, the disabled schedule is
+deployed, and the canary passes in AWS. No schedule was deployed or enabled, no
+provider call was made, and production release remains denied.
