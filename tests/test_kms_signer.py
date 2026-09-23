@@ -14,6 +14,7 @@ from scripts.kms_signing_canary import AwsError, run
 from factory_state.kms_signer import ALGORITHM, SIGNERS, KmsReceiptSigner, EnrolledKmsReceiptSigner
 from factory_state.signers import public_key_der
 from factory_state.model import StateError
+from factory_runtime.lambda_role import handle_operational_boundary_probe
 from test_dispatch_ledger import NOW
 
 
@@ -59,6 +60,33 @@ class KmsSignerTests(unittest.TestCase):
     def test_role_can_sign_bounded_transport_result(self):
         payload={**self.payload,'kind':'transport_result'}
         self.assertEqual(len(self.adapter().sign(payload,now=NOW)),64)
+
+    def test_builder_can_sign_exact_model_free_boundary_probe(self):
+        event = {'kind': 'operational_boundary_probe', 'source_commit': 'a' * 40,
+            'nonce': 'boundary-probe-1234', 'task_id': 'deterministic-text-fingerprint'}
+        result = handle_operational_boundary_probe(event, role='builder', commit='a' * 40,
+            signer=self.adapter(), now=NOW)
+        self.assertEqual(result['model_calls'], 0)
+        self.assertIs(result['operational_execution_enabled'], False)
+        self.assertEqual(len(self.sign_calls), 1)
+        payload = result['payload']
+        for changed in ({'operational_execution_enabled': True},
+                        {'provider_credentials_in_role': 0},
+                        {'model_id': 'another-model'},
+                        {'purpose': 'role-result'},
+                        {'task_id': 'another-task'}):
+            with self.subTest(changed=changed), self.assertRaises(StateError):
+                self.adapter().sign({**payload, **changed}, now=NOW)
+        self.assertEqual(len(self.sign_calls), 1)
+
+    def test_other_role_cannot_sign_operational_boundary_attestation(self):
+        self.role = 'planner'
+        self.caller['Arn'] = self.caller['Arn'].replace('builder', 'planner')
+        payload = {**self.payload, 'kind': 'operational_boundary_attestation',
+            'producer_identity': SIGNERS['planner']}
+        with self.assertRaises(StateError):
+            self.adapter().sign(payload, now=NOW)
+        self.assertEqual(self.sign_calls, [])
 
     def test_alias_fingerprint_and_authenticated_role_mismatch_fail(self):
         for patch in ({'key_arn': 'alias/tims-factory-signing-builder'},

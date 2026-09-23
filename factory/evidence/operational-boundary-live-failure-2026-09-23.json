@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "event_id": "operational-boundary-live-failure-2026-09-23",
+  "source_commit": "33ac1884000d48a00618ed35c1798a74d5b83ad3",
+  "status": "ROLE_STACK_UPDATED_BOUNDARY_VERIFICATION_FAILED",
+  "failed_stage": "builder_operational_boundary_probe_signing",
+  "error_type": "StateError",
+  "error_message": "signer cannot attest this receipt kind or identity",
+  "provider_call_observed": false,
+  "operational_execution_enabled": false,
+  "verification_complete": false,
+  "production_release_authorized": false
+}

@@ -66,13 +66,31 @@ class KmsReceiptSigner:
         kind = payload.get('kind')
         identity_field = {'capability': 'owner_identity', 'scope_review': 'reviewer_identity',
                           'role_result': 'producer_identity', 'transport_result': 'producer_identity',
+                          'operational_boundary_attestation': 'producer_identity',
                           'identity_challenge': 'identity'}.get(kind)
         allowed = {'owner': {'capability', 'identity_challenge'},
                    'planner': {'role_result', 'transport_result', 'identity_challenge'},
-                   'builder': {'role_result', 'transport_result', 'identity_challenge'},
+                   'builder': {'role_result', 'transport_result', 'identity_challenge',
+                               'operational_boundary_attestation'},
                    'inspector': {'scope_review', 'role_result', 'transport_result', 'identity_challenge'}}
         if kind not in allowed[self.signer] or payload.get(identity_field) != self.identity:
             raise StateError('signer cannot attest this receipt kind or identity')
+        if kind == 'operational_boundary_attestation':
+            expected = {'kind': kind, 'producer_identity': SIGNERS['builder'],
+                'task_id': 'deterministic-text-fingerprint',
+                'target_alias': 'coding_primary_sol_live', 'model_id': 'gpt-5.6-sol',
+                'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 3,
+                'maximum_request_bytes': 42020, 'provider_credentials_in_role': False,
+                'operational_execution_enabled': False,
+                'purpose': 'operational-boundary-deployment-verification-only'}
+            if (set(payload) != set(expected) | {'source_commit', 'nonce', 'issued_at', 'expires_at'} or
+                    any(type(payload[key]) is not type(value) or payload[key] != value
+                        for key, value in expected.items()) or
+                    not isinstance(payload.get('source_commit'), str) or
+                    not re.fullmatch(r'[a-f0-9]{40}', payload['source_commit']) or
+                    not isinstance(payload.get('nonce'), str) or
+                    not re.fullmatch(r'[a-zA-Z0-9-]{16,64}', payload['nonce'])):
+                raise StateError('invalid bounded operational boundary attestation')
         if (now.tzinfo is None or now.utcoffset() is None or
                 type(payload.get('issued_at')) is not int or type(payload.get('expires_at')) is not int or
                 not payload['issued_at'] <= now.timestamp() < payload['expires_at']):
