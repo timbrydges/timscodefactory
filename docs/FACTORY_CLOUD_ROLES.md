@@ -190,3 +190,8 @@ task, target, model, call, request and cost bindings. The accepted response must
 report zero model calls, no role-held provider credential and disabled operational
 execution. This verification remains prepared and unexecuted; it does not deploy
 the package or satisfy the live operational-backend gate.
+
+The update preparation accepts an existing role stack only in `CREATE_COMPLETE`
+or `UPDATE_COMPLETE`, including the verified transport `:2` deployment. Any
+in-progress or rollback status remains blocked before artifact upload or change
+set creation.
