@@ -34,6 +34,8 @@ class AutonomyOperatingContractTests(unittest.TestCase):
             allowance.acceptance_contract_sha256,
             '7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa')
         self.assertEqual(allowance.acceptance_task_id, 'deterministic-text-fingerprint')
+        self.assertEqual(allowance.acceptance_repository_ruleset_id, 23853140)
+        self.assertEqual(allowance.acceptance_required_status_check, 'test')
         self.assertEqual(allowance.maximum_total_cost, Decimal('5.00'))
         self.assertEqual(allowance.maximum_cost_per_call, Decimal('0.25'))
         self.assertEqual(allowance.maximum_provider_calls, 3)

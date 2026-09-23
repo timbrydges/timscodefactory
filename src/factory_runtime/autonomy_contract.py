@@ -26,6 +26,8 @@ class AutonomyOperatingAllowance:
     acceptance_contract_commit: str
     acceptance_contract_sha256: str
     acceptance_task_id: str
+    acceptance_repository_ruleset_id: int
+    acceptance_required_status_check: str
     maximum_total_cost: Decimal
     maximum_cost_per_call: Decimal
     maximum_provider_calls: int
@@ -93,6 +95,9 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         'contract_blob_sha': target['contract_blob_sha'],
         'contract_sha256': target['contract_sha256'],
         'task_id': target['task_id'],
+        'repository_ruleset_id': target['repository_ruleset_id'],
+        'repository_ruleset_name': target['repository_ruleset_name'],
+        'required_status_check': target['required_status_check'],
     }
     if any(target_evidence.get(key) != value for key, value in target_expected.items()):
         raise StateError('autonomy contract differs from acceptance target evidence')
@@ -107,6 +112,7 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         provider['model_id'], provider['target_alias'],
         target['repository_full_name'], target['repository_id'],
         target['contract_commit'], target['contract_sha256'], target['task_id'],
+        target['repository_ruleset_id'], target['required_status_check'],
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
         limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
