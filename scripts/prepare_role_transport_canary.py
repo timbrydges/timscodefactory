@@ -13,6 +13,8 @@ try:
 except ImportError:
     from prepare_role_deployment import ACCOUNT, BUCKET, REGION, ROLES, ROOT, aws, source
 
+BUILDER_IDENTITY = 'engineering_agent_service'
+
 
 def validate_changes(changes):
     expected = {'ControllerInvoke'} | {role.title()+suffix for role in ROLES
@@ -97,6 +99,33 @@ def invoke(arn, event, target):
     return json.loads(target.read_text())
 
 
+def verify_operational_boundary(proof, *, commit, nonce, verifier, now):
+    expected_response = {'payload', 'signature_base64', 'model_calls',
+                         'operational_execution_enabled'}
+    if (not isinstance(proof, dict) or set(proof) != expected_response or
+            proof.get('model_calls') != 0 or
+            proof.get('operational_execution_enabled') is not False):
+        raise RuntimeError('operational boundary response is not model-free and disabled')
+    payload = proof['payload']
+    expected = {'kind': 'operational_boundary_attestation',
+        'producer_identity': BUILDER_IDENTITY, 'source_commit': commit,
+        'nonce': nonce, 'task_id': 'deterministic-text-fingerprint',
+        'target_alias': 'coding_primary_sol_live', 'model_id': 'gpt-5.6-sol',
+        'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 3,
+        'maximum_request_bytes': 42020, 'provider_credentials_in_role': False,
+        'operational_execution_enabled': False,
+        'purpose': 'operational-boundary-deployment-verification-only'}
+    if (not isinstance(payload, dict) or set(payload) != set(expected) | {'issued_at', 'expires_at'} or
+            any(payload.get(key) != value for key, value in expected.items())):
+        raise RuntimeError('signed operational boundary binding mismatch')
+    try:
+        signature = base64.b64decode(proof['signature_base64'], validate=True)
+    except (ValueError, TypeError) as error:
+        raise RuntimeError('invalid operational boundary signature encoding') from error
+    verifier._verify(payload, signature, BUILDER_IDENTITY, now)
+    return payload
+
+
 def verify(plan_path):
     sys.path.insert(0, str(ROOT/'src'))
     from factory_state.kms_signer import SIGNERS
@@ -121,12 +150,15 @@ def verify(plan_path):
     trusted = load_trusted_signers(ROOT/'factory/profiles/scope-signers.json', now=datetime.now(timezone.utc))
     verifier = SignedScopeStore('unused', None, trusted)
     proofs = []
+    boundary_proof = None
     for role in ROLES:
         arn = outputs[role.title()+'VersionArn']
         configuration = aws('lambda', 'get-function-configuration', '--function-name', arn)
         if (configuration['CodeSha256'] != plan['artifact']['code_sha256'] or
                 configuration['Role'] != f'arn:aws:iam::{ACCOUNT}:role/tims-factory-executor-{role}' or
-                configuration['Environment']['Variables'].get('EXECUTION_TABLE') != 'tims-factory-role-executions'):
+                configuration['Environment']['Variables'].get('EXECUTION_TABLE') != 'tims-factory-role-executions' or
+                configuration['Environment']['Variables'].get(
+                    'FACTORY_OPERATIONAL_EXECUTION_ENABLED') != 'false'):
             raise RuntimeError('deployed transport function differs from plan')
         identity_nonce = uuid.uuid4().hex
         identity = invoke(arn, {'kind':'identity_probe','source_commit':plan['source_commit'],
@@ -161,9 +193,25 @@ def verify(plan_path):
         proofs.append({'role':role,'function_arn':arn,'identity':SIGNERS[role],
             'transport_payload':payload,'signature_base64':first['signature_base64'],
             'replay_returned_identical_result':True,'durable_record_status':'COMPLETE','model_calls':0})
-    evidence = {'source_commit':plan['source_commit'],'status':'THREE_ROLE_TRANSPORTS_VERIFIED',
+        if role == 'builder':
+            boundary_nonce = uuid.uuid4().hex
+            boundary = invoke(arn, {'kind': 'operational_boundary_probe',
+                'source_commit': plan['source_commit'], 'nonce': boundary_nonce,
+                'task_id': 'deterministic-text-fingerprint'},
+                plan_path.parent/'operational-boundary-builder.json')
+            boundary_payload = verify_operational_boundary(boundary,
+                commit=plan['source_commit'], nonce=boundary_nonce,
+                verifier=verifier, now=datetime.now(timezone.utc))
+            boundary_proof = {'role': role, 'function_arn': arn,
+                'payload': boundary_payload,
+                'signature_base64': boundary['signature_base64'], 'model_calls': 0,
+                'operational_execution_enabled': False}
+    if boundary_proof is None:
+        raise RuntimeError('builder operational boundary proof missing')
+    evidence = {'source_commit':plan['source_commit'],
+        'status':'THREE_ROLE_TRANSPORTS_AND_OPERATIONAL_BOUNDARY_VERIFIED',
         'model_calls':0,'operational_execution_enabled':False,'autonomous_scheduling_enabled':False,
-        'proofs':proofs}
+        'proofs':proofs,'operational_boundary_proof':boundary_proof}
     plan_path.with_name('role-transport-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n')
     print(json.dumps(evidence,indent=2))
 
