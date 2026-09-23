@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "event_id": "receipt-writer-iam-preparation-2026-09-23",
+  "status": "IMPLEMENTED_UNATTACHED",
+  "bucket": "tims-software-factory-666730517561-ca-central-1",
+  "owner_writer_resource": "factory-scope-receipts/*/owner.json",
+  "reviewer_writer_resource": "factory-scope-receipts/*/reviewer.json",
+  "allowed_action": "s3:PutObject",
+  "required_server_side_encryption": "AES256",
+  "explicitly_absent_permissions": [
+    "s3:GetObject",
+    "s3:ListBucket",
+    "s3:DeleteObject",
+    "s3:DeleteObjectVersion",
+    "s3:PutObjectAcl"
+  ],
+  "policies_attached": false,
+  "infrastructure_deployed": false,
+  "receipt_published": false,
+  "production_release_authorized": false
+}

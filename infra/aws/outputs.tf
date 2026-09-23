@@ -31,3 +31,13 @@ output "provider_broker_secret_reader_policy_arn" {
   description = "Attach only to the future isolated provider-broker runtime role."
   value       = aws_iam_policy.provider_broker_secret_reader.arn
 }
+
+output "owner_receipt_writer_policy_arn" {
+  description = "Attach only to Tim's isolated owner-receipt publisher identity."
+  value       = aws_iam_policy.owner_receipt_writer.arn
+}
+
+output "reviewer_receipt_writer_policy_arn" {
+  description = "Attach only to the isolated independent-review receipt publisher identity."
+  value       = aws_iam_policy.reviewer_receipt_writer.arn
+}
