@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "event_id": "provider-target-authorization-preparation-2026-09-23",
+  "status": "IMPLEMENTED_DISABLED",
+  "owner_authorization_event": "autonomy-financial-authorization-2026-09-23",
+  "owner_identity": "tim_brydges",
+  "target_alias": "coding_primary_sol_live",
+  "model_id": "gpt-5.6-sol",
+  "authorization_controls": [
+    "exact_owner_identity",
+    "exact_owner_evidence_binding",
+    "exact_target_alias",
+    "exact_model_id",
+    "exact_corpus_digest",
+    "exact_source_commit",
+    "bounded_spend_reservation",
+    "policy_target_enabled",
+    "catalog_target_enabled"
+  ],
+  "live_target_enabled": false,
+  "provider_call_made": false,
+  "production_release_authorized": false
+}

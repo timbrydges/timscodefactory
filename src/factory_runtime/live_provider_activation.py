@@ -9,6 +9,7 @@ Factory owner identity and a bounded spend reservation.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -22,6 +23,7 @@ _POLICY_PATH = "factory/profiles/provider-live-activation.yaml"
 _MODELS_PATH = "factory/profiles/provider-models.yaml"
 _QUALIFICATION_PATH = "factory/evals/provider-qualification.yaml"
 _CORPUS_PATH = "factory/evals/provider-repair-corpus-v1.json"
+_OWNER_AUTHORIZATION_PATH = "factory/evidence/autonomy-financial-authorization-2026-09-23.json"
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -82,6 +84,35 @@ class LiveQualificationAuthorization:
     corpus_digest: str
     source_commit: str
     reserved_cost_usd: Decimal
+    owner_authorization_event: str
+
+
+def _load_owner_authorization(root: Path) -> dict[str, Any]:
+    path = root / _OWNER_AUTHORIZATION_PATH
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise LiveProviderActivationError("owner authorization evidence is unavailable") from exc
+    if not isinstance(value, dict):
+        raise LiveProviderActivationError("owner authorization evidence must be an object")
+    expected = {
+        "owner_identity": "tim_brydges",
+        "provider_family": "openai",
+        "model_id": "gpt-5.6-sol",
+        "target_alias": "coding_primary_sol_live",
+        "currency": "USD",
+        "maximum_total_cost": "5.00",
+        "maximum_cost_per_call": "0.25",
+        "maximum_provider_calls": 3,
+        "maximum_automated_wall_clock_hours": 24,
+        "production_release_authorized": False,
+    }
+    if any(value.get(key) != expected_value for key, expected_value in expected.items()):
+        raise LiveProviderActivationError("owner authorization evidence binding drifted")
+    event_id = value.get("event_id")
+    if event_id != "autonomy-financial-authorization-2026-09-23":
+        raise LiveProviderActivationError("owner authorization event is not approved")
+    return value
 
 
 def validate_live_provider_preparation(repository_root: Path) -> LiveProviderPreparation:
@@ -224,7 +255,8 @@ def authorize_live_qualification(
     owner-reviewed activation commit flips one exact target on.
     """
 
-    preparation = validate_live_provider_preparation(repository_root)
+    root = Path(repository_root).resolve()
+    preparation = validate_live_provider_preparation(root)
     if actor != "timbrydges":
         raise LiveProviderActivationError("only the Factory owner may authorize live qualification")
     if target_alias not in {preparation.baseline_alias, preparation.challenger_alias}:
@@ -237,10 +269,26 @@ def authorize_live_qualification(
         raise LiveProviderActivationError("qualification spend reservation must be a finite Decimal")
     if reserved_cost_usd <= 0 or reserved_cost_usd > preparation.max_cost_usd_per_qualification_session:
         raise LiveProviderActivationError("qualification spend reservation exceeds the session cap")
-    if preparation.all_live_targets_disabled:
+    owner_event = _load_owner_authorization(root)
+    if target_alias != owner_event["target_alias"]:
+        raise LiveProviderActivationError("requested live target lacks exact owner authorization")
+
+    policy = _load_yaml(root / _POLICY_PATH)
+    models = _load_yaml(root / _MODELS_PATH)
+    policy_target = policy.get("approved_live_targets", {}).get(target_alias, {})
+    catalog_target = models.get("targets", {}).get(target_alias, {})
+    if policy_target.get("enabled") is not True or catalog_target.get("enabled") is not True:
         raise LiveProviderActivationError(
             "live qualification is prepared but disabled; no provider credential may be requested"
         )
-    raise LiveProviderActivationError(
-        "live target activation state requires an owner-reviewed target-specific authorization implementation"
+    if catalog_target.get("model_id") != owner_event["model_id"]:
+        raise LiveProviderActivationError("enabled live target model differs from owner authorization")
+    return LiveQualificationAuthorization(
+        actor=actor,
+        target_alias=target_alias,
+        model_id=catalog_target["model_id"],
+        corpus_digest=corpus_digest,
+        source_commit=source_commit,
+        reserved_cost_usd=reserved_cost_usd,
+        owner_authorization_event=owner_event["event_id"],
     )
