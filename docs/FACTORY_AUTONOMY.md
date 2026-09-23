@@ -343,8 +343,20 @@ window, with no production-release authority. The exact terms and owner event ar
 retained in `factory/autonomy/operating-contract.yaml` and its evidence record.
 
 This is financial and scope authorization, not a claim that execution is live.
-The contract remains default-deny while the exact private acceptance repository,
-task/contract digest, fresh pricing, ephemeral credential path, target switch,
+The contract remains default-deny while fresh pricing, ephemeral credential path, target switch,
 operational role backends, receipt-writer IAM, disabled schedule canary and
 independent pre-activation review remain pending. Code rejects `ACTIVE` while any
 gate remains open or any approved financial/model/release term drifts.
+
+### Exact private acceptance target — 2026-09-23
+
+The isolated private repository `timbrydges/tims-factory-autonomy-acceptance`
+(repository ID `1382496429`) now contains the immutable
+`deterministic-text-fingerprint` task contract at commit
+`fcb4c535d4ea00962b26db14f59e34917ef2389f`. The contract SHA-256 is
+`7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa`.
+
+The operating allowance and retained evidence bind the exact private repository,
+task, commit, Git blob and content digest; any drift fails closed. This verifies
+only the repository and task-definition gates. Provider calls, scheduling,
+infrastructure changes and production release remain disabled.

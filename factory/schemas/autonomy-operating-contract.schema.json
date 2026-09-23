@@ -3,7 +3,7 @@
   "$id": "https://tims-software-factory.local/schemas/autonomy-operating-contract.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "contract_id", "contract_version", "status", "approval", "provider", "limits", "authority", "activation", "stop_conditions", "prohibited_data"],
+  "required": ["schema_version", "contract_id", "contract_version", "status", "approval", "provider", "acceptance_target", "limits", "authority", "activation", "stop_conditions", "prohibited_data"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "contract_id": {"const": "tims-factory-autonomy-acceptance-001"},
@@ -28,6 +28,22 @@
         "target_alias": {"const": "coding_primary_sol_live"},
         "credential_source": {"const": "ephemeral_provider_broker_lease"},
         "direct_provider_credentials_in_roles": {"const": false}
+      }
+    },
+    "acceptance_target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["repository_full_name", "repository_id", "visibility", "default_branch", "contract_path", "contract_commit", "contract_blob_sha", "contract_sha256", "task_id", "evidence"],
+      "properties": {
+        "repository_full_name": {"const": "timbrydges/tims-factory-autonomy-acceptance"},
+        "repository_id": {"const": 1382496429},
+        "visibility": {"const": "private"},
+        "default_branch": {"const": "main"},
+        "contract_path": {"const": ".factory/acceptance-contract.json"},
+        "contract_commit": {"const": "fcb4c535d4ea00962b26db14f59e34917ef2389f"},
+        "contract_blob_sha": {"const": "d07d12bf88c84a02f72bd7250808ec8b0c915f11"},
+        "contract_sha256": {"const": "7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa"},
+        "task_id": {"const": "deterministic-text-fingerprint"},
+        "evidence": {"const": "factory/evidence/autonomy-acceptance-repository-2026-09-23.json"}
       }
     },
     "limits": {

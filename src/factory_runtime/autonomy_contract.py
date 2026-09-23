@@ -21,6 +21,11 @@ class AutonomyOperatingAllowance:
     provider_family: str
     model_id: str
     target_alias: str
+    acceptance_repository: str
+    acceptance_repository_id: int
+    acceptance_contract_commit: str
+    acceptance_contract_sha256: str
+    acceptance_task_id: str
     maximum_total_cost: Decimal
     maximum_cost_per_call: Decimal
     maximum_provider_calls: int
@@ -72,6 +77,25 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
     }
     if any(evidence.get(key) != value for key, value in expected.items()):
         raise StateError('autonomy contract differs from owner authorization evidence')
+    target = contract['acceptance_target']
+    try:
+        target_evidence = json.loads(
+            (root / target['evidence']).read_text(encoding='utf-8'))
+    except (OSError, ValueError) as error:
+        raise StateError('autonomy acceptance target evidence is invalid') from error
+    target_expected = {
+        'repository_full_name': target['repository_full_name'],
+        'repository_id': target['repository_id'],
+        'visibility': target['visibility'],
+        'default_branch': target['default_branch'],
+        'contract_path': target['contract_path'],
+        'contract_commit': target['contract_commit'],
+        'contract_blob_sha': target['contract_blob_sha'],
+        'contract_sha256': target['contract_sha256'],
+        'task_id': target['task_id'],
+    }
+    if any(target_evidence.get(key) != value for key, value in target_expected.items()):
+        raise StateError('autonomy contract differs from acceptance target evidence')
     for gate in contract['activation']['verified_gates'].values():
         path = root / gate['evidence']
         if not path.is_file():
@@ -81,6 +105,8 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         raise StateError('active autonomy contract retains pending gates')
     return AutonomyOperatingAllowance(contract['contract_id'], provider['family'],
         provider['model_id'], provider['target_alias'],
+        target['repository_full_name'], target['repository_id'],
+        target['contract_commit'], target['contract_sha256'], target['task_id'],
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
         limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
