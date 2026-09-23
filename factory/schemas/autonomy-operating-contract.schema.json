@@ -32,7 +32,7 @@
     },
     "acceptance_target": {
       "type": "object", "additionalProperties": false,
-      "required": ["repository_full_name", "repository_id", "visibility", "default_branch", "contract_path", "contract_commit", "contract_blob_sha", "contract_sha256", "task_id", "evidence"],
+      "required": ["repository_full_name", "repository_id", "visibility", "default_branch", "contract_path", "contract_commit", "contract_blob_sha", "contract_sha256", "task_id", "repository_ruleset_id", "repository_ruleset_name", "required_status_check", "evidence"],
       "properties": {
         "repository_full_name": {"const": "timbrydges/tims-factory-autonomy-acceptance"},
         "repository_id": {"const": 1382496429},
@@ -43,6 +43,9 @@
         "contract_blob_sha": {"const": "d07d12bf88c84a02f72bd7250808ec8b0c915f11"},
         "contract_sha256": {"const": "7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa"},
         "task_id": {"const": "deterministic-text-fingerprint"},
+        "repository_ruleset_id": {"const": 23853140},
+        "repository_ruleset_name": {"const": "Factory acceptance main"},
+        "required_status_check": {"const": "test"},
         "evidence": {"const": "factory/evidence/autonomy-acceptance-repository-2026-09-23.json"}
       }
     },

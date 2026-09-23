@@ -360,3 +360,8 @@ The operating allowance and retained evidence bind the exact private repository,
 task, commit, Git blob and content digest; any drift fails closed. This verifies
 only the repository and task-definition gates. Provider calls, scheduling,
 infrastructure changes and production release remain disabled.
+
+The active `Factory acceptance main` ruleset (ID `23853140`) protects the
+default branch with no bypass actors. It requires a pull request, an up-to-date
+`test` status check, and blocks deletions and force-pushes. These controls are
+also bound into the operating contract and evidence record.
