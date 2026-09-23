@@ -432,6 +432,12 @@ remains pending until this boundary is composed into a fresh immutable Builder
 Lambda version and independently verified. No operational backend was deployed,
 no provider call was made, and production release remains denied.
 
+The deployable role package also contains a Builder-only signed operational
+boundary probe and a CloudFormation kill switch hard-coded false across all
+three role functions. This permits model-free AWS verification of the exact
+backend boundary before any operational invocation is representable. The probe
+is not yet deployed and does not close `operational_role_backend_deployment`.
+
 ### Least-privilege receipt-writer IAM prepared — 2026-09-23
 
 Terraform now defines separate, unattached owner and independent-review writer

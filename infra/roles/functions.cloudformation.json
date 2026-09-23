@@ -177,6 +177,7 @@
         "Environment": {
           "Variables": {
             "FACTORY_ROLE": "planner",
+            "FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false",
             "EXECUTION_TABLE": {
               "Ref": "RoleExecutions"
             }
@@ -321,6 +322,7 @@
         "Environment": {
           "Variables": {
             "FACTORY_ROLE": "builder",
+            "FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false",
             "EXECUTION_TABLE": {
               "Ref": "RoleExecutions"
             }
@@ -465,6 +467,7 @@
         "Environment": {
           "Variables": {
             "FACTORY_ROLE": "inspector",
+            "FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false",
             "EXECUTION_TABLE": {
               "Ref": "RoleExecutions"
             }

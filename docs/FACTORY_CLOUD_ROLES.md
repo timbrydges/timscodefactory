@@ -168,3 +168,17 @@ verifier completed for Planner, Builder and Inspector exact version `:2`
 functions. Each role returned a valid enrolled-key signature, persisted a
 `COMPLETE` execution record and returned an identical replay result. All proofs
 reported `model_calls: 0`; operational execution and scheduling remain disabled.
+
+## Operational boundary probe prepared — 2026-09-23
+
+The Lambda package now includes a Builder-only signed
+`operational_boundary_probe`. It attests the exact acceptance task, approved
+model target, cost/call/request limits, absence of provider credentials and
+disabled operational state without executing work or calling a model.
+
+All three role functions now require the deployment-owned
+`FACTORY_OPERATIONAL_EXECUTION_ENABLED` environment variable to equal the
+literal string `false`; CloudFormation hard-codes that value and exposes no
+parameter that can flip it. Any missing or changed value fails every invocation.
+This probe is prepared but not deployed, so it is not evidence of an operational
+backend deployment.

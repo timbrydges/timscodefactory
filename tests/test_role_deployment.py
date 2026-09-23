@@ -7,7 +7,8 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT/'src'))
-from factory_runtime.lambda_role import handle_probe, handle_transport
+from factory_runtime.lambda_role import (handle_operational_boundary_probe,
+                                         handle_probe, handle_transport)
 from factory_state.kms_signer import SIGNERS
 from factory_state.scope import SignedScopeStore
 from factory_state.model import StateError
@@ -18,6 +19,33 @@ from test_dispatch_ledger import NOW
 
 
 class RoleDeploymentTests(unittest.TestCase):
+    def test_operational_boundary_probe_is_builder_only_signed_and_model_free(self):
+        class Signer:
+            identity = SIGNERS['builder']
+            def sign(self, payload, *, now): return b's' * 64
+        event = {'kind':'operational_boundary_probe','source_commit':'a'*40,
+                 'nonce':'boundary-probe-1234','task_id':'deterministic-text-fingerprint'}
+        proof = handle_operational_boundary_probe(
+            event, role='builder', commit='a'*40, signer=Signer(), now=NOW)
+        payload = proof['payload']
+        self.assertEqual(payload['target_alias'], 'coding_primary_sol_live')
+        self.assertEqual(payload['model_id'], 'gpt-5.6-sol')
+        self.assertEqual(payload['maximum_cost_usd_per_call'], '0.25')
+        self.assertEqual(payload['maximum_provider_calls'], 3)
+        self.assertEqual(payload['maximum_request_bytes'], 42020)
+        self.assertFalse(payload['provider_credentials_in_role'])
+        self.assertFalse(proof['operational_execution_enabled'])
+        self.assertEqual(proof['model_calls'], 0)
+        with self.assertRaises(StateError):
+            handle_operational_boundary_probe(
+                event, role='planner', commit='a'*40, signer=Signer(), now=NOW)
+
+    def test_cloudformation_hard_codes_operational_kill_switch_false(self):
+        template = (ROOT/'infra/roles/functions.cloudformation.json').read_text()
+        self.assertEqual(
+            template.count('"FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false"'), 3)
+        self.assertNotIn('"FACTORY_OPERATIONAL_EXECUTION_ENABLED": "true"', template)
+
     class ConditionalFailure(Exception):
         response = {'Error': {'Code': 'ConditionalCheckFailedException'}}
 
