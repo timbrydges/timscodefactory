@@ -53,8 +53,9 @@ from .liveness import (
 from .intake import AuthenticatedIntakeService, IntakePlan
 from .autonomy import (AutonomousCycle, AutonomousScheduler, AutonomyActivation,
                        ScheduledAutonomyJob, ScheduledJobSource)
-from .receipt_transport import (ReceiptVersions, SignedReceiptBundle,
-                                VersionedS3ReceiptTransport, receipt_plan_digest, s3_client)
+from .receipt_transport import (ReceiptPublication, ReceiptVersions, SignedReceiptBundle,
+                                VersionedS3ReceiptPublisher, VersionedS3ReceiptTransport,
+                                receipt_plan_digest, s3_client)
 from .openai_provider import (
     OpenAIProviderCredentialError,
     OpenAIProviderDisabledError,

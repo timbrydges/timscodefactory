@@ -320,3 +320,17 @@ unattended orchestration component; it does not approve a Factory operating
 contract, provider spend, receipt-writing authority or an EventBridge/GitHub
 schedule. Those live inputs still require exact owner-authorized deployment and
 an independently reviewed acceptance run.
+
+### Authenticated immutable receipt publication — 2026-09-23
+
+`VersionedS3ReceiptPublisher` closes the application-side receipt-writing gap.
+An isolated owner or reviewer signer can publish only its exact payload from one
+prepared intake plan, under the plan-derived bucket key. The write uses canonical
+JSON, a bound SHA-256 checksum, AES-256 storage encryption and `If-None-Match: *`;
+success requires a concrete S3 object version. A wrong signer, unversioned result,
+changed plan, oversized envelope or retry-enabled client fails closed.
+
+The publisher does not grant S3 or KMS permission, choose work, approve scope,
+enable the scheduler or authorize provider spend. The two roles still require
+separate least-privilege deployment policies, and an uncertain write outcome must
+be reconciled against S3 rather than blindly repeated.
