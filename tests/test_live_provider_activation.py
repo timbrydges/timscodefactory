@@ -17,6 +17,7 @@ from factory_runtime.live_provider_activation import (  # noqa: E402
 from factory_runtime.provider_credentials import (  # noqa: E402
     EnvironmentProviderCredentialLeaseSource,
     ProviderCredentialLeaseError,
+    SecretsManagerProviderCredentialLeaseSource,
 )
 from factory_runtime.provider_broker_service import ResolvedProviderTarget  # noqa: E402
 
@@ -25,6 +26,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
+    SECRET_ARN = (
+        "arn:aws:secretsmanager:ca-central-1:666730517561:secret:"
+        "tims-software-factory/provider/openai/acceptance-Ab12Cd")
     def test_checked_in_preparation_is_quality_first_bounded_and_disabled(self):
         preparation = validate_live_provider_preparation(ROOT)
         self.assertEqual(preparation.owner, "Tim Brydges")
@@ -113,6 +117,66 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
         )
         with self.assertRaisesRegex(ProviderCredentialLeaseError, "unavailable"):
             await source.issue(target=target)
+
+    async def test_secrets_manager_source_reads_only_exact_current_secret(self):
+        class Client:
+            calls = []
+
+            def get_secret_value(self, **kwargs):
+                self.calls.append(kwargs)
+                return {
+                    "ARN": LiveProviderActivationTests.SECRET_ARN,
+                    "Name": "tims-software-factory/provider/openai/acceptance",
+                    "VersionId": "version-1",
+                    "VersionStages": ["AWSCURRENT"],
+                    "SecretString": "sk-test-provider-secret-1234567890",
+                }
+
+        client = Client()
+        source = SecretsManagerProviderCredentialLeaseSource(
+            client=client, secret_arn=self.SECRET_ARN)
+        target = ResolvedProviderTarget(
+            provider_family="openai",
+            model_id="gpt-5.6-sol",
+            selector_version="live-prep-v1",
+        )
+        lease = await source.issue(target=target)
+        self.assertEqual(client.calls, [{
+            "SecretId": self.SECRET_ARN,
+            "VersionStage": "AWSCURRENT",
+        }])
+        self.assertEqual(lease.token, "sk-test-provider-secret-1234567890")
+        self.assertLessEqual((lease.expires_at - lease.issued_at).total_seconds(), 300)
+        self.assertNotIn(lease.token, repr(source))
+        self.assertNotIn(lease.token, repr(lease))
+
+    async def test_secrets_manager_source_rejects_identity_stage_and_binary_drift(self):
+        target = ResolvedProviderTarget(
+            provider_family="openai",
+            model_id="gpt-5.6-sol",
+            selector_version="live-prep-v1",
+        )
+        cases = (
+            {"ARN": "wrong", "Name": "wrong", "VersionStages": ["AWSCURRENT"],
+             "SecretString": "sk-test-provider-secret-1234567890"},
+            {"ARN": self.SECRET_ARN,
+             "Name": "tims-software-factory/provider/openai/acceptance",
+             "VersionStages": ["AWSPREVIOUS"],
+             "SecretString": "sk-test-provider-secret-1234567890"},
+            {"ARN": self.SECRET_ARN,
+             "Name": "tims-software-factory/provider/openai/acceptance",
+             "VersionStages": ["AWSCURRENT"], "SecretBinary": b"forbidden",
+             "SecretString": "sk-test-provider-secret-1234567890"},
+        )
+        for result in cases:
+            class Client:
+                def get_secret_value(self, **kwargs):
+                    return result
+            source = SecretsManagerProviderCredentialLeaseSource(
+                client=Client(), secret_arn=self.SECRET_ARN)
+            with self.subTest(result=result):
+                with self.assertRaises(ProviderCredentialLeaseError):
+                    await source.issue(target=target)
 
 
 if __name__ == "__main__":

@@ -73,6 +73,12 @@ from .openai_provider import (
     ProviderPricingQuote,
     ProviderPricingSource,
 )
+from .provider_credentials import (
+    EnvironmentProviderCredentialLeaseSource,
+    ProviderCredentialLeaseError,
+    SecretsManagerProviderCredentialLeaseSource,
+    secrets_manager_client,
+)
 from .pipeline import (
     DockerVerificationFactory,
     RuntimeInvocation,
@@ -348,6 +354,10 @@ __all__ = [
     "ProviderHTTPTransport",
     "ProviderPricingQuote",
     "ProviderPricingSource",
+    "EnvironmentProviderCredentialLeaseSource",
+    "ProviderCredentialLeaseError",
+    "SecretsManagerProviderCredentialLeaseSource",
+    "secrets_manager_client",
     "ProviderBrokerAuthenticationError",
     "ProviderBrokerBinding",
     "ProviderBrokerBudget",
