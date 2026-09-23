@@ -334,3 +334,17 @@ The publisher does not grant S3 or KMS permission, choose work, approve scope,
 enable the scheduler or authorize provider spend. The two roles still require
 separate least-privilege deployment policies, and an uncertain write outcome must
 be reconciled against S3 rather than blindly repeated.
+
+### Owner-approved bounded operating allowance — 2026-09-23
+
+Tim approved the first autonomous acceptance allowance: OpenAI `gpt-5.6-sol`,
+USD 5.00 total, USD 0.25 per call, three calls maximum and a 24-hour maximum
+window, with no production-release authority. The exact terms and owner event are
+retained in `factory/autonomy/operating-contract.yaml` and its evidence record.
+
+This is financial and scope authorization, not a claim that execution is live.
+The contract remains default-deny while the exact private acceptance repository,
+task/contract digest, fresh pricing, ephemeral credential path, target switch,
+operational role backends, receipt-writer IAM, disabled schedule canary and
+independent pre-activation review remain pending. Code rejects `ACTIVE` while any
+gate remains open or any approved financial/model/release term drifts.

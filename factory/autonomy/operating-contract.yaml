@@ -1,0 +1,75 @@
+schema_version: "1.0"
+contract_id: tims-factory-autonomy-acceptance-001
+contract_version: "1.0"
+status: OWNER_APPROVED_AWAITING_TECHNICAL_GATES
+
+approval:
+  owner_identity: tim_brydges
+  authority: factory_owner
+  approved_on: "2026-09-23"
+  evidence: factory/evidence/autonomy-financial-authorization-2026-09-23.json
+
+provider:
+  family: openai
+  model_id: gpt-5.6-sol
+  target_alias: coding_primary_sol_live
+  credential_source: ephemeral_provider_broker_lease
+  direct_provider_credentials_in_roles: false
+
+limits:
+  currency: USD
+  maximum_total_cost: "5.00"
+  maximum_cost_per_call: "0.25"
+  maximum_provider_calls: 3
+  maximum_output_tokens_per_call: 4096
+  maximum_automated_wall_clock_hours: 24
+  maximum_remediation_cycles: 0
+
+authority:
+  autonomous_task_progression: ALLOW_AFTER_ALL_GATES
+  schedule_activation: ALLOW_AFTER_ALL_GATES
+  provider_calls: ALLOW_AFTER_ALL_GATES
+  repository_writes: DENY_UNTIL_EXACT_ACCEPTANCE_TASK
+  infrastructure_changes: DENY_UNTIL_REVIEWED_DEPLOYMENT
+  production_release: DENY
+  release_authority_identity: tim_brydges
+
+activation:
+  default: DENY
+  all_gates_required: true
+  verified_gates:
+    owner_financial_authorization:
+      evidence: factory/evidence/autonomy-financial-authorization-2026-09-23.json
+    isolated_role_signing:
+      evidence: factory/evidence/signing-verification-2026-09-22.json
+    cloud_role_transport:
+      evidence: docs/FACTORY_CLOUD_ROLES.md
+    bounded_scheduler_implementation:
+      evidence: docs/FACTORY_AUTONOMY.md
+    immutable_receipt_publication:
+      evidence: docs/FACTORY_AUTONOMY.md
+  pending_gates:
+    - exact_private_acceptance_repository
+    - exact_acceptance_task_and_contract_digest
+    - fresh_provider_pricing
+    - ephemeral_provider_credential_path
+    - approved_target_technical_enablement
+    - operational_role_backend_deployment
+    - least_privilege_receipt_writer_iam
+    - disabled_schedule_deployment_and_canary
+    - independent_pre_activation_review
+
+stop_conditions:
+  - Total reserved or actual provider cost reaches USD 5.00.
+  - Any single provider reservation exceeds USD 0.25.
+  - Three provider calls have been reserved or attempted.
+  - Twenty-four hours elapse from the persisted activation timestamp.
+  - Authoritative state becomes PAUSED, STALLED, NEEDS_HUMAN, or RELEASE_READY.
+  - Any signature, receipt, task, source, contract, pricing, credential, or identity binding differs.
+  - Any production-release action is requested.
+
+prohibited_data:
+  - Credentials, API keys, tokens, passwords, or private keys in prompts, repositories, logs, or receipts.
+  - Personal, customer, employee, health, payment, location, or regulated data.
+  - Suncor, mining-operation, employer, or other confidential business information.
+  - Unsanitized external content treated as governing instructions.
