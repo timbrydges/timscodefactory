@@ -15,11 +15,20 @@ from factory_state.model import StateError
 from scripts.scope_dispatch_canary import fixture_keys, sign
 from scripts.prepare_role_deployment import validate_changes
 from scripts.prepare_role_transport_canary import (
-    validate_changes as validate_transport_changes, verify_operational_boundary)
+    validate_changes as validate_transport_changes, validate_existing_stack,
+    verify_operational_boundary)
 from test_dispatch_ledger import NOW
 
 
 class RoleDeploymentTests(unittest.TestCase):
+    def test_transport_preparation_accepts_completed_prior_update_only(self):
+        for status in ('CREATE_COMPLETE', 'UPDATE_COMPLETE'):
+            validate_existing_stack({'StackStatus': status})
+        for status in ('UPDATE_IN_PROGRESS', 'UPDATE_ROLLBACK_COMPLETE',
+                       'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'):
+            with self.assertRaises(RuntimeError):
+                validate_existing_stack({'StackStatus': status})
+
     def test_deployment_verifier_requires_exact_signed_disabled_boundary(self):
         class Verifier:
             def __init__(self): self.calls = []

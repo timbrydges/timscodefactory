@@ -34,13 +34,17 @@ def validate_changes(changes):
             raise RuntimeError('functions and controller policy must update in place')
 
 
+def validate_existing_stack(stack):
+    if stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
+        raise RuntimeError('role stack must have a completed deployment')
+
+
 def prepare(package, plan_path):
     commit = source()
     if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError('wrong AWS account')
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', 'tims-factory-roles')['Stacks'][0]
-    if stack['StackStatus'] != 'CREATE_COMPLETE':
-        raise RuntimeError('role stack must be at its verified initial deployment')
+    validate_existing_stack(stack)
     old_outputs = {x['OutputKey']: x['OutputValue'] for x in stack['Outputs']}
     package = Path(package).resolve(); manifest = json.loads(package.with_suffix('.json').read_text())
     if manifest['source_commit'] != commit or manifest['sha256'] != hashlib.sha256(package.read_bytes()).hexdigest():
