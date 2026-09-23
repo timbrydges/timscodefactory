@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "event_id": "operational-boundary-deployment-verifier-preparation-2026-09-23",
+  "status": "IMPLEMENTED_NOT_EXECUTED",
+  "fresh_immutable_role_versions_required": 3,
+  "operational_kill_switch_required": false,
+  "builder_boundary_signature_required": true,
+  "task_id": "deterministic-text-fingerprint",
+  "target_alias": "coding_primary_sol_live",
+  "model_id": "gpt-5.6-sol",
+  "maximum_cost_usd_per_call": "0.25",
+  "maximum_provider_calls": 3,
+  "maximum_request_bytes": 42020,
+  "provider_credentials_in_role": false,
+  "model_calls_permitted_during_verification": 0,
+  "deployment_executed": false,
+  "production_release_authorized": false
+}

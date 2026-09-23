@@ -14,11 +14,40 @@ from factory_state.scope import SignedScopeStore
 from factory_state.model import StateError
 from scripts.scope_dispatch_canary import fixture_keys, sign
 from scripts.prepare_role_deployment import validate_changes
-from scripts.prepare_role_transport_canary import validate_changes as validate_transport_changes
+from scripts.prepare_role_transport_canary import (
+    validate_changes as validate_transport_changes, verify_operational_boundary)
 from test_dispatch_ledger import NOW
 
 
 class RoleDeploymentTests(unittest.TestCase):
+    def test_deployment_verifier_requires_exact_signed_disabled_boundary(self):
+        class Verifier:
+            def __init__(self): self.calls = []
+            def _verify(self, payload, signature, identity, now):
+                self.calls.append((payload, signature, identity, now))
+        payload = {'kind':'operational_boundary_attestation',
+            'producer_identity':SIGNERS['builder'],'source_commit':'a'*40,
+            'nonce':'boundary-probe-1234','task_id':'deterministic-text-fingerprint',
+            'target_alias':'coding_primary_sol_live','model_id':'gpt-5.6-sol',
+            'maximum_cost_usd_per_call':'0.25','maximum_provider_calls':3,
+            'maximum_request_bytes':42020,'provider_credentials_in_role':False,
+            'operational_execution_enabled':False,
+            'purpose':'operational-boundary-deployment-verification-only',
+            'issued_at':int(NOW.timestamp()),'expires_at':int(NOW.timestamp())+300}
+        proof = {'payload':payload,'signature_base64':'cw==' ,'model_calls':0,
+                 'operational_execution_enabled':False}
+        verifier = Verifier()
+        self.assertEqual(verify_operational_boundary(proof, commit='a'*40,
+            nonce='boundary-probe-1234', verifier=verifier, now=NOW), payload)
+        self.assertEqual(verifier.calls[0][1:], (b's', SIGNERS['builder'], NOW))
+        with self.assertRaises(RuntimeError):
+            verify_operational_boundary({**proof, 'model_calls':1}, commit='a'*40,
+                nonce='boundary-probe-1234', verifier=verifier, now=NOW)
+        with self.assertRaises(RuntimeError):
+            verify_operational_boundary({**proof, 'payload':{**payload,
+                'model_id':'other-model'}}, commit='a'*40,
+                nonce='boundary-probe-1234', verifier=verifier, now=NOW)
+
     def test_operational_boundary_probe_is_builder_only_signed_and_model_free(self):
         class Signer:
             identity = SIGNERS['builder']

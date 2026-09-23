@@ -182,3 +182,11 @@ literal string `false`; CloudFormation hard-codes that value and exposes no
 parameter that can flip it. Any missing or changed value fails every invocation.
 This probe is prepared but not deployed, so it is not evidence of an operational
 backend deployment.
+
+The deployment verifier now requires every fresh immutable role version to retain
+that exact disabled kill switch. After the three signed, durable transport proofs,
+it invokes the Builder-only boundary probe and verifies its signature plus the exact
+task, target, model, call, request and cost bindings. The accepted response must
+report zero model calls, no role-held provider credential and disabled operational
+execution. This verification remains prepared and unexecuted; it does not deploy
+the package or satisfy the live operational-backend gate.
