@@ -205,3 +205,22 @@ the Builder identity to sign an exact, disabled operational boundary attestation
 with fixed task, target, model and limits. Owner, Planner and Inspector remain
 unable to sign that kind. A fresh immutable role version and a new live proof are
 required; the failed verification is not an activation gate.
+
+## Live model-free operational boundary proof — 2026-09-24
+
+Tim deployed repaired source `a0eeb4789d9328384baadae9c259405876478f9a`
+to fresh immutable role versions. The owner-provided CloudShell screenshot shows
+the verifier completed and returned to the shell prompt after its three-role
+transport checks and signed Builder boundary probe. The Builder proof came from
+exact version `:4` and bound the acceptance task, `gpt-5.6-sol`, USD 0.25 per
+call, three calls and 42,020 request bytes. It reported zero model calls, no
+provider credential in the role and disabled operational execution. The verifier
+only writes its result after checking the three roles, fresh version pins,
+durable transport replay and the Builder signature. See the bounded observation
+in `factory/evidence/operational-boundary-live-verification-2026-09-24.json`.
+
+The raw CloudShell proof file was not attached to this repository; the screenshot
+records the successful verifier completion and visible Builder fields. This is
+model-free deployment evidence. The operational backend, provider credential,
+receipt writer, scheduler and independent activation review gates remain pending;
+production release remains denied.
