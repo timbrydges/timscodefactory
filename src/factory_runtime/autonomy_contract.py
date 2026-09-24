@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -34,6 +35,8 @@ class AutonomyOperatingAllowance:
     maximum_wall_clock_hours: int
     pricing_input_usd_per_million_tokens: Decimal
     pricing_output_usd_per_million_tokens: Decimal
+    pricing_observed_at: datetime
+    pricing_expires_at: datetime
     maximum_request_bytes_at_cost_cap: int
     pending_gates: tuple[str, ...]
     production_release_authorized: bool
@@ -52,6 +55,18 @@ def _decimal(value, name):
         raise StateError(f'{name} is invalid') from error
     if not parsed.is_finite() or parsed <= 0:
         raise StateError(f'{name} must be positive and finite')
+    return parsed
+
+
+def _pricing_time(value, name):
+    if not isinstance(value, str) or not value.endswith('Z'):
+        raise StateError(f'{name} must be a UTC timestamp')
+    try:
+        parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError as error:
+        raise StateError(f'{name} is invalid') from error
+    if parsed.tzinfo != timezone.utc:
+        raise StateError(f'{name} must be UTC')
     return parsed
 
 
@@ -128,6 +143,10 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
     if any(pricing_evidence.get(key) != value
            for key, value in pricing_expected.items()):
         raise StateError('autonomy contract differs from pricing reference evidence')
+    pricing_observed_at = _pricing_time(pricing['observed_at'], 'pricing observed_at')
+    pricing_expires_at = _pricing_time(pricing['expires_at'], 'pricing expires_at')
+    if not pricing_observed_at < pricing_expires_at <= pricing_observed_at + timedelta(hours=24):
+        raise StateError('autonomy pricing reference exceeds the 24-hour freshness window')
     input_price = _decimal(
         pricing['input_usd_per_million_tokens'], 'pricing input rate')
     output_price = _decimal(
@@ -158,5 +177,6 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
         limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
-        input_price, output_price, limits['maximum_request_bytes_at_cost_cap'],
+        input_price, output_price, pricing_observed_at, pricing_expires_at,
+        limits['maximum_request_bytes_at_cost_cap'],
         pending, contract['authority']['production_release'] != 'DENY')
