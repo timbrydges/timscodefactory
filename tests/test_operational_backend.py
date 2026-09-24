@@ -91,6 +91,17 @@ class OperationalBackendTests(unittest.TestCase):
         self.assertEqual(executor.calls[0]["target_alias"], "coding_primary_sol_live")
         self.assertEqual(executor.calls[0]["model_id"], "gpt-5.6-sol")
 
+    def test_active_backend_rejects_expired_or_future_pricing_before_budget_reservation(self):
+        backend, budget, executor = self.backend(self.active_root(), enabled=True)
+        state, request = self.state_request()
+        for now in (datetime(2026, 9, 22, tzinfo=timezone.utc),
+                    datetime(2026, 9, 24, 1, tzinfo=timezone.utc)):
+            with self.subTest(now=now):
+                with self.assertRaisesRegex(StateError, 'pricing reference'):
+                    backend.reserve(state, request, dispatch_id='dispatch-1', now=now)
+        self.assertEqual(budget.calls, [])
+        self.assertEqual(executor.calls, [])
+
     def test_wrong_task_commit_contract_and_oversized_input_fail_closed(self):
         backend, _, executor = self.backend(self.active_root(), enabled=True)
         state, request = self.state_request()

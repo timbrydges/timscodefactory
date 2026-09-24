@@ -70,6 +70,8 @@ class AcceptanceOperationalBackend:
         if not self.enabled:
             raise StateError("operational backend is disabled")
         allowance = self._allowance()
+        if now.tzinfo is None or not allowance.pricing_observed_at <= now < allowance.pricing_expires_at:
+            raise StateError('operational backend pricing reference is stale or not yet observed')
         self.activation.validate(now)
         if (
             state.factory_id != self.activation.factory_id
