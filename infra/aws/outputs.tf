@@ -46,3 +46,8 @@ output "disabled_autonomy_schedule_name" {
   description = "Name of the acceptance schedule when explicitly deployed; it is always created disabled."
   value       = try(aws_scheduler_schedule.autonomy_acceptance[0].name, null)
 }
+
+output "acceptance_budget_builder_policy_arn" {
+  description = "Unattached until the isolated Builder operational deployment is reviewed."
+  value       = aws_iam_policy.acceptance_budget_builder.arn
+}
