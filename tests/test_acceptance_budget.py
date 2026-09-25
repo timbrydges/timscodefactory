@@ -1,6 +1,10 @@
 import unittest
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
 from factory_runtime.acceptance_budget import DynamoDBAcceptanceBudgetStore
 from factory_state.model import StateError
