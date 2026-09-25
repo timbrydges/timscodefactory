@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol
 
 from factory_state.model import COMMIT_SHA, SAFE_IDENTIFIER, SHA256_DIGEST, StateError
@@ -52,7 +52,8 @@ class AutonomyActivation:
                 not isinstance(self.starts_at, datetime) or self.starts_at.tzinfo is None or
                 self.starts_at.utcoffset() is None or not isinstance(self.expires_at, datetime) or
                 self.expires_at.tzinfo is None or self.expires_at.utcoffset() is None or
-                self.starts_at >= self.expires_at):
+                self.starts_at >= self.expires_at or
+                self.expires_at - self.starts_at > timedelta(hours=24)):
             raise StateError('autonomy activation window is invalid')
         if not self.starts_at <= now < self.expires_at:
             raise StateError('autonomy activation is outside its approved window')

@@ -117,6 +117,14 @@ class AutonomousSchedulerTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, 'target'):
             scheduler.tick('factory', 'other')
 
+    def test_activation_over_24_hours_fails_before_loading_job(self):
+        scheduler, jobs, cycle = self.scheduler(
+            activation=self.activation(expires_at=NOW + timedelta(hours=24)))
+        with self.assertRaisesRegex(StateError, 'activation window'):
+            scheduler.tick('factory', 'task-1')
+        self.assertEqual(jobs.calls, 0)
+        self.assertEqual(cycle.calls, 0)
+
     def test_malformed_activation_binding_fails_before_state_read(self):
         scheduler, _, _ = self.scheduler(
             activation=self.activation(source_commit='main'))
