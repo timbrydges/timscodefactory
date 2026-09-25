@@ -98,6 +98,10 @@ class OperationalBackendTests(unittest.TestCase):
         self.assertEqual(str(budget.calls[0]["maximum_cost_usd"]), "0.25")
         self.assertEqual(executor.calls[0]["target_alias"], "coding_primary_sol_live")
         self.assertEqual(executor.calls[0]["model_id"], "gpt-5.6-sol")
+        self.assertEqual(executor.calls[0]["activation_id"], "factory-autonomy-001")
+        self.assertEqual(executor.calls[0]["dispatch_id"], "dispatch-1")
+        self.assertEqual(executor.calls[0]["source_commit"], COMMIT)
+        self.assertEqual(executor.calls[0]["contract_digest"], CONTRACT)
 
     def test_active_backend_rejects_expired_or_future_pricing_before_budget_reservation(self):
         backend, budget, executor = self.backend(self.active_root(), enabled=True)

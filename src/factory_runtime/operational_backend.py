@@ -38,6 +38,10 @@ class AcceptanceTaskExecutor(Protocol):
     def execute(
         self,
         *,
+        activation_id: str,
+        dispatch_id: str,
+        source_commit: str,
+        contract_digest: str,
         task_id: str,
         target_alias: str,
         model_id: str,
@@ -115,6 +119,10 @@ class AcceptanceOperationalBackend:
             expires_at=self.activation.expires_at,
         )
         output = self.executor.execute(
+            activation_id=self.activation.activation_id,
+            dispatch_id=dispatch_id,
+            source_commit=self.activation.source_commit,
+            contract_digest=self.activation.contract_digest,
             task_id=allowance.acceptance_task_id,
             target_alias=allowance.target_alias,
             model_id=allowance.model_id,

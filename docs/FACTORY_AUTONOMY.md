@@ -442,6 +442,12 @@ Before invoking its injected task executor, the Builder backend also makes a
 consistent read of the exact dispatch reservation and rejects missing or
 changed records. The live acceptance broker and Lambda composition remain
 separate pending work.
+The Builder now forwards the exact activation, dispatch, source commit and
+contract digest to a bounded acceptance-broker Lambda client. The client pins
+the regional version, disables retries, sends no provider credential and
+rejects altered response bindings, output digests or costs above USD 0.25.
+The broker Lambda service, its credential path and role IAM are not deployed;
+this client alone cannot make a provider call while the role kill switch is false.
 
 The deployable role package also contains a Builder-only signed operational
 boundary probe and a CloudFormation kill switch hard-coded false across all
