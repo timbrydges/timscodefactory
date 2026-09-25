@@ -432,6 +432,13 @@ remains pending until this boundary is composed into a fresh immutable Builder
 Lambda version and independently verified. No operational backend was deployed,
 no provider call was made, and production release remains denied.
 
+The acceptance budget implementation reserves each dispatch atomically in an
+isolated DynamoDB table. Replays can reuse only an identical durable dispatch
+record; three attempted calls at USD 0.25 each exhaust the allowance, and
+unknown outcomes fail closed. The Terraform table and Builder policy are
+prepared but the policy is unattached. This does not close the operational
+deployment or provider activation gates.
+
 The deployable role package also contains a Builder-only signed operational
 boundary probe and a CloudFormation kill switch hard-coded false across all
 three role functions. This permits model-free AWS verification of the exact
