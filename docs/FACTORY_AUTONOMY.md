@@ -438,6 +438,10 @@ record; three attempted calls at USD 0.25 each exhaust the allowance, and
 unknown outcomes fail closed. The Terraform table and Builder policy are
 prepared but the policy is unattached. This does not close the operational
 deployment or provider activation gates.
+Before invoking its injected task executor, the Builder backend also makes a
+consistent read of the exact dispatch reservation and rejects missing or
+changed records. The live acceptance broker and Lambda composition remain
+separate pending work.
 
 The deployable role package also contains a Builder-only signed operational
 boundary probe and a CloudFormation kill switch hard-coded false across all
