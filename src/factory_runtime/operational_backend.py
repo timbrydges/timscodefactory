@@ -24,6 +24,15 @@ class AtomicAcceptanceBudgetStore(Protocol):
         expires_at: datetime,
     ) -> None: ...
 
+    def assert_reserved(
+        self,
+        *,
+        activation_id: str,
+        dispatch_id: str,
+        maximum_cost_usd: Decimal,
+        expires_at: datetime,
+    ) -> None: ...
+
 
 class AcceptanceTaskExecutor(Protocol):
     def execute(
@@ -94,12 +103,17 @@ class AcceptanceOperationalBackend:
         )
 
     def execute(self, state, request, *, dispatch_id: str, input_bytes: bytes) -> bytes:
-        del dispatch_id
         allowance = self._allowance()
         if not self.enabled:
             raise StateError("operational backend is disabled")
         if not isinstance(input_bytes, bytes) or len(input_bytes) > allowance.maximum_request_bytes_at_cost_cap:
             raise StateError("operational backend input exceeds the approved cost bound")
+        self.budget_store.assert_reserved(
+            activation_id=self.activation.activation_id,
+            dispatch_id=dispatch_id,
+            maximum_cost_usd=allowance.maximum_cost_per_call,
+            expires_at=self.activation.expires_at,
+        )
         output = self.executor.execute(
             task_id=allowance.acceptance_task_id,
             target_alias=allowance.target_alias,

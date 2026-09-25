@@ -49,6 +49,9 @@ class AcceptanceBudgetTests(unittest.TestCase):
     def test_three_attempts_and_idempotent_replay(self):
         for dispatch in ('one', 'two', 'three'):
             self.reserve(dispatch)
+            self.store.assert_reserved(dispatch_id=dispatch, **{
+                key: value for key, value in self.options.items()
+                if key != 'maximum_provider_calls'})
         self.reserve('one')
         self.assertEqual(self.table.calls, 3)
         with self.assertRaisesRegex(StateError, 'exhausted'):
@@ -74,6 +77,16 @@ class AcceptanceBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, 'outcome unknown'):
             self.reserve('one')
         self.assertEqual(self.table.calls, 0)
+
+    def test_missing_or_changed_reservation_is_rejected(self):
+        self.reserve('one')
+        binding = {key: value for key, value in self.options.items()
+                   if key != 'maximum_provider_calls'}
+        with self.assertRaisesRegex(StateError, 'missing'):
+            self.store.assert_reserved(dispatch_id='two', **binding)
+        binding['expires_at'] = datetime(2026, 9, 27, tzinfo=timezone.utc)
+        with self.assertRaisesRegex(StateError, 'differs'):
+            self.store.assert_reserved(dispatch_id='one', **binding)
 
 
 if __name__ == '__main__':

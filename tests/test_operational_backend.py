@@ -23,9 +23,17 @@ CONTRACT = "sha256:" + "b" * 64
 class Budget:
     def __init__(self):
         self.calls = []
+        self.reservations = set()
 
     def reserve(self, **kwargs):
         self.calls.append(kwargs)
+        self.reservations.add((kwargs['activation_id'], kwargs['dispatch_id'],
+                               kwargs['maximum_cost_usd'], kwargs['expires_at']))
+
+    def assert_reserved(self, **kwargs):
+        if (kwargs['activation_id'], kwargs['dispatch_id'],
+                kwargs['maximum_cost_usd'], kwargs['expires_at']) not in self.reservations:
+            raise StateError('acceptance budget reservation is missing')
 
 
 class Executor:
@@ -100,6 +108,13 @@ class OperationalBackendTests(unittest.TestCase):
                 with self.assertRaisesRegex(StateError, 'pricing reference'):
                     backend.reserve(state, request, dispatch_id='dispatch-1', now=now)
         self.assertEqual(budget.calls, [])
+        self.assertEqual(executor.calls, [])
+
+    def test_unreserved_dispatch_never_reaches_executor(self):
+        backend, _, executor = self.backend(self.active_root(), enabled=True)
+        state, request = self.state_request()
+        with self.assertRaisesRegex(StateError, 'reservation is missing'):
+            backend.execute(state, request, dispatch_id='unreserved', input_bytes=b'input')
         self.assertEqual(executor.calls, [])
 
     def test_wrong_task_commit_contract_and_oversized_input_fail_closed(self):

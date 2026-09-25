@@ -22,24 +22,43 @@ class DynamoDBAcceptanceBudgetStore:
         if self.table_name != 'tims-factory-acceptance-budget':
             raise StateError('acceptance budget requires its isolated table')
 
-    def reserve(self, *, activation_id: str, dispatch_id: str,
-                maximum_cost_usd: Decimal, maximum_provider_calls: int,
-                expires_at: datetime) -> None:
+    @staticmethod
+    def _dispatch_record(activation_id: str, dispatch_id: str,
+                         maximum_cost_usd: Decimal, expires_at: datetime) -> dict:
         if (not isinstance(activation_id, str) or not SAFE_IDENTIFIER.fullmatch(activation_id) or
                 not isinstance(dispatch_id, str) or not SAFE_IDENTIFIER.fullmatch(dispatch_id) or
-                type(maximum_provider_calls) is not int or maximum_provider_calls != 3 or
-                maximum_cost_usd != Decimal('0.25') or
                 not isinstance(maximum_cost_usd, Decimal) or
+                maximum_cost_usd != Decimal('0.25') or
                 not isinstance(expires_at, datetime) or expires_at.tzinfo is None or
                 expires_at.utcoffset() is None):
             raise StateError('acceptance budget binding differs from owner authorization')
+        return {'PK': {'S': f'ACTIVATION#{activation_id}'},
+                'SK': {'S': f'DISPATCH#{dispatch_id}'},
+                'maximum_cost_microusd': {'N': '250000'},
+                'expires_at': {'N': str(int(expires_at.timestamp()))}}
+
+    def assert_reserved(self, *, activation_id: str, dispatch_id: str,
+                        maximum_cost_usd: Decimal, expires_at: datetime) -> None:
+        expected = self._dispatch_record(activation_id, dispatch_id,
+                                         maximum_cost_usd, expires_at)
+        key = {'PK': expected['PK'], 'SK': expected['SK']}
+        try:
+            prior = self.client.get_item(TableName=self.table_name, Key=key,
+                                         ConsistentRead=True).get('Item')
+        except Exception as error:
+            raise StateError('acceptance budget reservation cannot be verified') from error
+        if prior != expected:
+            raise StateError('acceptance budget reservation is missing or differs')
+
+    def reserve(self, *, activation_id: str, dispatch_id: str,
+                maximum_cost_usd: Decimal, maximum_provider_calls: int,
+                expires_at: datetime) -> None:
+        expected = self._dispatch_record(activation_id, dispatch_id,
+                                         maximum_cost_usd, expires_at)
+        if type(maximum_provider_calls) is not int or maximum_provider_calls != 3:
+            raise StateError('acceptance budget binding differs from owner authorization')
         epoch = int(expires_at.timestamp())
-        partition = {'S': f'ACTIVATION#{activation_id}'}
-        dispatch_key = {'PK': partition, 'SK': {'S': f'DISPATCH#{dispatch_id}'}}
-        expected = {'PK': partition, 'SK': dispatch_key['SK'],
-                    'maximum_cost_microusd': {'N': '250000'},
-                    'expires_at': {'N': str(epoch)}}
-        aggregate_key = {'PK': partition, 'SK': {'S': 'BUDGET'}}
+        aggregate_key = {'PK': expected['PK'], 'SK': {'S': 'BUDGET'}}
         try:
             self.client.transact_write_items(TransactItems=[
                 {'Put': {'TableName': self.table_name, 'Item': expected,
@@ -63,10 +82,9 @@ class DynamoDBAcceptanceBudgetStore:
             # Only an identical, already committed dispatch is a safe replay.
             # A missing record may also mean an unknown outcome: fail closed.
             try:
-                prior = self.client.get_item(TableName=self.table_name, Key=dispatch_key,
-                                             ConsistentRead=True).get('Item')
-            except Exception:
-                raise StateError('acceptance budget outcome unknown') from error
-            if prior == expected:
+                self.assert_reserved(activation_id=activation_id, dispatch_id=dispatch_id,
+                                     maximum_cost_usd=maximum_cost_usd, expires_at=expires_at)
                 return
+            except StateError:
+                pass
             raise StateError('acceptance budget exhausted, conflicted or outcome unknown') from error
