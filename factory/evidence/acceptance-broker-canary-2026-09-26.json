@@ -1,0 +1,16 @@
+{
+  "source_commit": "dfe33923e5eebd208ce3f594a3b67a0d4da86260",
+  "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:1",
+  "artifact_sha256": "baeba54f0677c570bdc4a1779c65552daf613e2f2cd876651ab3040356e1de88",
+  "status": "MODEL_FREE_BROKER_PROBE_VERIFIED",
+  "proof": {
+    "kind": "acceptance_broker_probe_result",
+    "source_commit": "dfe33923e5eebd208ce3f594a3b67a0d4da86260",
+    "nonce": "7fa4126858254d6386bba331d8907173",
+    "task_id": "deterministic-text-fingerprint",
+    "broker_enabled": false,
+    "provider_calls": 0,
+    "credentials_read": false,
+    "release_dispatched": false
+  }
+}
