@@ -446,7 +446,8 @@ The Builder now forwards the exact activation, dispatch, source commit and
 contract digest to a bounded acceptance-broker Lambda client. The client pins
 the regional version, disables retries, sends no provider credential and
 rejects altered response bindings, output digests or costs above USD 0.25.
-The broker Lambda service, its credential path and role IAM are not deployed;
+The broker service is not composed into its deployed disabled Lambda shell;
+its credential path and operational IAM are not deployed;
 this client alone cannot make a provider call while the role kill switch is false.
 
 An isolated acceptance-broker service core now validates the exact request,
@@ -455,15 +456,28 @@ and makes a durable at-most-once claim before calling an injected credential-own
 provider adapter. A completed claim may return the same recorded result; a
 started or unknown outcome cannot cause another provider invocation. Its
 encrypted claim table and narrow, unattached IAM policy are prepared in Terraform.
-The actual broker Lambda, provider adapter composition, credential lease, IAM
-attachment and deployment verification remain pending. The checked-in contract
-still denies operational execution.
+The provider adapter composition, credential lease and IAM attachment remain
+pending. The checked-in contract still denies operational execution.
 
 The deployable role package also contains a Builder-only signed operational
 boundary probe and a CloudFormation kill switch hard-coded false across all
-three role functions. This permits model-free AWS verification of the exact
-backend boundary before any operational invocation is representable. The probe
-is not yet deployed and does not close `operational_role_backend_deployment`.
+three role functions. This permits model-free AWS verification of the declared
+backend limits before any operational invocation is representable. The probe
+was deployed in a prior model-free role transport verification. The Builder
+version attests to the disabled boundary, but the operational backend is not
+composed into the Lambda handler; this does not close
+`operational_role_backend_deployment`.
+
+### Disabled acceptance broker cloud probe — 2026-09-26
+
+The isolated `tims-factory-provider-broker:1` Lambda passed its pinned,
+model-free probe in `ca-central-1`. The reviewed evidence is
+`factory/evidence/acceptance-broker-canary-2026-09-26.json`. Its role permits
+only its own log writes, and the handler accepts only the deployment probe.
+The verified response reported zero provider calls, no credential read, no
+release dispatch and a disabled broker. This verifies deployment of the
+broker's disabled shell. It does not close the credential path, operational
+backend, scheduler or independent review activation gates.
 
 ### Least-privilege receipt-writer IAM prepared — 2026-09-23
 
