@@ -51,3 +51,8 @@ output "acceptance_budget_builder_policy_arn" {
   description = "Unattached until the isolated Builder operational deployment is reviewed."
   value       = aws_iam_policy.acceptance_budget_builder.arn
 }
+
+output "acceptance_broker_records_policy_arn" {
+  description = "Unattached until the isolated acceptance broker is deployed and reviewed."
+  value       = aws_iam_policy.acceptance_broker_records.arn
+}

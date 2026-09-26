@@ -449,6 +449,16 @@ rejects altered response bindings, output digests or costs above USD 0.25.
 The broker Lambda service, its credential path and role IAM are not deployed;
 this client alone cannot make a provider call while the role kill switch is false.
 
+An isolated acceptance-broker service core now validates the exact request,
+activation window and fresh pricing, independently reads the budget reservation,
+and makes a durable at-most-once claim before calling an injected credential-owning
+provider adapter. A completed claim may return the same recorded result; a
+started or unknown outcome cannot cause another provider invocation. Its
+encrypted claim table and narrow, unattached IAM policy are prepared in Terraform.
+The actual broker Lambda, provider adapter composition, credential lease, IAM
+attachment and deployment verification remain pending. The checked-in contract
+still denies operational execution.
+
 The deployable role package also contains a Builder-only signed operational
 boundary probe and a CloudFormation kill switch hard-coded false across all
 three role functions. This permits model-free AWS verification of the exact
