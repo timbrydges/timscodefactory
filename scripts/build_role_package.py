@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def build(output):
+def build(output, *, extra_paths=()):
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
         raise RuntimeError('role package requires a clean checkout')
@@ -31,6 +31,11 @@ def build(output):
             files[str(p.relative_to(ROOT/'src'))] = p.read_bytes()
         for name in ('scope-signers.json', 'kms-signers.json'):
             path = 'factory/profiles/' + name; files[path] = (ROOT/path).read_bytes()
+        for path in extra_paths:
+            relative = Path(path)
+            if relative.is_absolute() or '..' in relative.parts or not (ROOT / relative).is_file():
+                raise RuntimeError('invalid package extra path')
+            files[relative.as_posix()] = (ROOT / relative).read_bytes()
         files['BUILD.json'] = (json.dumps({'source_commit': commit}, sort_keys=True)+'\n').encode()
         output.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
