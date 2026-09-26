@@ -8,7 +8,7 @@ import hashlib
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from factory_state.kms_signer import EnrolledKmsReceiptSigner, SIGNERS
@@ -39,7 +39,42 @@ def handle_probe(event, *, role, commit, signer, now):
             'model_calls': 0, 'operational_execution_enabled': False}
 
 
-def handle_operational_boundary_probe(event, *, role, commit, signer, now):
+def _disabled_builder_backend(root, *, commit, now):
+    from .autonomy import AutonomyActivation
+    from .autonomy_contract import load_autonomy_operating_allowance
+    from .operational_backend import AcceptanceOperationalBackend
+
+    allowance = load_autonomy_operating_allowance(root)
+    if (allowance.activation_ready or allowance.production_release_authorized or
+            allowance.acceptance_task_id != 'deterministic-text-fingerprint' or
+            allowance.target_alias != 'coding_primary_sol_live' or
+            allowance.model_id != 'gpt-5.6-sol' or
+            str(allowance.maximum_cost_per_call) != '0.25' or
+            allowance.maximum_provider_calls != 3 or
+            allowance.maximum_request_bytes_at_cost_cap != 42020):
+        raise StateError('disabled Builder operating contract differs')
+
+    class NoOperationalIO:
+        def __getattr__(self, name):
+            raise StateError('disabled Builder cannot access operational IO')
+
+    activation = AutonomyActivation('disabled-builder-probe', 'tims-software-factory',
+        allowance.acceptance_task_id, commit,
+        'sha256:' + allowance.acceptance_contract_sha256,
+        now, now + timedelta(minutes=1))
+    backend = AcceptanceOperationalBackend(root, activation,
+        NoOperationalIO(), NoOperationalIO(), enabled=False)
+    try:
+        backend.check_activation(None, None, now=now)
+    except StateError as error:
+        if str(error) != 'operational backend is disabled':
+            raise
+    else:
+        raise StateError('Builder operational backend unexpectedly enabled')
+    return allowance
+
+
+def handle_operational_boundary_probe(event, *, role, commit, signer, now, root=None):
     expected = {'kind', 'source_commit', 'nonce', 'task_id'}
     if (role != 'builder' or not isinstance(event, dict) or set(event) != expected or
             event.get('kind') != 'operational_boundary_probe' or
@@ -49,12 +84,16 @@ def handle_operational_boundary_probe(event, *, role, commit, signer, now):
             not re.fullmatch(r'[a-zA-Z0-9-]{16,64}', event['nonce']) or
             signer.identity != SIGNERS['builder']):
         raise StateError('invalid operational boundary probe')
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
+    allowance = _disabled_builder_backend(root, commit=commit, now=now)
     payload = {'kind': 'operational_boundary_attestation',
         'producer_identity': SIGNERS['builder'], 'source_commit': commit,
         'nonce': event['nonce'], 'task_id': event['task_id'],
-        'target_alias': 'coding_primary_sol_live', 'model_id': 'gpt-5.6-sol',
-        'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 3,
-        'maximum_request_bytes': 42020, 'provider_credentials_in_role': False,
+        'target_alias': allowance.target_alias, 'model_id': allowance.model_id,
+        'maximum_cost_usd_per_call': str(allowance.maximum_cost_per_call),
+        'maximum_provider_calls': allowance.maximum_provider_calls,
+        'maximum_request_bytes': allowance.maximum_request_bytes_at_cost_cap,
+        'provider_credentials_in_role': False,
         'operational_execution_enabled': False,
         'purpose': 'operational-boundary-deployment-verification-only',
         'issued_at': int(now.timestamp()), 'expires_at': int(now.timestamp()) + 300}
@@ -157,7 +196,7 @@ def handler(event, context):
         return handle_probe(event, role=role, commit=commit, signer=signer, now=now)
     if event['kind'] == 'operational_boundary_probe':
         return handle_operational_boundary_probe(
-            event, role=role, commit=commit, signer=signer, now=now)
+            event, role=role, commit=commit, signer=signer, now=now, root=root)
     database = boto3.client('dynamodb', region_name='ca-central-1', config=config)
     return handle_transport(event, role=role, commit=commit, signer=signer, now=now,
         database=database, table=os.environ['EXECUTION_TABLE'])
