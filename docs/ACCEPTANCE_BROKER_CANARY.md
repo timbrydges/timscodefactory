@@ -35,3 +35,7 @@ not clear any live activation gate or authorize a model call.
 If stack creation reaches `ROLLBACK_COMPLETE`, inspect the failed stack events,
 then delete that rolled-back stack before preparing a new change set from a
 clean checkout of the fixed commit. Never rerun `execute` with the old plan.
+If `execute` loses its AWS credentials while waiting, inspect the stack and run
+`python3 scripts/prepare_acceptance_broker_canary.py reconcile PLAN` after
+credentials recover. This checks the original executed change set and matching
+completed stack without deploying anything again; then run `verify PLAN`.
