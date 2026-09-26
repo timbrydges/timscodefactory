@@ -26,7 +26,7 @@ class AcceptanceBrokerDeploymentTests(unittest.TestCase):
         self.assertEqual(function['Handler'], 'factory_runtime.acceptance_broker_lambda.handler')
         self.assertEqual(function['Environment']['Variables'],
                          {'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'})
-        self.assertEqual(function['ReservedConcurrentExecutions'], 1)
+        self.assertNotIn('ReservedConcurrentExecutions', function)
         self.assertEqual(resources['BrokerVersion']['Properties']['CodeSha256'], {'Ref': 'CodeSha256'})
         policies = resources['BrokerRole']['Properties']['Policies']
         self.assertEqual(len(policies), 1)
