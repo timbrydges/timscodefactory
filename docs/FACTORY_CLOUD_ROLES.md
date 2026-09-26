@@ -171,28 +171,33 @@ reported `model_calls: 0`; operational execution and scheduling remain disabled.
 
 ## Operational boundary probe prepared — 2026-09-23
 
-The Lambda package now includes a Builder-only signed
+The Lambda package includes a Builder-only signed
 `operational_boundary_probe`. It attests the exact acceptance task, approved
 model target, cost/call/request limits, absence of provider credentials and
-disabled operational state without executing work or calling a model.
+disabled operational state without executing work or calling a model. The next
+package also includes the checked-in operating contract and referenced evidence;
+the Builder probe loads it and constructs the disabled operational backend
+before signing the attestation.
 
 All three role functions now require the deployment-owned
 `FACTORY_OPERATIONAL_EXECUTION_ENABLED` environment variable to equal the
 literal string `false`; CloudFormation hard-codes that value and exposes no
 parameter that can flip it. Any missing or changed value fails every invocation.
-This probe is prepared but not deployed, so it is not evidence of an operational
-backend deployment.
+The earlier static boundary probe was deployed and verified. The contract-loaded
+backend composition is prepared for a fresh immutable role version and is not
+yet deployed. Neither probe enables operational dispatch.
 
 The deployment verifier now requires every fresh immutable role version to retain
 that exact disabled kill switch. After the three signed, durable transport proofs,
 it invokes the Builder-only boundary probe and verifies its signature plus the exact
 task, target, model, call, request and cost bindings. The accepted response must
 report zero model calls, no role-held provider credential and disabled operational
-execution. This verification remains prepared and unexecuted; it does not deploy
-the package or satisfy the live operational-backend gate.
+execution. The earlier verifier passed against the static boundary probe. A
+new verifier run is required for the contract-loaded backend package; this code
+change does not deploy it or satisfy the live operational-backend gate.
 
 The update preparation accepts an existing role stack only in `CREATE_COMPLETE`
-or `UPDATE_COMPLETE`, including the verified transport `:2` deployment. Any
+or `UPDATE_COMPLETE`, including the verified operational boundary `:4` deployment. Any
 in-progress or rollback status remains blocked before artifact upload or change
 set creation.
 
