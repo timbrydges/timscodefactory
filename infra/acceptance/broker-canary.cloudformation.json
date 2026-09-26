@@ -59,7 +59,6 @@
         },
         "MemorySize": 256,
         "Timeout": 30,
-        "ReservedConcurrentExecutions": 1,
         "Environment": {
           "Variables": {"FACTORY_ACCEPTANCE_BROKER_ENABLED": "false"}
         },

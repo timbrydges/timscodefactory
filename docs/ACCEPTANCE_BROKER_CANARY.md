@@ -4,6 +4,9 @@ This deployment proves only that a pinned broker Lambda can respond to an exact
 model-free probe. The function rejects provider-call events; its execution role
 can write only to its own CloudWatch log group. No provider secret, DynamoDB,
 Builder invocation, scheduler, or release permission is attached.
+Reserved concurrency is unset so the probe also works in accounts with only
+the minimum unreserved capacity. The disabled flag, exact probe handler, and
+logs-only role remain the deployment boundary.
 
 Run from a clean checkout of the reviewed main commit in AWS CloudShell, in
 `ca-central-1`, using the approved account `666730517561`:
@@ -28,3 +31,7 @@ The verification command checks the deployed role policies, pinned Lambda
 version, code hash, disabled flag, and exact probe result. It writes
 `/tmp/acceptance-broker-canary-evidence.json` for later review. This proof does
 not clear any live activation gate or authorize a model call.
+
+If stack creation reaches `ROLLBACK_COMPLETE`, inspect the failed stack events,
+then delete that rolled-back stack before preparing a new change set from a
+clean checkout of the fixed commit. Never rerun `execute` with the old plan.
