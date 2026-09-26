@@ -101,6 +101,28 @@ def execute(plan_path):
     print(json.dumps({'status': plan['status'], 'source_commit': commit}))
 
 
+def reconcile(plan_path):
+    """Resume after an interrupted waiter without executing the change set again."""
+    plan_path = Path(plan_path)
+    plan = json.loads(plan_path.read_text(encoding='utf-8'))
+    commit = source()
+    if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
+        raise RuntimeError('wrong AWS account')
+    validate_plan(plan, commit=commit, template_digest=hashlib.sha256(TEMPLATE.read_bytes()).hexdigest())
+    if plan['status'] != 'PREPARED_NOT_EXECUTED':
+        raise RuntimeError('broker canary plan is not awaiting reconciliation')
+    described = aws('cloudformation', 'describe-change-set', '--change-set-name', plan['change_set_arn'])
+    validate_changes(described['Changes'])
+    if described['Changes'] != plan['changes'] or described['ExecutionStatus'] != 'EXECUTE_COMPLETE':
+        raise RuntimeError('broker canary change set was not executed exactly as prepared')
+    stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
+    if stack['StackStatus'] != 'CREATE_COMPLETE' or stack['StackId'] != described['StackId']:
+        raise RuntimeError('broker canary stack does not match completed change set')
+    plan['status'] = 'DEPLOYED_PENDING_PROBE'
+    plan_path.write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps({'status': plan['status'], 'source_commit': commit, 'reconciled': True}))
+
+
 def verify(plan_path):
     plan_path = Path(plan_path)
     plan = json.loads(plan_path.read_text(encoding='utf-8'))
@@ -165,12 +187,14 @@ def verify(plan_path):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        raise SystemExit('usage: prepare_acceptance_broker_canary.py prepare PACKAGE PLAN | execute PLAN | verify PLAN')
+        raise SystemExit('usage: prepare_acceptance_broker_canary.py prepare PACKAGE PLAN | execute PLAN | reconcile PLAN | verify PLAN')
     action = sys.argv[1]
     if action == 'prepare' and len(sys.argv) == 4:
         prepare(sys.argv[2], sys.argv[3])
     elif action == 'execute' and len(sys.argv) == 3:
         execute(sys.argv[2])
+    elif action == 'reconcile' and len(sys.argv) == 3:
+        reconcile(sys.argv[2])
     elif action == 'verify' and len(sys.argv) == 3:
         verify(sys.argv[2])
     else:
