@@ -1,0 +1,82 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Isolated model-free Factory acceptance broker probe. No provider, state, secret, or release IAM grants.",
+  "Parameters": {
+    "ArtifactBucket": {
+      "Type": "String",
+      "AllowedValues": ["tims-software-factory-666730517561-ca-central-1"]
+    },
+    "ArtifactKey": {"Type": "String"},
+    "ArtifactVersion": {"Type": "String"},
+    "CodeSha256": {"Type": "String"}
+  },
+  "Resources": {
+    "BrokerLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-provider-broker",
+        "RetentionInDays": 14
+      }
+    },
+    "BrokerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-acceptance-broker-canary",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"Service": "lambda.amazonaws.com"},
+            "Action": "sts:AssumeRole"
+          }]
+        },
+        "Policies": [{
+          "PolicyName": "canary-logs-only",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+              "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-provider-broker:*"
+            }]
+          }
+        }]
+      }
+    },
+    "BrokerFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": ["BrokerLogs"],
+      "Properties": {
+        "FunctionName": "tims-factory-provider-broker",
+        "Runtime": "python3.12",
+        "Architectures": ["x86_64"],
+        "Handler": "factory_runtime.acceptance_broker_lambda.handler",
+        "Role": {"Fn::GetAtt": ["BrokerRole", "Arn"]},
+        "Code": {
+          "S3Bucket": {"Ref": "ArtifactBucket"},
+          "S3Key": {"Ref": "ArtifactKey"},
+          "S3ObjectVersion": {"Ref": "ArtifactVersion"}
+        },
+        "MemorySize": 256,
+        "Timeout": 30,
+        "ReservedConcurrentExecutions": 1,
+        "Environment": {
+          "Variables": {"FACTORY_ACCEPTANCE_BROKER_ENABLED": "false"}
+        },
+        "Description": "Model-free deployment probe only; no provider calls"
+      }
+    },
+    "BrokerVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {"Ref": "BrokerFunction"},
+        "CodeSha256": {"Ref": "CodeSha256"}
+      }
+    }
+  },
+  "Outputs": {
+    "BrokerVersionArn": {
+      "Value": {"Ref": "BrokerVersion"}
+    }
+  }
+}
