@@ -1,9 +1,12 @@
 import json
+import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT/'src'))
@@ -17,6 +20,7 @@ from scripts.prepare_role_deployment import validate_changes
 from scripts.prepare_role_transport_canary import (
     validate_changes as validate_transport_changes, validate_existing_stack,
     verify_operational_boundary)
+from scripts.build_role_package import contract_paths
 from test_dispatch_ledger import NOW
 
 
@@ -77,6 +81,32 @@ class RoleDeploymentTests(unittest.TestCase):
         with self.assertRaises(StateError):
             handle_operational_boundary_probe(
                 event, role='planner', commit='a'*40, signer=Signer(), now=NOW)
+
+    def test_disabled_builder_probe_loads_packaged_contract_and_rejects_activation(self):
+        class Signer:
+            identity = SIGNERS['builder']
+            def sign(self, payload, *, now): return b's' * 64
+        event = {'kind':'operational_boundary_probe','source_commit':'a'*40,
+                 'nonce':'boundary-probe-1234','task_id':'deterministic-text-fingerprint'}
+        paths = contract_paths()
+        self.assertIn('factory/autonomy/operating-contract.yaml', paths)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in paths:
+                target = root/name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT/name, target)
+            proof = handle_operational_boundary_probe(event, role='builder',
+                commit='a'*40, signer=Signer(), now=NOW, root=root)
+            self.assertFalse(proof['operational_execution_enabled'])
+            self.assertEqual(proof['payload']['maximum_provider_calls'], 3)
+            contract_path = root/'factory/autonomy/operating-contract.yaml'
+            contract = yaml.safe_load(contract_path.read_text())
+            contract['activation']['pending_gates'] = []
+            contract_path.write_text(yaml.safe_dump(contract))
+            with self.assertRaisesRegex(StateError, 'disabled Builder operating contract differs'):
+                handle_operational_boundary_probe(event, role='builder',
+                    commit='a'*40, signer=Signer(), now=NOW, root=root)
 
     def test_cloudformation_hard_codes_operational_kill_switch_false(self):
         template = (ROOT/'infra/roles/functions.cloudformation.json').read_text()
