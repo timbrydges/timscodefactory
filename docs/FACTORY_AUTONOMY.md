@@ -468,6 +468,13 @@ version attests to the disabled boundary, but the operational backend is not
 composed into the Lambda handler; this does not close
 `operational_role_backend_deployment`.
 
+The next role package includes the operating contract and its referenced
+evidence. Its Builder probe loads that contract and instantiates the actual
+`AcceptanceOperationalBackend` with inert dependencies and `enabled=False`
+before signing the limits. This update is prepared for a fresh role version;
+the operational dispatch handler, budget table and broker invocation grant are
+still absent. It does not close the deployment gate or enable provider calls.
+
 ### Disabled acceptance broker cloud probe — 2026-09-26
 
 The isolated `tims-factory-provider-broker:1` Lambda passed its pinned,
