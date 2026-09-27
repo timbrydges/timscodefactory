@@ -21,7 +21,9 @@ from scripts.prepare_role_transport_canary import (
     validate_changes as validate_transport_changes, validate_existing_stack,
     verify_operational_boundary)
 from scripts.prepare_builder_acceptance_iam import (
-    validate_changes as validate_builder_iam_changes, validate_template as validate_builder_iam_template)
+    validate_changes as validate_builder_iam_changes,
+    validate_deployed_template as validate_builder_deployed_template,
+    validate_template as validate_builder_iam_template)
 from scripts.build_role_package import contract_paths
 from test_dispatch_ledger import NOW
 
@@ -142,16 +144,33 @@ class RoleDeploymentTests(unittest.TestCase):
             'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2')
         self.assertEqual(len(validate_builder_iam_template()), 64)
 
-    def test_builder_iam_plan_rejects_other_resources_or_replacement(self):
-        expected = {'ResourceChange': {'LogicalResourceId':'BuilderRole',
+    def test_builder_iam_plan_accepts_only_observed_role_dependency(self):
+        role = {'ResourceChange': {'LogicalResourceId':'BuilderRole',
             'ResourceType':'AWS::IAM::Role', 'Action':'Modify', 'Replacement':'False'}}
-        validate_builder_iam_changes([expected])
-        for changed in (
-                [expected, expected],
-                [{'ResourceChange':{**expected['ResourceChange'], 'LogicalResourceId':'BuilderFunction'}}],
-                [{'ResourceChange':{**expected['ResourceChange'], 'Replacement':'True'}}]):
-            with self.assertRaisesRegex(RuntimeError, 'modify only BuilderRole'):
+        function = {'ResourceChange': {'LogicalResourceId':'BuilderFunction',
+            'ResourceType':'AWS::Lambda::Function', 'Action':'Modify', 'Replacement':'False',
+            'Scope':['Properties'], 'Details':[{'Target':{'Attribute':'Properties',
+                'Name':'Role', 'RequiresRecreation':'Never'}, 'Evaluation':'Dynamic',
+                'ChangeSource':'ResourceAttribute', 'CausingEntity':'BuilderRole.Arn'}]}}
+        validate_builder_iam_changes([function, role])
+        for changed in ([role], [role, role],
+                [role, {'ResourceChange':{**function['ResourceChange'], 'Replacement':'True'}}],
+                [role, {'ResourceChange':{**function['ResourceChange'], 'Details':[
+                    {**function['ResourceChange']['Details'][0], 'CausingEntity':'OtherRole.Arn'}]}}],
+                [role, {'ResourceChange':{**function['ResourceChange'], 'Details':[
+                    {**function['ResourceChange']['Details'][0], 'Target':{
+                        'Attribute':'Properties', 'Name':'Environment',
+                        'RequiresRecreation':'Never'}}]}}]):
+            with self.assertRaises(RuntimeError):
                 validate_builder_iam_changes(changed)
+
+    def test_builder_iam_preflight_rejects_deployed_function_drift(self):
+        deployed = json.loads((ROOT/'infra/roles/functions.cloudformation.json').read_text())
+        validate_builder_deployed_template(deployed)
+        deployed['Resources']['BuilderFunction']['Properties']['Environment']['Variables'][
+            'FACTORY_OPERATIONAL_EXECUTION_ENABLED'] = 'true'
+        with self.assertRaisesRegex(RuntimeError, 'deployed BuilderFunction differs'):
+            validate_builder_deployed_template(deployed)
 
     class ConditionalFailure(Exception):
         response = {'Error': {'Code': 'ConditionalCheckFailedException'}}
