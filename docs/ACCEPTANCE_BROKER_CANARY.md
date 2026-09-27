@@ -39,3 +39,31 @@ If `execute` loses its AWS credentials while waiting, inspect the stack and run
 `python3 scripts/prepare_acceptance_broker_canary.py reconcile PLAN` after
 credentials recover. This checks the original executed change set and matching
 completed stack without deploying anything again; then run `verify PLAN`.
+
+## Updating the existing disabled broker
+
+For a reviewed code-only update, use a fresh, clean main checkout. The update
+script accepts only a modification to `BrokerFunction` without replacement and
+a new immutable `BrokerVersion`. It rejects changes to the role or log group.
+
+```sh
+python3 scripts/build_manifest.py --check
+python3 scripts/build_acceptance_broker_package.py /tmp/factory-acceptance-broker-update.zip
+python3 scripts/prepare_acceptance_broker_update.py prepare /tmp/factory-acceptance-broker-update.zip /tmp/factory-acceptance-broker-update-plan.json
+```
+
+Review the plan's two resource changes, prior version, exact commit and artifact
+digest before continuing. The preparation uploads a versioned artifact and
+creates a change set, but does not update the stack.
+
+```sh
+python3 scripts/prepare_acceptance_broker_update.py execute /tmp/factory-acceptance-broker-update-plan.json
+python3 scripts/prepare_acceptance_broker_update.py verify /tmp/factory-acceptance-broker-update-plan.json
+```
+
+`verify` checks the new version, unchanged logs-only IAM, disabled flag, and
+model-free probe, writing `/tmp/acceptance-broker-update-evidence.json`. If
+the waiter is interrupted after execution, use `reconcile` with that same
+plan before `verify`; do not execute the change set again. Keep the downloaded
+evidence in a private location. This update does not grant provider access or
+clear the operational activation gates.
