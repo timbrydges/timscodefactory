@@ -505,6 +505,15 @@ policies are deployed, attached to separately verified publisher identities,
 and canaried. No policy was attached, no receipt was published, and production
 release remains denied.
 
+### Acceptance infrastructure read-only verifier — 2026-09-27
+
+`scripts/verify_acceptance_infrastructure.py OUTPUT_JSON` checks the two
+protected DynamoDB tables, customer-managed rotating KMS key, empty provider
+secret metadata, and five unattached IAM policies in the exact AWS account.
+It reads no secret value and writes its account-scoped evidence only to the
+operator-supplied local path. The verifier does not close any live activation
+gate or grant the Builder, broker or scheduler operational permissions.
+
 ### Disabled scheduler deployment and canary prepared — 2026-09-23
 
 Terraform now contains an explicit opt-in for creating the acceptance schedule,
