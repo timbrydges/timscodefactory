@@ -205,13 +205,25 @@ def validate(root: Path) -> list[str]:
         "FACTORY#tims-software-factory#TASK#*",
         "FACTORY#tims-software-factory#BUDGET#*",
         "FACTORY#tims-software-factory#RELEASE",
-        '"dynamodb:TransactWriteItems"',
+        '"dynamodb:ConditionCheckItem"',
+        '"dynamodb:PutItem"',
+        '"dynamodb:UpdateItem"',
         '"s3:GetObjectVersion"',
         'check "existing_github_oidc_provider"',
     ]
     for fragment in required_aws_fragments:
         if fragment not in aws_main:
             errors.append(f"infra/aws/main.tf: missing release boundary: {fragment}")
+    # TransactWriteItems checks the permissions for its constituent operations;
+    # it is not itself a DynamoDB IAM action.
+    for path in (root / "infra/aws").glob("*.tf"):
+        if '"dynamodb:TransactWriteItems"' in path.read_text(encoding="utf-8"):
+            errors.append(f"{path.relative_to(root)}: invalid DynamoDB IAM action")
+
+    budget_policy = (root / "infra/aws/acceptance_budget.tf").read_text(encoding="utf-8")
+    for action in ('dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'):
+        if f'"{action}"' not in budget_policy:
+            errors.append(f"infra/aws/acceptance_budget.tf: missing {action}")
 
     release_control = (root / "scripts/release_control.py").read_text(encoding="utf-8")
     required_control_fragments = [
