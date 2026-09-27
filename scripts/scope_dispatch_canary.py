@@ -89,7 +89,11 @@ def run(client, table, run_id, commit, *, now=None):
         reject('tampered_owner_receipt_denied',lambda:writer.approve_capability(state,request,
             {**capability,'required_evidence':'tampered'},owner_signature,now=now))
         writer.approve_capability(state,request,capability,owner_signature,now=now)
-        reject('owner_receipt_replay_denied',lambda:writer.approve_capability(state,request,capability,owner_signature,now=now))
+        writer.approve_capability(state,request,capability,owner_signature,now=now)
+        checks.append('identical_owner_receipt_replay_idempotent')
+        changed = {**capability, 'required_evidence': 'Changed after publication'}
+        reject('changed_owner_receipt_replay_denied',lambda:writer.approve_capability(
+            state,request,changed,sign(changed,private['tim_brydges'],directory),now=now))
         reject('missing_independent_review_denied',enqueue)
         review={'kind':'scope_review','factory_id':state.factory_id,'task_id':task,
             'binding':ledger._binding(request),'verdict':'ACCEPTED',
