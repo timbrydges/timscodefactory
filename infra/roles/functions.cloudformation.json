@@ -17,6 +17,16 @@
       "AllowedValues": [
         "tims-software-factory-666730517561-ca-central-1"
       ]
+    },
+    "EnableBuilderAcceptanceIam": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["false", "true"]
+    }
+  },
+  "Conditions": {
+    "BuilderAcceptanceIamEnabled": {
+      "Fn::Equals": [{"Ref": "EnableBuilderAcceptanceIam"}, "true"]
     }
   },
   "Resources": {
@@ -220,6 +230,13 @@
             }
           ]
         },
+        "ManagedPolicyArns": {
+          "Fn::If": [
+            "BuilderAcceptanceIamEnabled",
+            ["arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder"],
+            {"Ref": "AWS::NoValue"}
+          ]
+        },
         "Policies": [
           {
             "PolicyName": "bounded-role-execution",
@@ -284,6 +301,53 @@
                 }
               ]
             }
+          },
+          {
+            "Fn::If": [
+              "BuilderAcceptanceIamEnabled",
+              {
+                "PolicyName": "bounded-acceptance-builder",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Sid": "ReadAndGuardExactAcceptanceState",
+                      "Effect": "Allow",
+                      "Action": ["dynamodb:GetItem", "dynamodb:ConditionCheckItem"],
+                      "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+                      "Condition": {
+                        "ForAllValues:StringLike": {
+                          "dynamodb:LeadingKeys": [
+                            "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint",
+                            "FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#*"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "Sid": "OwnExactAcceptanceExecution",
+                      "Effect": "Allow",
+                      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+                      "Resource": {"Fn::GetAtt": ["RoleExecutions", "Arn"]},
+                      "Condition": {
+                        "ForAllValues:StringEquals": {
+                          "dynamodb:LeadingKeys": [
+                            "ROLE#engineering_agent_service#FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "Sid": "InvokePinnedCredentialFreeBroker",
+                      "Effect": "Allow",
+                      "Action": ["lambda:InvokeFunction"],
+                      "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2"
+                    }
+                  ]
+                }
+              },
+              {"Ref": "AWS::NoValue"}
+            ]
           }
         ]
       }

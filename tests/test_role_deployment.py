@@ -114,6 +114,31 @@ class RoleDeploymentTests(unittest.TestCase):
             template.count('"FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false"'), 3)
         self.assertNotIn('"FACTORY_OPERATIONAL_EXECUTION_ENABLED": "true"', template)
 
+    def test_builder_acceptance_iam_is_separate_and_defaults_off(self):
+        template = json.loads((ROOT/'infra/roles/functions.cloudformation.json').read_text())
+        self.assertEqual(template['Parameters']['EnableBuilderAcceptanceIam']['Default'], 'false')
+        resources = template['Resources']
+        builder = resources['BuilderRole']['Properties']
+        self.assertEqual(len(resources), 14)
+        self.assertEqual(len(resources['PlannerRole']['Properties']['Policies']), 1)
+        self.assertEqual(len(resources['InspectorRole']['Properties']['Policies']), 1)
+        self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][0], 'BuilderAcceptanceIamEnabled')
+        self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][1],
+            ['arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder'])
+        self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][2], {'Ref':'AWS::NoValue'})
+        condition, enabled, disabled = builder['Policies'][1]['Fn::If']
+        self.assertEqual(condition, 'BuilderAcceptanceIamEnabled')
+        self.assertEqual(disabled, {'Ref':'AWS::NoValue'})
+        statements = {s['Sid']: s for s in enabled['PolicyDocument']['Statement']}
+        self.assertEqual(set(statements), {'ReadAndGuardExactAcceptanceState',
+            'OwnExactAcceptanceExecution', 'InvokePinnedCredentialFreeBroker'})
+        self.assertEqual(statements['ReadAndGuardExactAcceptanceState']['Action'],
+            ['dynamodb:GetItem', 'dynamodb:ConditionCheckItem'])
+        self.assertEqual(statements['OwnExactAcceptanceExecution']['Action'],
+            ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'])
+        self.assertEqual(statements['InvokePinnedCredentialFreeBroker']['Resource'],
+            'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2')
+
     class ConditionalFailure(Exception):
         response = {'Error': {'Code': 'ConditionalCheckFailedException'}}
 
