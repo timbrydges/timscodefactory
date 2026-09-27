@@ -20,6 +20,8 @@ from scripts.prepare_role_deployment import validate_changes
 from scripts.prepare_role_transport_canary import (
     validate_changes as validate_transport_changes, validate_existing_stack,
     verify_operational_boundary)
+from scripts.prepare_builder_acceptance_iam import (
+    validate_changes as validate_builder_iam_changes, validate_template as validate_builder_iam_template)
 from scripts.build_role_package import contract_paths
 from test_dispatch_ledger import NOW
 
@@ -138,6 +140,18 @@ class RoleDeploymentTests(unittest.TestCase):
             ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'])
         self.assertEqual(statements['InvokePinnedCredentialFreeBroker']['Resource'],
             'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2')
+        self.assertEqual(len(validate_builder_iam_template()), 64)
+
+    def test_builder_iam_plan_rejects_other_resources_or_replacement(self):
+        expected = {'ResourceChange': {'LogicalResourceId':'BuilderRole',
+            'ResourceType':'AWS::IAM::Role', 'Action':'Modify', 'Replacement':'False'}}
+        validate_builder_iam_changes([expected])
+        for changed in (
+                [expected, expected],
+                [{'ResourceChange':{**expected['ResourceChange'], 'LogicalResourceId':'BuilderFunction'}}],
+                [{'ResourceChange':{**expected['ResourceChange'], 'Replacement':'True'}}]):
+            with self.assertRaisesRegex(RuntimeError, 'modify only BuilderRole'):
+                validate_builder_iam_changes(changed)
 
     class ConditionalFailure(Exception):
         response = {'Error': {'Code': 'ConditionalCheckFailedException'}}
