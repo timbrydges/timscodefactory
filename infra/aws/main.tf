@@ -189,7 +189,6 @@ data "aws_iam_policy_document" "release" {
       "dynamodb:ConditionCheckItem",
       "dynamodb:GetItem",
       "dynamodb:PutItem",
-      "dynamodb:TransactWriteItems",
       "dynamodb:UpdateItem"
     ]
     resources = [aws_dynamodb_table.factory_state.arn]
@@ -216,7 +215,6 @@ data "aws_iam_policy_document" "controller_state" {
       "dynamodb:GetItem",
       "dynamodb:PutItem",
       "dynamodb:Query",
-      "dynamodb:TransactWriteItems",
       "dynamodb:UpdateItem"
     ]
     resources = [aws_dynamodb_table.factory_state.arn]

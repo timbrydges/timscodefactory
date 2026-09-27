@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "description_test" {
       { Effect   = "Allow", Action = "bedrock:InvokeModel",
         Resource = [for region in ["ca-central-1", "us-east-1", "us-east-2", "us-west-2"] : "arn:aws:bedrock:${region}::foundation-model/${local.bonus_description_model}"],
       Condition = { StringEquals = { "bedrock:InferenceProfileArn" = local.bonus_description_profile } } },
-      { Effect   = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:TransactWriteItems"],
+      { Effect   = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
         Resource = "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
       Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = [local.bonus_description_ledger] } } }
     ]
