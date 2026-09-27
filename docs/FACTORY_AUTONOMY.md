@@ -486,6 +486,11 @@ release dispatch and a disabled broker. This verifies deployment of the
 broker's disabled shell. It does not close the credential path, operational
 backend, scheduler or independent review activation gates.
 
+The next broker shell composes the actual `AcceptanceBrokerService` and
+`AcceptanceOpenAIProvider` with inert IO and both enable switches false during
+its probe. It must be separately deployed and verified before its cloud
+composition is claimed. Operational provider calls remain unreachable.
+
 ### Least-privilege receipt-writer IAM prepared — 2026-09-23
 
 Terraform now defines separate, unattached owner and independent-review writer
