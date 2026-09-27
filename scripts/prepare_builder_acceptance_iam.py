@@ -20,12 +20,36 @@ TEMPLATE = ROOT / 'infra/roles/functions.cloudformation.json'
 
 
 def validate_changes(changes):
-    if (len(changes) != 1 or
-            changes[0]['ResourceChange'].get('LogicalResourceId') != 'BuilderRole' or
-            changes[0]['ResourceChange'].get('ResourceType') != 'AWS::IAM::Role' or
-            changes[0]['ResourceChange'].get('Action') != 'Modify' or
-            changes[0]['ResourceChange'].get('Replacement') != 'False'):
-        raise RuntimeError('acceptance IAM must modify only BuilderRole in place')
+    resources = {change['ResourceChange'].get('LogicalResourceId'): change['ResourceChange']
+                 for change in changes}
+    if len(changes) != 2 or set(resources) != {'BuilderRole', 'BuilderFunction'}:
+        raise RuntimeError('acceptance IAM must affect only BuilderRole and its Lambda role reference')
+    role, function = resources['BuilderRole'], resources['BuilderFunction']
+    if (role.get('ResourceType') != 'AWS::IAM::Role' or
+            role.get('Action') != 'Modify' or role.get('Replacement') != 'False' or
+            function.get('ResourceType') != 'AWS::Lambda::Function' or
+            function.get('Action') != 'Modify' or function.get('Replacement') != 'False' or
+            function.get('Scope') != ['Properties'] or
+            len(function.get('Details', [])) != 1):
+        raise RuntimeError('acceptance IAM change set has unexpected resource changes')
+    detail = function['Details'][0]
+    if (detail.get('Target') != {'Attribute': 'Properties', 'Name': 'Role',
+                                 'RequiresRecreation': 'Never'} or
+            detail.get('Evaluation') != 'Dynamic' or
+            detail.get('ChangeSource') != 'ResourceAttribute' or
+            detail.get('CausingEntity') != 'BuilderRole.Arn'):
+        raise RuntimeError('BuilderFunction must change only through BuilderRole.Arn')
+
+
+def validate_deployed_template(deployed):
+    if isinstance(deployed, str):
+        deployed = json.loads(deployed)
+    proposed = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+    for name, resource in proposed['Resources'].items():
+        if name != 'BuilderRole' and deployed['Resources'].get(name) != resource:
+            raise RuntimeError(f'deployed {name} differs from the proposed template')
+    if set(deployed['Resources']) != set(proposed['Resources']):
+        raise RuntimeError('deployed resource set differs from the proposed template')
 
 
 def validate_template():
@@ -54,6 +78,7 @@ def prepare(plan_path):
     if current.get('EnableBuilderAcceptanceIam', 'false') != 'false':
         raise RuntimeError('Builder acceptance IAM is already enabled')
     template_sha = validate_template()
+    validate_deployed_template(aws('cloudformation', 'get-template', '--stack-name', STACK)['TemplateBody'])
     aws('cloudformation', 'validate-template', '--template-body', 'file://' + str(TEMPLATE))
     parameters = [{'ParameterKey': key, 'UsePreviousValue': True} for key in
                   ('ArtifactBucket', 'ArtifactKey', 'ArtifactVersion', 'CodeSha256')]
@@ -73,7 +98,7 @@ def prepare(plan_path):
             'operational_execution_enabled': False, 'model_calls_authorized': 0}
     Path(plan_path).write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'status': plan['status'], 'source_commit': commit,
-                      'change_set_arn': arn, 'resource': 'BuilderRole',
+                      'change_set_arn': arn, 'resources': ['BuilderRole', 'BuilderFunction'],
                       'action': 'Modify', 'replacement': False,
                       'operational_execution_enabled': False,
                       'model_calls_authorized': 0}))
