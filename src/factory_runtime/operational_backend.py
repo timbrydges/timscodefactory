@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from factory_state.model import StateError
 
@@ -63,6 +63,7 @@ class AcceptanceOperationalBackend:
     budget_store: AtomicAcceptanceBudgetStore
     executor: AcceptanceTaskExecutor
     enabled: bool = False
+    clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
 
     def __post_init__(self) -> None:
         self.repository_root = Path(self.repository_root).resolve()
@@ -107,9 +108,10 @@ class AcceptanceOperationalBackend:
         )
 
     def execute(self, state, request, *, dispatch_id: str, input_bytes: bytes) -> bytes:
-        allowance = self._allowance()
         if not self.enabled:
             raise StateError("operational backend is disabled")
+        self.check_activation(state, request, now=self.clock())
+        allowance = self._allowance()
         if not isinstance(input_bytes, bytes) or len(input_bytes) > allowance.maximum_request_bytes_at_cost_cap:
             raise StateError("operational backend input exceeds the approved cost bound")
         self.budget_store.assert_reserved(

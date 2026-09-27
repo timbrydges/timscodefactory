@@ -71,7 +71,8 @@ class OperationalBackendTests(unittest.TestCase):
             NOW + timedelta(hours=1),
         )
         budget, executor = Budget(), Executor()
-        return AcceptanceOperationalBackend(root, activation, budget, executor, enabled), budget, executor
+        return AcceptanceOperationalBackend(root, activation, budget, executor, enabled,
+                                            clock=lambda: NOW), budget, executor
 
     def state_request(self):
         state = TaskState(
@@ -119,6 +120,19 @@ class OperationalBackendTests(unittest.TestCase):
         state, request = self.state_request()
         with self.assertRaisesRegex(StateError, 'reservation is missing'):
             backend.execute(state, request, dispatch_id='unreserved', input_bytes=b'input')
+        self.assertEqual(executor.calls, [])
+
+    def test_execution_rechecks_expiry_and_binding_after_reservation(self):
+        backend, _, executor = self.backend(self.active_root(), enabled=True)
+        state, request = self.state_request()
+        backend.reserve(state, request, dispatch_id='dispatch-1', now=NOW)
+        backend.clock = lambda: NOW + timedelta(hours=1)
+        with self.assertRaisesRegex(StateError, 'outside its approved window'):
+            backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input')
+        backend.clock = lambda: NOW
+        wrong_state = TaskState('factory', 'other', 'IMPLEMENTATION', 1, NOW, CONTROLLER_IDENTITY)
+        with self.assertRaisesRegex(StateError, 'binding'):
+            backend.execute(wrong_state, request, dispatch_id='dispatch-1', input_bytes=b'input')
         self.assertEqual(executor.calls, [])
 
     def test_wrong_task_commit_contract_and_oversized_input_fail_closed(self):
