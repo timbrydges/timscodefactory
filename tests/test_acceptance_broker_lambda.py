@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -40,6 +41,10 @@ class AcceptanceBrokerLambdaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'BUILD.json').write_text(json.dumps({'source_commit': COMMIT}))
+            for name in contract_paths():
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / name, target)
             with patch.dict(os.environ, {'LAMBDA_TASK_ROOT': directory,
                                       'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'}):
                 self.assertEqual(handler(EVENT, None)['provider_calls'], 0)
@@ -51,6 +56,15 @@ class AcceptanceBrokerLambdaTests(unittest.TestCase):
                                       'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'}):
                 with self.assertRaisesRegex(StateError, 'build identity'):
                     handler(EVENT, None)
+
+    def test_packaged_broker_remains_disabled_even_with_valid_probe(self):
+        with patch('factory_runtime.acceptance_broker_service.AcceptanceBrokerService') as service:
+            service.return_value.handle.side_effect = StateError('acceptance broker is disabled')
+            reply = handle_probe(EVENT, source_commit=COMMIT, enabled='false')
+            self.assertFalse(reply['broker_enabled'])
+            self.assertEqual(reply['provider_calls'], 0)
+            self.assertFalse(service.call_args.kwargs['enabled'])
+            service.return_value.handle.assert_called_once_with({})
 
     def test_package_contains_exact_contract_and_evidence(self):
         paths = contract_paths()
