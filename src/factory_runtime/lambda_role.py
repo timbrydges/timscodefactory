@@ -17,6 +17,7 @@ from factory_state.scope import canonical
 
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
+ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
 
 
 def validate_probe(event, *, role, commit):
@@ -122,6 +123,64 @@ def _digest(raw):
     return 'sha256:' + hashlib.sha256(raw).hexdigest()
 
 
+def _builder_activation(root, commit, raw, now):
+    """Load deployment-owned activation data, never from the dispatched event."""
+    from .autonomy import AutonomyActivation
+    from .autonomy_contract import load_autonomy_operating_allowance
+    from .acceptance_broker import BROKER_ARN
+
+    if not isinstance(raw, str) or not 0 < len(raw) <= 2048:
+        raise StateError('Builder activation deployment is missing')
+    try:
+        config = json.loads(raw)
+        fields = {'activation_id', 'factory_id', 'task_id', 'source_commit',
+                  'contract_digest', 'starts_at', 'expires_at', 'broker_version_arn'}
+        if not isinstance(config, dict) or set(config) != fields:
+            raise ValueError('invalid activation fields')
+        activation = AutonomyActivation(config['activation_id'], config['factory_id'],
+            config['task_id'], config['source_commit'], config['contract_digest'],
+            datetime.fromisoformat(config['starts_at']), datetime.fromisoformat(config['expires_at']))
+        broker_arn = config['broker_version_arn']
+    except (ValueError, TypeError, KeyError) as error:
+        raise StateError('Builder activation deployment is invalid') from error
+    allowance = load_autonomy_operating_allowance(root)
+    if (not allowance.activation_ready or allowance.production_release_authorized or
+            activation.factory_id != 'tims-software-factory' or
+            activation.task_id != allowance.acceptance_task_id or
+            activation.source_commit != commit or
+            activation.contract_digest != 'sha256:' + allowance.acceptance_contract_sha256 or
+            not isinstance(broker_arn, str) or not BROKER_ARN.fullmatch(broker_arn)):
+        raise StateError('Builder activation differs from owner-approved deployment')
+    activation.validate(now)
+    if not allowance.pricing_observed_at <= now < allowance.pricing_expires_at:
+        raise StateError('Builder acceptance pricing is stale')
+    return activation, broker_arn
+
+
+def _builder_service(root, commit, activation, broker_arn, signer, database, lambda_api):
+    """Compose the credential-free role with its independent budget and broker."""
+    from .acceptance_broker import AcceptanceBrokerExecutor
+    from .acceptance_budget import DynamoDBAcceptanceBudgetStore
+    from .cloud_roles import RoleExecutionService
+    from .operational_backend import AcceptanceOperationalBackend
+    from factory_state.dispatch import DynamoDBDispatchStore
+    from factory_state.dynamodb import DynamoDBStateStore
+    from factory_state.signers import load_trusted_signers
+
+    clock = lambda: datetime.now(timezone.utc)
+    state_table = 'tims-software-factory-state'
+    ledger = DynamoDBDispatchStore(state_table, database)
+    backend = AcceptanceOperationalBackend(root, activation,
+        DynamoDBAcceptanceBudgetStore('tims-factory-acceptance-budget', database),
+        AcceptanceBrokerExecutor(lambda_api, broker_arn), enabled=True, clock=clock)
+    return RoleExecutionService(DynamoDBStateStore(state_table, database), ledger,
+        execution_table='tims-factory-role-executions', deployed_commit=commit,
+        identity=SIGNERS['builder'],
+        key_loader=lambda now: load_trusted_signers(
+            root/'factory/profiles/scope-signers.json', now=now),
+        signer=signer, backend=backend, clock=clock)
+
+
 def handle_transport(event, *, role, commit, signer, now, database, table):
     raw = _transport_event(event, role=role, commit=commit)
     identity = SIGNERS[role]
@@ -170,15 +229,22 @@ def handler(event, context):
     role = os.environ['FACTORY_ROLE']
     if role not in {'planner', 'builder', 'inspector'}:
         raise StateError('invalid deployed role')
-    if os.environ.get(OPERATIONAL_FLAG) != 'false':
-        raise StateError('operational role kill switch must remain false')
-    if not isinstance(event, dict) or event.get('kind') not in {
-            'identity_probe', 'transport_canary', 'operational_boundary_probe'}:
-        raise StateError('unsupported role invocation')
-    if event['kind'] == 'identity_probe':
-        validate_probe(event, role=role, commit=commit)
-    elif event['kind'] == 'transport_canary':
-        _transport_event(event, role=role, commit=commit)
+    operational = os.environ.get(OPERATIONAL_FLAG)
+    if operational == 'true':
+        if role != 'builder':
+            raise StateError('only Builder can execute the acceptance task')
+        activation, broker_arn = _builder_activation(
+            root, commit, os.environ.get(ACTIVATION_CONFIG), datetime.now(timezone.utc))
+    elif operational == 'false':
+        if not isinstance(event, dict) or event.get('kind') not in {
+                'identity_probe', 'transport_canary', 'operational_boundary_probe'}:
+            raise StateError('unsupported role invocation')
+        if event['kind'] == 'identity_probe':
+            validate_probe(event, role=role, commit=commit)
+        elif event['kind'] == 'transport_canary':
+            _transport_event(event, role=role, commit=commit)
+    else:
+        raise StateError('operational role kill switch is invalid')
     config = Config(connect_timeout=3, read_timeout=5, retries={'total_max_attempts': 1, 'mode': 'standard'})
     # Execution credentials cannot sign or modify controller state. A short-lived
     # role-specific signing session has no state, provider or deployment rights.
@@ -192,6 +258,12 @@ def handler(event, context):
         signer=role, registry_path=root/'factory/profiles/scope-signers.json',
         bindings_path=root/'factory/profiles/kms-signers.json')
     now = datetime.now(timezone.utc)
+    if operational == 'true':
+        from .cloud_roles import lambda_client
+        service = _builder_service(root, commit, activation, broker_arn, signer,
+            boto3.client('dynamodb', region_name='ca-central-1', config=config),
+            lambda_client(boto3.Session(region_name='ca-central-1')))
+        return service.handle(event)
     if event['kind'] == 'identity_probe':
         return handle_probe(event, role=role, commit=commit, signer=signer, now=now)
     if event['kind'] == 'operational_boundary_probe':

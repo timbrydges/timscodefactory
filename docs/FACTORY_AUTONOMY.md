@@ -475,6 +475,16 @@ before signing the limits. This update is prepared for a fresh role version;
 the operational dispatch handler, budget table and broker invocation grant are
 still absent. It does not close the deployment gate or enable provider calls.
 
+The subsequent Builder package composes the operational role execution service,
+separate acceptance budget store, and pinned credential-free broker client.
+Deployment-owned activation data must match the packaged commit, exact task and
+contract digest, a numeric broker version, an unexpired 24-hour window, and the
+fully gated operating allowance. The CloudFormation role flag is still false,
+and the Builder IAM still grants only canary state access: operational events
+are rejected before AWS I/O. This source preparation does not close
+`operational_role_backend_deployment`; the disabled version must be deployed
+and probed, then operational IAM and activation reviewed separately.
+
 ### Disabled acceptance broker cloud probe — 2026-09-26
 
 The isolated `tims-factory-provider-broker:1` Lambda passed its pinned,

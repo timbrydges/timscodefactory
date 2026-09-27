@@ -19,4 +19,4 @@ class SignedScopeCanaryTests(unittest.TestCase):
    result=run(db,'state-table','123-1','a'*40)
    self.assertEqual(result['conclusion'],'success')
    self.assertEqual(result['model_calls'],0)
-   self.assertEqual(len(result['checks']),12)
+   self.assertEqual(len(result['checks']),13)
