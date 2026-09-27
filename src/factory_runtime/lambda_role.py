@@ -222,8 +222,6 @@ def handle_transport(event, *, role, commit, signer, now, database, table):
 
 
 def handler(event, context):
-    import boto3
-    from botocore.config import Config
     root = Path(os.environ.get('LAMBDA_TASK_ROOT', '/var/task'))
     commit = json.loads((root/'BUILD.json').read_text())['source_commit']
     role = os.environ['FACTORY_ROLE']
@@ -245,6 +243,8 @@ def handler(event, context):
             _transport_event(event, role=role, commit=commit)
     else:
         raise StateError('operational role kill switch is invalid')
+    import boto3
+    from botocore.config import Config
     config = Config(connect_timeout=3, read_timeout=5, retries={'total_max_attempts': 1, 'mode': 'standard'})
     # Execution credentials cannot sign or modify controller state. A short-lived
     # role-specific signing session has no state, provider or deployment rights.
