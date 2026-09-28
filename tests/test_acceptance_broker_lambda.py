@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -56,6 +57,31 @@ class AcceptanceBrokerLambdaTests(unittest.TestCase):
                                       'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'}):
                 with self.assertRaisesRegex(StateError, 'build identity'):
                     handler(EVENT, None)
+
+    def test_live_route_stops_at_pending_contract_gates_before_credential_io(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'BUILD.json').write_text(json.dumps({'source_commit': COMMIT}))
+            for name in contract_paths():
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / name, target)
+            now = datetime.now(timezone.utc)
+            activation = {'activation_id':'test-acceptance-1',
+                          'factory_id':'tims-software-factory',
+                          'task_id':'deterministic-text-fingerprint',
+                          'source_commit':COMMIT,
+                          'contract_digest':'sha256:' +
+                          '7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa',
+                          'starts_at':now.isoformat(),
+                          'expires_at':(now + timedelta(minutes=5)).isoformat()}
+            with patch.dict(os.environ, {'LAMBDA_TASK_ROOT': directory,
+                    'FACTORY_ACCEPTANCE_BROKER_ENABLED':'true',
+                    'FACTORY_ACCEPTANCE_ACTIVATION_JSON':json.dumps(activation),
+                    'FACTORY_OPENAI_SECRET_ARN':'arn:aws:secretsmanager:ca-central-1:'
+                    '666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw'}):
+                with self.assertRaisesRegex(StateError, 'activation differs'):
+                    handler({'kind':'acceptance_provider_call'}, None)
 
     def test_packaged_broker_remains_disabled_even_with_valid_probe(self):
         with patch('factory_runtime.acceptance_broker_service.AcceptanceBrokerService') as service:

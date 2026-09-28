@@ -26,8 +26,13 @@ class AcceptanceBrokerDeploymentTests(unittest.TestCase):
         self.assertEqual(set(resources), {'BrokerLogs', 'BrokerRole', 'BrokerFunction', 'BrokerVersion'})
         function = resources['BrokerFunction']['Properties']
         self.assertEqual(function['Handler'], 'factory_runtime.acceptance_broker_lambda.handler')
-        self.assertEqual(function['Environment']['Variables'],
-                         {'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'})
+        self.assertEqual(function['Environment']['Variables'], {
+            'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false',
+            'FACTORY_ACCEPTANCE_ACTIVATION_JSON': {'Ref': 'BrokerActivationJson'},
+            'FACTORY_OPENAI_SECRET_ARN': {'Ref': 'ProviderSecretArn'}})
+        self.assertEqual(template['Parameters']['BrokerActivationJson']['Default'], '')
+        self.assertEqual(template['Parameters']['ProviderSecretArn']['Default'], '')
+        self.assertNotIn('ManagedPolicyArns', resources['BrokerRole']['Properties'])
         self.assertNotIn('ReservedConcurrentExecutions', function)
         self.assertEqual(resources['BrokerVersion']['Properties']['CodeSha256'], {'Ref': 'CodeSha256'})
         policies = resources['BrokerRole']['Properties']['Policies']

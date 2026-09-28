@@ -35,6 +35,20 @@ def validate_changes(changes):
     # reviewed template digest and the post-deployment IAM/flag checks.
 
 
+def validate_disabled_template():
+    template = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+    role = template['Resources']['BrokerRole']['Properties']
+    function = template['Resources']['BrokerFunction']['Properties']
+    if (role.get('ManagedPolicyArns') is not None or
+            function['Environment']['Variables'] != {
+                'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false',
+                'FACTORY_ACCEPTANCE_ACTIVATION_JSON': {'Ref': 'BrokerActivationJson'},
+                'FACTORY_OPENAI_SECRET_ARN': {'Ref': 'ProviderSecretArn'}} or
+            template['Parameters']['BrokerActivationJson'].get('Default') != '' or
+            template['Parameters']['ProviderSecretArn'].get('Default') != ''):
+        raise RuntimeError('broker update must remain disabled and credential-free')
+
+
 def _stack():
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
     if stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
@@ -69,6 +83,7 @@ def _plan(path, *, required_status):
 
 def prepare(package, plan_path):
     commit = source()
+    validate_disabled_template()
     if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError('wrong AWS account')
     before = _stack()
@@ -87,7 +102,8 @@ def prepare(package, plan_path):
         raise RuntimeError('versioned broker artifact storage is required')
     params = [{'ParameterKey': name, 'ParameterValue': value} for name, value in {
         'ArtifactBucket': BUCKET, 'ArtifactKey': key, 'ArtifactVersion': version,
-        'CodeSha256': manifest['code_sha256']}.items()]
+        'CodeSha256': manifest['code_sha256'], 'BrokerActivationJson': '',
+        'ProviderSecretArn': ''}.items()]
     aws('cloudformation', 'validate-template', '--template-body', 'file://' + str(TEMPLATE))
     name = 'broker-update-' + commit[:12] + '-' + uuid.uuid4().hex[:8]
     created = aws('cloudformation', 'create-change-set', '--stack-name', STACK,
@@ -108,6 +124,7 @@ def prepare(package, plan_path):
 
 
 def execute(plan_path):
+    validate_disabled_template()
     plan = _plan(plan_path, required_status='PREPARED_NOT_EXECUTED')
     described = aws('cloudformation', 'describe-change-set', '--change-set-name', plan['change_set_arn'])
     validate_changes(described['Changes'])
@@ -149,6 +166,7 @@ def reconcile(plan_path):
 
 
 def verify(plan_path):
+    validate_disabled_template()
     plan = _plan(plan_path, required_status='DEPLOYED_PENDING_PROBE')
     stack = _stack()
     if stack['StackId'] != plan['stack_id'] or _version(stack) == plan['previous_version']:
@@ -159,7 +177,9 @@ def verify(plan_path):
             config.get('Role') != f'arn:aws:iam::{ACCOUNT}:role/{ROLE}' or
             config.get('Handler') != 'factory_runtime.acceptance_broker_lambda.handler' or
             config.get('Environment', {}).get('Variables') !=
-            {'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false'}):
+            {'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false',
+             'FACTORY_ACCEPTANCE_ACTIVATION_JSON': '',
+             'FACTORY_OPENAI_SECRET_ARN': ''}):
         raise RuntimeError('broker update code, role, handler or kill switch differs')
     attached = aws('iam', 'list-attached-role-policies', '--role-name', ROLE)
     inline = aws('iam', 'list-role-policies', '--role-name', ROLE)
