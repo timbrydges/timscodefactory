@@ -6,7 +6,9 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from prepare_disabled_autonomy_schedule import EXPECTED, NAME, TARGET, source, validate_plan
+from prepare_disabled_autonomy_schedule import (
+    EXPECTED, NAME, SCHEDULE, TARGET, assert_existing_iam, source, validate_plan,
+)
 
 
 def plan():
@@ -24,7 +26,7 @@ def plan():
 
 
 class GuardedDisabledScheduleTests(unittest.TestCase):
-    def test_only_three_creates_for_disabled_target_pass(self):
+    def test_only_exact_disabled_schedule_creates_pass(self):
         original = plan()
         original['resource_changes'].append({'mode': 'data', 'address': 'data.aws_partition.current',
                                              'change': {'actions': ['read']}})
@@ -33,6 +35,15 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
         next(r for r in provider_plan['resource_changes'] if 'schedule.autonomy' in r['address'])[
             'change']['after']['flexible_time_window'][0]['maximum_window_in_minutes'] = None
         validate_plan(provider_plan)
+        schedule_only = copy.deepcopy(original)
+        schedule_only['resource_changes'] = [r for r in schedule_only['resource_changes']
+                                             if r['address'] == SCHEDULE]
+        self.assertEqual(validate_plan(schedule_only), {SCHEDULE})
+        missing_policy = copy.deepcopy(original)
+        missing_policy['resource_changes'] = [r for r in missing_policy['resource_changes']
+                                              if r['address'] != 'aws_iam_role_policy.autonomy_scheduler_invoke[0]']
+        with self.assertRaises(RuntimeError):
+            validate_plan(missing_policy)
         for mutate in (
                 lambda p: p['resource_changes'].append({'address': 'aws_s3_bucket.other',
                                                           'change': {'actions': ['create']}}),
@@ -47,6 +58,19 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
             mutate(changed)
             with self.assertRaises(RuntimeError):
                 validate_plan(changed)
+
+    def test_schedule_only_requires_existing_exact_iam(self):
+        iam = sorted(EXPECTED - {SCHEDULE})
+        with patch('prepare_disabled_autonomy_schedule.terraform', return_value='\n'.join(iam)), \
+                patch('prepare_disabled_autonomy_schedule.assert_scheduler_iam') as verify_iam:
+            assert_existing_iam()
+            verify_iam.assert_called_once_with()
+        with patch('prepare_disabled_autonomy_schedule.terraform', return_value=iam[0]):
+            with self.assertRaises(RuntimeError):
+                assert_existing_iam()
+        with patch('prepare_disabled_autonomy_schedule.terraform', return_value='\n'.join([*iam, SCHEDULE])):
+            with self.assertRaises(RuntimeError):
+                assert_existing_iam()
 
     def test_iam_policy_has_stable_name(self):
         terraform = (ROOT / 'infra/aws/autonomy_schedule.tf').read_text()
