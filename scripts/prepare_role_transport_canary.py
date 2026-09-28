@@ -20,7 +20,7 @@ def validate_changes(changes):
     expected = {'ControllerInvoke'} | {role.title()+suffix for role in ROLES
         for suffix in ('Function', 'Version')}
     found = {change['ResourceChange']['LogicalResourceId'] for change in changes}
-    if found != expected:
+    if found != expected or len(changes) != len(expected):
         raise RuntimeError(f'unexpected transport update resources: {sorted(found)}')
     for change in changes:
         item = change['ResourceChange']; logical = item['LogicalResourceId']
@@ -37,6 +37,17 @@ def validate_changes(changes):
 def validate_existing_stack(stack):
     if stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
         raise RuntimeError('role stack must have a completed deployment')
+    parameters = {p['ParameterKey']: p['ParameterValue'] for p in stack['Parameters']}
+    if parameters.get('EnableBuilderAcceptanceIam') != 'true':
+        raise RuntimeError('reviewed Builder acceptance IAM must remain enabled')
+
+
+def validate_builder_parameter(parameters):
+    matches = [p for p in parameters if p.get('ParameterKey') == 'EnableBuilderAcceptanceIam']
+    if (len(matches) != 1 or
+            not (matches[0].get('UsePreviousValue') is True or
+                 matches[0].get('ParameterValue') == 'true')):
+        raise RuntimeError('transport update must preserve Builder acceptance IAM')
 
 
 def prepare(package, plan_path):
@@ -58,6 +69,7 @@ def prepare(package, plan_path):
     parameters = [{'ParameterKey': k, 'ParameterValue': v} for k,v in {
         'ArtifactBucket': BUCKET, 'ArtifactKey': key, 'ArtifactVersion': version,
         'CodeSha256': manifest['code_sha256']}.items()]
+    parameters.append({'ParameterKey': 'EnableBuilderAcceptanceIam', 'UsePreviousValue': True})
     template = ROOT/'infra/roles/functions.cloudformation.json'
     aws('cloudformation', 'validate-template', '--template-body', 'file://'+str(template))
     name = 'transport-'+commit[:12]+'-'+uuid.uuid4().hex[:8]
@@ -69,6 +81,7 @@ def prepare(package, plan_path):
     aws('cloudformation', 'wait', 'change-set-create-complete', '--change-set-name', arn)
     described = aws('cloudformation', 'describe-change-set', '--change-set-name', arn)
     validate_changes(described['Changes'])
+    validate_builder_parameter(described['Parameters'])
     plan = {'source_commit': commit, 'artifact': manifest, 'change_set_arn': arn,
         'template_sha256': hashlib.sha256(template.read_bytes()).hexdigest(),
         'changes': described['Changes'], 'previous_versions': old_outputs,
@@ -88,6 +101,9 @@ def execute(plan_path):
     validate_changes(described['Changes'])
     if described['Changes'] != plan['changes'] or described['ExecutionStatus'] != 'AVAILABLE':
         raise RuntimeError('reviewed change set changed or cannot execute')
+    validate_builder_parameter(described['Parameters'])
+    validate_existing_stack(aws('cloudformation', 'describe-stacks',
+                                '--stack-name', 'tims-factory-roles')['Stacks'][0])
     aws('cloudformation', 'execute-change-set', '--change-set-name', plan['change_set_arn'])
     aws('cloudformation', 'wait', 'stack-update-complete', '--stack-name', 'tims-factory-roles')
     plan['status'] = 'DEPLOYED_PENDING_TRANSPORT_PROOFS'
@@ -142,6 +158,7 @@ def verify(plan_path):
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', 'tims-factory-roles')['Stacks'][0]
     if stack['StackStatus'] != 'UPDATE_COMPLETE':
         raise RuntimeError('role transport stack update not complete')
+    validate_existing_stack(stack)
     outputs = {x['OutputKey']: x['OutputValue'] for x in stack['Outputs']}
     versions = {outputs[role.title()+'VersionArn'] for role in ROLES}
     if versions & set(plan['previous_versions'].values()) or len(versions) != 3:
