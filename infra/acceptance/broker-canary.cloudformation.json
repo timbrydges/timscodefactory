@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Isolated model-free Factory acceptance broker probe. No provider, state, secret, or release IAM grants.",
+  "Description": "Isolated Factory acceptance broker, disabled until separately reviewed activation.",
   "Parameters": {
     "ArtifactBucket": {
       "Type": "String",
@@ -8,7 +8,9 @@
     },
     "ArtifactKey": {"Type": "String"},
     "ArtifactVersion": {"Type": "String"},
-    "CodeSha256": {"Type": "String"}
+    "CodeSha256": {"Type": "String"},
+    "BrokerActivationJson": {"Type": "String", "Default": ""},
+    "ProviderSecretArn": {"Type": "String", "Default": ""}
   },
   "Resources": {
     "BrokerLogs": {
@@ -58,11 +60,15 @@
           "S3ObjectVersion": {"Ref": "ArtifactVersion"}
         },
         "MemorySize": 256,
-        "Timeout": 30,
+        "Timeout": 120,
         "Environment": {
-          "Variables": {"FACTORY_ACCEPTANCE_BROKER_ENABLED": "false"}
+          "Variables": {
+            "FACTORY_ACCEPTANCE_BROKER_ENABLED": "false",
+            "FACTORY_ACCEPTANCE_ACTIVATION_JSON": {"Ref": "BrokerActivationJson"},
+            "FACTORY_OPENAI_SECRET_ARN": {"Ref": "ProviderSecretArn"}
+          }
         },
-        "Description": "Model-free deployment probe only; no provider calls"
+        "Description": "Gated acceptance broker; deployed kill switch false"
       }
     },
     "BrokerVersion": {
