@@ -341,7 +341,7 @@
                       "Sid": "InvokePinnedCredentialFreeBroker",
                       "Effect": "Allow",
                       "Action": ["lambda:InvokeFunction"],
-                      "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2"
+                      "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:3"
                     }
                   ]
                 }
