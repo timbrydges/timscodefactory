@@ -13,13 +13,27 @@ from prepare_acceptance_broker_iam import (
 
 class AcceptanceBrokerIamDeploymentTests(unittest.TestCase):
     def test_only_existing_role_can_change_in_place(self):
-        accepted = [{'ResourceChange': {'LogicalResourceId': 'BrokerRole',
-                                        'Action': 'Modify', 'Replacement': 'False'}}]
+        def change(name, property_name, source_name, evaluation, cause):
+            return {'ResourceChange': {'LogicalResourceId': name, 'Action': 'Modify',
+                    'Replacement': 'False', 'Scope': ['Properties'], 'Details': [{
+                        'Target': {'Attribute': 'Properties', 'Name': property_name,
+                                   'RequiresRecreation': 'Never'},
+                        'ChangeSource': source_name, 'Evaluation': evaluation,
+                        'CausingEntity': cause}]}}
+        accepted = [change('BrokerFunction', 'Role', 'ResourceAttribute',
+                           'Dynamic', 'BrokerRole.Arn'),
+                    change('BrokerRole', 'ManagedPolicyArns', 'DirectModification',
+                           'Static', None)]
         validate_template()
         validate_changes(accepted)
-        for bad in ([], accepted + [{'ResourceChange': {'LogicalResourceId': 'BrokerFunction',
-                                                       'Action': 'Modify', 'Replacement': 'False'}}],
-                    [{'ResourceChange': {**accepted[0]['ResourceChange'], 'Replacement': 'True'}}]):
+        for bad in ([], accepted[:-1], accepted + [change('BrokerVersion', 'CodeSha256',
+                    'DirectModification', 'Static', None)],
+                    [change('BrokerFunction', 'Code', 'ResourceAttribute',
+                            'Dynamic', 'BrokerRole.Arn'), accepted[1]],
+                    [change('BrokerFunction', 'Role', 'ResourceAttribute',
+                            'Dynamic', 'OtherRole.Arn'), accepted[1]],
+                    [{**accepted[0], 'ResourceChange': {
+                        **accepted[0]['ResourceChange'], 'Replacement': 'True'}}, accepted[1]]):
             with self.subTest(bad=bad), self.assertRaises(RuntimeError):
                 validate_changes(bad)
 
