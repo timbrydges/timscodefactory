@@ -24,6 +24,7 @@ from scripts.prepare_builder_acceptance_iam import (
     validate_changes as validate_builder_iam_changes,
     validate_deployed_template as validate_builder_deployed_template,
     validate_template as validate_builder_iam_template)
+from scripts import prepare_builder_acceptance_iam as builder_iam
 from scripts.build_role_package import contract_paths
 from test_dispatch_ledger import NOW
 
@@ -171,6 +172,52 @@ class RoleDeploymentTests(unittest.TestCase):
             'FACTORY_OPERATIONAL_EXECUTION_ENABLED'] = 'true'
         with self.assertRaisesRegex(RuntimeError, 'deployed BuilderFunction differs'):
             validate_builder_deployed_template(deployed)
+
+    def test_builder_iam_execute_rechecks_exact_change_set_before_apply(self):
+        detail = {'Target':{'Attribute':'Properties','Name':'Role',
+                            'RequiresRecreation':'Never'}, 'Evaluation':'Dynamic',
+                  'ChangeSource':'ResourceAttribute','CausingEntity':'BuilderRole.Arn'}
+        changes = [{'ResourceChange':{'LogicalResourceId':'BuilderRole',
+                    'ResourceType':'AWS::IAM::Role','Action':'Modify','Replacement':'False'}},
+                   {'ResourceChange':{'LogicalResourceId':'BuilderFunction',
+                    'ResourceType':'AWS::Lambda::Function','Action':'Modify',
+                    'Replacement':'False','Scope':['Properties'],'Details':[detail]}}]
+        plan = {'status':'PREPARED_NOT_EXECUTED','source_commit':'a'*40,
+                'stack_id':'stack-1','change_set_arn':'change-set-1',
+                'template_sha256':builder_iam.validate_template(), 'changes':changes,
+                'operational_execution_enabled':False,'model_calls_authorized':0}
+        stack = {'StackId':'stack-1','StackStatus':'UPDATE_COMPLETE','Parameters':[
+            {'ParameterKey':key,'ParameterValue':value} for key,value in {
+                'EnableBuilderAcceptanceIam':'false','ArtifactBucket':'bucket',
+                'ArtifactKey':'key','ArtifactVersion':'version','CodeSha256':'code'}.items()]}
+        change_set = {'StackId':'stack-1','Status':'CREATE_COMPLETE',
+                      'ExecutionStatus':'AVAILABLE','Changes':changes,'Parameters':[
+            {'ParameterKey':key,'ParameterValue':value} for key,value in {
+                'EnableBuilderAcceptanceIam':'true','ArtifactBucket':'bucket',
+                'ArtifactKey':'key','ArtifactVersion':'version','CodeSha256':'code'}.items()]}
+        calls = []
+        def fake_aws(*args):
+            calls.append(args[:2])
+            if args[:2] == ('sts','get-caller-identity'): return {'Account':builder_iam.ACCOUNT}
+            if args[:2] == ('cloudformation','describe-stacks'): return {'Stacks':[stack]}
+            if args[:2] == ('cloudformation','get-template'):
+                return {'TemplateBody':json.loads(builder_iam.TEMPLATE.read_text())}
+            if args[:2] == ('cloudformation','describe-change-set'): return change_set
+            return {}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'plan.json'; path.write_text(json.dumps(plan))
+            with patch.object(builder_iam, 'source', return_value='a'*40), \
+                    patch.object(builder_iam, 'aws', side_effect=fake_aws):
+                changed = json.loads(json.dumps(change_set))
+                changed['Changes'][1]['ResourceChange']['Details'][0]['Target']['Name'] = 'Code'
+                change_set = changed
+                with self.assertRaises(RuntimeError): builder_iam.execute(path)
+                self.assertNotIn(('cloudformation','execute-change-set'), calls)
+                change_set['Changes'] = changes
+                builder_iam.execute(path)
+                self.assertIn(('cloudformation','execute-change-set'), calls)
+                self.assertEqual(json.loads(path.read_text())['status'],
+                                 'DEPLOYED_PENDING_VERIFICATION')
 
     class ConditionalFailure(Exception):
         response = {'Error': {'Code': 'ConditionalCheckFailedException'}}
