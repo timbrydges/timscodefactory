@@ -529,7 +529,7 @@ gate or grant the Builder, broker or scheduler operational permissions.
 Terraform now contains an explicit opt-in for creating the acceptance schedule,
 with the opt-in false by default and the deployed schedule hard-coded
 `DISABLED`. Its service role can invoke only the exact acceptance Lambda alias,
-is source-account and source-schedule bound, sends only the approved task
+is source-account and exact `default` schedule-group bound, sends only the approved task
 identity, retains events for at most 60 seconds, and performs zero retries.
 
 A read-only canary verifies the schedule name, disabled state, cadence, target,
@@ -552,6 +552,9 @@ the schedule. Neither is claimed deployed until the AWS verification passes.
 The schedule deployment helper requires the verified disabled controller alias,
 then accepts a Terraform plan only when it creates the exact scheduler role,
 its single-alias invoke policy and the `DISABLED` schedule. It applies the saved
-plan and checks the schedule and role policies afterward. A read-only reconcile
+plan and checks the schedule and role policies afterward. It also permits an
+in-place correction from the previously staged schedule-ARN trust to AWS's
+required exact schedule-group trust while creating only the disabled schedule.
+A read-only reconcile
 path handles an interrupted apply without replaying it. Schedule deployment
 still requires the AWS canary; this source change enables no schedule or model.
