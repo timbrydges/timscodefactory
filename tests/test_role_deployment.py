@@ -142,7 +142,7 @@ class RoleDeploymentTests(unittest.TestCase):
         self.assertEqual(statements['OwnExactAcceptanceExecution']['Action'],
             ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'])
         self.assertEqual(statements['InvokePinnedCredentialFreeBroker']['Resource'],
-            'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:2')
+            'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:3')
         self.assertEqual(len(validate_builder_iam_template()), 64)
 
     def test_builder_iam_plan_accepts_only_observed_role_dependency(self):
