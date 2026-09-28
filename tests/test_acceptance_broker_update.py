@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from prepare_acceptance_broker_update import TEMPLATE, execute, validate_changes
+from prepare_acceptance_broker_update import validate_disabled_template
 
 COMMIT = 'a' * 40
 OLD_ARN = 'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:1'
@@ -23,6 +24,10 @@ def changes():
 
 
 class AcceptanceBrokerUpdateTests(unittest.TestCase):
+    def test_legacy_code_updater_fails_closed_after_iam_stage(self):
+        with self.assertRaisesRegex(RuntimeError, 'credential-free'):
+            validate_disabled_template()
+
     def test_only_function_and_immutable_version_may_change(self):
         validate_changes(changes())
         for bad in (
@@ -57,6 +62,7 @@ class AcceptanceBrokerUpdateTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory, \
                 patch('prepare_acceptance_broker_update.source', return_value=COMMIT), \
+                patch('prepare_acceptance_broker_update.validate_disabled_template'), \
                 patch('prepare_acceptance_broker_update.aws', side_effect=aws_stub):
             path = Path(directory) / 'plan.json'
             path.write_text(json.dumps(plan))

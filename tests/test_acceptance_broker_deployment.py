@@ -32,7 +32,9 @@ class AcceptanceBrokerDeploymentTests(unittest.TestCase):
             'FACTORY_OPENAI_SECRET_ARN': {'Ref': 'ProviderSecretArn'}})
         self.assertEqual(template['Parameters']['BrokerActivationJson']['Default'], '')
         self.assertEqual(template['Parameters']['ProviderSecretArn']['Default'], '')
-        self.assertNotIn('ManagedPolicyArns', resources['BrokerRole']['Properties'])
+        self.assertEqual(resources['BrokerRole']['Properties']['ManagedPolicyArns'], [
+            'arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-broker-records',
+            'arn:aws:iam::666730517561:policy/tims-software-factory-provider-broker-secret-reader'])
         self.assertNotIn('ReservedConcurrentExecutions', function)
         self.assertEqual(resources['BrokerVersion']['Properties']['CodeSha256'], {'Ref': 'CodeSha256'})
         policies = resources['BrokerRole']['Properties']['Policies']
