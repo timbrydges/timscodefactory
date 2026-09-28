@@ -36,7 +36,7 @@ class AcceptanceBrokerIamDeploymentTests(unittest.TestCase):
                  'Action': ['dynamodb:GetItem'], 'Resource': base + 'tims-factory-acceptance-budget',
                  'Condition': condition},
                 {'Sid': 'ClaimExactAcceptanceDispatch', 'Effect': 'Allow',
-                 'Action': ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+                 'Action': ['dynamodb:UpdateItem', 'dynamodb:PutItem', 'dynamodb:GetItem'],
                  'Resource': base + 'tims-factory-acceptance-broker-claims',
                  'Condition': condition}]},
             {'Version': '2012-10-17', 'Statement': [

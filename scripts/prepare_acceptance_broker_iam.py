@@ -141,6 +141,8 @@ def _assert_policy_documents():
     def normalize(value):
         if isinstance(value, list):
             items = [normalize(item) for item in value]
+            if all(isinstance(item, str) for item in items):
+                items.sort()
             return items[0] if len(items) == 1 else items
         if isinstance(value, dict):
             return {key: normalize(item) for key, item in value.items()}
@@ -149,7 +151,7 @@ def _assert_policy_documents():
         document = _policy_document(arn)
         if (document.get('Version') != '2012-10-17' or
                 normalize(document.get('Statement')) != normalize(statements)):
-            raise RuntimeError('broker managed policy differs from reviewed least privilege')
+            raise RuntimeError(f'broker managed policy {arn} differs from reviewed least privilege')
 
 
 def prepare(path):
