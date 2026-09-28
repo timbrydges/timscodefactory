@@ -29,6 +29,10 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
         original['resource_changes'].append({'mode': 'data', 'address': 'data.aws_partition.current',
                                              'change': {'actions': ['read']}})
         validate_plan(original)
+        provider_plan = copy.deepcopy(original)
+        next(r for r in provider_plan['resource_changes'] if 'schedule.autonomy' in r['address'])[
+            'change']['after']['flexible_time_window'][0]['maximum_window_in_minutes'] = None
+        validate_plan(provider_plan)
         for mutate in (
                 lambda p: p['resource_changes'].append({'address': 'aws_s3_bucket.other',
                                                           'change': {'actions': ['create']}}),
@@ -36,7 +40,9 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
                 lambda p: next(r for r in p['resource_changes'] if 'schedule.autonomy' in r['address'])[
                     'change']['after'].update(state='ENABLED'),
                 lambda p: next(r for r in p['resource_changes'] if 'schedule.autonomy' in r['address'])[
-                    'change']['after']['target'][0].update(arn=TARGET.removesuffix(':acceptance'))):
+                    'change']['after']['target'][0].update(arn=TARGET.removesuffix(':acceptance')),
+                lambda p: next(r for r in p['resource_changes'] if 'schedule.autonomy' in r['address'])[
+                    'change']['after']['flexible_time_window'][0].update(maximum_window_in_minutes=5)):
             changed = copy.deepcopy(original)
             mutate(changed)
             with self.assertRaises(RuntimeError):

@@ -91,13 +91,22 @@ def validate_plan(plan):
         raise RuntimeError('Terraform plan must create only the three disabled schedule resources')
     schedule = next(r['change']['after'] for r in changes
                     if r['address'] == 'aws_scheduler_schedule.autonomy_acceptance[0]')
-    target = schedule.get('target', [{}])[0]
-    retry = target.get('retry_policy', [{}])[0]
+    windows = schedule.get('flexible_time_window', [])
+    targets = schedule.get('target', [])
+    if len(windows) != 1 or len(targets) != 1:
+        raise RuntimeError('planned schedule requires one disabled window and target')
+    window, target = windows[0], targets[0]
+    retries = target.get('retry_policy', [])
+    if len(retries) != 1:
+        raise RuntimeError('planned schedule requires one no-retry policy')
+    retry = retries[0]
     if (schedule.get('name') != NAME or schedule.get('state') != 'DISABLED' or
             schedule.get('schedule_expression') != 'rate(15 minutes)' or
             schedule.get('schedule_expression_timezone') != 'UTC' or
-            schedule.get('flexible_time_window') != [{'mode': 'OFF'}] or
-            target.get('arn') != TARGET or json.loads(target.get('input', 'null')) != INPUT or
+            window.get('mode') != 'OFF' or
+            window.get('maximum_window_in_minutes') not in (None, 0) or
+            target.get('arn') != TARGET or
+            json.loads(target.get('input', 'null')) != INPUT or
             retry.get('maximum_retry_attempts') != 0 or
             retry.get('maximum_event_age_in_seconds') != 60):
         raise RuntimeError('planned schedule does not match disabled acceptance binding')
