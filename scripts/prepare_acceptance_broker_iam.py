@@ -1,7 +1,8 @@
 """Stage and verify the two exact broker policies while the Lambda stays disabled.
 
-The prepared change set may modify only the existing IAM role in place. No
-Lambda code, version, environment, secret value, or provider request changes.
+The prepared change set may modify the role's managed policies and the
+Lambda's dynamic reference to that same role, both in place. No code,
+version, environment, secret value, or provider request changes.
 """
 from __future__ import annotations
 
@@ -52,11 +53,30 @@ def validate_template():
 
 
 def validate_changes(changes):
-    if (len(changes) != 1 or
-            changes[0]['ResourceChange'].get('LogicalResourceId') != 'BrokerRole' or
-            changes[0]['ResourceChange'].get('Action') != 'Modify' or
-            changes[0]['ResourceChange'].get('Replacement') != 'False'):
-        raise RuntimeError('broker IAM change set must modify only the role in place')
+    resources = {entry['ResourceChange'].get('LogicalResourceId'): entry['ResourceChange']
+                 for entry in changes}
+    if len(changes) != 2 or set(resources) != {'BrokerRole', 'BrokerFunction'}:
+        raise RuntimeError('broker IAM change set must touch only role and function')
+    expected = {
+        'BrokerRole': ('ManagedPolicyArns', 'DirectModification', 'Static', None),
+        'BrokerFunction': ('Role', 'ResourceAttribute', 'Dynamic', 'BrokerRole.Arn'),
+    }
+    for name, (property_name, source_name, evaluation, cause) in expected.items():
+        change = resources[name]
+        details = change.get('Details')
+        if (change.get('Action') != 'Modify' or change.get('Replacement') != 'False' or
+                change.get('Scope') != ['Properties'] or
+                not isinstance(details, list) or len(details) != 1):
+            raise RuntimeError('broker IAM change set must modify only exact properties in place')
+        detail = details[0]
+        target = detail.get('Target', {})
+        if (target.get('Attribute') != 'Properties' or
+                target.get('Name') != property_name or
+                target.get('RequiresRecreation') != 'Never' or
+                detail.get('ChangeSource') != source_name or
+                detail.get('Evaluation') != evaluation or
+                detail.get('CausingEntity') != cause):
+            raise RuntimeError('broker IAM change set has an unexpected dependency')
 
 
 def _stack():
@@ -187,7 +207,7 @@ def prepare(path):
             'model_calls_authorized': 0}
     Path(path).write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'status': plan['status'], 'source_commit': commit,
-                      'resources': ['BrokerRole'], 'version': version}))
+                      'resources': ['BrokerRole', 'BrokerFunction'], 'version': version}))
 
 
 def execute(path):
@@ -227,6 +247,9 @@ def verify(path):
     if (_stack()['StackId'] != plan['stack_id'] or
             _configuration(plan['previous_version']).get('CodeSha256') != plan['code_sha256']):
         raise RuntimeError('broker version, code, or stack differs')
+    latest_arn = f'arn:aws:lambda:{REGION}:{ACCOUNT}:function:{FUNCTION}'
+    if _configuration(latest_arn).get('CodeSha256') != plan['code_sha256']:
+        raise RuntimeError('broker latest code or disabled configuration differs')
     attached = aws('iam', 'list-attached-role-policies', '--role-name', ROLE)['AttachedPolicies']
     if {(item['PolicyName'], item['PolicyArn']) for item in attached} != set(zip(POLICY_NAMES, POLICY_ARNS)):
         raise RuntimeError('broker role policies differ from exact two-policy stage')
