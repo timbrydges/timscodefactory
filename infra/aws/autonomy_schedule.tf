@@ -56,6 +56,7 @@ data "aws_iam_policy_document" "autonomy_scheduler_invoke" {
 
 resource "aws_iam_role_policy" "autonomy_scheduler_invoke" {
   count  = var.deploy_disabled_autonomy_schedule ? 1 : 0
+  name   = "${local.name_prefix}-autonomy-scheduler-invoke"
   role   = aws_iam_role.autonomy_scheduler[0].id
   policy = data.aws_iam_policy_document.autonomy_scheduler_invoke[0].json
 }

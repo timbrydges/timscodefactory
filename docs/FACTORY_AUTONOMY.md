@@ -548,3 +548,10 @@ set creates the function, immutable version and `acceptance` alias, followed by
 verification of the deployed code hash, alias, IAM boundary and disabled probe.
 This prepares the scheduler target without enabling the operational backend or
 the schedule. Neither is claimed deployed until the AWS verification passes.
+
+The schedule deployment helper requires the verified disabled controller alias,
+then accepts a Terraform plan only when it creates the exact scheduler role,
+its single-alias invoke policy and the `DISABLED` schedule. It applies the saved
+plan and checks the schedule and role policies afterward. A read-only reconcile
+path handles an interrupted apply without replaying it. Schedule deployment
+still requires the AWS canary; this source change enables no schedule or model.
