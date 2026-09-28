@@ -7,7 +7,7 @@ variable "deploy_disabled_autonomy_schedule" {
 locals {
   autonomy_schedule_name = "tims-software-factory-autonomy-acceptance"
   autonomy_target_arn     = "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:tims-software-factory-autonomy-controller:acceptance"
-  autonomy_schedule_arn   = "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/default/${local.autonomy_schedule_name}"
+  autonomy_group_arn      = "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule-group/default"
 }
 
 data "aws_iam_policy_document" "autonomy_scheduler_trust" {
@@ -31,7 +31,7 @@ data "aws_iam_policy_document" "autonomy_scheduler_trust" {
     condition {
       test     = "ArnEquals"
       variable = "aws:SourceArn"
-      values   = [local.autonomy_schedule_arn]
+      values   = [local.autonomy_group_arn]
     }
   }
 }

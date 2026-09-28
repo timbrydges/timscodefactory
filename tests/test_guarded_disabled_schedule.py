@@ -1,4 +1,5 @@
 import copy
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -7,13 +8,16 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from prepare_disabled_autonomy_schedule import (
-    EXPECTED, NAME, SCHEDULE, TARGET, assert_existing_iam, source, validate_plan,
+    ACCOUNT, EXPECTED, GROUP_SOURCE, NAME, OLD_SCHEDULE_SOURCE,
+    ROLE_ADDRESS, SCHEDULE, TARGET, assert_existing_iam, source, validate_plan,
 )
 
 
 def plan():
     changes = [{'address': address, 'change': {'actions': ['create'], 'after': {}}}
                for address in sorted(EXPECTED)]
+    next(r['change']['after'] for r in changes if r['address'] == ROLE_ADDRESS)[
+        'assume_role_policy'] = trust(GROUP_SOURCE)
     schedule = next(r['change']['after'] for r in changes if 'schedule.autonomy' in r['address'])
     schedule.update({'name': NAME, 'state': 'DISABLED',
         'schedule_expression': 'rate(15 minutes)',
@@ -23,6 +27,15 @@ def plan():
                     'retry_policy': [{'maximum_retry_attempts': 0,
                                       'maximum_event_age_in_seconds': 60}]}]})
     return {'resource_changes': changes}
+
+
+def trust(source_arn):
+    return json.dumps({'Version': '2012-10-17', 'Statement': [{
+        'Effect': 'Allow', 'Principal': {'Service': 'scheduler.amazonaws.com'},
+        'Action': 'sts:AssumeRole',
+        'Condition': {'StringEquals': {'aws:SourceAccount': ACCOUNT},
+                      'ArnEquals': {'aws:SourceArn': source_arn}},
+    }]})
 
 
 class GuardedDisabledScheduleTests(unittest.TestCase):
@@ -64,7 +77,7 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
         with patch('prepare_disabled_autonomy_schedule.terraform', return_value='\n'.join(iam)), \
                 patch('prepare_disabled_autonomy_schedule.assert_scheduler_iam') as verify_iam:
             assert_existing_iam()
-            verify_iam.assert_called_once_with()
+            verify_iam.assert_called_once_with(GROUP_SOURCE)
         with patch('prepare_disabled_autonomy_schedule.terraform', return_value=iam[0]):
             with self.assertRaises(RuntimeError):
                 assert_existing_iam()
@@ -75,6 +88,29 @@ class GuardedDisabledScheduleTests(unittest.TestCase):
     def test_iam_policy_has_stable_name(self):
         terraform = (ROOT / 'infra/aws/autonomy_schedule.tf').read_text()
         self.assertIn('name   = "${local.name_prefix}-autonomy-scheduler-invoke"', terraform)
+        self.assertIn('schedule-group/default', terraform)
+
+    def test_only_exact_trust_update_and_disabled_schedule_pass(self):
+        changed = plan()
+        changed['resource_changes'] = [r for r in changed['resource_changes']
+                                       if r['address'] == SCHEDULE]
+        role = {'address': ROLE_ADDRESS, 'change': {'actions': ['update'],
+                'before': {'name': 'tims-software-factory-autonomy-scheduler',
+                           'assume_role_policy': trust(OLD_SCHEDULE_SOURCE)},
+                'after': {'name': 'tims-software-factory-autonomy-scheduler',
+                          'assume_role_policy': trust(GROUP_SOURCE)}}}
+        changed['resource_changes'].append(role)
+        self.assertEqual(validate_plan(changed), {SCHEDULE, ROLE_ADDRESS})
+        for field, value in (('name', 'other-role'),
+                             ('assume_role_policy', trust('arn:aws:scheduler:other:group/*'))):
+            invalid = copy.deepcopy(changed)
+            invalid['resource_changes'][1]['change']['after'][field] = value
+            with self.assertRaises(RuntimeError):
+                validate_plan(invalid)
+        invalid = copy.deepcopy(changed)
+        invalid['resource_changes'][1]['change']['actions'] = ['delete', 'create']
+        with self.assertRaises(RuntimeError):
+            validate_plan(invalid)
 
     def test_source_accepts_only_terraforms_generated_lock(self):
         with patch('prepare_disabled_autonomy_schedule.subprocess.check_output',

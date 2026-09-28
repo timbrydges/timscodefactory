@@ -25,6 +25,27 @@ EXPECTED = {
 }
 SCHEDULE = 'aws_scheduler_schedule.autonomy_acceptance[0]'
 SCHEDULE_ONLY = {SCHEDULE}
+ROLE_ADDRESS = 'aws_iam_role.autonomy_scheduler[0]'
+ROLE_AND_SCHEDULE = {ROLE_ADDRESS, SCHEDULE}
+GROUP_SOURCE = f'arn:aws:scheduler:{REGION}:{ACCOUNT}:schedule-group/default'
+OLD_SCHEDULE_SOURCE = f'arn:aws:scheduler:{REGION}:{ACCOUNT}:schedule/default/{NAME}'
+
+
+def trust_matches(document, source_arn):
+    if isinstance(document, str):
+        document = json.loads(document)
+    if not isinstance(document, dict) or document.get('Version') != '2012-10-17':
+        return False
+    statements = document.get('Statement')
+    statement = statements[0] if isinstance(statements, list) and len(statements) == 1 else statements
+    return (isinstance(statement, dict) and
+            statement.get('Action') in ('sts:AssumeRole', ['sts:AssumeRole']) and
+            {k: v for k, v in statement.items() if k != 'Action'} == {
+                'Effect': 'Allow',
+                'Principal': {'Service': 'scheduler.amazonaws.com'},
+                'Condition': {'StringEquals': {'aws:SourceAccount': ACCOUNT},
+                              'ArnEquals': {'aws:SourceArn': source_arn}},
+            })
 
 
 def source():
@@ -88,9 +109,21 @@ def validate_plan(plan):
     changes = [r for r in plan.get('resource_changes', [])
                if r.get('mode', 'managed') == 'managed' and r['change']['actions'] != ['no-op']]
     addresses = {r['address'] for r in changes}
-    if len(changes) != len(addresses) or addresses not in (EXPECTED, SCHEDULE_ONLY) or \
-            any(r['change']['actions'] != ['create'] for r in changes):
+    if (len(changes) != len(addresses) or
+            addresses not in (EXPECTED, SCHEDULE_ONLY, ROLE_AND_SCHEDULE) or
+            any(r['change']['actions'] != (['update'] if r['address'] == ROLE_ADDRESS and
+                 addresses == ROLE_AND_SCHEDULE else ['create']) for r in changes)):
         raise RuntimeError('Terraform plan must create only the disabled schedule resources')
+    if ROLE_ADDRESS in addresses:
+        role_change = next(r['change'] for r in changes if r['address'] == ROLE_ADDRESS)
+        after, before = role_change.get('after', {}), role_change.get('before', {})
+        if (role_change.get('replace_paths') or
+                not trust_matches(after.get('assume_role_policy'), GROUP_SOURCE) or
+                (addresses == ROLE_AND_SCHEDULE and (
+                    {k: v for k, v in after.items() if k != 'assume_role_policy'} !=
+                    {k: v for k, v in before.items() if k != 'assume_role_policy'} or
+                    not trust_matches(before.get('assume_role_policy'), OLD_SCHEDULE_SOURCE)))):
+            raise RuntimeError('scheduler role plan must change only exact group trust in place')
     schedule = next(r['change']['after'] for r in changes
                     if r['address'] == SCHEDULE)
     windows = schedule.get('flexible_time_window', [])
@@ -115,12 +148,12 @@ def validate_plan(plan):
     return addresses
 
 
-def assert_existing_iam(allow_schedule_in_state=False):
+def assert_existing_iam(allow_schedule_in_state=False, source_arn=GROUP_SOURCE):
     existing = set(terraform('state', 'list').splitlines())
     if not (EXPECTED - SCHEDULE_ONLY).issubset(existing) or \
             (SCHEDULE in existing and not allow_schedule_in_state):
         raise RuntimeError('existing scheduler IAM is not the expected Terraform state')
-    assert_scheduler_iam()
+    assert_scheduler_iam(source_arn)
 
 
 def checked_plan(path, status, allow_schedule_in_state=False):
@@ -128,15 +161,18 @@ def checked_plan(path, status, allow_schedule_in_state=False):
     raw = Path(path).read_bytes()
     if (metadata.get('status') != status or metadata.get('source_commit') != source() or
             metadata.get('plan_sha256') != hashlib.sha256(raw).hexdigest() or
-            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY)) or
+            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY),
+                                              sorted(ROLE_AND_SCHEDULE)) or
             metadata.get('model_calls_authorized') != 0 or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
         raise RuntimeError('disabled schedule plan/source/account changed')
     planned = validate_plan(terraform('show', '-json', str(Path(path).resolve()), json_output=True))
     if metadata['resources'] != sorted(planned):
         raise RuntimeError('disabled schedule plan resources changed')
-    if planned == SCHEDULE_ONLY:
-        assert_existing_iam(allow_schedule_in_state)
+    if planned in (SCHEDULE_ONLY, ROLE_AND_SCHEDULE):
+        assert_existing_iam(allow_schedule_in_state,
+                            GROUP_SOURCE if allow_schedule_in_state or planned == SCHEDULE_ONLY
+                            else OLD_SCHEDULE_SOURCE)
     assert_controller()
     return metadata
 
@@ -155,8 +191,9 @@ def prepare(path):
     path = Path(path).resolve()
     terraform('plan', '-input=false', '-out=' + str(path), *variables)
     planned = validate_plan(terraform('show', '-json', str(path), json_output=True))
-    if planned == SCHEDULE_ONLY:
-        assert_existing_iam()
+    if planned in (SCHEDULE_ONLY, ROLE_AND_SCHEDULE):
+        assert_existing_iam(source_arn=GROUP_SOURCE if planned == SCHEDULE_ONLY
+                            else OLD_SCHEDULE_SOURCE)
     metadata = {'status': 'PREPARED_NOT_EXECUTED', 'source_commit': commit,
                 'plan_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                 'resources': sorted(planned), 'model_calls_authorized': 0}
@@ -188,7 +225,8 @@ def verify(path):
     metadata = json.loads(Path(str(path) + '.json').read_text(encoding='utf-8'))
     if (metadata.get('status') != 'DEPLOYED_PENDING_CANARY' or
             metadata.get('source_commit') != source() or
-            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY)) or
+            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY),
+                                              sorted(ROLE_AND_SCHEDULE)) or
             metadata.get('model_calls_authorized') != 0 or
             metadata.get('plan_sha256') != hashlib.sha256(Path(path).read_bytes()).hexdigest() or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
@@ -203,7 +241,7 @@ def verify(path):
                       'source_commit': metadata['source_commit'], 'model_calls': 0}))
 
 
-def assert_scheduler_iam():
+def assert_scheduler_iam(source_arn=GROUP_SOURCE):
     policy = aws('iam', 'get-role-policy', '--role-name', ROLE.rsplit('/', 1)[1],
                  '--policy-name', 'tims-software-factory-autonomy-scheduler-invoke')
     statements = policy['PolicyDocument']['Statement']
@@ -215,16 +253,8 @@ def assert_scheduler_iam():
             set(statement) != {'Sid', 'Effect', 'Action', 'Resource'}):
         raise RuntimeError('scheduler role has unexpected invoke rights')
     role = aws('iam', 'get-role', '--role-name', ROLE.rsplit('/', 1)[1])['Role']
-    trust = role.get('AssumeRolePolicyDocument', {}).get('Statement')
-    expected_trust = {'Effect': 'Allow',
-        'Principal': {'Service': 'scheduler.amazonaws.com'},
-        'Condition': {'StringEquals': {'aws:SourceAccount': ACCOUNT},
-                      'ArnEquals': {'aws:SourceArn':
-                          f'arn:aws:scheduler:{REGION}:{ACCOUNT}:schedule/default/{NAME}'}}}
-    trust_statement = trust[0] if isinstance(trust, list) and len(trust) == 1 else trust
-    if (role.get('Arn') != ROLE or not isinstance(trust_statement, dict) or
-            trust_statement.get('Action') not in ('sts:AssumeRole', ['sts:AssumeRole']) or
-            {k: v for k, v in trust_statement.items() if k != 'Action'} != expected_trust):
+    if role.get('Arn') != ROLE or not trust_matches(
+            role.get('AssumeRolePolicyDocument'), source_arn):
         raise RuntimeError('scheduler role trust differs from exact schedule')
     attached = aws('iam', 'list-attached-role-policies', '--role-name', ROLE.rsplit('/', 1)[1])
     inline = aws('iam', 'list-role-policies', '--role-name', ROLE.rsplit('/', 1)[1])
