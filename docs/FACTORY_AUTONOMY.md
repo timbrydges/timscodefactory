@@ -558,3 +558,15 @@ required exact schedule-group trust while creating only the disabled schedule.
 A read-only reconcile
 path handles an interrupted apply without replaying it. Schedule deployment
 still requires the AWS canary; this source change enables no schedule or model.
+
+### Disabled schedule deployed and canaried — 2026-09-28
+
+The guarded Terraform plan at `fdee64e8a349a1c902e68bc85d8d8079d1e51268`
+updated only the execution role's trust to the exact `default` schedule group
+and created the acceptance schedule in `DISABLED` state. The AWS canary and
+post-apply IAM/state verifier passed; the reported model-call count was zero.
+The operator's CloudShell screenshot is transcribed in
+`factory/evidence/disabled-schedule-live-verification-2026-09-28.json` and its
+SHA-256 is retained there. This closes `disabled_schedule_deployment_and_canary`.
+The operational backend, receipt-writer IAM and independent activation review
+remain separate pending gates; this schedule does not run unattended work.

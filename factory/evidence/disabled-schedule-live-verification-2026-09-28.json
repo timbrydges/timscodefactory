@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "event_id": "disabled-schedule-live-verification-2026-09-28",
+  "status": "DISABLED_ACCEPTANCE_SCHEDULE_VERIFIED",
+  "source_commit": "fdee64e8a349a1c902e68bc85d8d8079d1e51268",
+  "aws_account": "666730517561",
+  "region": "ca-central-1",
+  "schedule": "tims-software-factory-autonomy-acceptance",
+  "schedule_state": "DISABLED",
+  "canary": "PASS",
+  "terraform_changes": [
+    "aws_iam_role.autonomy_scheduler[0] (in-place trust update)",
+    "aws_scheduler_schedule.autonomy_acceptance[0] (create)"
+  ],
+  "model_calls": 0,
+  "capture_method": "Transcribed from the operator's AWS CloudShell screenshot after guarded prepare, execute and verify completed.",
+  "capture_file": "Screenshot_20260928_043531_AWS Console.jpg",
+  "capture_sha256": "95f961c73cd845528b97a05fccd9a83d9b9185ab0bf97cb46921878967cade50",
+  "raw_cloudshell_evidence_in_repository": false,
+  "scope": "Disabled schedule deployment and read-only canary only; no operational activation or production release."
+}
