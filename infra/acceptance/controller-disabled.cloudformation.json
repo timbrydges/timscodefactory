@@ -1,0 +1,79 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Inert acceptance scheduler target; no operational access, model calls, or release authority.",
+  "Parameters": {
+    "ArtifactBucket": {"Type": "String", "AllowedValues": ["tims-software-factory-666730517561-ca-central-1"]},
+    "ArtifactKey": {"Type": "String"},
+    "ArtifactVersion": {"Type": "String"},
+    "CodeSha256": {"Type": "String"}
+  },
+  "Resources": {
+    "ControllerLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-software-factory-autonomy-controller",
+        "RetentionInDays": 14
+      }
+    },
+    "ControllerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-software-factory-autonomy-controller-disabled",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]
+        },
+        "Policies": [{
+          "PolicyName": "canary-logs-only",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+              "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-software-factory-autonomy-controller:*"
+            }]
+          }
+        }]
+      }
+    },
+    "ControllerFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": ["ControllerLogs"],
+      "Properties": {
+        "FunctionName": "tims-software-factory-autonomy-controller",
+        "Runtime": "python3.12",
+        "Architectures": ["x86_64"],
+        "Handler": "factory_runtime.autonomy_controller_lambda.handler",
+        "Role": {"Fn::GetAtt": ["ControllerRole", "Arn"]},
+        "Code": {
+          "S3Bucket": {"Ref": "ArtifactBucket"},
+          "S3Key": {"Ref": "ArtifactKey"},
+          "S3ObjectVersion": {"Ref": "ArtifactVersion"}
+        },
+        "MemorySize": 128,
+        "Timeout": 10,
+        "Environment": {"Variables": {"FACTORY_AUTONOMY_CONTROLLER_ENABLED": "false"}},
+        "Description": "Disabled acceptance controller; only model-free deployment probe"
+      }
+    },
+    "ControllerVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {"Ref": "ControllerFunction"},
+        "CodeSha256": {"Ref": "CodeSha256"}
+      }
+    },
+    "AcceptanceAlias": {
+      "Type": "AWS::Lambda::Alias",
+      "Properties": {
+        "Name": "acceptance",
+        "FunctionName": {"Ref": "ControllerFunction"},
+        "FunctionVersion": {"Fn::GetAtt": ["ControllerVersion", "Version"]}
+      }
+    }
+  },
+  "Outputs": {
+    "AcceptanceAliasArn": {"Value": {"Ref": "AcceptanceAlias"}},
+    "ControllerVersionArn": {"Value": {"Ref": "ControllerVersion"}}
+  }
+}

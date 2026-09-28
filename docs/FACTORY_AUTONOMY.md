@@ -538,3 +538,13 @@ only the implementation-preparation subgate; `disabled_schedule_deployment_and_c
 remains pending until the operational backend exists, the disabled schedule is
 deployed, and the canary passes in AWS. No schedule was deployed or enabled, no
 provider call was made, and production release remains denied.
+
+### Disabled acceptance controller target prepared — 2026-09-28
+
+The acceptance schedule's exact target alias now has a separately staged
+CloudFormation deployment. Its Lambda role can write only its own logs, and its
+handler accepts only a model-free disabled-deployment probe. A guarded change
+set creates the function, immutable version and `acceptance` alias, followed by
+verification of the deployed code hash, alias, IAM boundary and disabled probe.
+This prepares the scheduler target without enabling the operational backend or
+the schedule. Neither is claimed deployed until the AWS verification passes.
