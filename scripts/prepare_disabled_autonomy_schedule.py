@@ -23,6 +23,8 @@ EXPECTED = {
     'aws_iam_role_policy.autonomy_scheduler_invoke[0]',
     'aws_scheduler_schedule.autonomy_acceptance[0]',
 }
+SCHEDULE = 'aws_scheduler_schedule.autonomy_acceptance[0]'
+SCHEDULE_ONLY = {SCHEDULE}
 
 
 def source():
@@ -86,11 +88,11 @@ def validate_plan(plan):
     changes = [r for r in plan.get('resource_changes', [])
                if r.get('mode', 'managed') == 'managed' and r['change']['actions'] != ['no-op']]
     addresses = {r['address'] for r in changes}
-    if len(changes) != 3 or addresses != EXPECTED or \
+    if len(changes) != len(addresses) or addresses not in (EXPECTED, SCHEDULE_ONLY) or \
             any(r['change']['actions'] != ['create'] for r in changes):
-        raise RuntimeError('Terraform plan must create only the three disabled schedule resources')
+        raise RuntimeError('Terraform plan must create only the disabled schedule resources')
     schedule = next(r['change']['after'] for r in changes
-                    if r['address'] == 'aws_scheduler_schedule.autonomy_acceptance[0]')
+                    if r['address'] == SCHEDULE)
     windows = schedule.get('flexible_time_window', [])
     targets = schedule.get('target', [])
     if len(windows) != 1 or len(targets) != 1:
@@ -110,18 +112,31 @@ def validate_plan(plan):
             retry.get('maximum_retry_attempts') != 0 or
             retry.get('maximum_event_age_in_seconds') != 60):
         raise RuntimeError('planned schedule does not match disabled acceptance binding')
+    return addresses
 
 
-def checked_plan(path, status):
+def assert_existing_iam(allow_schedule_in_state=False):
+    existing = set(terraform('state', 'list').splitlines())
+    if not (EXPECTED - SCHEDULE_ONLY).issubset(existing) or \
+            (SCHEDULE in existing and not allow_schedule_in_state):
+        raise RuntimeError('existing scheduler IAM is not the expected Terraform state')
+    assert_scheduler_iam()
+
+
+def checked_plan(path, status, allow_schedule_in_state=False):
     metadata = json.loads(Path(str(path) + '.json').read_text(encoding='utf-8'))
     raw = Path(path).read_bytes()
     if (metadata.get('status') != status or metadata.get('source_commit') != source() or
             metadata.get('plan_sha256') != hashlib.sha256(raw).hexdigest() or
-            metadata.get('resources') != sorted(EXPECTED) or
+            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY)) or
             metadata.get('model_calls_authorized') != 0 or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
         raise RuntimeError('disabled schedule plan/source/account changed')
-    validate_plan(terraform('show', '-json', str(Path(path).resolve()), json_output=True))
+    planned = validate_plan(terraform('show', '-json', str(Path(path).resolve()), json_output=True))
+    if metadata['resources'] != sorted(planned):
+        raise RuntimeError('disabled schedule plan resources changed')
+    if planned == SCHEDULE_ONLY:
+        assert_existing_iam(allow_schedule_in_state)
     assert_controller()
     return metadata
 
@@ -139,10 +154,12 @@ def prepare(path):
     variables = terraform_vars()
     path = Path(path).resolve()
     terraform('plan', '-input=false', '-out=' + str(path), *variables)
-    validate_plan(terraform('show', '-json', str(path), json_output=True))
+    planned = validate_plan(terraform('show', '-json', str(path), json_output=True))
+    if planned == SCHEDULE_ONLY:
+        assert_existing_iam()
     metadata = {'status': 'PREPARED_NOT_EXECUTED', 'source_commit': commit,
                 'plan_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-                'resources': sorted(EXPECTED), 'model_calls_authorized': 0}
+                'resources': sorted(planned), 'model_calls_authorized': 0}
     Path(str(path) + '.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata))
 
@@ -156,7 +173,7 @@ def execute(path):
 
 
 def reconcile(path):
-    metadata = checked_plan(path, 'PREPARED_NOT_EXECUTED')
+    metadata = checked_plan(path, 'PREPARED_NOT_EXECUTED', allow_schedule_in_state=True)
     # An interrupted Terraform apply must be inspected, never applied again.
     state = set(terraform('state', 'list').splitlines())
     if not EXPECTED.issubset(state):
@@ -171,13 +188,22 @@ def verify(path):
     metadata = json.loads(Path(str(path) + '.json').read_text(encoding='utf-8'))
     if (metadata.get('status') != 'DEPLOYED_PENDING_CANARY' or
             metadata.get('source_commit') != source() or
-            metadata.get('resources') != sorted(EXPECTED) or
+            metadata.get('resources') not in (sorted(EXPECTED), sorted(SCHEDULE_ONLY)) or
             metadata.get('model_calls_authorized') != 0 or
             metadata.get('plan_sha256') != hashlib.sha256(Path(path).read_bytes()).hexdigest() or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
         raise RuntimeError('schedule verification differs from prepared account/source')
     assert_controller()
     verify_schedule()
+    if not EXPECTED.issubset(set(terraform('state', 'list').splitlines())):
+        raise RuntimeError('verified schedule resources are not all in Terraform state')
+    assert_scheduler_iam()
+    print(json.dumps({'status': 'DISABLED_ACCEPTANCE_SCHEDULE_VERIFIED',
+                      'schedule': NAME, 'state': 'DISABLED',
+                      'source_commit': metadata['source_commit'], 'model_calls': 0}))
+
+
+def assert_scheduler_iam():
     policy = aws('iam', 'get-role-policy', '--role-name', ROLE.rsplit('/', 1)[1],
                  '--policy-name', 'tims-software-factory-autonomy-scheduler-invoke')
     statements = policy['PolicyDocument']['Statement']
@@ -205,9 +231,6 @@ def verify(path):
     if attached.get('AttachedPolicies') != [] or inline.get('PolicyNames') != [
             'tims-software-factory-autonomy-scheduler-invoke']:
         raise RuntimeError('scheduler role has additional policies')
-    print(json.dumps({'status': 'DISABLED_ACCEPTANCE_SCHEDULE_VERIFIED',
-                      'schedule': NAME, 'state': 'DISABLED',
-                      'source_commit': metadata['source_commit'], 'model_calls': 0}))
 
 
 if __name__ == '__main__':
