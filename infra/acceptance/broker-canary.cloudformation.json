@@ -24,6 +24,10 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "tims-factory-acceptance-broker-canary",
+        "ManagedPolicyArns": [
+          "arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-broker-records",
+          "arn:aws:iam::666730517561:policy/tims-software-factory-provider-broker-secret-reader"
+        ],
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [{
