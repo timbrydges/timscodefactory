@@ -77,7 +77,7 @@ resource "aws_scheduler_schedule" "autonomy_acceptance" {
     arn      = local.autonomy_target_arn
     role_arn = aws_iam_role.autonomy_scheduler[0].arn
     input = jsonencode({
-      factory_id = "factory"
+      factory_id = "tims-software-factory"
       task_id    = "deterministic-text-fingerprint"
       mode       = "acceptance"
     })
