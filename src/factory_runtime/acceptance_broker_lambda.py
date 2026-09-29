@@ -25,7 +25,8 @@ def _disabled_broker_backend(root: Path, *, source_commit: str) -> None:
     from .openai_provider import OpenAIProviderPolicy
 
     allowance = load_autonomy_operating_allowance(root)
-    if (allowance.activation_ready or allowance.production_release_authorized or
+    if (allowance.status == 'ACTIVE' or not allowance.pending_gates or
+            allowance.production_release_authorized or
             allowance.acceptance_task_id != 'deterministic-text-fingerprint' or
             allowance.target_alias != 'coding_primary_sol_live' or
             allowance.model_id != 'gpt-5.6-sol' or

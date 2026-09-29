@@ -27,12 +27,13 @@ move to verified.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
 - This draft candidate changes only the approved Sol target's policy and
-  catalog switches to `enabled: true`; Terra stays false. Both
-  `approved_target_technical_enablement` and
-  `independent_pre_activation_review` remain pending in the contract, so the
-  live authorizer still denies. The broker, Builder, controller and schedule
-  have separate disabled switches. No provider call or approval receipt is
-  authorized by this candidate.
+  catalog switches to `enabled: true`; Terra stays false.
+  `approved_target_technical_enablement`, `independent_pre_activation_review`,
+  `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
+  and `guarded_schedule_activation` remain pending, so the live authorizer
+  still denies. The broker and Builder have separate disabled switches. The
+  controller has only a disabled probe, and Terraform keeps the schedule
+  disabled. No provider call or approval receipt is authorized by this candidate.
 
 ## Review before gate closure or deployment
 
@@ -48,11 +49,17 @@ move to verified.
 4. Inspect this target candidate and the later gate-closing diff. The runtime
    scope must remain the exact Sol target, retain the unapproved challenger
    off, preserve Tim-only release authority, and use a fresh quote. This
-   candidate alone does not close either remaining gate.
+   candidate alone does not close any remaining gate.
 5. Require a signed or authenticated review tied to the exact activation PR
    head, with concrete findings and an explicit approve or changes-needed
    decision. A self-review, CI success, synthetic signature, or this packet
    alone does not close the independent review gate.
+6. Require an independently verified live controller that enforces the exact
+   task, budget, stop conditions, durable state and replay behavior. Verify
+   the pinned broker and Builder deployments with their operational switches
+   enabled before closing the role gate. Review the schedule enablement and
+   its execution role separately, then canary it under the same limits. The
+   present disabled controller probe and schedule do not establish these gates.
 
 Until that decision and the separately reviewed target change are recorded,
 keep the contract default `DENY`, all operational switches off, and the

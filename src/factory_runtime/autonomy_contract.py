@@ -19,6 +19,7 @@ SCHEMA_PATH = Path('factory/schemas/autonomy-operating-contract.schema.json')
 @dataclass(frozen=True)
 class AutonomyOperatingAllowance:
     contract_id: str
+    status: str
     provider_family: str
     model_id: str
     target_alias: str
@@ -43,7 +44,7 @@ class AutonomyOperatingAllowance:
 
     @property
     def activation_ready(self) -> bool:
-        return not self.pending_gates
+        return self.status == 'ACTIVE' and not self.pending_gates
 
 
 def _decimal(value, name):
@@ -169,7 +170,7 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
     pending = tuple(contract['activation']['pending_gates'])
     if contract['status'] == 'ACTIVE' and pending:
         raise StateError('active autonomy contract retains pending gates')
-    return AutonomyOperatingAllowance(contract['contract_id'], provider['family'],
+    return AutonomyOperatingAllowance(contract['contract_id'], contract['status'], provider['family'],
         provider['model_id'], provider['target_alias'],
         target['repository_full_name'], target['repository_id'],
         target['contract_commit'], target['contract_sha256'], target['task_id'],
