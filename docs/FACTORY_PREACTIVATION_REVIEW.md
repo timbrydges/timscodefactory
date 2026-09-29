@@ -103,9 +103,9 @@ live controller deployment, or permission to enable the schedule.
 `scripts/prepare_acceptance_inspector_review.py BINDING.json PLAN.json INPUT
 CONTRACT OUT.json` prepares the exact material for the separate AI Inspector.
 It validates the same activation and scope bindings, marks task bytes as
-untrusted, and emits no verdict, signature, receipt version or model-call
-authority. The proposed `ACCEPTED` payload is an input for inspection, not an
-Inspector decision. A live Inspector review and separately authenticated
+untrusted, and emits a review request without the caller's proposed verdict
+or rationale. It emits no signature, receipt version or model-call authority.
+A live Inspector decision and separately authenticated
 receipt publisher are still required before job publication.
 
 Until the target change and remaining technical gates are recorded,
