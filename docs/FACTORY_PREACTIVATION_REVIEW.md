@@ -64,8 +64,22 @@ move to verified.
 The repository includes an `AcceptanceController` guard that reloads the
 operating allowance and price before a tick, checks the deployment binding,
 and delegates to the bounded scheduler. It is implementation preparation only:
-the deployed Lambda remains probe-only, and the durable job source, receipt
-inputs, role transport, IAM and operational canary are still outstanding.
+the deployed Lambda remains probe-only. `VersionedS3AcceptanceJobSource` can
+restore a deployment-pinned stage plan and two exact receipt versions from a
+versioned S3 object, checking its checksum, digest, task, stage and bytes. The
+separate receipt transport and intake must still verify the owner and reviewer
+signatures. Publishing the reviewed jobs and receipts, deploying the controller
+with scoped IAM, and its operational canary are still outstanding.
+
+The controller Lambda now has a guarded composition branch for one pinned
+Builder stage: it parses deployment-owned activation and job versions before
+constructing DynamoDB state/dispatch/budget adapters, the S3 job and receipt
+readers, the public signer registry, and a version-pinned Builder executor.
+The controller has no signing key or provider credential, and its guard cannot
+execute a provider call. The deployed CloudFormation template still hard-codes
+`FACTORY_AUTONOMY_CONTROLLER_ENABLED=false`; no operational IAM, reviewed job
+publication or live invocation has been deployed or verified. This branch alone
+does not close `live_controller_runtime_deployment`.
 
 Until that decision and the separately reviewed target change are recorded,
 keep the contract default `DENY`, all operational switches off, and the
