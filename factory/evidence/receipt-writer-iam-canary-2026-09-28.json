@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "event_id": "receipt-writer-iam-canary-2026-09-28",
+  "status": "LEAST_PRIVILEGE_RECEIPT_WRITER_IAM_VERIFIED",
+  "source_commit": "aee0cebfdd0af7224b2fd5828f97c162a6b00497",
+  "aws_account": "666730517561",
+  "region": "ca-central-1",
+  "capture_method": "GitHub Actions run metadata, job status and decoded live job logs inspected for each isolated manual canary.",
+  "canaries": {
+    "owner": {
+      "workflow_run": "https://github.com/timbrydges/timscodefactory/actions/runs/36527044416",
+      "job_id": 109272273180,
+      "run_attempt": 1,
+      "actor": "timbrydges",
+      "caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-owner/signing-owner-36527044416",
+      "object_key": "factory-scope-receipts/5662f4d0fb08adce195f82b3509acc491f5401be7f5ebcf16d36b8824ce9294f/owner.json",
+      "object_version": "ynDCrFW11H3BJWrBJkG4ltREKaRH74MK",
+      "body_sha256": "13cbd985a4191ea9c10fb70f800384156c6d8f68ab419a7e36c1dee07d11391a",
+      "own_encrypted_put": "allowed",
+      "cross_put": "AccessDenied",
+      "unencrypted_put": "AccessDenied",
+      "approval_receipts_published": 0,
+      "inert_canary_objects_published": 1,
+      "model_calls": 0
+    },
+    "reviewer": {
+      "workflow_run": "https://github.com/timbrydges/timscodefactory/actions/runs/36527291302",
+      "job_id": 109273026414,
+      "run_attempt": 1,
+      "actor": "timbrydges",
+      "caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-inspector/signing-inspector-36527291302",
+      "object_key": "factory-scope-receipts/53347bbbbc23548c9ae95787e1e8cb33dc33f13e960dd84f93f1305bfde70fa2/reviewer.json",
+      "object_version": "emIBCgmMzfqkbxHqHCjgizugISTCWbdp",
+      "body_sha256": "d89667831ea41fe1fe3c92391c0332d98c23b35f345a296cbe1f9c621ccf8106",
+      "own_encrypted_put": "allowed",
+      "cross_put": "AccessDenied",
+      "unencrypted_put": "AccessDenied",
+      "approval_receipts_published": 0,
+      "inert_canary_objects_published": 1,
+      "model_calls": 0
+    }
+  },
+  "scope": "Only inert IAM canaries. No approval signature, receipt, provider call, secret read, operational enablement or release action. Other activation gates remain pending."
+}
