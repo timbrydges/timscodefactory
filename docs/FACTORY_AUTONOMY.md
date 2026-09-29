@@ -561,6 +561,17 @@ remains separately gated. Two successful live runs are required before the
 receipt-writer IAM gate can close; neither canary signs an approval or enables
 the schedule, broker or provider.
 
+Both isolated canaries passed on the same reviewed `main` commit
+`aee0cebfdd0af7224b2fd5828f97c162a6b00497`: owner run
+`36527044416` and inspector run `36527291302`. Each assumed its distinct
+OIDC role, wrote one inert AES256 versioned object to only its own suffix,
+and received `AccessDenied` for cross-writer and unencrypted writes. The
+ordinary signing jobs were skipped; neither run published an approval receipt
+or called a model. The run IDs, object versions and body digests are recorded
+in `factory/evidence/receipt-writer-iam-canary-2026-09-28.json`. This closes
+`least_privilege_receipt_writer_iam` while the remaining activation gates and
+disabled execution boundary remain in force.
+
 ### Acceptance infrastructure read-only verifier — 2026-09-27
 
 `scripts/verify_acceptance_infrastructure.py OUTPUT_JSON` checks the two
