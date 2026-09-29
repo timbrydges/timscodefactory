@@ -129,6 +129,14 @@ policy is attached, and no Bedrock call or receipt is authorized. An
 acceptance-specific financial allowance and isolated execution deployment
 are still required.
 
+The role template includes an exact Sonnet 5.5 Inspector policy behind
+`EnableInspectorAcceptanceIam`, which defaults to `false`. The currently
+deployed role has no acceptance invoke permission. The policy matches the
+observed global and ca-central-1 foundation-model routes; a future profile
+change requires a new review. Do not enable the parameter until the separate
+Inspector price, reservation cap, publisher, and model-free deployment plan
+have been verified. The Lambda operational switch remains `false`.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
