@@ -587,3 +587,11 @@ recorded in `factory/evidence/operational-backend-live-verification-2026-09-28.j
 This closes `operational_role_backend_deployment` while the credential path,
 fresh pricing, target enablement, receipt writers and independent review remain
 pending. The schedule and operational roles remain disabled.
+
+The next disabled broker code update now preserves and verifies the two already
+staged managed policies instead of expecting the earlier logs-only role. Its
+guarded change set accepts only the broker function code and immutable version;
+it compares the deployed template, role policies and disabled environment before
+execution and performs a model-free probe afterward. The broker update itself
+still requires live AWS deployment and verification. The provider secret value
+is never read by the probe.

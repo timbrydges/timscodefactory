@@ -1,7 +1,7 @@
 """Update and verify the existing disabled acceptance broker Lambda version.
 
-Only the function code and immutable version may change. The broker role,
-permissions, kill switch and log group remain unchanged.
+Only the function code and immutable version may change. The staged exact
+broker policies, kill switch and log group remain unchanged.
 """
 from __future__ import annotations
 
@@ -16,10 +16,12 @@ try:
     from .prepare_acceptance_broker_canary import (
         ACCOUNT, BUCKET, FUNCTION, REGION, ROLE, STACK, TEMPLATE, aws, source,
     )
+    from .prepare_acceptance_broker_iam import POLICY_ARNS, POLICY_NAMES, _assert_policy_documents
 except ImportError:
     from prepare_acceptance_broker_canary import (
         ACCOUNT, BUCKET, FUNCTION, REGION, ROLE, STACK, TEMPLATE, aws, source,
     )
+    from prepare_acceptance_broker_iam import POLICY_ARNS, POLICY_NAMES, _assert_policy_documents
 
 
 def validate_changes(changes):
@@ -39,14 +41,34 @@ def validate_disabled_template():
     template = json.loads(TEMPLATE.read_text(encoding='utf-8'))
     role = template['Resources']['BrokerRole']['Properties']
     function = template['Resources']['BrokerFunction']['Properties']
-    if (role.get('ManagedPolicyArns') is not None or
+    if (role.get('ManagedPolicyArns') != list(POLICY_ARNS) or
+            [item.get('PolicyName') for item in role.get('Policies', [])] != ['canary-logs-only'] or
             function['Environment']['Variables'] != {
                 'FACTORY_ACCEPTANCE_BROKER_ENABLED': 'false',
                 'FACTORY_ACCEPTANCE_ACTIVATION_JSON': {'Ref': 'BrokerActivationJson'},
                 'FACTORY_OPENAI_SECRET_ARN': {'Ref': 'ProviderSecretArn'}} or
             template['Parameters']['BrokerActivationJson'].get('Default') != '' or
             template['Parameters']['ProviderSecretArn'].get('Default') != ''):
-        raise RuntimeError('broker update must remain disabled and credential-free')
+        raise RuntimeError('broker update must preserve exact staged IAM and disabled environment')
+
+
+def validate_deployed_template():
+    deployed = aws('cloudformation', 'get-template', '--stack-name', STACK)['TemplateBody']
+    if isinstance(deployed, str):
+        deployed = json.loads(deployed)
+    if deployed != json.loads(TEMPLATE.read_text(encoding='utf-8')):
+        raise RuntimeError('deployed broker template differs beyond the code artifact')
+
+
+def validate_role_iam():
+    attached = aws('iam', 'list-attached-role-policies', '--role-name', ROLE)
+    inline = aws('iam', 'list-role-policies', '--role-name', ROLE)
+    if (attached.get('IsTruncated') or inline.get('IsTruncated') or
+            {(item['PolicyName'], item['PolicyArn']) for item in
+             attached.get('AttachedPolicies', [])} != set(zip(POLICY_NAMES, POLICY_ARNS)) or
+            inline.get('PolicyNames') != ['canary-logs-only']):
+        raise RuntimeError('broker role differs from exact staged IAM')
+    _assert_policy_documents()
 
 
 def _stack():
@@ -87,6 +109,8 @@ def prepare(package, plan_path):
     if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError('wrong AWS account')
     before = _stack()
+    validate_deployed_template()
+    validate_role_iam()
     previous = _version(before)
     package = Path(package).resolve()
     manifest = json.loads(package.with_suffix('.json').read_text(encoding='utf-8'))
@@ -126,6 +150,8 @@ def prepare(package, plan_path):
 def execute(plan_path):
     validate_disabled_template()
     plan = _plan(plan_path, required_status='PREPARED_NOT_EXECUTED')
+    validate_deployed_template()
+    validate_role_iam()
     described = aws('cloudformation', 'describe-change-set', '--change-set-name', plan['change_set_arn'])
     validate_changes(described['Changes'])
     if (described['Changes'] != plan['changes'] or
@@ -181,15 +207,12 @@ def verify(plan_path):
              'FACTORY_ACCEPTANCE_ACTIVATION_JSON': '',
              'FACTORY_OPENAI_SECRET_ARN': ''}):
         raise RuntimeError('broker update code, role, handler or kill switch differs')
-    attached = aws('iam', 'list-attached-role-policies', '--role-name', ROLE)
-    inline = aws('iam', 'list-role-policies', '--role-name', ROLE)
+    validate_role_iam()
     policy = aws('iam', 'get-role-policy', '--role-name', ROLE,
                  '--policy-name', 'canary-logs-only')['PolicyDocument']
     expected_resource = (f'arn:aws:logs:{REGION}:{ACCOUNT}:log-group:'
                          f'/aws/lambda/{FUNCTION}:*')
-    if (attached.get('AttachedPolicies') != [] or
-            inline.get('PolicyNames') != ['canary-logs-only'] or
-            policy.get('Statement') != [{'Effect': 'Allow',
+    if (policy.get('Statement') != [{'Effect': 'Allow',
                 'Action': ['logs:CreateLogStream', 'logs:PutLogEvents'],
                 'Resource': expected_resource}]):
         raise RuntimeError('broker update gained additional IAM permissions')

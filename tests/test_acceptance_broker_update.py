@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from prepare_acceptance_broker_update import TEMPLATE, execute, validate_changes
-from prepare_acceptance_broker_update import validate_disabled_template
+from prepare_acceptance_broker_update import validate_disabled_template, validate_role_iam
 
 COMMIT = 'a' * 40
 OLD_ARN = 'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:1'
@@ -24,9 +24,24 @@ def changes():
 
 
 class AcceptanceBrokerUpdateTests(unittest.TestCase):
-    def test_legacy_code_updater_fails_closed_after_iam_stage(self):
-        with self.assertRaisesRegex(RuntimeError, 'credential-free'):
-            validate_disabled_template()
+    def test_code_updater_preserves_staged_broker_iam_and_disabled_switch(self):
+        validate_disabled_template()
+        template = json.loads(TEMPLATE.read_text())
+        self.assertEqual(len(template['Resources']['BrokerRole']['Properties']['ManagedPolicyArns']), 2)
+        self.assertEqual(template['Resources']['BrokerFunction']['Properties'][
+            'Environment']['Variables']['FACTORY_ACCEPTANCE_BROKER_ENABLED'], 'false')
+
+    def test_role_iam_rejects_extra_policy_before_deployment(self):
+        def aws_stub(service, operation, *args):
+            if operation == 'list-attached-role-policies':
+                return {'AttachedPolicies': [{'PolicyName': 'unexpected',
+                                              'PolicyArn': 'arn:aws:iam::666730517561:policy/unexpected'}]}
+            if operation == 'list-role-policies':
+                return {'PolicyNames': ['canary-logs-only']}
+            raise AssertionError('unexpected cloud action')
+        with patch('prepare_acceptance_broker_update.aws', side_effect=aws_stub):
+            with self.assertRaisesRegex(RuntimeError, 'exact staged IAM'):
+                validate_role_iam()
 
     def test_only_function_and_immutable_version_may_change(self):
         validate_changes(changes())
