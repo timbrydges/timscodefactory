@@ -17,7 +17,16 @@ def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
     contract_path = 'factory/autonomy/operating-contract.yaml'
     schema_path = 'factory/schemas/autonomy-operating-contract.schema.json'
     contract = yaml.safe_load((root / contract_path).read_text(encoding='utf-8'))
-    paths = {contract_path, schema_path, contract['approval']['evidence'],
+    # Active acceptance checks load these public, reviewable profiles from the
+    # Lambda task root. Missing profiles would leave the deployed controller
+    # unable to validate the exact Sol target before any durable work.
+    provider_paths = {
+        'factory/profiles/provider-live-activation.yaml',
+        'factory/profiles/provider-models.yaml',
+        'factory/evals/provider-qualification.yaml',
+        'factory/evals/provider-repair-corpus-v1.json',
+    }
+    paths = provider_paths | {contract_path, schema_path, contract['approval']['evidence'],
              contract['acceptance_target']['evidence'], contract['pricing_reference']['evidence']}
     paths.update(gate['evidence'] for gate in contract['activation']['verified_gates'].values())
     manifest = (root / 'MANIFEST.sha256').read_text(encoding='utf-8')

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT/'src'))
 from factory_runtime.lambda_role import (handle_operational_boundary_probe,
                                          handle_probe, handle_transport)
+from factory_runtime.live_provider_activation import validate_live_provider_preparation
 from factory_state.kms_signer import SIGNERS
 from factory_state.scope import SignedScopeStore
 from factory_state.model import StateError
@@ -96,12 +97,19 @@ class RoleDeploymentTests(unittest.TestCase):
                  'nonce':'boundary-probe-1234','task_id':'deterministic-text-fingerprint'}
         paths = contract_paths()
         self.assertIn('factory/autonomy/operating-contract.yaml', paths)
+        self.assertTrue({
+            'factory/profiles/provider-live-activation.yaml',
+            'factory/profiles/provider-models.yaml',
+            'factory/evals/provider-qualification.yaml',
+            'factory/evals/provider-repair-corpus-v1.json',
+        }.issubset(paths))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             for name in paths:
                 target = root/name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT/name, target)
+            self.assertFalse(validate_live_provider_preparation(root).all_live_targets_disabled)
             proof = handle_operational_boundary_probe(event, role='builder',
                 commit='a'*40, signer=Signer(), now=NOW, root=root)
             self.assertFalse(proof['operational_execution_enabled'])
