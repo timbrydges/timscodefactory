@@ -43,6 +43,22 @@ class InspectorIamTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 build_policy({**description, **change})
 
+    def test_global_and_regional_routes_for_same_model(self):
+        model = 'anthropic.claude-sonnet-5-5'
+        description = {**self.description(),
+                       'inferenceProfileArn': ARN.replace(MODEL, model),
+                       'inferenceProfileId': 'global.' + model,
+                       'models': [
+                           {'modelArn': 'arn:aws:bedrock:::foundation-model/' + model},
+                           {'modelArn': 'arn:aws:bedrock:ca-central-1::foundation-model/' + model}]}
+        resources = build_policy(description)['Statement'][1]['Resource']
+        self.assertEqual(resources, [
+            'arn:aws:bedrock:ca-central-1::foundation-model/' + model,
+            'arn:aws:bedrock:::foundation-model/' + model])
+        description['models'][0]['modelArn'] += '-unexpected'
+        with self.assertRaises(ValueError):
+            build_policy(description)
+
 
 if __name__ == '__main__':
     unittest.main()
