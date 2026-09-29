@@ -63,8 +63,12 @@ move to verified.
 The repository includes an `AcceptanceController` guard that reloads the
 operating allowance and price before a tick, checks the deployment binding,
 and delegates to the bounded scheduler. It is implementation preparation only:
-the deployed Lambda remains probe-only, and the durable job source, receipt
-inputs, role transport, IAM and operational canary are still outstanding.
+the deployed Lambda remains probe-only. `VersionedS3AcceptanceJobSource` can
+restore a deployment-pinned stage plan and two exact receipt versions from a
+versioned S3 object, checking its checksum, digest, task, stage and bytes. The
+separate receipt transport and intake must still verify the owner and reviewer
+signatures. Publishing the reviewed jobs and receipts, wiring the controller,
+IAM and operational canary are still outstanding.
 
 Until that decision and the separately reviewed target change are recorded,
 keep the contract default `DENY`, all operational switches off, and the
