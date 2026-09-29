@@ -574,3 +574,16 @@ The operator's CloudShell screenshot is transcribed in
 SHA-256 is retained there. This closes `disabled_schedule_deployment_and_canary`.
 The operational backend, receipt-writer IAM and independent activation review
 remain separate pending gates; this schedule does not run unattended work.
+
+### Disabled operational backend composition deployed — 2026-09-28
+
+The guarded role transport update from `0bbb5bdbbbaa23546b0be67c1fd56e65177b045b`
+published Builder version `:8`. Its signed, model-free boundary probe constructed
+the actual role service with inert clients and checked the exact state, budget
+and pinned broker v3 bindings. The CloudShell verifier returned to the prompt
+with zero model calls, no provider credentials in the Builder role and the
+operational execution flag false. The operator screenshot and its SHA-256 are
+recorded in `factory/evidence/operational-backend-live-verification-2026-09-28.json`.
+This closes `operational_role_backend_deployment` while the credential path,
+fresh pricing, target enablement, receipt writers and independent review remain
+pending. The schedule and operational roles remain disabled.
