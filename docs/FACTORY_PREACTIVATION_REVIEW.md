@@ -108,6 +108,17 @@ or rationale. It emits no signature, receipt version or model-call authority.
 A live Inspector decision and separately authenticated
 receipt publisher are still required before job publication.
 
+`scripts/prepare_acceptance_inspector_prompt.py PACKET.json OUT.json` checks
+the pending packet's byte digests and renders the exact untrusted input and
+contract in a separate user message under an independent inspection system
+instruction. Its output is `PREPARED_NOT_INVOKED`: it neither calls Anthropic
+nor authenticates a resulting verdict. The retired pilot's Bedrock role and
+USD 10 pilot budget do not authorize this acceptance task. Before an actual
+Inspector call, establish an acceptance-specific model, fresh price and cost
+limit, isolated execution identity, and an authenticated publisher that binds
+the model's decision to this exact plan. The existing USD 5 OpenAI Builder
+limit cannot silently fund a second provider.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
