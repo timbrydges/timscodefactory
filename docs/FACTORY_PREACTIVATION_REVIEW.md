@@ -100,6 +100,14 @@ same plan digest, and the emitted job has no S3 version until separately
 published and verified. Do not treat the output as a signature, review verdict,
 live controller deployment, or permission to enable the schedule.
 
+`scripts/prepare_acceptance_inspector_review.py BINDING.json PLAN.json INPUT
+CONTRACT OUT.json` prepares the exact material for the separate AI Inspector.
+It validates the same activation and scope bindings, marks task bytes as
+untrusted, and emits no verdict, signature, receipt version or model-call
+authority. The proposed `ACCEPTED` payload is an input for inspection, not an
+Inspector decision. A live Inspector review and separately authenticated
+receipt publisher are still required before job publication.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
