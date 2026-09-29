@@ -7,6 +7,12 @@ The exception is recorded in
 `factory/evidence/owner-review-exception-2026-09-29.json`; it is an owner
 decision, not an independent review, an operational activation, or authority
 to spend. Keep the substantive checks below as deployment verification tasks.
+Tim is the sole human authority; no second human reviewer is required. The
+separate `independent_inspector_service` receipt below belongs to an AI role
+that must actually inspect the exact scope before its isolated key signs. It
+does not have veto power over Tim's audited owner override or stop order. The
+owner exception for PR #198 did not fabricate an inspector receipt or change
+the normal automated dispatch rules.
 
 ## Exact scope and current state
 
