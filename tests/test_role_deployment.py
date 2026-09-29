@@ -135,7 +135,26 @@ class RoleDeploymentTests(unittest.TestCase):
         builder = resources['BuilderRole']['Properties']
         self.assertEqual(len(resources), 14)
         self.assertEqual(len(resources['PlannerRole']['Properties']['Policies']), 1)
-        self.assertEqual(len(resources['InspectorRole']['Properties']['Policies']), 1)
+        self.assertEqual(len(resources['InspectorRole']['Properties']['Policies']), 2)
+        self.assertEqual(template['Parameters']['EnableInspectorAcceptanceIam'],
+            {'Type': 'String', 'Default': 'false', 'AllowedValues': ['false', 'true']})
+        self.assertEqual(template['Conditions']['InspectorAcceptanceIamEnabled'],
+            {'Fn::Equals': [{'Ref': 'EnableInspectorAcceptanceIam'}, 'true']})
+        inspector = resources['InspectorRole']['Properties']['Policies'][1]['Fn::If']
+        self.assertEqual(inspector[0], 'InspectorAcceptanceIamEnabled')
+        self.assertEqual(inspector[2], {'Ref': 'AWS::NoValue'})
+        self.assertEqual(inspector[1]['PolicyDocument'], {
+            'Version': '2012-10-17', 'Statement': [
+                {'Sid': 'ExactInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel',
+                 'Resource': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5',
+                 'Condition': {'StringEquals': {'aws:RequestedRegion': 'ca-central-1'}}},
+                {'Sid': 'ModelOnlyViaInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel', 'Resource': [
+                     'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5',
+                     'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5'],
+                 'Condition': {'StringEquals': {'bedrock:InferenceProfileArn':
+                     'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5'}}}]})
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][0], 'BuilderAcceptanceIamEnabled')
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][1],
             ['arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder'])
