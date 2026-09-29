@@ -72,6 +72,25 @@ def _disabled_builder_backend(root, *, commit, now):
             raise
     else:
         raise StateError('Builder operational backend unexpectedly enabled')
+    # Compose the same service used by the operational branch with inert clients.
+    # Construction must not perform IO; the Lambda kill switch still rejects
+    # operational events before this branch can be reached.
+    from types import SimpleNamespace
+
+    inert = NoOperationalIO()
+    broker_arn = ('arn:aws:lambda:ca-central-1:666730517561:'
+                  'function:tims-factory-provider-broker:3')
+    client = SimpleNamespace(meta=SimpleNamespace(config=SimpleNamespace(
+        retries={'total_max_attempts': 1}),
+        endpoint_url='https://lambda.ca-central-1.amazonaws.com'))
+    service = _builder_service(root, commit, activation, broker_arn,
+                               SimpleNamespace(identity=SIGNERS['builder']), inert, client)
+    if (service.execution_table != 'tims-factory-role-executions' or
+            service.ledger.table_name != 'tims-software-factory-state' or
+            service.backend.budget_store.table_name != 'tims-factory-acceptance-budget' or
+            service.backend.executor.function_arn != broker_arn or
+            service.backend.activation != activation):
+        raise StateError('disabled Builder operational composition differs')
     return allowance
 
 

@@ -477,6 +477,10 @@ still absent. It does not close the deployment gate or enable provider calls.
 
 The subsequent Builder package composes the operational role execution service,
 separate acceptance budget store, and pinned credential-free broker client.
+The disabled Builder boundary probe now constructs that same service with inert
+clients and checks the exact state table, budget table and broker version 3
+binding before signing its model-free attestation. This construction performs
+no AWS or provider IO and does not enable the operational handler.
 Deployment-owned activation data must match the packaged commit, exact task and
 contract digest, a numeric broker version, an unexpired 24-hour window, and the
 fully gated operating allowance. The CloudFormation role flag is still false,
