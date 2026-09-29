@@ -83,6 +83,17 @@ execute a provider call. The deployed CloudFormation template still hard-codes
 publication or live invocation has been deployed or verified. This branch alone
 does not close `live_controller_runtime_deployment`.
 
+`scripts/prepare_acceptance_job.py BINDING.json PLAN.json
+RECEIPT_VERSIONS.json INPUT CONTRACT OUT.json` now produces the canonical
+`IMPLEMENTATION` job bytes after checking the exact task, activation window,
+source and contract digests, input digest, lease, scope payloads and two distinct
+version fields. It runs the controller's job decoder and IAM bundle renderer
+against those bytes. This is offline preparation: the receipt versions must
+come from separately authenticated owner and inspector publication under the
+same plan digest, and the emitted job has no S3 version until separately
+published and verified. Do not treat the output as a signature, review verdict,
+live controller deployment, or permission to enable the schedule.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
