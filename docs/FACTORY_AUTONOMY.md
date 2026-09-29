@@ -323,9 +323,10 @@ an independently reviewed acceptance run.
 
 ### Authenticated immutable receipt publication — 2026-09-23
 
-`VersionedS3ReceiptPublisher` closes the application-side receipt-writing gap.
-An isolated owner or reviewer signer can publish only its exact payload from one
-prepared intake plan, under the plan-derived bucket key. The write uses canonical
+`VersionedS3ReceiptPublisher` handles owner receipt publication from one
+prepared intake plan under the plan-derived bucket key. Reviewer publication
+is disabled pending authentication of an actual independent Inspector verdict;
+a prefilled `ACCEPTED` review payload is insufficient. The write uses canonical
 JSON, a bound SHA-256 checksum, AES-256 storage encryption and `If-None-Match: *`;
 success requires a concrete S3 object version. A wrong signer, unversioned result,
 changed plan, oversized envelope or retry-enabled client fails closed.
