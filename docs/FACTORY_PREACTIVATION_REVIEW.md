@@ -158,6 +158,14 @@ not an actual independent verdict. A future Inspector runtime must bind an
 authenticated model decision to the exact reviewed bytes and plan before
 reviewer signing can be enabled. The owner receipt publisher remains usable.
 
+`parse_assessment` checks a bounded JSON response against the three exact
+review digests and rejects duplicate fields or unexpected authority claims.
+Its result is untrusted evidence regardless of whether it says `ACCEPTED`;
+it cannot sign or publish a receipt. The current Sonnet 5.5 model card lists
+`bedrock-mantle` availability only in GovCloud West, which is outside this
+account. The observed US East 404 is consistent with that listing. Do not
+repeat that probe as though it established a usable counting route.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
