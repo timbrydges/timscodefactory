@@ -104,6 +104,8 @@ activation:
       evidence: factory/evidence/operational-backend-live-verification-2026-09-28.json
     model_free_acceptance_broker_cloud_probe:
       evidence: factory/evidence/acceptance-broker-canary-2026-09-26.json
+    disabled_acceptance_broker_composition_deployment:
+      evidence: factory/evidence/acceptance-broker-composition-live-verification-2026-09-28.json
   pending_gates:
     - fresh_provider_pricing
     - ephemeral_provider_credential_path

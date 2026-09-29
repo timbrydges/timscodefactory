@@ -15,7 +15,7 @@ class CredentialStageTests(unittest.TestCase):
                       f'secret:{verifier.SECRET}-WE57Tw')
         kms_arn = f'arn:aws:kms:{verifier.REGION}:{verifier.ACCOUNT}:key/key-1'
         broker = (f'arn:aws:lambda:{verifier.REGION}:{verifier.ACCOUNT}:'
-                  f'function:{verifier.FUNCTION}:3')
+                  f'function:{verifier.FUNCTION}:{verifier.BROKER_VERSION}')
 
         def aws(service, action, *args):
             calls.append((service, action))
@@ -52,6 +52,7 @@ class CredentialStageTests(unittest.TestCase):
                 patch.object(verifier, '_assert_policy_documents'):
             result = verifier.verify()
         self.assertEqual(result['status'], 'DISABLED_BROKER_CREDENTIAL_STAGE_VERIFIED')
+        self.assertEqual(result['broker_source_commit'], verifier.COMPOSITION_COMMIT)
         self.assertFalse(result['broker_enabled'])
         self.assertNotIn(('secretsmanager', 'get-secret-value'), calls)
         self.assertNotIn(('lambda', 'invoke'), calls)
@@ -69,6 +70,19 @@ class CredentialStageTests(unittest.TestCase):
                 patch.object(verifier, 'source', return_value='a' * 40), \
                 patch.object(verifier, '_assert_policy_documents'):
             with self.assertRaisesRegex(RuntimeError, 'not disabled'):
+                verifier.verify()
+
+    def test_wrong_pinned_version_fails_closed(self):
+        aws, _ = self.aws_fixture()
+        def wrong_version(service, action, *args):
+            result = aws(service, action, *args)
+            if action == 'describe-stacks':
+                result['Stacks'][0]['Outputs'][0]['OutputValue'] += '-different'
+            return result
+        with patch.object(verifier, 'aws', side_effect=wrong_version), \
+                patch.object(verifier, 'source', return_value='a' * 40), \
+                patch.object(verifier, '_assert_policy_documents'):
+            with self.assertRaisesRegex(RuntimeError, 'pinned disabled broker version 4'):
                 verifier.verify()
 
 
