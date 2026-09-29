@@ -26,19 +26,21 @@ to spend. Keep the substantive checks below as deployment verification tasks.
 - Broker version `:4`, Builder version `:8`, acceptance schedule `DISABLED`.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
+- This draft candidate changes only the approved Sol target's policy and
+  catalog switches to `enabled: true`; Terra stays false.
 - The disabled schedule's `factory_id` input was corrected from `factory` to
   `tims-software-factory` with the guarded input-only Terraform update. The
   AWS canary passed while the schedule remained `DISABLED`, with zero model
   calls. Evidence: `factory/evidence/disabled-schedule-binding-verification-2026-09-29.json`.
-- The policy and catalog still set `coding_primary_sol_live.enabled: false`.
+- The target switch candidate does not itself close
   `approved_target_technical_enablement`,
   `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
-  and `guarded_schedule_activation` remain pending. The broker and Builder
-  have separate disabled switches. The controller has only a disabled probe,
-  and Terraform keeps the schedule disabled. No provider call or approval
-  receipt has been authorized by these preparations.
+  and `guarded_schedule_activation` remain pending, so the live authorizer
+  still denies. The broker and Builder have separate disabled switches. The
+  controller has only a disabled probe, and Terraform keeps the schedule
+  disabled. No provider call or approval receipt is authorized by this candidate.
 
-## Review before any enablement
+## Review before gate closure or deployment
 
 1. Compare the exact task, source, signed scope, reviewer separation, budget
    reservation, replay and unknown-outcome behavior against the owner terms.
@@ -49,10 +51,10 @@ to spend. Keep the substantive checks below as deployment verification tasks.
    pinned broker version, exact endpoint and response validation. Confirm the
    provider request uses explicit-only caching without breakpoints so its
    USD 0.25 worst-case bound excludes cache-write charges.
-4. Inspect the proposed **activation** diff itself. It must change only the
-   intended target and gate evidence, retain the unapproved challenger off,
-   preserve Tim-only release authority, and include a fresh quote. Do not
-   treat this preparation PR as the activation diff.
+4. Inspect this target candidate and the later gate-closing diff. The runtime
+   scope must remain the exact Sol target, retain the unapproved challenger
+   off, preserve Tim-only release authority, and use a fresh quote. This
+   candidate alone does not close any remaining gate.
 5. Record the owner exception and exact candidate head in deployment evidence.
    CI success or this packet alone does not close any remaining technical gate.
 6. Require a guarded live controller canary that verifies the exact

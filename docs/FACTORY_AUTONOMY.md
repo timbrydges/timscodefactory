@@ -432,11 +432,13 @@ Tim's identity, the locked corpus digest, an exact source commit, a bounded spen
 reservation, and matching enable switches in both the live policy and model
 catalog. The unapproved challenger remains denied even if its switches drift on.
 
-Both approved-target switches remain false. This closes only the authorization
-implementation-preparation subgate; `approved_target_technical_enablement`
-remains pending until an owner-reviewed activation commit deliberately changes
-both switches after the other gates pass. No credential was requested, no
-provider call was made, and production release remains denied.
+The review candidate changes both Sol target switches to true while leaving
+the unapproved challenger false. The authorizer also requires an `ACTIVE`
+contract with no pending gates and fresh paired pricing; two switches alone
+cannot authorize a call. `approved_target_technical_enablement` remains
+pending until this candidate is independently reviewed and merged with exact
+evidence. No credential was requested, no provider call was made, and
+production release remains denied.
 
 ### Operational backend boundary prepared — 2026-09-23
 

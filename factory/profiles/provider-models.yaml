@@ -23,7 +23,7 @@ targets:
     provider_family: openai
     model_id: "gpt-5.6-sol"
     execution_mode: live
-    enabled: false
+    enabled: true
     live_credentials: brokered_lease_only
     cost_mode: metered
     selector_version: "live-prep-v1"

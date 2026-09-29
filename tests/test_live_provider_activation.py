@@ -32,7 +32,7 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
     SECRET_ARN = (
         "arn:aws:secretsmanager:ca-central-1:666730517561:secret:"
         "tims-software-factory/provider/openai/acceptance-Ab12Cd")
-    def test_checked_in_preparation_is_quality_first_bounded_and_disabled(self):
+    def test_checked_in_candidate_is_bounded_but_autonomy_gates_remain_pending(self):
         preparation = validate_live_provider_preparation(ROOT)
         self.assertEqual(preparation.owner, "Tim Brydges")
         self.assertEqual(preparation.baseline_model_id, "gpt-5.6-sol")
@@ -40,12 +40,12 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(preparation.max_cost_usd_per_call, Decimal("0.25"))
         self.assertEqual(preparation.max_cost_usd_per_candidate_run, Decimal("2.00"))
         self.assertEqual(preparation.max_cost_usd_per_qualification_session, Decimal("5.00"))
-        self.assertTrue(preparation.all_live_targets_disabled)
+        self.assertFalse(preparation.all_live_targets_disabled)
         self.assertRegex(preparation.corpus_digest, r"^sha256:[0-9a-f]{64}$")
 
-    def test_live_authorization_fails_before_credentials_while_targets_disabled(self):
+    def test_live_authorization_fails_before_credentials_while_gates_pending(self):
         preparation = validate_live_provider_preparation(ROOT)
-        with self.assertRaisesRegex(LiveProviderActivationError, "prepared but disabled"):
+        with self.assertRaisesRegex(LiveProviderActivationError, "gates"):
             authorize_live_qualification(
                 ROOT,
                 actor="timbrydges",
@@ -79,38 +79,32 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
                 reserved_cost_usd=Decimal("5.01"),
             )
 
-    def test_catalog_drift_to_enabled_live_target_breaks_preparation(self):
+    def test_mismatched_live_target_switches_fail_authorization(self):
         with tempfile.TemporaryDirectory() as temp:
             copy_root = Path(temp) / "repo"
             shutil.copytree(ROOT / "factory", copy_root / "factory")
             models = copy_root / "factory/profiles/provider-models.yaml"
             text = models.read_text(encoding="utf-8")
             text = text.replace(
-                "coding_primary_sol_live:\n    provider_family: openai\n    model_id: \"gpt-5.6-sol\"\n    execution_mode: live\n    enabled: false",
                 "coding_primary_sol_live:\n    provider_family: openai\n    model_id: \"gpt-5.6-sol\"\n    execution_mode: live\n    enabled: true",
+                "coding_primary_sol_live:\n    provider_family: openai\n    model_id: \"gpt-5.6-sol\"\n    execution_mode: live\n    enabled: false",
                 1,
             )
             models.write_text(text, encoding="utf-8")
             preparation = validate_live_provider_preparation(copy_root)
             self.assertFalse(preparation.all_live_targets_disabled)
+            with self.assertRaisesRegex(LiveProviderActivationError, 'prepared but disabled'):
+                authorize_live_qualification(
+                    copy_root, actor='timbrydges', target_alias=preparation.baseline_alias,
+                    corpus_digest=preparation.corpus_digest, source_commit='1' * 40,
+                    reserved_cost_usd=Decimal('1.00'),
+                )
 
-    def test_exact_owner_approved_target_can_authorize_only_after_two_enable_switches(self):
+    def test_exact_owner_target_authorizes_only_after_all_gates_and_fresh_pricing(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "repo"
             shutil.copytree(ROOT / "factory", root / "factory")
             shutil.copytree(ROOT / "docs", root / "docs")
-            models = root / "factory/profiles/provider-models.yaml"
-            policy = root / "factory/profiles/provider-live-activation.yaml"
-            models.write_text(models.read_text().replace(
-                'model_id: "gpt-5.6-sol"\n    execution_mode: live\n    enabled: false',
-                'model_id: "gpt-5.6-sol"\n    execution_mode: live\n    enabled: true',
-                1,
-            ))
-            policy.write_text(policy.read_text().replace(
-                "coding_primary_sol_live:\n    model_id: gpt-5.6-sol\n    role: quality_baseline\n    enabled: false",
-                "coding_primary_sol_live:\n    model_id: gpt-5.6-sol\n    role: quality_baseline\n    enabled: true",
-                1,
-            ))
             preparation = validate_live_provider_preparation(root)
             contract_path = root / 'factory/autonomy/operating-contract.yaml'
             contract = yaml.safe_load(contract_path.read_text())

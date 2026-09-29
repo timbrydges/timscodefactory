@@ -21,7 +21,7 @@ approved_live_targets:
   coding_primary_sol_live:
     model_id: gpt-5.6-sol
     role: quality_baseline
-    enabled: false
+    enabled: true
   coding_primary_terra_live:
     model_id: gpt-5.6-terra
     role: cost_challenger
