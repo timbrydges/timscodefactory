@@ -14,6 +14,23 @@ placeholder as a deployment pin. Generate the review artifact with:
 python3 scripts/prepare_acceptance_controller_iam.py binding.json controller-policy.json
 ```
 
+For deployment preparation, use the combined renderer instead. Its binding
+contains exactly `activation_id`, `source_commit`, `contract_digest`,
+`starts_at`, `expires_at`, `builder_version_arn`, and `job_version_id`. Supply
+the exact reviewed `IMPLEMENTATION.json` bytes:
+
+```sh
+python3 scripts/prepare_acceptance_controller_bundle.py binding.json IMPLEMENTATION.json controller-bundle.json
+```
+
+The combined renderer runs the runtime job decoder against those local bytes,
+then derives the receipt pins, object digest, controller configuration and IAM
+policy together. It cannot establish that the local bytes or supplied version
+match S3. Before deployment, a separate AWS verification must compare the
+versioned object's checksum and content with the resulting digest, verify both
+receipt object versions and signatures, compare the job state version with
+durable state, and confirm the source commit, allowance and current quote.
+
 Review the generated document and exact deployment binding together. The
 policy limits DynamoDB task/scope keys and one activation budget key, reads only
 three named S3 object versions, and invokes only a numeric Builder version.
