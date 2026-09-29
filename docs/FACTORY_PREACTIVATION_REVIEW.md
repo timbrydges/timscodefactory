@@ -173,6 +173,10 @@ to test this account's no-charge access. It does not select that model or
 transfer the Sonnet 5.5 price, policy, or allowance. A successful count probe
 would still require a fresh exact price, isolated IAM/budget binding and an
 authenticated Inspector runtime before task material or a provider call.
+The first dummy-text Sonnet 5 probe reached the endpoint but returned HTTP
+403. The probe now reports the bounded structured error type and message to
+distinguish missing CountTokens permission from other account or request
+failures. No invocation or task data was sent.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
