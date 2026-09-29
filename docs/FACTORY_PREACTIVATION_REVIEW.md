@@ -137,6 +137,16 @@ change requires a new review. Do not enable the parameter until the separate
 Inspector price, reservation cap, publisher, and model-free deployment plan
 have been verified. The Lambda operational switch remains `false`.
 
+Global Sonnet 5.5 pricing observed on the AWS Bedrock pricing page on
+2026-09-29 is USD 2.00 per million input and USD 10.00 per million output
+tokens from Canada (Central). The separate Inspector price snapshot in
+`factory/evidence/acceptance-inspector-pricing-2026-09-29.json` expires in
+24 hours. At 42,020 input and 4,096 output tokens its quoted maximum is
+USD 0.125; the proposed independent allowance reserves USD 0.25 for one
+attempt, with no retry after an uncertain result. The isolated reservation
+primitive is not wired to an invocation or granted IAM, and its token count
+must come from an exact Bedrock preflight before any future call.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
