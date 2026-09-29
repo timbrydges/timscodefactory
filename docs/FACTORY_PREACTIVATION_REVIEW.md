@@ -60,6 +60,12 @@ move to verified.
    its execution role separately, then canary it under the same limits. The
    present disabled controller probe and schedule do not establish these gates.
 
+The repository includes an `AcceptanceController` guard that reloads the
+operating allowance and price before a tick, checks the deployment binding,
+and delegates to the bounded scheduler. It is implementation preparation only:
+the deployed Lambda remains probe-only, and the durable job source, receipt
+inputs, role transport, IAM and operational canary are still outstanding.
+
 Until that decision and the separately reviewed target change are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
