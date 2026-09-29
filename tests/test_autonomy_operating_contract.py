@@ -49,6 +49,25 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertNotIn('ephemeral_provider_credential_path', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
+        self.assertEqual(allowance.status, 'OWNER_APPROVED_AWAITING_TECHNICAL_GATES')
+
+    def test_no_pending_gates_alone_does_not_activate_roles(self):
+        def change(value):
+            value['activation']['pending_gates'] = []
+        allowance = load_autonomy_operating_allowance(self.mutate(change))
+        self.assertFalse(allowance.activation_ready)
+        self.assertEqual(allowance.pending_gates, ())
+
+    def test_active_status_requires_all_operational_gates(self):
+        def change(value):
+            value['status'] = 'ACTIVE'
+            value['activation']['pending_gates'] = [
+                'guarded_operational_role_activation',
+                'live_controller_runtime_deployment',
+                'guarded_schedule_activation',
+            ]
+        with self.assertRaisesRegex(StateError, 'pending gates'):
+            load_autonomy_operating_allowance(self.mutate(change))
 
     def mutate(self, callback):
         directory = tempfile.TemporaryDirectory()

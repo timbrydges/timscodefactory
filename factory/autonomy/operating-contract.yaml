@@ -119,6 +119,9 @@ activation:
   pending_gates:
     - approved_target_technical_enablement
     - independent_pre_activation_review
+    - guarded_operational_role_activation
+    - live_controller_runtime_deployment
+    - guarded_schedule_activation
 
 stop_conditions:
   - Total reserved or actual provider cost reaches USD 5.00.
