@@ -28,6 +28,11 @@ move to verified.
   corresponding `factory/evidence/*live-verification*.json` files.
 - This draft candidate changes only the approved Sol target's policy and
   catalog switches to `enabled: true`; Terra stays false.
+- The deployed disabled schedule was verified with an older `factory_id` input
+  of `factory`. The checked-in target now uses `tims-software-factory` to match
+  the controller and Builder. The guarded Terraform script accepts only this
+  disabled input-only update; cloud reconciliation and a new canary are still
+  required before schedule activation.
   `approved_target_technical_enablement`, `independent_pre_activation_review`,
   `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
   and `guarded_schedule_activation` remain pending, so the live authorizer

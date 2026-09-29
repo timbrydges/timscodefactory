@@ -13,7 +13,7 @@ TARGET = (
 )
 ROLE = "arn:aws:iam::666730517561:role/tims-software-factory-autonomy-scheduler"
 INPUT = {
-    "factory_id": "factory",
+    "factory_id": "tims-software-factory",
     "task_id": "deterministic-text-fingerprint",
     "mode": "acceptance",
 }
