@@ -27,10 +27,12 @@ move to verified.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
 - The policy and catalog still set `coding_primary_sol_live.enabled: false`.
-  `approved_target_technical_enablement` and
-  `independent_pre_activation_review` remain pending. The broker, Builder,
-  controller and schedule have separate disabled switches. No provider call
-  or approval receipt has been authorized by these preparations.
+  `approved_target_technical_enablement`, `independent_pre_activation_review`,
+  `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
+  and `guarded_schedule_activation` remain pending. The broker and Builder
+  have separate disabled switches. The controller has only a disabled probe,
+  and Terraform keeps the schedule disabled. No provider call or approval
+  receipt has been authorized by these preparations.
 
 ## Review before any enablement
 
@@ -51,6 +53,12 @@ move to verified.
    head, with concrete findings and an explicit approve or changes-needed
    decision. A self-review, CI success, synthetic signature, or this packet
    alone does not close the independent review gate.
+6. Require an independently verified live controller that enforces the exact
+   task, budget, stop conditions, durable state and replay behavior. Verify
+   the pinned broker and Builder deployments with their operational switches
+   enabled before closing the role gate. Review the schedule enablement and
+   its execution role separately, then canary it under the same limits. The
+   present disabled controller probe and schedule do not establish these gates.
 
 Until that decision and the separately reviewed target change are recorded,
 keep the contract default `DENY`, all operational switches off, and the
