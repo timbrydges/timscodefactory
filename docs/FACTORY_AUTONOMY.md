@@ -343,9 +343,8 @@ window, with no production-release authority. The exact terms and owner event ar
 retained in `factory/autonomy/operating-contract.yaml` and its evidence record.
 
 This is financial and scope authorization, not a claim that execution is live.
-The contract remains default-deny while fresh pricing, ephemeral credential path, target switch,
-operational role backends, receipt-writer IAM, disabled schedule canary and
-independent pre-activation review remain pending. Code rejects `ACTIVE` while any
+The contract remains default-deny while fresh pricing, target switch,
+receipt-writer IAM and independent pre-activation review remain pending. Code rejects `ACTIVE` while any
 gate remains open or any approved financial/model/release term drifts.
 
 ### Exact private acceptance target — 2026-09-23
@@ -391,16 +390,22 @@ exact-region client, and exposes it only as a 300-second in-memory lease to the
 provider adapter. Secret values are never represented in Terraform, evidence,
 logs, or role payloads.
 
-Terraform prepares a dedicated rotating KMS key, recoverable secret metadata,
+Terraform defines a dedicated rotating KMS key, recoverable secret metadata,
 and a standalone least-privilege reader policy restricted to the exact secret,
 exact version stage, and KMS decryption through Secrets Manager in
-`ca-central-1`. The policy is intentionally unattached until an isolated
-provider-broker runtime role exists.
+`ca-central-1`. The policy is attached only to the isolated broker role.
 
-This closes only the implementation-preparation subgate. The
-`ephemeral_provider_credential_path` activation gate remains open until the
-secret, runtime role and policy are deployed and independently verified. No
-credential was created and no provider call was made.
+The live read-only verifier at `e5930fb647b6a5ac0abfb61fdb2691e0691ece6b`
+confirmed broker version `:4` and latest remain disabled, exactly one
+`AWSCURRENT` secret version exists, the customer-managed KMS key rotates, and
+the two exact managed policies are attached to the broker role. It checked
+their policy documents without retrieving the secret value or calling the
+provider. Evidence and screenshot hash are recorded in
+`factory/evidence/acceptance-credential-stage-live-verification-2026-09-28.json`.
+Together with the disabled composition proof and implementation tests, this
+closes the credential path deployment gate. It does not prove OpenAI accepts
+the staged key; that requires a separately authorized bounded live call after
+all activation gates pass. No provider call was made.
 
 ### Exact live-target authorization path prepared — 2026-09-23
 
@@ -446,9 +451,9 @@ The Builder now forwards the exact activation, dispatch, source commit and
 contract digest to a bounded acceptance-broker Lambda client. The client pins
 the regional version, disables retries, sends no provider credential and
 rejects altered response bindings, output digests or costs above USD 0.25.
-The broker service is not composed into its deployed disabled Lambda shell;
-its credential path and operational IAM are not deployed;
-this client alone cannot make a provider call while the role kill switch is false.
+At this preparation stage, the broker service was not composed into its
+deployed disabled Lambda shell. The client alone cannot make a provider call
+while the role kill switch is false. Later deployment evidence appears below.
 
 An isolated acceptance-broker service core now validates the exact request,
 activation window and fresh pricing, independently reads the budget reservation,
@@ -584,9 +589,10 @@ and pinned broker v3 bindings. The CloudShell verifier returned to the prompt
 with zero model calls, no provider credentials in the Builder role and the
 operational execution flag false. The operator screenshot and its SHA-256 are
 recorded in `factory/evidence/operational-backend-live-verification-2026-09-28.json`.
-This closes `operational_role_backend_deployment` while the credential path,
-fresh pricing, target enablement, receipt writers and independent review remain
-pending. The schedule and operational roles remain disabled.
+This closes `operational_role_backend_deployment`. The credential path was
+subsequently verified separately; fresh pricing, target enablement, receipt
+writers and independent review remain pending. The schedule and operational
+roles remain disabled.
 
 The guarded broker code update at `39c7a3b19a2f50d3d9bef19b04e69024d51032e4`
 published immutable broker version `:4` while retaining the exact two staged
@@ -596,6 +602,5 @@ zero provider calls, no credential read and no release dispatch. The operator
 screenshot and its SHA-256 are recorded in
 `factory/evidence/acceptance-broker-composition-live-verification-2026-09-28.json`.
 This closes the disabled composition deployment subgate. It does not exercise
-the credential lease or close `ephemeral_provider_credential_path`. The
-read-only credential-stage verifier now pins version `:4`; it must be run on
-the live account before independently claiming the staged credential binding.
+the credential lease; the separate read-only credential-stage verification
+above confirms its deployed binding while keeping the broker disabled.

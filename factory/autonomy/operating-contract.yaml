@@ -84,6 +84,8 @@ activation:
       evidence: factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json
     ephemeral_provider_credential_path_implementation:
       evidence: factory/evidence/provider-credential-path-preparation-2026-09-23.json
+    ephemeral_provider_credential_path:
+      evidence: factory/evidence/acceptance-credential-stage-live-verification-2026-09-28.json
     approved_target_authorization_implementation:
       evidence: factory/evidence/provider-target-authorization-preparation-2026-09-23.json
     least_privilege_receipt_writer_iam_implementation:
@@ -108,7 +110,6 @@ activation:
       evidence: factory/evidence/acceptance-broker-composition-live-verification-2026-09-28.json
   pending_gates:
     - fresh_provider_pricing
-    - ephemeral_provider_credential_path
     - approved_target_technical_enablement
     - least_privilege_receipt_writer_iam
     - independent_pre_activation_review

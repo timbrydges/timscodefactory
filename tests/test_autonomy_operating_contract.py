@@ -46,6 +46,7 @@ class AutonomyOperatingContractTests(unittest.TestCase):
             allowance.pricing_output_usd_per_million_tokens, Decimal('20.00'))
         self.assertEqual(allowance.maximum_request_bytes_at_cost_cap, 42020)
         self.assertIn('fresh_provider_pricing', allowance.pending_gates)
+        self.assertNotIn('ephemeral_provider_credential_path', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
 
