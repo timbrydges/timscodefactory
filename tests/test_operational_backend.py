@@ -15,7 +15,9 @@ from factory_state.model import CONTROLLER_IDENTITY, StateError, TaskState
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NOW = datetime(2026, 9, 23, 2, tzinfo=timezone.utc)
+NOW = datetime.fromisoformat(yaml.safe_load(
+    (ROOT / 'factory/autonomy/operating-contract.yaml').read_text())
+    ['pricing_reference']['observed_at'].replace('Z', '+00:00')) + timedelta(hours=1)
 COMMIT = "a" * 40
 CONTRACT = "sha256:" + "b" * 64
 
@@ -107,8 +109,7 @@ class OperationalBackendTests(unittest.TestCase):
     def test_active_backend_rejects_expired_or_future_pricing_before_budget_reservation(self):
         backend, budget, executor = self.backend(self.active_root(), enabled=True)
         state, request = self.state_request()
-        for now in (datetime(2026, 9, 22, tzinfo=timezone.utc),
-                    datetime(2026, 9, 24, 1, tzinfo=timezone.utc)):
+        for now in (NOW - timedelta(days=2), NOW + timedelta(days=2)):
             with self.subTest(now=now):
                 with self.assertRaisesRegex(StateError, 'pricing reference'):
                     backend.reserve(state, request, dispatch_id='dispatch-1', now=now)

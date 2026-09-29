@@ -17,7 +17,9 @@ from factory_runtime.acceptance_broker_service import AcceptanceBrokerService
 from factory_runtime.autonomy import AutonomyActivation
 from factory_state.model import StateError
 
-NOW = datetime(2026, 9, 23, 2, tzinfo=timezone.utc)
+NOW = datetime.fromisoformat(yaml.safe_load(
+    (ROOT / 'factory/autonomy/operating-contract.yaml').read_text())
+    ['pricing_reference']['observed_at'].replace('Z', '+00:00')) + timedelta(hours=1)
 
 
 class Budget:
@@ -117,7 +119,7 @@ class AcceptanceBrokerServiceTests(unittest.TestCase):
             with self.subTest(change=change):
                 with self.assertRaises(StateError):
                     self.service.handle({**self.event, **change})
-        self.service.clock = lambda: datetime(2026, 9, 24, 1, tzinfo=timezone.utc)
+        self.service.clock = lambda: NOW + timedelta(days=2)
         with self.assertRaisesRegex(StateError, 'pricing'):
             self.service.handle(self.event)
         self.assertEqual(self.provider.calls, 0)

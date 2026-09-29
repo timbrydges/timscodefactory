@@ -402,6 +402,10 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
         request_payload = {
             "model": target.model_id,
             "store": False,
+            # GPT-5.6 defaults to implicit cache writes at 1.25x input price.
+            # No explicit breakpoints means no cache writes, preserving the
+            # exact per-call cost bound calculated from uncached input rates.
+            "prompt_cache_options": {"mode": "explicit"},
             "instructions": _instructions(),
             "input": json.dumps(turn, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
             "max_output_tokens": self.policy.max_output_tokens,

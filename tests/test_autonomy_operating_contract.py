@@ -45,7 +45,7 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertEqual(
             allowance.pricing_output_usd_per_million_tokens, Decimal('20.00'))
         self.assertEqual(allowance.maximum_request_bytes_at_cost_cap, 42020)
-        self.assertIn('fresh_provider_pricing', allowance.pending_gates)
+        self.assertNotIn('fresh_provider_pricing', allowance.pending_gates)
         self.assertNotIn('ephemeral_provider_credential_path', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
@@ -116,7 +116,7 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         shutil.copytree(ROOT / 'factory', root / 'factory')
-        path = root / 'factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json'
+        path = root / 'factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json'
         evidence = json.loads(path.read_text())
         evidence['input_usd_per_million_tokens'] = '3.99'
         path.write_text(json.dumps(evidence))

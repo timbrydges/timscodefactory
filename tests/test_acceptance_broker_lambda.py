@@ -97,7 +97,7 @@ class AcceptanceBrokerLambdaTests(unittest.TestCase):
         self.assertIn('factory/autonomy/operating-contract.yaml', paths)
         self.assertIn('factory/schemas/autonomy-operating-contract.schema.json', paths)
         self.assertIn('factory/evidence/autonomy-financial-authorization-2026-09-23.json', paths)
-        self.assertIn('factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json', paths)
+        self.assertIn('factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json', paths)
 
 
 if __name__ == '__main__':
