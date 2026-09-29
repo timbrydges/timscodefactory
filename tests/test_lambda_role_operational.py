@@ -16,7 +16,9 @@ from factory_runtime.lambda_role import (
 from factory_state.model import StateError
 
 ROOT = Path(__file__).resolve().parents[1]
-NOW = datetime(2026, 9, 23, 2, tzinfo=timezone.utc)
+NOW = datetime.fromisoformat(yaml.safe_load(
+    (ROOT / 'factory/autonomy/operating-contract.yaml').read_text())
+    ['pricing_reference']['observed_at'].replace('Z', '+00:00')) + timedelta(hours=1)
 COMMIT = 'a' * 40
 
 

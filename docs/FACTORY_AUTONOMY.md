@@ -343,9 +343,10 @@ window, with no production-release authority. The exact terms and owner event ar
 retained in `factory/autonomy/operating-contract.yaml` and its evidence record.
 
 This is financial and scope authorization, not a claim that execution is live.
-The contract remains default-deny while fresh pricing, target switch,
-receipt-writer IAM and independent pre-activation review remain pending. Code rejects `ACTIVE` while any
-gate remains open or any approved financial/model/release term drifts.
+The contract remains default-deny while target enablement and independent
+pre-activation review remain pending. The refreshed quote also expires after
+24 hours and must be renewed if activation comes later. Code rejects `ACTIVE`
+while any gate remains open or any approved financial/model/release term drifts.
 
 ### Exact private acceptance target — 2026-09-23
 
@@ -381,6 +382,19 @@ This retained reference does not close the activation-time
 `fresh_provider_pricing` gate. A quote no older than 86,400 seconds must still
 be observed immediately before activation. No credential was created and no
 provider call was made.
+
+The official model and pricing pages were rechecked at
+`2026-09-29T05:45:10Z`. The Standard short-context rates remain USD 4.00
+input and USD 20.00 output per million tokens; the quote expires at
+`2026-09-30T05:45:10Z`. GPT-5.6 implicitly caches by default and bills cache
+writes at USD 5.00 per million input tokens. The acceptance adapter now sends
+`prompt_cache_options.mode=explicit` without any breakpoints, so this bounded
+request cannot create a cache write. The exact USD 0.25 maximum cost estimate
+therefore uses the applicable uncached rate. The observation and source URLs
+are in `factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json`.
+This closes the pricing gate only while the quote is fresh; runtime checks
+reject calls after expiry. A later activation must renew the quote if the
+remaining gates take longer. No credential was read or provider call made.
 
 ### Broker-only provider credential path prepared — 2026-09-23
 

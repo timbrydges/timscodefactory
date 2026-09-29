@@ -207,6 +207,8 @@ class OpenAIProviderTests(unittest.TestCase):
         request = json.loads(transport.last_body.decode())
         self.assertEqual(request["model"], MODEL)
         self.assertIs(request["store"], False)
+        self.assertEqual(request["prompt_cache_options"], {"mode": "explicit"})
+        self.assertNotIn("prompt_cache_breakpoint", transport.last_body.decode())
         self.assertNotIn("tools", request)
         self.assertEqual(request["reasoning"], {"effort": "high"})
         self.assertEqual(request["text"]["format"]["type"], "json_schema")

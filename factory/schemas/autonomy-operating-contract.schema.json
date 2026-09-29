@@ -73,10 +73,10 @@
         "long_context_threshold_input_tokens": {"const": 272000},
         "input_usd_per_million_tokens": {"const": "4.00"},
         "output_usd_per_million_tokens": {"const": "20.00"},
-        "observed_at": {"const": "2026-09-23T00:56:33Z"},
-        "expires_at": {"const": "2026-09-24T00:56:33Z"},
+        "observed_at": {"const": "2026-09-29T05:45:10Z"},
+        "expires_at": {"const": "2026-09-30T05:45:10Z"},
         "conservative_maximum_cost_per_call": {"const": "0.25000000"},
-        "evidence": {"const": "factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json"}
+        "evidence": {"const": "factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json"}
       }
     },
     "authority": {

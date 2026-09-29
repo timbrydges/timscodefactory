@@ -1,7 +1,7 @@
 """Pinned pricing and one-shot HTTPS I/O for the isolated acceptance broker.
 
-The checked-in quote is intentionally expired. Refreshing its paired evidence
-and clearing the activation gates are separate owner-reviewed operations.
+The paired quote has a strict 24-hour expiry. Runtime checks reject a stale
+quote even when its evidence gate is recorded as verified.
 """
 from __future__ import annotations
 

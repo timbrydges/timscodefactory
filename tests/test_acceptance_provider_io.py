@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -51,8 +52,10 @@ class FakeOpener:
 
 class AcceptanceProviderIOTests(unittest.TestCase):
     def test_checked_in_quote_is_expired(self):
-        with self.assertRaisesRegex(OpenAIProviderPricingError, 'expired'):
-            asyncio.run(AcceptanceContractPricingSource(ROOT).quote(target=TARGET))
+        with patch('factory_runtime.acceptance_provider_io.datetime') as clock:
+            clock.now.return_value = datetime(2026, 10, 1, tzinfo=timezone.utc)
+            with self.assertRaisesRegex(OpenAIProviderPricingError, 'expired'):
+                asyncio.run(AcceptanceContractPricingSource(ROOT).quote(target=TARGET))
 
     def test_fresh_quote_requires_matching_contract_evidence(self):
         directory = tempfile.TemporaryDirectory()
