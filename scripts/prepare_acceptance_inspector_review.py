@@ -34,7 +34,10 @@ def build_packet(binding: dict, plan: dict, input_bytes: bytes,
         'plan_digest': checked['receipt_plan_digest'],
         'input_digest': digest(input_bytes), 'contract_digest': digest(contract_bytes),
         'proposed_capability': plan['capability_payload'],
-        'proposed_review': plan['review_payload'],
+        'review_request': {
+            key: plan['review_payload'][key] for key in
+            ('factory_id', 'task_id', 'binding', 'reviewer_identity',
+             'issued_at', 'expires_at')},
         'untrusted_material': {
             'input_base64': base64.b64encode(input_bytes).decode('ascii'),
             'contract_base64': base64.b64encode(contract_bytes).decode('ascii')},
