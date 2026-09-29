@@ -544,6 +544,23 @@ execution, and checks resulting IAM permissions with read-only simulation.
 Actual receipt publication requires a later isolated canary; this preparation
 does not close the receipt-writer activation gate.
 
+The guarded CloudFormation update at `41f15a74b6d1772487107762fec86009250808b5`
+attached the two exact policies to separate roles. The verifier checked trust,
+attachments and policy documents, then IAM simulation allowed each role's own
+encrypted `PutObject` while denying cross-writer, unencrypted and read requests.
+The live screenshot hash is in
+`factory/evidence/receipt-writer-iam-live-verification-2026-09-28.json`.
+No S3 object was written by that check.
+
+The owner and inspector signing workflows now offer a manual
+`receipt_iam_canary` input, default false. Each owner-dispatched run uses its
+existing OIDC signing identity to write one versioned AES256 object under a
+random digest with an invalid approval body, then requires cross-writer and
+unencrypted writes to return `AccessDenied`. The ordinary signing canary
+remains separately gated. Two successful live runs are required before the
+receipt-writer IAM gate can close; neither canary signs an approval or enables
+the schedule, broker or provider.
+
 ### Acceptance infrastructure read-only verifier — 2026-09-27
 
 `scripts/verify_acceptance_infrastructure.py OUTPUT_JSON` checks the two
