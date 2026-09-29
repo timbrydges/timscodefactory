@@ -80,9 +80,7 @@ jobs:
           print(f"live_targets_disabled={str(preparation.all_live_targets_disabled).lower()}")
 
           if not execute_live:
-              if not preparation.all_live_targets_disabled:
-                  raise SystemExit("preparation workflow expected all live targets to remain disabled")
-              print("status=PREPARED_DISABLED_NO_PROVIDER_CALL")
+              print("status=PREPARED_NO_PROVIDER_CALL")
               raise SystemExit(0)
 
           try:

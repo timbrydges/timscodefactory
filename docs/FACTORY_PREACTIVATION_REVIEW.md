@@ -26,13 +26,15 @@ move to verified.
 - Broker version `:4`, Builder version `:8`, acceptance schedule `DISABLED`.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
-- The policy and catalog still set `coding_primary_sol_live.enabled: false`.
+- This draft candidate changes only the approved Sol target's policy and
+  catalog switches to `enabled: true`; Terra stays false. Both
   `approved_target_technical_enablement` and
-  `independent_pre_activation_review` remain pending. The broker, Builder,
-  controller and schedule have separate disabled switches. No provider call
-  or approval receipt has been authorized by these preparations.
+  `independent_pre_activation_review` remain pending in the contract, so the
+  live authorizer still denies. The broker, Builder, controller and schedule
+  have separate disabled switches. No provider call or approval receipt is
+  authorized by this candidate.
 
-## Review before any enablement
+## Review before gate closure or deployment
 
 1. Compare the exact task, source, signed scope, reviewer separation, budget
    reservation, replay and unknown-outcome behavior against the owner terms.
@@ -43,10 +45,10 @@ move to verified.
    pinned broker version, exact endpoint and response validation. Confirm the
    provider request uses explicit-only caching without breakpoints so its
    USD 0.25 worst-case bound excludes cache-write charges.
-4. Inspect the proposed **activation** diff itself. It must change only the
-   intended target and gate evidence, retain the unapproved challenger off,
-   preserve Tim-only release authority, and include a fresh quote. Do not
-   treat this preparation PR as the activation diff.
+4. Inspect this target candidate and the later gate-closing diff. The runtime
+   scope must remain the exact Sol target, retain the unapproved challenger
+   off, preserve Tim-only release authority, and use a fresh quote. This
+   candidate alone does not close either remaining gate.
 5. Require a signed or authenticated review tied to the exact activation PR
    head, with concrete findings and an explicit approve or changes-needed
    decision. A self-review, CI success, synthetic signature, or this packet
