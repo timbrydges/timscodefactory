@@ -40,8 +40,19 @@ def main():
         print(json.dumps({'path': 'bedrock-mantle/us-east-1', 'model': MODEL,
                           'status': 'SUPPORTED', 'input_tokens': count}))
     except urllib.error.HTTPError as error:
+        # AWS uses a structured error envelope here. Report only its bounded
+        # type/message so a 403 can be distinguished from a bad SigV4 request,
+        # unavailable model access, or a missing CountTokens permission.
+        try:
+            envelope = json.loads(error.read(4096))
+            detail = envelope.get('error', {})
+            error_type = str(detail.get('type', 'unknown'))[:80]
+            message = str(detail.get('message', 'unavailable'))[:500]
+        except (ValueError, TypeError, AttributeError):
+            error_type, message = 'unknown', 'unavailable'
         print(json.dumps({'path': 'bedrock-mantle/us-east-1', 'model': MODEL,
-                          'status': 'UNAVAILABLE', 'http_status': error.code}))
+                          'status': 'UNAVAILABLE', 'http_status': error.code,
+                          'error_type': error_type, 'error_message': message}))
     print(json.dumps({'model_calls': 0, 'task_material_sent': False,
                       'selected_model_unchanged': True}))
 
