@@ -524,6 +524,14 @@ policies are deployed, attached to separately verified publisher identities,
 and canaried. No policy was attached, no receipt was published, and production
 release remains denied.
 
+`scripts/inspect_receipt_writer_iam.py` performs a read-only preflight against
+the existing owner and inspector signing roles. It requires their deployed
+CloudFormation template and OIDC trust to match the reviewed source, and both
+receipt policies to be exact and unattached. It does not attach policies,
+publish receipts, or close the activation gate. A later guarded deployment
+must still attach only the matching policy to each role and verify independent
+publication and cross-role denial.
+
 ### Acceptance infrastructure read-only verifier — 2026-09-27
 
 `scripts/verify_acceptance_infrastructure.py OUTPUT_JSON` checks the two
