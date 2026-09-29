@@ -98,6 +98,31 @@ class AutonomousSchedulerTests(unittest.TestCase):
         self.assertEqual(result['activation_id'], 'factory-autonomy-001')
         self.assertEqual(jobs.calls, cycle.calls, 1)
 
+    def test_next_tick_reuses_exact_persisted_lease_after_intake(self):
+        reviewed = job()
+        after_lease = TaskState('factory', 'task-1', 'IMPLEMENTATION', 4,
+            NOW, CONTROLLER_IDENTITY, leases=(reviewed.plan.lease,))
+        scheduler, jobs, cycle = self.scheduler(
+            state=after_lease, source=Jobs(reviewed))
+        self.assertEqual(scheduler.tick('factory', 'task-1')['status'], 'ADVANCED')
+        self.assertEqual(jobs.calls, cycle.calls, 1)
+
+    def test_changed_or_expired_lease_does_not_replay_reviewed_plan(self):
+        reviewed = job()
+        changed = Lease(reviewed.plan.lease.lease_id, reviewed.plan.lease.role_id,
+            reviewed.plan.lease.authoritative_identity, NOW + timedelta(minutes=14))
+        expired = Lease(reviewed.plan.lease.lease_id, reviewed.plan.lease.role_id,
+            reviewed.plan.lease.authoritative_identity, NOW)
+        for leases in ((), (changed,), (expired,)):
+            with self.subTest(leases=leases):
+                after_lease = TaskState('factory', 'task-1', 'IMPLEMENTATION', 4,
+                    NOW, CONTROLLER_IDENTITY, leases=leases)
+                scheduler, _, cycle = self.scheduler(
+                    state=after_lease, source=Jobs(reviewed))
+                with self.assertRaisesRegex(StateError, 'differs'):
+                    scheduler.tick('factory', 'task-1')
+                self.assertEqual(cycle.calls, 0)
+
     def test_pause_and_release_ready_stop_before_loading_job(self):
         for state, expected in (('PAUSED', 'STOPPED'),
                                 ('RELEASE_READY', 'RELEASE_READY')):
