@@ -10,7 +10,9 @@ from unittest.mock import patch
 
 import yaml
 
-from factory_runtime.lambda_role import _builder_activation, _builder_service, handler
+from factory_runtime.lambda_role import (
+    _builder_activation, _builder_service, _disabled_builder_backend, handler,
+)
 from factory_state.model import StateError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +70,20 @@ class BuilderOperationalCompositionTests(unittest.TestCase):
         self.assertEqual(service.execution_table, 'tims-factory-role-executions')
         self.assertEqual(service.backend.budget_store.table_name, 'tims-factory-acceptance-budget')
         self.assertEqual(service.backend.executor.function_arn, broker)
+
+    def test_disabled_probe_composes_actual_service_without_io(self):
+        allowance = _disabled_builder_backend(self.root(), commit=COMMIT, now=NOW)
+        self.assertEqual(allowance.acceptance_task_id, 'deterministic-text-fingerprint')
+
+    def test_disabled_probe_rejects_unpinned_broker_composition(self):
+        original = _builder_service
+        def wrong_broker(*args, **kwargs):
+            altered = list(args)
+            altered[3] = altered[3][:-1] + '2'
+            return original(*altered, **kwargs)
+        with patch('factory_runtime.lambda_role._builder_service', side_effect=wrong_broker):
+            with self.assertRaisesRegex(StateError, 'composition differs'):
+                _disabled_builder_backend(self.root(), commit=COMMIT, now=NOW)
 
     def test_cloud_deployment_kill_switch_rejects_dispatch_before_aws(self):
         root = self.root()
