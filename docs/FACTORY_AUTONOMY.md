@@ -588,10 +588,14 @@ This closes `operational_role_backend_deployment` while the credential path,
 fresh pricing, target enablement, receipt writers and independent review remain
 pending. The schedule and operational roles remain disabled.
 
-The next disabled broker code update now preserves and verifies the two already
-staged managed policies instead of expecting the earlier logs-only role. Its
-guarded change set accepts only the broker function code and immutable version;
-it compares the deployed template, role policies and disabled environment before
-execution and performs a model-free probe afterward. The broker update itself
-still requires live AWS deployment and verification. The provider secret value
-is never read by the probe.
+The guarded broker code update at `39c7a3b19a2f50d3d9bef19b04e69024d51032e4`
+published immutable broker version `:4` while retaining the exact two staged
+policies and disabled environment. Its model-free probe composed the real broker
+service with inert IO, then returned `DISABLED_BROKER_COMPOSITION_VERIFIED`:
+zero provider calls, no credential read and no release dispatch. The operator
+screenshot and its SHA-256 are recorded in
+`factory/evidence/acceptance-broker-composition-live-verification-2026-09-28.json`.
+This closes the disabled composition deployment subgate. It does not exercise
+the credential lease or close `ephemeral_provider_credential_path`. The
+read-only credential-stage verifier now pins version `:4`; it must be run on
+the live account before independently claiming the staged credential binding.

@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "event_id": "acceptance-broker-composition-live-verification-2026-09-28",
+  "status": "DISABLED_BROKER_COMPOSITION_VERIFIED",
+  "source_commit": "39c7a3b19a2f50d3d9bef19b04e69024d51032e4",
+  "aws_account": "666730517561",
+  "region": "ca-central-1",
+  "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:4",
+  "previous_version": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:3",
+  "artifact_sha256": "e145c52b0d1ec92359ee1cde254fa06782073dfe1ae0040b7534d9c9f9029b24",
+  "task_id": "deterministic-text-fingerprint",
+  "broker_enabled": false,
+  "provider_calls": 0,
+  "credentials_read": false,
+  "release_dispatched": false,
+  "capture_method": "Transcribed from the operator's AWS CloudShell screenshot after guarded prepare, execute and verify completed and returned to the prompt.",
+  "capture_file": "Screenshot_20260928_225412_AWS Console.jpg",
+  "capture_sha256": "0c6e62f5ca3a53dd7e4a6c324071d7a3b39c35e8bb686d09a9c777691066bf58",
+  "raw_cloudshell_evidence_in_repository": false,
+  "scope": "Disabled broker composition deployment and model-free proof only; credential lease, provider calls, activation and release remain pending."
+}

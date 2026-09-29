@@ -13,18 +13,20 @@ from pathlib import Path
 
 try:
     from .prepare_acceptance_broker_iam import (
-        ACCOUNT, BROKER_COMMIT, ENVIRONMENT, FUNCTION, POLICY_ARNS,
+        ACCOUNT, ENVIRONMENT, FUNCTION, POLICY_ARNS,
         POLICY_NAMES, REGION, ROLE, _assert_policy_documents, aws, source,
     )
 except ImportError:
     from prepare_acceptance_broker_iam import (
-        ACCOUNT, BROKER_COMMIT, ENVIRONMENT, FUNCTION, POLICY_ARNS,
+        ACCOUNT, ENVIRONMENT, FUNCTION, POLICY_ARNS,
         POLICY_NAMES, REGION, ROLE, _assert_policy_documents, aws, source,
     )
 
 SECRET = 'tims-software-factory/provider/openai/acceptance'
 ALIAS = 'alias/tims-software-factory-provider-credentials'
 STACK = 'tims-factory-acceptance-broker'
+BROKER_VERSION = 4
+COMPOSITION_COMMIT = '39c7a3b19a2f50d3d9bef19b04e69024d51032e4'
 
 
 def verify() -> dict:
@@ -70,9 +72,9 @@ def verify() -> dict:
         raise RuntimeError('broker stack is not complete')
     outputs = {item['OutputKey']: item['OutputValue'] for item in stack['Outputs']}
     broker = outputs.get('BrokerVersionArn')
-    expected = f'arn:aws:lambda:{REGION}:{ACCOUNT}:function:{FUNCTION}:3'
+    expected = f'arn:aws:lambda:{REGION}:{ACCOUNT}:function:{FUNCTION}:{BROKER_VERSION}'
     if broker != expected:
-        raise RuntimeError('expected pinned disabled broker version 3')
+        raise RuntimeError('expected pinned disabled broker version 4')
     latest_arn = expected.rsplit(':', 1)[0]
     for function_arn in (broker, latest_arn):
         config = aws('lambda', 'get-function-configuration', '--function-name', function_arn)
@@ -83,7 +85,7 @@ def verify() -> dict:
             raise RuntimeError('broker code path is not disabled')
 
     return {'status': 'DISABLED_BROKER_CREDENTIAL_STAGE_VERIFIED',
-            'source_commit': commit, 'broker_source_commit': BROKER_COMMIT,
+            'source_commit': commit, 'broker_source_commit': COMPOSITION_COMMIT,
             'observed_at': datetime.now(timezone.utc).isoformat(),
             'region': REGION, 'function_arn': broker,
             'provider_secret_arn': arn, 'current_secret_versions': 1,
