@@ -145,7 +145,12 @@ tokens from Canada (Central). The separate Inspector price snapshot in
 USD 0.125; the proposed independent allowance reserves USD 0.25 for one
 attempt, with no retry after an uncertain result. The isolated reservation
 primitive is not wired to an invocation or granted IAM, and its token count
-must come from an exact Bedrock preflight before any future call.
+must come from a supported exact-model token counting preflight before any
+future call. AWS documents that CRIS-only Claude models may not support
+`bedrock-runtime` CountTokens, and `bedrock-mantle` is unavailable in
+`ca-central-1`. `scripts/probe_acceptance_inspector_tokens.py` tests both
+the Canadian runtime and US East Mantle count paths using dummy text only.
+Do not send acceptance task material to an unverified counting endpoint.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
