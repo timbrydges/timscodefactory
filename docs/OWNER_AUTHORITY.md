@@ -14,3 +14,9 @@ This authority is unconditional within the Factory:
 - Ultimate owner authority cannot be delegated by an agent or inferred from a service credential.
 
 Agent safeguards remain mandatory for agents. Authors may not approve their own agent-produced work, reviewers must remain independent, evidence must remain provenance-bound, and automated transitions default to deny. These controls protect Tim's Factory; they do not govern Tim.
+
+The Inspector is an AI role, not a second human approver. Its separate signed
+scope receipt is evidence for ordinary automated dispatch. If Tim explicitly
+overrides or stops a run, record his authenticated decision as an owner action;
+do not invent an Inspector verdict or report the overridden run as a clean
+automated-gate success.
