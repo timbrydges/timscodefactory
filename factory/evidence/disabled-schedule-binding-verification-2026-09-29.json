@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "event_id": "disabled-schedule-binding-verification-2026-09-29",
+  "status": "DISABLED_ACCEPTANCE_SCHEDULE_VERIFIED",
+  "source_commit": "b371b3333b7d1bfb31b94af7aa86bedbdd29eb1b",
+  "aws_account": "666730517561",
+  "region": "ca-central-1",
+  "schedule": "tims-software-factory-autonomy-acceptance",
+  "schedule_state": "DISABLED",
+  "canary": "PASS",
+  "terraform_plan_sha256": "452351dbbda173b066c8d842259e3bb020e3eeb32a1992c23cd2ac78883d2971",
+  "terraform_changes": [
+    "aws_scheduler_schedule.autonomy_acceptance[0] (in-place target input update only)"
+  ],
+  "model_calls": 0,
+  "capture_method": "Transcribed from the operator's AWS CloudShell screenshot after guarded prepare, execute and verify completed.",
+  "capture_file": "Screenshot_20260929_012347_AWS Console.jpg",
+  "capture_sha256": "dc90f10b1ab7d26a9a97bff5f917647f7501f8d79d63fc2778bfd1efa3577d17",
+  "raw_cloudshell_evidence_in_repository": false,
+  "scope": "Disabled schedule factory-id binding correction and read-only canary only; no operational activation or production release."
+}
