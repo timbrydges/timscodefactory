@@ -116,9 +116,10 @@ activation:
       evidence: factory/evidence/acceptance-broker-canary-2026-09-26.json
     disabled_acceptance_broker_composition_deployment:
       evidence: factory/evidence/acceptance-broker-composition-live-verification-2026-09-28.json
+    owner_review_requirement_exception:
+      evidence: factory/evidence/owner-review-exception-2026-09-29.json
   pending_gates:
     - approved_target_technical_enablement
-    - independent_pre_activation_review
     - guarded_operational_role_activation
     - live_controller_runtime_deployment
     - guarded_schedule_activation

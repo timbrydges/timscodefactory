@@ -378,7 +378,7 @@ The operating contract binds a 42,020-byte conservative request ceiling and
 the maximum modeled Standard call cost is exactly USD 0.25000000. The live
 adapter still recomputes the actual request bound before obtaining credentials.
 
-The current independent review scope and remaining activation conditions are
+The current owner review exception and remaining activation conditions are
 collected in `docs/FACTORY_PREACTIVATION_REVIEW.md`.
 
 This retained reference does not close the activation-time
@@ -522,7 +522,8 @@ only its own log writes, and the handler accepts only the deployment probe.
 The verified response reported zero provider calls, no credential read, no
 release dispatch and a disabled broker. This verifies deployment of the
 broker's disabled shell. It does not close the credential path, operational
-backend, scheduler or independent review activation gates.
+backend or scheduler activation gates. The owner later waived the separate
+pre-activation reviewer for this task; see the review packet.
 
 The next broker shell composes the actual `AcceptanceBrokerService` and
 `AcceptanceOpenAIProvider` with inert IO and both enable switches false during
@@ -644,8 +645,9 @@ post-apply IAM/state verifier passed; the reported model-call count was zero.
 The operator's CloudShell screenshot is transcribed in
 `factory/evidence/disabled-schedule-live-verification-2026-09-28.json` and its
 SHA-256 is retained there. This closes `disabled_schedule_deployment_and_canary`.
-The operational backend, receipt-writer IAM and independent activation review
-remain separate pending gates; this schedule does not run unattended work.
+At this deployment, operational backend and receipt-writer IAM remained
+separate gates. The owner later waived the separate pre-activation reviewer;
+this schedule still does not run unattended work.
 
 ### Disabled schedule input binding corrected — 2026-09-29
 
@@ -655,7 +657,8 @@ only the existing schedule's target input from `factory` to
 `DISABLED` and zero model calls. The operator screenshot and SHA-256 are
 recorded in
 `factory/evidence/disabled-schedule-binding-verification-2026-09-29.json`.
-This does not authorize schedule activation or close the independent review.
+This does not authorize schedule activation. The subsequent owner exception to
+the independent pre-activation review is recorded separately.
 
 ### Disabled operational backend composition deployed — 2026-09-28
 
@@ -668,7 +671,8 @@ operational execution flag false. The operator screenshot and its SHA-256 are
 recorded in `factory/evidence/operational-backend-live-verification-2026-09-28.json`.
 This closes `operational_role_backend_deployment`. The credential path was
 subsequently verified separately; fresh pricing, target enablement, receipt
-writers and independent review remain pending. The schedule and operational
+writers remained pending at this deployment. The owner later waived the separate
+pre-activation reviewer. The schedule and operational
 roles remain disabled.
 
 The guarded broker code update at `39c7a3b19a2f50d3d9bef19b04e69024d51032e4`

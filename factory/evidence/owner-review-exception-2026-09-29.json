@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "kind": "owner_review_requirement_exception",
+  "owner_identity": "tim_brydges",
+  "recorded_at": "2026-09-29T07:57:25Z",
+  "instruction": "I do not have another reviewer. There will not be another reviewer. I'm telling you to move on",
+  "scope": {
+    "repository": "timbrydges/timscodefactory",
+    "acceptance_task": "deterministic-text-fingerprint",
+    "candidate_pr": 198,
+    "waived_gate": "independent_pre_activation_review"
+  },
+  "decision": "OWNER_EXCEPTION_NO_INDEPENDENT_REVIEW",
+  "independent_review_performed": false,
+  "operational_activation_authorized_by_this_exception": false,
+  "model_calls_authorized_by_this_exception": 0,
+  "production_release_authorized": false,
+  "remaining_gates": [
+    "approved_target_technical_enablement",
+    "guarded_operational_role_activation",
+    "live_controller_runtime_deployment",
+    "guarded_schedule_activation"
+  ]
+}
