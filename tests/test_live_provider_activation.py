@@ -5,7 +5,10 @@ import sys
 import tempfile
 import unittest
 from decimal import Decimal
+from datetime import datetime, timedelta
 from pathlib import Path
+
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -95,6 +98,7 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "repo"
             shutil.copytree(ROOT / "factory", root / "factory")
+            shutil.copytree(ROOT / "docs", root / "docs")
             models = root / "factory/profiles/provider-models.yaml"
             policy = root / "factory/profiles/provider-live-activation.yaml"
             models.write_text(models.read_text().replace(
@@ -108,6 +112,18 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
                 1,
             ))
             preparation = validate_live_provider_preparation(root)
+            contract_path = root / 'factory/autonomy/operating-contract.yaml'
+            contract = yaml.safe_load(contract_path.read_text())
+            observed = datetime.fromisoformat(contract['pricing_reference']['observed_at'].replace('Z', '+00:00'))
+            with self.assertRaisesRegex(LiveProviderActivationError, 'gates'):
+                authorize_live_qualification(
+                    root, actor='timbrydges', target_alias='coding_primary_sol_live',
+                    corpus_digest=preparation.corpus_digest, source_commit='1' * 40,
+                    reserved_cost_usd=Decimal('1.00'), now=observed + timedelta(hours=1),
+                )
+            contract['status'] = 'ACTIVE'
+            contract['activation']['pending_gates'] = []
+            contract_path.write_text(yaml.safe_dump(contract, sort_keys=False))
             authorization = authorize_live_qualification(
                 root,
                 actor="timbrydges",
@@ -115,12 +131,19 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
                 corpus_digest=preparation.corpus_digest,
                 source_commit="1" * 40,
                 reserved_cost_usd=Decimal("1.00"),
+                now=observed + timedelta(hours=1),
             )
             self.assertEqual(authorization.model_id, "gpt-5.6-sol")
             self.assertEqual(
                 authorization.owner_authorization_event,
                 "autonomy-financial-authorization-2026-09-23",
             )
+            with self.assertRaisesRegex(LiveProviderActivationError, 'fresh pricing'):
+                authorize_live_qualification(
+                    root, actor='timbrydges', target_alias='coding_primary_sol_live',
+                    corpus_digest=preparation.corpus_digest, source_commit='1' * 40,
+                    reserved_cost_usd=Decimal('1.00'), now=observed + timedelta(days=2),
+                )
 
     def test_unapproved_challenger_stays_denied_even_if_enabled(self):
         with tempfile.TemporaryDirectory() as temp:

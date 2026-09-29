@@ -12,11 +12,15 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from .autonomy_contract import load_autonomy_operating_allowance
+from factory_state.model import StateError
 
 
 _POLICY_PATH = "factory/profiles/provider-live-activation.yaml"
@@ -247,6 +251,7 @@ def authorize_live_qualification(
     corpus_digest: str,
     source_commit: str,
     reserved_cost_usd: Decimal,
+    now: datetime | None = None,
 ) -> LiveQualificationAuthorization:
     """Authorize one exact live qualification request or fail before credentials.
 
@@ -283,6 +288,18 @@ def authorize_live_qualification(
         )
     if catalog_target.get("model_id") != owner_event["model_id"]:
         raise LiveProviderActivationError("enabled live target model differs from owner authorization")
+    try:
+        allowance = load_autonomy_operating_allowance(root)
+    except StateError as exc:
+        raise LiveProviderActivationError("autonomy contract is not valid") from exc
+    instant = now if now is not None else datetime.now(timezone.utc)
+    contract = _load_yaml(root / "factory/autonomy/operating-contract.yaml")
+    if (contract.get("status") != "ACTIVE" or not allowance.activation_ready or
+            allowance.production_release_authorized or
+            allowance.target_alias != target_alias or allowance.model_id != catalog_target["model_id"] or
+            not isinstance(instant, datetime) or instant.tzinfo is None or
+            not allowance.pricing_observed_at <= instant < allowance.pricing_expires_at):
+        raise LiveProviderActivationError("autonomy gates or fresh pricing are not ready")
     return LiveQualificationAuthorization(
         actor=actor,
         target_alias=target_alias,

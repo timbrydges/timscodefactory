@@ -378,6 +378,9 @@ The operating contract binds a 42,020-byte conservative request ceiling and
 the maximum modeled Standard call cost is exactly USD 0.25000000. The live
 adapter still recomputes the actual request bound before obtaining credentials.
 
+The current independent review scope and remaining activation conditions are
+collected in `docs/FACTORY_PREACTIVATION_REVIEW.md`.
+
 This retained reference does not close the activation-time
 `fresh_provider_pricing` gate. A quote no older than 86,400 seconds must still
 be observed immediately before activation. No credential was created and no
