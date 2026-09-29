@@ -11,9 +11,11 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
+sys.path.insert(0, str(ROOT / 'scripts'))
 
 from factory_runtime.autonomy_contract import load_autonomy_operating_allowance
 from factory_state.model import StateError
+from verify_sol_target_technical_enablement import verify as verify_target
 
 
 class AutonomyOperatingContractTests(unittest.TestCase):
@@ -48,6 +50,8 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertNotIn('fresh_provider_pricing', allowance.pending_gates)
         self.assertNotIn('ephemeral_provider_credential_path', allowance.pending_gates)
         self.assertNotIn('independent_pre_activation_review', allowance.pending_gates)
+        self.assertNotIn('approved_target_technical_enablement', allowance.pending_gates)
+        self.assertEqual(verify_target(ROOT)['model_calls'], 0)
         self.assertIn('guarded_operational_role_activation', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
@@ -132,6 +136,23 @@ class AutonomyOperatingContractTests(unittest.TestCase):
                 path.write_text(json.dumps(record))
                 with self.assertRaisesRegex(StateError, 'owner review exception'):
                     load_autonomy_operating_allowance(root)
+
+    def test_target_evidence_rejects_profile_drift_and_false_execution(self):
+        for target in ('factory/profiles/provider-models.yaml',
+                       'factory/evidence/sol-target-technical-enablement-2026-09-29.json'):
+            with self.subTest(target=target):
+                root = self.mutate(lambda _: None)
+                path = root / target
+                if target.endswith('.yaml'):
+                    catalog = yaml.safe_load(path.read_text())
+                    catalog['targets']['coding_primary_terra_live']['enabled'] = True
+                    path.write_text(yaml.safe_dump(catalog))
+                else:
+                    record = json.loads(path.read_text())
+                    record['model_calls'] = 1
+                    path.write_text(json.dumps(record))
+                with self.assertRaisesRegex(ValueError, 'Sol target technical evidence'):
+                    verify_target(root)
 
     def test_acceptance_target_evidence_drift_fails_closed(self):
         directory = tempfile.TemporaryDirectory()

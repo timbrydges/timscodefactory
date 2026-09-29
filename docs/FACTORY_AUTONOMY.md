@@ -432,12 +432,13 @@ Tim's identity, the locked corpus digest, an exact source commit, a bounded spen
 reservation, and matching enable switches in both the live policy and model
 catalog. The unapproved challenger remains denied even if its switches drift on.
 
-The review candidate changes both Sol target switches to true while leaving
+Merged PR #198 changes both Sol target switches to true while leaving
 the unapproved challenger false. The authorizer also requires an `ACTIVE`
 contract with no pending gates and fresh paired pricing; two switches alone
-cannot authorize a call. `approved_target_technical_enablement` remains
-pending until this candidate is independently reviewed and merged with exact
-evidence. No credential was requested, no provider call was made, and
+cannot authorize a call. The owner waived the separate pre-activation reviewer;
+the exact merged profile hashes and switches are recorded in
+`factory/evidence/sol-target-technical-enablement-2026-09-29.json` to close
+the technical target gate. No credential was requested, no provider call was made, and
 production release remains denied.
 
 ### Operational backend boundary prepared — 2026-09-23
