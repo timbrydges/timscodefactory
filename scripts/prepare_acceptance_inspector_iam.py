@@ -14,7 +14,7 @@ ACCOUNT = '666730517561'
 REGION = 'ca-central-1'
 PROFILE = re.compile(r'arn:aws:bedrock:ca-central-1:666730517561:'
                      r'inference-profile/(global\.anthropic\.[a-z0-9.:-]+)\Z')
-MODEL = re.compile(r'arn:aws:bedrock:([a-z0-9-]+)::'
+MODEL = re.compile(r'arn:aws:bedrock:([a-z0-9-]*)::'
                    r'foundation-model/(anthropic\.[a-z0-9.:-]+)\Z')
 
 
@@ -36,11 +36,15 @@ def build_policy(description: dict) -> dict:
         found = MODEL.fullmatch(model_arn) if isinstance(model_arn, str) else None
         if found is None or found[2] != model_id:
             raise ValueError('Inspector profile routes to an unexpected model')
-        regions.add(found[1])
+        if found[1]:
+            regions.add(found[1])
     # Global inference also evaluates the source Region and a regionless
     # foundation-model ARN. Neither is a wildcard permission.
     resources = [f'arn:aws:bedrock:{region}::foundation-model/{model_id}'
                  for region in sorted(regions | {REGION})]
+    # Global inference profiles can list the regionless foundation model as
+    # an explicit route alongside regional ARNs. Keep its exact resource even
+    # when older profile descriptions do not enumerate it.
     resources.append(f'arn:aws:bedrock:::foundation-model/{model_id}')
     return {'Version': '2012-10-17', 'Statement': [
         {'Sid': 'ExactInspectorProfile', 'Effect': 'Allow',
