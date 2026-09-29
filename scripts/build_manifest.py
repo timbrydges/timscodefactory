@@ -9,7 +9,7 @@ import hashlib
 from pathlib import Path
 
 
-EXCLUDED_PARTS = {".git", ".pytest_cache", "__pycache__", ".venv"}
+EXCLUDED_PARTS = {".git", ".pytest_cache", "__pycache__", ".venv", ".terraform"}
 EXCLUDED_FILES = {"MANIFEST.sha256"}
 
 
