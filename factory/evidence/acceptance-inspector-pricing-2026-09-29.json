@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "status": "PREPARED_NOT_ACTIVATED",
+  "source": "https://aws.amazon.com/bedrock/pricing/",
+  "observed_at": "2026-09-29T10:16:00Z",
+  "expires_at": "2026-09-30T10:16:00Z",
+  "source_region": "ca-central-1",
+  "inference_scope": "Global Cross-region Inference",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "input_usd_per_million_tokens": "2.00",
+  "output_usd_per_million_tokens": "10.00",
+  "maximum_total_cost_usd": "0.25",
+  "maximum_provider_calls": 1,
+  "maximum_input_tokens": 42020,
+  "maximum_output_tokens": 4096,
+  "conservative_maximum_cost_usd": "0.12500",
+  "financial_scope": "separate_from_openai_builder_acceptance"
+}
