@@ -1,4 +1,4 @@
-"""Apply only the three reviewed disabled EventBridge Scheduler resources."""
+"""Guard disabled schedule creation or its exact factory-id input update."""
 from __future__ import annotations
 
 import hashlib
@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 try:
@@ -29,6 +30,7 @@ ROLE_ADDRESS = 'aws_iam_role.autonomy_scheduler[0]'
 ROLE_AND_SCHEDULE = {ROLE_ADDRESS, SCHEDULE}
 GROUP_SOURCE = f'arn:aws:scheduler:{REGION}:{ACCOUNT}:schedule-group/default'
 OLD_SCHEDULE_SOURCE = f'arn:aws:scheduler:{REGION}:{ACCOUNT}:schedule/default/{NAME}'
+OLD_INPUT = {**INPUT, 'factory_id': 'factory'}
 
 
 def trust_matches(document, source_arn):
@@ -109,11 +111,15 @@ def validate_plan(plan):
     changes = [r for r in plan.get('resource_changes', [])
                if r.get('mode', 'managed') == 'managed' and r['change']['actions'] != ['no-op']]
     addresses = {r['address'] for r in changes}
+    schedule_update = (addresses == SCHEDULE_ONLY and len(changes) == 1 and
+        changes[0]['change']['actions'] == ['update'])
     if (len(changes) != len(addresses) or
             addresses not in (EXPECTED, SCHEDULE_ONLY, ROLE_AND_SCHEDULE) or
-            any(r['change']['actions'] != (['update'] if r['address'] == ROLE_ADDRESS and
-                 addresses == ROLE_AND_SCHEDULE else ['create']) for r in changes)):
-        raise RuntimeError('Terraform plan must create only the disabled schedule resources')
+            any(r['change']['actions'] != (['update'] if
+                (r['address'] == ROLE_ADDRESS and addresses == ROLE_AND_SCHEDULE) or
+                (r['address'] == SCHEDULE and schedule_update) else ['create'])
+                for r in changes)):
+        raise RuntimeError('Terraform plan must change only the disabled schedule resources')
     if ROLE_ADDRESS in addresses:
         role_change = next(r['change'] for r in changes if r['address'] == ROLE_ADDRESS)
         after, before = role_change.get('after', {}), role_change.get('before', {})
@@ -124,8 +130,18 @@ def validate_plan(plan):
                     {k: v for k, v in before.items() if k != 'assume_role_policy'} or
                     not trust_matches(before.get('assume_role_policy'), OLD_SCHEDULE_SOURCE)))):
             raise RuntimeError('scheduler role plan must change only exact group trust in place')
-    schedule = next(r['change']['after'] for r in changes
-                    if r['address'] == SCHEDULE)
+    schedule_change = next(r['change'] for r in changes if r['address'] == SCHEDULE)
+    schedule = schedule_change['after']
+    if schedule_update:
+        before = schedule_change.get('before')
+        expected_before = deepcopy(schedule)
+        if (not isinstance(before, dict) or schedule_change.get('replace_paths') or
+                len(before.get('target', [])) != 1 or
+                json.loads(before['target'][0].get('input', 'null')) != OLD_INPUT):
+            raise RuntimeError('schedule update must replace only the old factory identifier')
+        expected_before['target'][0]['input'] = before['target'][0]['input']
+        if before != expected_before:
+            raise RuntimeError('schedule update changes more than the target input')
     windows = schedule.get('flexible_time_window', [])
     targets = schedule.get('target', [])
     if len(windows) != 1 or len(targets) != 1:
@@ -148,6 +164,11 @@ def validate_plan(plan):
     return addresses
 
 
+def updates_schedule(plan):
+    return any(r.get('address') == SCHEDULE and r['change']['actions'] == ['update']
+               for r in plan.get('resource_changes', []))
+
+
 def assert_existing_iam(allow_schedule_in_state=False, source_arn=GROUP_SOURCE):
     existing = set(terraform('state', 'list').splitlines())
     if not (EXPECTED - SCHEDULE_ONLY).issubset(existing) or \
@@ -166,11 +187,12 @@ def checked_plan(path, status, allow_schedule_in_state=False):
             metadata.get('model_calls_authorized') != 0 or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
         raise RuntimeError('disabled schedule plan/source/account changed')
-    planned = validate_plan(terraform('show', '-json', str(Path(path).resolve()), json_output=True))
+    shown = terraform('show', '-json', str(Path(path).resolve()), json_output=True)
+    planned = validate_plan(shown)
     if metadata['resources'] != sorted(planned):
         raise RuntimeError('disabled schedule plan resources changed')
     if planned in (SCHEDULE_ONLY, ROLE_AND_SCHEDULE):
-        assert_existing_iam(allow_schedule_in_state,
+        assert_existing_iam(allow_schedule_in_state or updates_schedule(shown),
                             GROUP_SOURCE if allow_schedule_in_state or planned == SCHEDULE_ONLY
                             else OLD_SCHEDULE_SOURCE)
     assert_controller()
@@ -190,9 +212,11 @@ def prepare(path):
     variables = terraform_vars()
     path = Path(path).resolve()
     terraform('plan', '-input=false', '-out=' + str(path), *variables)
-    planned = validate_plan(terraform('show', '-json', str(path), json_output=True))
+    shown = terraform('show', '-json', str(path), json_output=True)
+    planned = validate_plan(shown)
     if planned in (SCHEDULE_ONLY, ROLE_AND_SCHEDULE):
-        assert_existing_iam(source_arn=GROUP_SOURCE if planned == SCHEDULE_ONLY
+        assert_existing_iam(allow_schedule_in_state=updates_schedule(shown),
+                            source_arn=GROUP_SOURCE if planned == SCHEDULE_ONLY
                             else OLD_SCHEDULE_SOURCE)
     metadata = {'status': 'PREPARED_NOT_EXECUTED', 'source_commit': commit,
                 'plan_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),

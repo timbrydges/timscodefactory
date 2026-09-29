@@ -31,6 +31,7 @@ class AutonomyScheduleDeploymentTests(unittest.TestCase):
         self.assertIn('maximum_retry_attempts       = 0', self.terraform)
         self.assertIn('maximum_event_age_in_seconds = 60', self.terraform)
         self.assertIn('task_id    = "deterministic-text-fingerprint"', self.terraform)
+        self.assertIn('factory_id = "tims-software-factory"', self.terraform)
 
     def test_canary_is_read_only_and_requires_disabled_state(self):
         self.assertIn('"aws", "scheduler", "get-schedule"', self.canary)

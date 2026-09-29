@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from prepare_disabled_autonomy_schedule import (
     ACCOUNT, EXPECTED, GROUP_SOURCE, NAME, OLD_SCHEDULE_SOURCE,
     ROLE_ADDRESS, SCHEDULE, TARGET, assert_existing_iam, source, validate_plan,
+    updates_schedule,
 )
 
 
@@ -23,7 +24,7 @@ def plan():
         'schedule_expression': 'rate(15 minutes)',
         'schedule_expression_timezone': 'UTC',
         'flexible_time_window': [{'mode': 'OFF'}],
-        'target': [{'arn': TARGET, 'input': '{"factory_id":"factory","task_id":"deterministic-text-fingerprint","mode":"acceptance"}',
+        'target': [{'arn': TARGET, 'input': '{"factory_id":"tims-software-factory","task_id":"deterministic-text-fingerprint","mode":"acceptance"}',
                     'retry_policy': [{'maximum_retry_attempts': 0,
                                       'maximum_event_age_in_seconds': 60}]}]})
     return {'resource_changes': changes}
@@ -39,6 +40,29 @@ def trust(source_arn):
 
 
 class GuardedDisabledScheduleTests(unittest.TestCase):
+    def test_exact_existing_disabled_input_update_only(self):
+        change = copy.deepcopy(next(r for r in plan()['resource_changes']
+                                    if r['address'] == SCHEDULE))
+        change['change']['actions'] = ['update']
+        change['change']['before'] = copy.deepcopy(change['change']['after'])
+        change['change']['before']['target'][0]['input'] = (
+            '{"factory_id":"factory","task_id":"deterministic-text-fingerprint","mode":"acceptance"}')
+        update = {'resource_changes': [change]}
+        self.assertEqual(validate_plan(update), {SCHEDULE})
+        self.assertTrue(updates_schedule(update))
+        for mutate in (
+            lambda p: p['resource_changes'][0]['change']['before']['target'][0].update(
+                input='{"factory_id":"other"}'),
+            lambda p: p['resource_changes'][0]['change']['after'].update(state='ENABLED'),
+            lambda p: p['resource_changes'][0]['change']['after']['target'][0].update(
+                arn=TARGET.removesuffix(':acceptance')),
+            lambda p: p['resource_changes'][0]['change'].update(replace_paths=[['target']]),
+        ):
+            invalid = copy.deepcopy(update)
+            mutate(invalid)
+            with self.subTest(mutate=mutate), self.assertRaises(RuntimeError):
+                validate_plan(invalid)
+
     def test_only_exact_disabled_schedule_creates_pass(self):
         original = plan()
         original['resource_changes'].append({'mode': 'data', 'address': 'data.aws_partition.current',

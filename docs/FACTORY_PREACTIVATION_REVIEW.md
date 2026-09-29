@@ -26,6 +26,11 @@ move to verified.
 - Broker version `:4`, Builder version `:8`, acceptance schedule `DISABLED`.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
+- The deployed disabled schedule was verified with an older `factory_id` input
+  of `factory`. The checked-in target now uses `tims-software-factory` to match
+  the controller and Builder. The guarded Terraform script accepts only this
+  disabled input-only update; cloud reconciliation and a new canary are still
+  required before schedule activation.
 - The policy and catalog still set `coding_primary_sol_live.enabled: false`.
   `approved_target_technical_enablement`, `independent_pre_activation_review`,
   `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
