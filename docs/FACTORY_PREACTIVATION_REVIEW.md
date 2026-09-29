@@ -26,15 +26,14 @@ to spend. Keep the substantive checks below as deployment verification tasks.
 - Broker version `:4`, Builder version `:8`, acceptance schedule `DISABLED`.
   Their deployment, credential metadata and disabled probes are in the
   corresponding `factory/evidence/*live-verification*.json` files.
-- This draft candidate changes only the approved Sol target's policy and
-  catalog switches to `enabled: true`; Terra stays false.
+- Merged PR #198 changed only the approved Sol target's policy and catalog
+  switches to `enabled: true`; Terra stays false. The exact profile hashes
+  are recorded in `factory/evidence/sol-target-technical-enablement-2026-09-29.json`.
 - The disabled schedule's `factory_id` input was corrected from `factory` to
   `tims-software-factory` with the guarded input-only Terraform update. The
   AWS canary passed while the schedule remained `DISABLED`, with zero model
   calls. Evidence: `factory/evidence/disabled-schedule-binding-verification-2026-09-29.json`.
-- The target switch candidate does not itself close
-  `approved_target_technical_enablement`,
-  `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
+- `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
   and `guarded_schedule_activation` remain pending, so the live authorizer
   still denies. The broker and Builder have separate disabled switches. The
   controller has only a disabled probe, and Terraform keeps the schedule

@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "status": "SOL_TARGET_TECHNICAL_ENABLEMENT_VERIFIED",
+  "source_commit": "c8f3d9ed6a519d790c2fe3697fd385f55c778696",
+  "pull_request": 198,
+  "owner_review_exception": "factory/evidence/owner-review-exception-2026-09-29.json",
+  "target_alias": "coding_primary_sol_live",
+  "model_id": "gpt-5.6-sol",
+  "policy_sha256": "2b3406d77dfd4d2bc94bbf74f361d21732c3a851af943b1c122c3604d7240981",
+  "catalog_sha256": "201f5e0d5ecb82931dc627c034b2229584d2e9232c84e7660dc44d8c31674883",
+  "policy_target_enabled": true,
+  "catalog_target_enabled": true,
+  "challenger_enabled": false,
+  "dry_run_default_retained": true,
+  "operational_roles_enabled": false,
+  "schedule_enabled": false,
+  "model_calls": 0,
+  "production_release_authorized": false
+}
