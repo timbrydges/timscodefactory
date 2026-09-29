@@ -133,8 +133,12 @@ class AutonomousScheduler:
         if not isinstance(job, ScheduledAutonomyJob) or not isinstance(job.plan, IntakePlan):
             raise StateError('scheduler job source returned invalid material')
         plan = job.plan
-        if ((plan.factory_id, plan.task_id, plan.state, plan.state_version) !=
-                (factory_id, task_id, state.state, state.version) or
+        same_state = (plan.factory_id, plan.task_id, plan.state) == (
+            factory_id, task_id, state.state)
+        fresh_plan = state.version == plan.state_version
+        replayed_lease = (state.version == plan.state_version + 1 and
+            any(lease == plan.lease and lease.active_at(now) for lease in state.leases))
+        if (not same_state or not (fresh_plan or replayed_lease) or
                 plan.request.source_commit != self.activation.source_commit or
                 plan.request.contract_digest != self.activation.contract_digest or
                 digest(job.contract_bytes) != self.activation.contract_digest):
