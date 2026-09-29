@@ -119,6 +119,16 @@ limit, isolated execution identity, and an authenticated publisher that binds
 the model's decision to this exact plan. The existing USD 5 OpenAI Builder
 limit cannot silently fund a second provider.
 
+`scripts/prepare_acceptance_inspector_iam.py GET_INFERENCE_PROFILE.json
+POLICY.json` renders an unattached policy from a current AWS
+`GetInferenceProfile` response in `ca-central-1`. It permits only the exact
+global Anthropic profile and its enumerated foundation model, with the
+profile condition on model resources. A changed profile requires a new
+render and review. This is an IAM candidate only: no role is created, no
+policy is attached, and no Bedrock call or receipt is authorized. An
+acceptance-specific financial allowance and isolated execution deployment
+are still required.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
