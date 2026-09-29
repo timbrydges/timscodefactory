@@ -166,6 +166,14 @@ it cannot sign or publish a receipt. The current Sonnet 5.5 model card lists
 account. The observed US East 404 is consistent with that listing. Do not
 repeat that probe as though it established a usable counting route.
 
+Claude Sonnet 5 is a possible fallback because its model card lists an
+in-Region US East Mantle endpoint with token counting. The separate
+`scripts/probe_acceptance_inspector_sonnet5_tokens.py` sends dummy text only
+to test this account's no-charge access. It does not select that model or
+transfer the Sonnet 5.5 price, policy, or allowance. A successful count probe
+would still require a fresh exact price, isolated IAM/budget binding and an
+authenticated Inspector runtime before task material or a provider call.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
