@@ -532,6 +532,18 @@ publish receipts, or close the activation gate. A later guarded deployment
 must still attach only the matching policy to each role and verify independent
 publication and cross-role denial.
 
+The live preflight at `58e4e277a809ff7e142a4bedb1d1bd438d03fdd0` passed:
+the owner and inspector roles had exact, separate trust, the inspector execution
+trust was enabled, and both exact receipt policies were unattached. The
+operator screenshot hash is recorded in
+`factory/evidence/receipt-writer-identity-preflight-2026-09-28.json`.
+`scripts/prepare_receipt_writer_iam.py` now prepares an exact CloudFormation
+change set adding only the owner policy to the owner role and reviewer policy
+to the inspector role. It verifies the old template, policies and trusts before
+execution, and checks resulting IAM permissions with read-only simulation.
+Actual receipt publication requires a later isolated canary; this preparation
+does not close the receipt-writer activation gate.
+
 ### Acceptance infrastructure read-only verifier — 2026-09-27
 
 `scripts/verify_acceptance_infrastructure.py OUTPUT_JSON` checks the two

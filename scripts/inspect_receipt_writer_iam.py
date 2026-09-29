@@ -26,7 +26,8 @@ ROLES = {
 def aws(service, action, *args):
     result = subprocess.run(['aws', service, action, *args, '--region', REGION,
                              '--output', 'json', '--no-cli-pager'],
-                            capture_output=True, text=True, timeout=60, check=True)
+                            capture_output=True, text=True,
+                            timeout=900 if action == 'wait' else 60, check=True)
     return json.loads(result.stdout or '{}')
 
 
@@ -36,7 +37,7 @@ def _document(value):
     return value
 
 
-def inspect():
+def inspect(*, template_path: Path = TEMPLATE, expected_attached: bool = False):
     if aws('sts', 'get-caller-identity').get('Account') != ACCOUNT:
         raise RuntimeError('wrong AWS account')
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
@@ -45,7 +46,7 @@ def inspect():
     params = {p['ParameterKey']: p['ParameterValue'] for p in stack.get('Parameters', [])}
     if params.get('EnableRoleExecutionTrust') not in {'true', 'false'}:
         raise RuntimeError('inspector execution trust parameter is unknown')
-    template = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+    template = json.loads(template_path.read_text(encoding='utf-8'))
     deployed = _document(aws('cloudformation', 'get-template', '--stack-name', STACK)['TemplateBody'])
     if deployed != template:
         raise RuntimeError('deployed signing template differs from reviewed source')
@@ -70,12 +71,15 @@ def inspect():
             raise RuntimeError(f'{kind} signing role trust differs')
         attached = aws('iam', 'list-attached-role-policies', '--role-name', role_name)
         inline = aws('iam', 'list-role-policies', '--role-name', role_name)
-        if (attached.get('IsTruncated') or attached.get('AttachedPolicies') or
+        expected_binding = ([{'PolicyName': policy_name, 'PolicyArn':
+                             f'arn:aws:iam::{ACCOUNT}:policy/{policy_name}'}]
+                            if expected_attached else [])
+        if (attached.get('IsTruncated') or attached.get('AttachedPolicies') != expected_binding or
                 inline.get('IsTruncated') or inline.get('PolicyNames') != ['OwnSigningKeyOnly']):
             raise RuntimeError(f'{kind} signer has unexpected policy attachments')
         arn = f'arn:aws:iam::{ACCOUNT}:policy/{policy_name}'
         policy = aws('iam', 'get-policy', '--policy-arn', arn)['Policy']
-        if (policy.get('Arn') != arn or policy.get('AttachmentCount') != 0 or
+        if (policy.get('Arn') != arn or policy.get('AttachmentCount') != int(expected_attached) or
                 not policy.get('DefaultVersionId')):
             raise RuntimeError(f'{kind} receipt policy is missing or already attached')
         document = _document(aws('iam', 'get-policy-version', '--policy-arn', arn,
@@ -88,10 +92,12 @@ def inspect():
         if document != expected_policy:
             raise RuntimeError(f'{kind} receipt policy differs from least privilege')
         result[kind] = {'role_arn': role['Arn'], 'policy_arn': arn,
-                        'trust': 'EXACT', 'policy': 'EXACT_UNATTACHED'}
-    return {'status': 'RECEIPT_WRITER_IDENTITIES_READY_FOR_REVIEW_NOT_ATTACHED',
+                        'trust': 'EXACT', 'policy': 'EXACT_ATTACHED' if expected_attached
+                        else 'EXACT_UNATTACHED'}
+    return {'status': 'RECEIPT_WRITER_IAM_ATTACHED_VERIFIED' if expected_attached else
+            'RECEIPT_WRITER_IDENTITIES_READY_FOR_REVIEW_NOT_ATTACHED',
             'account': ACCOUNT, 'region': REGION, 'signing_stack': STACK,
-            'template_sha256': hashlib.sha256(TEMPLATE.read_bytes()).hexdigest(),
+            'template_sha256': hashlib.sha256(template_path.read_bytes()).hexdigest(),
             'inspector_execution_trust_enabled': params['EnableRoleExecutionTrust'] == 'true',
             'identities': result, 'receipts_published': 0, 'model_calls': 0}
 

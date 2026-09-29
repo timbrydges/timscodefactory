@@ -131,6 +131,9 @@
               ]
             }
           }
+        ],
+        "ManagedPolicyArns": [
+          "arn:aws:iam::666730517561:policy/tims-software-factory-owner-receipt-writer"
         ]
       }
     },
@@ -587,6 +590,9 @@
               ]
             }
           }
+        ],
+        "ManagedPolicyArns": [
+          "arn:aws:iam::666730517561:policy/tims-software-factory-reviewer-receipt-writer"
         ]
       }
     }

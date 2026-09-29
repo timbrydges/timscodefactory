@@ -10,7 +10,7 @@ import inspect_receipt_writer_iam as inspector
 
 
 class ReceiptWriterIdentityTests(unittest.TestCase):
-    def fixture(self, *, wrong_trust=False, attached=False):
+    def fixture(self, *, wrong_trust=False, attached=False, exact_attached=False):
         template = json.loads(inspector.TEMPLATE.read_text())
 
         def aws(service, action, *args):
@@ -38,12 +38,15 @@ class ReceiptWriterIdentityTests(unittest.TestCase):
                 return {'Role': {'Arn': f'arn:aws:iam::{inspector.ACCOUNT}:role/{name}',
                                  'AssumeRolePolicyDocument': trust}}
             if action == 'list-attached-role-policies':
+                if exact_attached:
+                    return {'AttachedPolicies': [{'PolicyName': policy_name,
+                        'PolicyArn': f'arn:aws:iam::{inspector.ACCOUNT}:policy/{policy_name}'}]}
                 return {'AttachedPolicies': [{'PolicyName': 'other'}] if attached else []}
             if action == 'list-role-policies':
                 return {'PolicyNames': ['OwnSigningKeyOnly']}
             if action == 'get-policy':
                 return {'Policy': {'Arn': args[1], 'DefaultVersionId': 'v1',
-                                   'AttachmentCount': 0}}
+                                   'AttachmentCount': int(exact_attached)}}
             if action == 'get-policy-version':
                 return {'PolicyVersion': {'Document': {'Version': '2012-10-17',
                     'Statement': [{'Sid': 'WriteOwnerReceiptOnly' if role == 'owner' else
@@ -73,6 +76,11 @@ class ReceiptWriterIdentityTests(unittest.TestCase):
         with patch.object(inspector, 'aws', side_effect=self.fixture(attached=True)):
             with self.assertRaisesRegex(RuntimeError, 'unexpected policy attachments'):
                 inspector.inspect()
+
+    def test_exact_post_attachment_verification(self):
+        with patch.object(inspector, 'aws', side_effect=self.fixture(exact_attached=True)):
+            result = inspector.inspect(expected_attached=True)
+        self.assertEqual(result['status'], 'RECEIPT_WRITER_IAM_ATTACHED_VERIFIED')
 
 
 if __name__ == '__main__':
