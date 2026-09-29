@@ -92,16 +92,15 @@ class ReceiptPublicationTests(unittest.TestCase):
         self.assertEqual(base64.b64decode(envelope['signature_base64']), b's' * 64)
         self.assertEqual(signer.calls, [(current.capability_payload, NOW)])
 
-    def test_independent_reviewer_can_publish_only_review_payload(self):
+    def test_prepared_acceptance_cannot_publish_reviewer_receipt(self):
         current = plan()
         client = FakeS3('review-version-1')
         signer = Signer('independent_inspector_service', b'r' * 64)
-        result = VersionedS3ReceiptPublisher(
-            client, signer, kind='reviewer').publish(current, now=NOW)
-        self.assertTrue(result.key.endswith('/reviewer.json'))
-        envelope = json.loads(client.calls[0]['Body'])
-        self.assertEqual(envelope['payload'], current.review_payload)
-        self.assertEqual(signer.calls, [(current.review_payload, NOW)])
+        with self.assertRaisesRegex(StateError, 'verdict authentication'):
+            VersionedS3ReceiptPublisher(
+                client, signer, kind='reviewer').publish(current, now=NOW)
+        self.assertEqual(client.calls, [])
+        self.assertEqual(signer.calls, [])
 
     def test_wrong_signer_invalid_signature_and_unversioned_write_fail_closed(self):
         cases = ((Signer('engineering_agent_service'), FakeS3(), 'signer'),
