@@ -152,6 +152,12 @@ future call. AWS documents that CRIS-only Claude models may not support
 the Canadian runtime and US East Mantle count paths using dummy text only.
 Do not send acceptance task material to an unverified counting endpoint.
 
+The reviewer receipt publisher now fails closed even with a prepared
+`ACCEPTED` plan and the Inspector signing identity. That planned payload is
+not an actual independent verdict. A future Inspector runtime must bind an
+authenticated model decision to the exact reviewed bytes and plan before
+reviewer signing can be enabled. The owner receipt publisher remains usable.
+
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
