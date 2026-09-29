@@ -168,6 +168,31 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         if not path.is_file():
             raise StateError('verified autonomy gate evidence is missing')
     pending = tuple(contract['activation']['pending_gates'])
+    exception = contract['activation']['verified_gates'].get('owner_review_requirement_exception')
+    if exception is not None:
+        try:
+            record = json.loads((root / exception['evidence']).read_text(encoding='utf-8'))
+        except (OSError, ValueError) as error:
+            raise StateError('owner review exception evidence is invalid') from error
+        if (record.get('kind') != 'owner_review_requirement_exception' or
+                record.get('owner_identity') != contract['approval']['owner_identity'] or
+                record.get('decision') != 'OWNER_EXCEPTION_NO_INDEPENDENT_REVIEW' or
+                record.get('independent_review_performed') is not False or
+                record.get('operational_activation_authorized_by_this_exception') is not False or
+                record.get('model_calls_authorized_by_this_exception') != 0 or
+                record.get('production_release_authorized') is not False or
+                record.get('scope') != {
+                    'repository': 'timbrydges/timscodefactory',
+                    'acceptance_task': target['task_id'],
+                    'candidate_pr': 198,
+                    'waived_gate': 'independent_pre_activation_review'} or
+                record.get('remaining_gates') != [
+                    'approved_target_technical_enablement',
+                    'guarded_operational_role_activation',
+                    'live_controller_runtime_deployment',
+                    'guarded_schedule_activation'] or
+                'independent_pre_activation_review' in pending):
+            raise StateError('owner review exception differs from bounded approval')
     if contract['status'] == 'ACTIVE' and pending:
         raise StateError('active autonomy contract retains pending gates')
     return AutonomyOperatingAllowance(contract['contract_id'], contract['status'], provider['family'],

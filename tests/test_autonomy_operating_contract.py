@@ -47,6 +47,8 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowance.maximum_request_bytes_at_cost_cap, 42020)
         self.assertNotIn('fresh_provider_pricing', allowance.pending_gates)
         self.assertNotIn('ephemeral_provider_credential_path', allowance.pending_gates)
+        self.assertNotIn('independent_pre_activation_review', allowance.pending_gates)
+        self.assertIn('guarded_operational_role_activation', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
         self.assertEqual(allowance.status, 'OWNER_APPROVED_AWAITING_TECHNICAL_GATES')
@@ -117,6 +119,19 @@ class AutonomyOperatingContractTests(unittest.TestCase):
                 'factory/evidence/not-real.json')
         with self.assertRaisesRegex(StateError, 'evidence is missing'):
             load_autonomy_operating_allowance(self.mutate(change))
+
+    def test_owner_exception_cannot_claim_independent_review_or_activation(self):
+        for field, value in (('independent_review_performed', True),
+                             ('operational_activation_authorized_by_this_exception', True),
+                             ('model_calls_authorized_by_this_exception', 1)):
+            with self.subTest(field=field):
+                root = self.mutate(lambda _: None)
+                path = root / 'factory/evidence/owner-review-exception-2026-09-29.json'
+                record = json.loads(path.read_text())
+                record[field] = value
+                path.write_text(json.dumps(record))
+                with self.assertRaisesRegex(StateError, 'owner review exception'):
+                    load_autonomy_operating_allowance(root)
 
     def test_acceptance_target_evidence_drift_fails_closed(self):
         directory = tempfile.TemporaryDirectory()

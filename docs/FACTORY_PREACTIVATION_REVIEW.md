@@ -1,12 +1,12 @@
 # Factory acceptance pre-activation review packet
 
 Review the immutable PR head that contains this packet, starting from baseline
-`a1fd50f5a48588d65352736f4803bb8658271871`. This is preparation for an
-independent decision, not an approval or activation. The reviewer must be a
-different authenticated identity from Tim, the Builder, and the author of the
-activation change. Record the reviewed commit, PR review URL, findings, and
-decision in durable evidence before `independent_pre_activation_review` can
-move to verified.
+`a1fd50f5a48588d65352736f4803bb8658271871`. Tim explicitly waived the
+independent pre-activation reviewer for this acceptance task on 2026-09-29.
+The exception is recorded in
+`factory/evidence/owner-review-exception-2026-09-29.json`; it is an owner
+decision, not an independent review, an operational activation, or authority
+to spend. Keep the substantive checks below as deployment verification tasks.
 
 ## Exact scope and current state
 
@@ -31,7 +31,7 @@ move to verified.
   AWS canary passed while the schedule remained `DISABLED`, with zero model
   calls. Evidence: `factory/evidence/disabled-schedule-binding-verification-2026-09-29.json`.
 - The policy and catalog still set `coding_primary_sol_live.enabled: false`.
-  `approved_target_technical_enablement`, `independent_pre_activation_review`,
+  `approved_target_technical_enablement`,
   `guarded_operational_role_activation`, `live_controller_runtime_deployment`,
   and `guarded_schedule_activation` remain pending. The broker and Builder
   have separate disabled switches. The controller has only a disabled probe,
@@ -53,11 +53,9 @@ move to verified.
    intended target and gate evidence, retain the unapproved challenger off,
    preserve Tim-only release authority, and include a fresh quote. Do not
    treat this preparation PR as the activation diff.
-5. Require a signed or authenticated review tied to the exact activation PR
-   head, with concrete findings and an explicit approve or changes-needed
-   decision. A self-review, CI success, synthetic signature, or this packet
-   alone does not close the independent review gate.
-6. Require an independently verified live controller that enforces the exact
+5. Record the owner exception and exact candidate head in deployment evidence.
+   CI success or this packet alone does not close any remaining technical gate.
+6. Require a guarded live controller canary that verifies the exact
    task, budget, stop conditions, durable state and replay behavior. Verify
    the pinned broker and Builder deployments with their operational switches
    enabled before closing the role gate. Review the schedule enablement and
@@ -84,6 +82,6 @@ execute a provider call. The deployed CloudFormation template still hard-codes
 publication or live invocation has been deployed or verified. This branch alone
 does not close `live_controller_runtime_deployment`.
 
-Until that decision and the separately reviewed target change are recorded,
+Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
