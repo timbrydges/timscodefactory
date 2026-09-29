@@ -9,10 +9,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from factory_state.model import StateError
 
 from .autonomy import AutonomyActivation, AutonomousScheduler
 from .autonomy_contract import load_autonomy_operating_allowance
+from .live_provider_activation import validate_live_provider_preparation
 
 
 class AcceptanceController:
@@ -51,6 +54,15 @@ class AcceptanceController:
         self.activation.validate(now)
         if not allowance.pricing_observed_at <= now < allowance.pricing_expires_at:
             raise StateError('acceptance controller pricing is stale')
+        preparation = validate_live_provider_preparation(self.root)
+        policy = yaml.safe_load((self.root / 'factory/profiles/provider-live-activation.yaml').read_text())
+        catalog = yaml.safe_load((self.root / 'factory/profiles/provider-models.yaml').read_text())
+        if (preparation.baseline_alias != allowance.target_alias or
+                policy['approved_live_targets'][allowance.target_alias]['enabled'] is not True or
+                catalog['targets'][allowance.target_alias]['enabled'] is not True or
+                policy['approved_live_targets'][preparation.challenger_alias]['enabled'] is not False or
+                catalog['targets'][preparation.challenger_alias]['enabled'] is not False):
+            raise StateError('acceptance controller target switches are not exact')
         result = self.scheduler.tick(expected['factory_id'], expected['task_id'])
         if (result.get('release_dispatched') is not False or
                 type(result.get('worker_invocations')) is not int or

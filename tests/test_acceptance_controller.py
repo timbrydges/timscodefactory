@@ -46,6 +46,13 @@ class AcceptanceControllerTests(unittest.TestCase):
             if clear_gates:
                 contract['activation']['pending_gates'] = []
             path.write_text(yaml.safe_dump(contract, sort_keys=False))
+        if active:
+            for name, parent in (('provider-live-activation.yaml', 'approved_live_targets'),
+                                 ('provider-models.yaml', 'targets')):
+                path = root / 'factory/profiles' / name
+                document = yaml.safe_load(path.read_text())
+                document[parent]['coding_primary_sol_live']['enabled'] = True
+                path.write_text(yaml.safe_dump(document, sort_keys=False))
         return root
 
     def controller(self, root, *, enabled=True, now=NOW, source=COMMIT):
@@ -81,6 +88,17 @@ class AcceptanceControllerTests(unittest.TestCase):
         self.assertEqual(result['worker_invocations'], 0)
         self.assertFalse(result['release_dispatched'])
         self.assertEqual(states.reads, 1)
+
+    def test_active_contract_with_disabled_target_still_denies(self):
+        root = self.root(active=True, clear_gates=True)
+        path = root / 'factory/profiles/provider-models.yaml'
+        catalog = yaml.safe_load(path.read_text())
+        catalog['targets']['coding_primary_sol_live']['enabled'] = False
+        path.write_text(yaml.safe_dump(catalog, sort_keys=False))
+        controller, states = self.controller(root)
+        with self.assertRaisesRegex(StateError, 'target switches'):
+            controller.tick(EVENT)
+        self.assertEqual(states.reads, 0)
 
     def test_wrong_event_source_and_stale_quote_fail_before_state_read(self):
         root = self.root(active=True, clear_gates=True)
