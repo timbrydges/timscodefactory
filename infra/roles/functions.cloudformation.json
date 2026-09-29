@@ -22,11 +22,19 @@
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["false", "true"]
+    },
+    "EnableInspectorAcceptanceIam": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["false", "true"]
     }
   },
   "Conditions": {
     "BuilderAcceptanceIamEnabled": {
       "Fn::Equals": [{"Ref": "EnableBuilderAcceptanceIam"}, "true"]
+    },
+    "InspectorAcceptanceIamEnabled": {
+      "Fn::Equals": [{"Ref": "EnableInspectorAcceptanceIam"}, "true"]
     }
   },
   "Resources": {
@@ -493,6 +501,43 @@
                 }
               ]
             }
+          },
+          {
+            "Fn::If": [
+              "InspectorAcceptanceIamEnabled",
+              {
+                "PolicyName": "acceptance-inspector-exact-sonnet-5-5",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Sid": "ExactInspectorProfile",
+                      "Effect": "Allow",
+                      "Action": "bedrock:InvokeModel",
+                      "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5",
+                      "Condition": {
+                        "StringEquals": {"aws:RequestedRegion": "ca-central-1"}
+                      }
+                    },
+                    {
+                      "Sid": "ModelOnlyViaInspectorProfile",
+                      "Effect": "Allow",
+                      "Action": "bedrock:InvokeModel",
+                      "Resource": [
+                        "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5",
+                        "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5"
+                      ],
+                      "Condition": {
+                        "StringEquals": {
+                          "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {"Ref": "AWS::NoValue"}
+            ]
           }
         ]
       }
