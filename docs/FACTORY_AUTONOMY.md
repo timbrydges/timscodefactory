@@ -647,6 +647,16 @@ SHA-256 is retained there. This closes `disabled_schedule_deployment_and_canary`
 The operational backend, receipt-writer IAM and independent activation review
 remain separate pending gates; this schedule does not run unattended work.
 
+### Disabled schedule input binding corrected — 2026-09-29
+
+The guarded plan at `b371b3333b7d1bfb31b94af7aa86bedbdd29eb1b` changed
+only the existing schedule's target input from `factory` to
+`tims-software-factory`. Its AWS canary passed with the schedule still
+`DISABLED` and zero model calls. The operator screenshot and SHA-256 are
+recorded in
+`factory/evidence/disabled-schedule-binding-verification-2026-09-29.json`.
+This does not authorize schedule activation or close the independent review.
+
 ### Disabled operational backend composition deployed — 2026-09-28
 
 The guarded role transport update from `0bbb5bdbbbaa23546b0be67c1fd56e65177b045b`
