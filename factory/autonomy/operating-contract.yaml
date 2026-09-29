@@ -92,6 +92,8 @@ activation:
       evidence: factory/evidence/receipt-writer-iam-preparation-2026-09-23.json
     receipt_writer_identity_preflight:
       evidence: factory/evidence/receipt-writer-identity-preflight-2026-09-28.json
+    receipt_writer_iam_deployment_and_simulation:
+      evidence: factory/evidence/receipt-writer-iam-live-verification-2026-09-28.json
     disabled_schedule_and_canary_implementation:
       evidence: factory/evidence/disabled-schedule-preparation-2026-09-23.json
     disabled_schedule_deployment_and_canary:
