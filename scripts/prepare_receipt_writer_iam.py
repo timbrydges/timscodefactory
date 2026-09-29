@@ -17,7 +17,7 @@ from pathlib import Path
 from inspect_receipt_writer_iam import ACCOUNT, BUCKET, REGION, ROLES, STACK, TEMPLATE, aws, inspect
 
 ROOT = TEMPLATE.parents[2]
-BASE_COMMIT = '58e4e277a809ff7e142a4bedb1d1bd438d03fdd0'
+BASE_TEMPLATE_SHA256 = '72f2b33dd23d46a6cded66f5e270d4bae54efdf86bdd622e9b99c80405ee2d1f'
 
 
 def source():
@@ -28,9 +28,22 @@ def source():
     return commit
 
 
+def _prior_template():
+    old = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+    for _, (logical, _, policy_name) in ROLES.items():
+        role = old['Resources'][logical]['Properties']
+        expected_arn = f'arn:aws:iam::{ACCOUNT}:policy/{policy_name}'
+        if role.get('ManagedPolicyArns') != [expected_arn]:
+            raise RuntimeError('receipt role policy attachment differs')
+        del role['ManagedPolicyArns']
+    raw = (json.dumps(old, indent=2) + '\n').encode('utf-8')
+    if hashlib.sha256(raw).hexdigest() != BASE_TEMPLATE_SHA256:
+        raise RuntimeError('receipt IAM template changes beyond two policy attachments')
+    return raw
+
+
 def base_preflight():
-    raw = subprocess.check_output(['git', '-C', str(ROOT), 'show',
-                                   BASE_COMMIT + ':infra/signing/keys.cloudformation.json'])
+    raw = _prior_template()
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'deployed-before.json'
         path.write_bytes(raw)
@@ -38,17 +51,7 @@ def base_preflight():
 
 
 def validate_template():
-    old = json.loads(subprocess.check_output(['git', '-C', str(ROOT), 'show',
-        BASE_COMMIT + ':infra/signing/keys.cloudformation.json']))
-    new = json.loads(TEMPLATE.read_text(encoding='utf-8'))
-    for _, (logical, _, policy_name) in ROLES.items():
-        role = new['Resources'][logical]['Properties']
-        expected_arn = f'arn:aws:iam::{ACCOUNT}:policy/{policy_name}'
-        if role.get('ManagedPolicyArns') != [expected_arn]:
-            raise RuntimeError('receipt role policy attachment differs')
-        del role['ManagedPolicyArns']
-    if new != old:
-        raise RuntimeError('receipt IAM template changes beyond two policy attachments')
+    _prior_template()
 
 
 def validate_changes(changes):
