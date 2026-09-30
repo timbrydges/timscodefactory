@@ -157,7 +157,12 @@ class RoleDeploymentTests(unittest.TestCase):
                      'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5',
                      'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5'],
                  'Condition': {'StringEquals': {'bedrock:InferenceProfileArn':
-                     'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5'}}}]})
+                     'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5'}}},
+                {'Sid': 'ReserveExactInspectorReview', 'Effect': 'Allow',
+                 'Action': ['dynamodb:PutItem'],
+                 'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
+                 'Condition': {'ForAllValues:StringEquals': {'dynamodb:LeadingKeys':
+                     ['INSPECTOR#inspector-review-2026-09-30-001']}}}]})
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][0], 'BuilderAcceptanceIamEnabled')
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][1],
             ['arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder'])

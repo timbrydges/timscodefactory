@@ -72,8 +72,17 @@ def validate_template():
     if policy[0] != 'InspectorAcceptanceIamEnabled' or policy[2] != {'Ref': 'AWS::NoValue'}:
         raise RuntimeError('Inspector acceptance IAM must be conditional')
     document = policy[1]['PolicyDocument']
-    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 2:
+    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 3:
         raise RuntimeError('Inspector acceptance policy differs from reviewed exact policy')
+    budget = document['Statement'][2]
+    if budget != {
+            'Sid': 'ReserveExactInspectorReview',
+            'Effect': 'Allow',
+            'Action': ['dynamodb:PutItem'],
+            'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
+            'Condition': {'ForAllValues:StringEquals': {
+                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-review-2026-09-30-001']}}}:
+        raise RuntimeError('Inspector one-call budget reservation policy differs')
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 
 
