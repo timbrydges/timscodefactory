@@ -1,0 +1,1 @@
+Implement the immutable deterministic-text-fingerprint acceptance contract in the private acceptance repository. Change only fingerprint.py and tests/test_fingerprint.py. Use Python 3.12 standard library only, perform no network access, and satisfy the exact required test command and acceptance criteria.
