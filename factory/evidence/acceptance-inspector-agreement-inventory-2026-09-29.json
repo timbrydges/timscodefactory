@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "status": "AGREEMENT_NOT_AVAILABLE_NO_INFERENCE",
+  "observed_local_date": "2026-09-29",
+  "account": "666730517561",
+  "source_commit": "31c2ee3ab494cf4355b477f15a5d0db2cc11a48f",
+  "source": "owner-supplied AWS CloudShell screenshot of read-only inventory",
+  "candidates": [
+    {"region": "ca-central-1", "model": "anthropic.claude-sonnet-5-5", "agreement": "NOT_AVAILABLE", "authorization": "AUTHORIZED", "entitlement": "AVAILABLE", "region_availability": "AVAILABLE"},
+    {"region": "us-east-1", "model": "anthropic.claude-sonnet-5", "agreement": "NOT_AVAILABLE", "authorization": "AUTHORIZED", "entitlement": "AVAILABLE", "region_availability": "AVAILABLE"},
+    {"region": "ca-central-1", "model": "anthropic.claude-sonnet-4-6", "agreement": "NOT_AVAILABLE", "authorization": "AUTHORIZED", "entitlement": "AVAILABLE", "region_availability": "AVAILABLE"},
+    {"region": "ca-central-1", "model": "anthropic.claude-3-haiku-20240307-v1:0", "error_code": "ValueError"}
+  ],
+  "model_calls": 0,
+  "task_material_sent": false,
+  "access_changed": false,
+  "next_check": "read-only Anthropic use-case presence and Sonnet 5.5 agreement offers"
+}
