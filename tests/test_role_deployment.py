@@ -152,12 +152,18 @@ class RoleDeploymentTests(unittest.TestCase):
                  'Action': 'bedrock:InvokeModel',
                  'Resource': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0',
                  'Condition': {'StringEquals': {'aws:RequestedRegion': 'ca-central-1'}}},
-                {'Sid': 'ModelOnlyViaInspectorProfile', 'Effect': 'Allow',
-                 'Action': 'bedrock:InvokeModel', 'Resource': [
-                     'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
-                     'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0'],
-                 'Condition': {'StringEquals': {'bedrock:InferenceProfileArn':
-                     'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0'}}},
+                {'Sid': 'RegionalModelOnlyViaInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel',
+                 'Resource': 'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
+                 'Condition': {'StringEquals': {
+                     'aws:RequestedRegion': 'ca-central-1',
+                     'bedrock:InferenceProfileArn': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0'}}},
+                {'Sid': 'GlobalModelOnlyViaInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel',
+                 'Resource': 'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
+                 'Condition': {'StringEquals': {
+                     'aws:RequestedRegion': 'unspecified',
+                     'bedrock:InferenceProfileArn': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0'}}},
                 {'Sid': 'ReserveExactInspectorReview', 'Effect': 'Allow',
                  'Action': ['dynamodb:PutItem'],
                  'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
