@@ -1,7 +1,8 @@
 """Read-only Anthropic first-use and model agreement diagnostic.
 
-Returns only presence, offer count, and legal URLs. It never prints the
-submitted use case or offer tokens, and never creates an agreement.
+Returns only use-case presence and offer count. It never prints the
+submitted use case, offer tokens, or signed legal URLs, and never creates
+an agreement.
 """
 from __future__ import annotations
 
@@ -32,11 +33,6 @@ def diagnose(client):
         if offers.get('modelId') != MODEL:
             raise ValueError('agreement offers response differs from request')
         result['public_offer_count'] = len(offers.get('offers', []))
-        result['legal_terms_urls'] = sorted({offer.get('termDetails', {})
-                                              .get('legalTerm', {}).get('url')
-                                              for offer in offers.get('offers', [])
-                                              if offer.get('termDetails', {})
-                                              .get('legalTerm', {}).get('url')})
     except Exception as error:
         result['public_offers_error_code'] = _error_code(error)
     return result
