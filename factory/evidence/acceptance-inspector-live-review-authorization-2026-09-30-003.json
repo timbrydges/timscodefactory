@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "event_id": "acceptance-inspector-live-review-authorization-2026-09-30-003",
+  "owner_identity": "tim_brydges",
+  "authorized_at": "2026-09-30T07:20:42Z",
+  "authorization_text": "I authorize one new Sonnet 5.5 Inspector review call under activation inspector-review-2026-09-30-003, maximum USD $0.25, conservative reservation $0.24096, with no retries.",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-review-2026-09-30-003",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "currency": "USD",
+  "maximum_cost_usd": "0.25",
+  "conservative_reservation_usd": "0.24096",
+  "maximum_provider_calls": 1,
+  "maximum_retries": 0,
+  "maximum_request_bytes": 42020,
+  "contract_sha256": "7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "input_sha256": "e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418",
+  "reviewer_identity": "independent_inspector_service",
+  "reviewer_receipt_publication": "ONLY_IF_AUTHENTICATED_ACCEPTED_DECISION",
+  "production_release_authorized": false,
+  "supersedes_failed_activation_id": "inspector-review-2026-09-30-002",
+  "prior_activation_retry_permitted": false
+}
