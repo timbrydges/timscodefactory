@@ -20,7 +20,7 @@ from factory_runtime.receipt_transport import receipt_plan_digest
 from factory_state.dispatch import DispatchRequest, DynamoDBDispatchStore
 from factory_state.model import Lease, StateError
 
-NOW = datetime(2026, 9, 30, 5, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
 COMMIT = 'a' * 40
 
 
@@ -155,7 +155,7 @@ def fixture():
         'plan_digest': receipt_plan_digest(plan),
     }
     material = {
-        'activation_id': 'inspector-review-2026-09-30-003',
+        'activation_id': 'inspector-fallback-2026-09-30-001',
         'plan_digest': plan_document['plan_digest'],
         'input_digest': INSPECTOR_INPUT_DIGEST,
         'contract_digest': INSPECTOR_CONTRACT_DIGEST,
