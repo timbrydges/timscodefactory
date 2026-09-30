@@ -146,7 +146,7 @@ class InspectorRuntimeTests(unittest.TestCase):
         decision = runtime.review(request=request, plan=plan,
                                   policy=self.policy, now=NOW)
         self.assertEqual([item[0] for item in calls], ['budget', 'bedrock'])
-        provider_request = bedrock.calls[0][1]
+        provider_request = next(item[1] for item in calls if item[0] == 'bedrock')
         self.assertEqual(
             provider_request['toolConfig']['toolChoice'],
             {'tool': {'name': 'submit_inspector_assessment'}})
