@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "status": "FRESH_OFFICIAL_PRICE_REFERENCE",
+  "observed_at": "2026-09-30T07:55:33Z",
+  "expires_at": "2026-10-01T07:55:33Z",
+  "source_region": "ca-central-1",
+  "inference_scope": "Global Cross-region Inference",
+  "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "input_usd_per_million_tokens": "3.00",
+  "output_usd_per_million_tokens": "15.00",
+  "maximum_total_cost_usd": "0.25",
+  "sources": [
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-4-5.html",
+    "https://aws.amazon.com/blogs/aws-cloud-financial-management/optimize-llm-costs-on-amazon-bedrock-from-billing-attribution-to-operational-telemetry/"
+  ],
+  "note": "AWS documents Sonnet 4.5 global inference at USD 3 per million input tokens and USD 15 per million output tokens."
+}

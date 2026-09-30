@@ -150,19 +150,25 @@ class RoleDeploymentTests(unittest.TestCase):
             'Version': '2012-10-17', 'Statement': [
                 {'Sid': 'ExactInspectorProfile', 'Effect': 'Allow',
                  'Action': 'bedrock:InvokeModel',
-                 'Resource': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5',
+                 'Resource': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0',
                  'Condition': {'StringEquals': {'aws:RequestedRegion': 'ca-central-1'}}},
-                {'Sid': 'ModelOnlyViaInspectorProfile', 'Effect': 'Allow',
-                 'Action': 'bedrock:InvokeModel', 'Resource': [
-                     'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5',
-                     'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5'],
-                 'Condition': {'StringEquals': {'bedrock:InferenceProfileArn':
-                     'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5'}}},
+                {'Sid': 'RegionalModelOnlyViaInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel',
+                 'Resource': 'arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
+                 'Condition': {'StringEquals': {
+                     'aws:RequestedRegion': 'ca-central-1',
+                     'bedrock:InferenceProfileArn': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0'}}},
+                {'Sid': 'GlobalModelOnlyViaInspectorProfile', 'Effect': 'Allow',
+                 'Action': 'bedrock:InvokeModel',
+                 'Resource': 'arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
+                 'Condition': {'StringEquals': {
+                     'aws:RequestedRegion': 'unspecified',
+                     'bedrock:InferenceProfileArn': 'arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0'}}},
                 {'Sid': 'ReserveExactInspectorReview', 'Effect': 'Allow',
                  'Action': ['dynamodb:PutItem'],
                  'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
                  'Condition': {'ForAllValues:StringEquals': {'dynamodb:LeadingKeys':
-                     ['INSPECTOR#inspector-review-2026-09-30-003']}}}]})
+                     ['INSPECTOR#inspector-fallback-2026-09-30-001']}}}]})
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][0], 'BuilderAcceptanceIamEnabled')
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][1],
             ['arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder'])

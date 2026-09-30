@@ -17,7 +17,7 @@ from factory_runtime.receipt_transport import (
 from factory_state.dispatch import DispatchRequest, DynamoDBDispatchStore
 from factory_state.model import Lease, StateError
 
-NOW = datetime(2026, 9, 29, 11, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
 
 
 class Config:
@@ -130,7 +130,7 @@ def provider_response(request, verdict='ACCEPTED'):
 
 class InspectorRuntimeTests(unittest.TestCase):
     def setUp(self):
-        self.policy = json.loads((ROOT/'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json').read_text())
+        self.policy = json.loads((ROOT/'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json').read_text())
 
     def test_reserves_before_single_call_and_authenticates_accepted_decision(self):
         plan, request = fixture()
@@ -144,7 +144,7 @@ class InspectorRuntimeTests(unittest.TestCase):
         self.assertEqual([item[0] for item in calls], ['budget', 'bedrock'])
         self.assertEqual(decision.verdict, 'ACCEPTED')
         self.assertEqual(decision.model_id, PROFILE)
-        self.assertEqual(decision.actual_cost_usd, '0.0009')
+        self.assertEqual(decision.actual_cost_usd, '0.00135')
         self.assertIs(validate_authenticated_decision(decision, plan), decision)
 
         client, signer = S3(), Signer()
