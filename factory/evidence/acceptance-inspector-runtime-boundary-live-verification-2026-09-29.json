@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_RUNTIME_BOUNDARY_LIVE_VERIFIED",
+  "observed_at": "2026-09-30T03:51:18Z",
+  "source_commit": "7ba7ec2eb9f37953e6476d5cdfe13a0e25de9bdd",
+  "region": "ca-central-1",
+  "inspector_function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:10",
+  "producer_identity": "independent_inspector_service",
+  "task_id": "deterministic-text-fingerprint",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "maximum_cost_usd_per_call": "0.25",
+  "reserved_cost_usd": "0.24096",
+  "maximum_provider_calls": 1,
+  "maximum_request_bytes": 42020,
+  "reviewer_publication_requires_authenticated_decision": true,
+  "operational_execution_enabled": false,
+  "model_calls": 0,
+  "source": "owner-supplied AWS CloudShell screenshot of successful model-free Inspector runtime boundary verification",
+  "next_gate": "explicit owner authorization for the separate Inspector provider spend before any live Sonnet 5.5 review call"
+}
