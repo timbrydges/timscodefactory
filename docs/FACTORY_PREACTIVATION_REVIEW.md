@@ -138,9 +138,15 @@ now provides separate prepare, execute, reconcile and verify phases. Preparation
 creates and validates only the exact CloudFormation change set; execution is
 explicit and verification requires the reviewed inline policy, unchanged
 Builder IAM state, and `FACTORY_OPERATIONAL_EXECUTION_ENABLED=false`. IAM
-enablement alone therefore cannot invoke a model. Do not execute the change set
-until the independent Inspector budget/runtime and authenticated reviewer
-publisher gates are ready.
+enablement alone therefore cannot invoke a model. Tim then ran the guarded
+prepare, execute and verify sequence against commit
+`b9dd94fc865e2d7bd78e34fd480e52d8f391600c`. CloudFormation changed only the
+Inspector role and its dynamic Lambda role reference, the exact inline policy
+verified, `FACTORY_OPERATIONAL_EXECUTION_ENABLED` remained `false`, and the
+verifier made zero model calls. Evidence is
+`factory/evidence/acceptance-inspector-iam-live-verification-2026-09-29.json`.
+This closes only the Inspector IAM deployment sub-gate; the independent
+Inspector budget/runtime and authenticated reviewer publisher remain pending.
 
 Global Sonnet 5.5 pricing observed on the AWS Bedrock pricing page on
 2026-09-29 is USD 2.00 per million input and USD 10.00 per million output
