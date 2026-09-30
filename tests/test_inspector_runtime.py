@@ -124,7 +124,11 @@ def provider_response(request, verdict='ACCEPTED'):
             'contract_digest': material['contract_digest'],
             'verdict': verdict, 'rationale': 'exact bounded task reviewed',
             'evidence': ['digests and scope match']}
-    return {'output': {'message': {'content': [{'text': json.dumps(body)}]}},
+    return {'output': {'message': {'content': [{'toolUse': {
+                'toolUseId': 'assessment-1',
+                'name': 'submit_inspector_assessment',
+                'input': body}}]}},
+            'stopReason': 'tool_use',
             'usage': {'inputTokens': 200, 'outputTokens': 50, 'totalTokens': 250}}
 
 
@@ -142,6 +146,13 @@ class InspectorRuntimeTests(unittest.TestCase):
         decision = runtime.review(request=request, plan=plan,
                                   policy=self.policy, now=NOW)
         self.assertEqual([item[0] for item in calls], ['budget', 'bedrock'])
+        provider_request = bedrock.calls[0][1]
+        self.assertEqual(
+            provider_request['toolConfig']['toolChoice'],
+            {'tool': {'name': 'submit_inspector_assessment'}})
+        self.assertEqual(
+            provider_request['toolConfig']['tools'][0]['toolSpec']['name'],
+            'submit_inspector_assessment')
         self.assertEqual(decision.verdict, 'ACCEPTED')
         self.assertEqual(decision.model_id, PROFILE)
         self.assertEqual(decision.actual_cost_usd, '0.00135')
