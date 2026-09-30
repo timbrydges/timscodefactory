@@ -14,6 +14,7 @@ except ImportError:
     from prepare_role_deployment import ACCOUNT, BUCKET, REGION, ROLES, ROOT, aws, source
 
 BUILDER_IDENTITY = 'engineering_agent_service'
+INSPECTOR_IDENTITY = 'independent_inspector_service'
 
 
 def validate_changes(changes):
@@ -154,6 +155,37 @@ def verify_operational_boundary(proof, *, commit, nonce, verifier, now):
     return payload
 
 
+def verify_inspector_runtime_boundary(proof, *, commit, nonce, verifier, now):
+    expected_response = {'payload', 'signature_base64', 'model_calls',
+                         'operational_execution_enabled'}
+    if (not isinstance(proof, dict) or set(proof) != expected_response or
+            proof.get('model_calls') != 0 or
+            proof.get('operational_execution_enabled') is not False):
+        raise RuntimeError('Inspector runtime boundary is not model-free and disabled')
+    payload = proof['payload']
+    expected = {'kind': 'role_result',
+        'producer_identity': INSPECTOR_IDENTITY, 'source_commit': commit,
+        'nonce': nonce, 'task_id': 'deterministic-text-fingerprint',
+        'model_id': 'global.anthropic.claude-sonnet-5-5',
+        'maximum_cost_usd_per_call': '0.25',
+        'reserved_cost_usd': '0.24096',
+        'maximum_provider_calls': 1,
+        'maximum_request_bytes': 42020,
+        'reviewer_publication_requires_authenticated_decision': True,
+        'operational_execution_enabled': False,
+        'purpose': 'inspector-runtime-boundary-deployment-verification-only'}
+    if (not isinstance(payload, dict) or
+            set(payload) != set(expected) | {'issued_at', 'expires_at'} or
+            any(payload.get(key) != value for key, value in expected.items())):
+        raise RuntimeError('signed Inspector runtime boundary binding mismatch')
+    try:
+        signature = base64.b64decode(proof['signature_base64'], validate=True)
+    except (ValueError, TypeError) as error:
+        raise RuntimeError('invalid Inspector runtime boundary signature encoding') from error
+    verifier._verify(payload, signature, INSPECTOR_IDENTITY, now)
+    return payload
+
+
 def verify(plan_path):
     sys.path.insert(0, str(ROOT/'src'))
     from factory_state.kms_signer import SIGNERS
@@ -180,6 +212,7 @@ def verify(plan_path):
     verifier = SignedScopeStore('unused', None, trusted)
     proofs = []
     boundary_proof = None
+    inspector_runtime_proof = None
     for role in ROLES:
         arn = outputs[role.title()+'VersionArn']
         configuration = aws('lambda', 'get-function-configuration', '--function-name', arn)
@@ -235,12 +268,28 @@ def verify(plan_path):
                 'payload': boundary_payload,
                 'signature_base64': boundary['signature_base64'], 'model_calls': 0,
                 'operational_execution_enabled': False}
+        if role == 'inspector':
+            inspector_nonce = uuid.uuid4().hex
+            runtime_boundary = invoke(arn, {'kind': 'inspector_runtime_boundary_probe',
+                'source_commit': plan['source_commit'], 'nonce': inspector_nonce,
+                'task_id': 'deterministic-text-fingerprint'},
+                plan_path.parent/'operational-boundary-inspector.json')
+            runtime_payload = verify_inspector_runtime_boundary(runtime_boundary,
+                commit=plan['source_commit'], nonce=inspector_nonce,
+                verifier=verifier, now=datetime.now(timezone.utc))
+            inspector_runtime_proof = {'role': role, 'function_arn': arn,
+                'payload': runtime_payload,
+                'signature_base64': runtime_boundary['signature_base64'],
+                'model_calls': 0, 'operational_execution_enabled': False}
     if boundary_proof is None:
         raise RuntimeError('builder operational boundary proof missing')
+    if inspector_runtime_proof is None:
+        raise RuntimeError('Inspector runtime boundary proof missing')
     evidence = {'source_commit':plan['source_commit'],
-        'status':'THREE_ROLE_TRANSPORTS_AND_OPERATIONAL_BOUNDARY_VERIFIED',
+        'status':'THREE_ROLE_TRANSPORTS_AND_TWO_OPERATIONAL_BOUNDARIES_VERIFIED',
         'model_calls':0,'operational_execution_enabled':False,'autonomous_scheduling_enabled':False,
-        'proofs':proofs,'operational_boundary_proof':boundary_proof}
+        'proofs':proofs,'operational_boundary_proof':boundary_proof,
+        'inspector_runtime_boundary_proof': inspector_runtime_proof}
     plan_path.with_name('role-transport-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n')
     print(json.dumps(evidence,indent=2))
 
