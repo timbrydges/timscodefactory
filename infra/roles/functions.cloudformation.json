@@ -581,7 +581,7 @@
                       "Condition": {
                         "ForAllValues:StringEquals": {
                           "dynamodb:LeadingKeys": [
-                            "INSPECTOR#inspector-review-2026-09-30-001"
+                            "INSPECTOR#inspector-review-2026-09-30-002"
                           ]
                         }
                       }
