@@ -1,9 +1,9 @@
 """Single-use Inspector reservation with a conservative no-CountTokens bound.
 
-Claude Sonnet 5.5 has no supported exact token-counting path in this commercial
-account. The runtime therefore reserves a fixed 100,000 input-token allowance
+Claude Sonnet 4.5 is the temporary Inspector fallback. The runtime reserves a
+fixed 60,000 input-token allowance
 for any request up to 42,020 bytes, plus 4,096 output tokens. At the locked
-price this reserves USD 0.24096, below the independent USD 0.25 call cap.
+price this reserves USD 0.24144, below the independent USD 0.25 call cap.
 
 This is still a preparation primitive. No caller is enabled or permitted to
 invoke Bedrock until the independent Inspector runtime and reviewer publisher
@@ -20,13 +20,13 @@ from typing import Any
 
 from factory_state.model import SAFE_IDENTIFIER, StateError
 
-PROFILE = 'global.anthropic.claude-sonnet-5-5'
+PROFILE = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
 TABLE = 'tims-factory-acceptance-budget'
 MAX_REQUEST_BYTES = 42020
-RESERVED_INPUT_TOKENS = 100000
+RESERVED_INPUT_TOKENS = 60000
 MAX_OUTPUT_TOKENS = 4096
 MAX_COST = Decimal('0.25')
-RESERVED_COST = Decimal('0.24096')
+RESERVED_COST = Decimal('0.24144')
 
 
 def _price(policy: dict, *, now: datetime) -> Decimal:
@@ -35,9 +35,9 @@ def _price(policy: dict, *, now: datetime) -> Decimal:
             policy.get('model_id') != PROFILE or
             policy.get('source_region') != 'ca-central-1' or
             policy.get('price_quote') !=
-                'factory/evidence/acceptance-inspector-pricing-2026-09-29.json' or
+                'factory/evidence/acceptance-inspector-sonnet45-pricing-2026-09-30.json' or
             policy.get('input_accounting_method') !=
-                'fixed_conservative_reservation_after_counttokens_unavailable' or
+                'fixed_conservative_reservation_without_counttokens' or
             policy.get('maximum_total_cost_usd') != '0.25' or
             type(policy.get('maximum_provider_calls')) is not int or
             policy['maximum_provider_calls'] != 1 or
@@ -65,7 +65,7 @@ def _price(policy: dict, *, now: datetime) -> Decimal:
               Decimal(MAX_OUTPUT_TOKENS) * output_rate) / Decimal(1000000))
     if (not observed <= now < expires or expires <= observed or
             expires - observed > timedelta(hours=24) or
-            input_rate != Decimal('2.00') or output_rate != Decimal('10.00') or
+            input_rate != Decimal('3.00') or output_rate != Decimal('15.00') or
             bound != RESERVED_COST or bound >= MAX_COST):
         raise StateError('Inspector conservative budget policy is stale or unsafe')
     return bound
@@ -101,7 +101,7 @@ class InspectorBudgetStore:
                 'maximum_output_tokens': {'N': str(MAX_OUTPUT_TOKENS)},
                 'reserved_cost_microusd': {'N': str(int(bound * 1000000))},
                 'input_accounting_method': {'S':
-                    'fixed_conservative_reservation_after_counttokens_unavailable'},
+                    'fixed_conservative_reservation_without_counttokens'},
                 'policy_digest': {'S': 'sha256:' + hashlib.sha256(
                     json.dumps(policy, sort_keys=True, separators=(',', ':')).encode()).hexdigest()}}
         try:
