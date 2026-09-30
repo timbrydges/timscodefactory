@@ -133,9 +133,14 @@ The role template includes an exact Sonnet 5.5 Inspector policy behind
 `EnableInspectorAcceptanceIam`, which defaults to `false`. The currently
 deployed role has no acceptance invoke permission. The policy matches the
 observed global and ca-central-1 foundation-model routes; a future profile
-change requires a new review. Do not enable the parameter until the separate
-Inspector price, reservation cap, publisher, and model-free deployment plan
-have been verified. The Lambda operational switch remains `false`.
+change requires a new review. `scripts/prepare_inspector_acceptance_iam.py`
+now provides separate prepare, execute, reconcile and verify phases. Preparation
+creates and validates only the exact CloudFormation change set; execution is
+explicit and verification requires the reviewed inline policy, unchanged
+Builder IAM state, and `FACTORY_OPERATIONAL_EXECUTION_ENABLED=false`. IAM
+enablement alone therefore cannot invoke a model. Do not execute the change set
+until the independent Inspector budget/runtime and authenticated reviewer
+publisher gates are ready.
 
 Global Sonnet 5.5 pricing observed on the AWS Bedrock pricing page on
 2026-09-29 is USD 2.00 per million input and USD 10.00 per million output
