@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "status": "MODEL_ACCESS_BLOCKED_NO_INFERENCE",
+  "observed_local_date": "2026-09-29",
+  "account": "666730517561",
+  "region": "us-east-1",
+  "model": "anthropic.claude-sonnet-5",
+  "operation": "bedrock-mantle/anthropic/v1/messages/count_tokens",
+  "http_status": 403,
+  "error_type": "permission_error",
+  "error_message": "anthropic.claude-sonnet-5 is not available for this account.",
+  "model_calls": 0,
+  "task_material_sent": false,
+  "selected_model_unchanged": true,
+  "source": "owner-supplied AWS CloudShell screenshot",
+  "next_check": "GetFoundationModelAvailability control-plane inventory"
+}
