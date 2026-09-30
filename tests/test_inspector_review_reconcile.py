@@ -28,6 +28,13 @@ class InspectorReconcileTests(unittest.TestCase):
         self.assertEqual(result['status'], 'REVIEWER_RECEIPT_FOUND_AFTER_UNCERTAIN_CLIENT_RESULT')
         self.assertFalse(result['retry_permitted'])
 
+    def test_classification_rules_remain_fail_closed_for_new_activation(self):
+        result = classify(
+            budget_item={'PK': {'S': 'INSPECTOR#inspector-review-2026-09-30-002'}},
+            reviewer_versions=[], local_error={'errorMessage': 'provider failure'})
+        self.assertTrue(result['provider_call_may_have_occurred'])
+        self.assertFalse(result['retry_permitted'])
+
 
 if __name__ == '__main__':
     unittest.main()

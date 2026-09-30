@@ -15,9 +15,6 @@ ACCOUNT = '666730517561'
 REGION = 'ca-central-1'
 BUDGET_TABLE = 'tims-factory-acceptance-budget'
 BUCKET = 'tims-software-factory-666730517561-ca-central-1'
-ACTIVATION_ID = 'inspector-review-2026-09-30-001'
-
-
 def classify(*, budget_item, reviewer_versions, local_error):
     reserved = bool(budget_item)
     receipt = bool(reviewer_versions)
@@ -51,6 +48,12 @@ def main():
     plan_digest = event.get('plan', {}).get('plan_digest')
     if not isinstance(plan_digest, str) or not plan_digest.startswith('sha256:'):
         raise RuntimeError('event lacks exact plan digest')
+    try:
+        activation_id = json.loads(event['request']['user'])['activation_id']
+    except (KeyError, TypeError, ValueError) as error:
+        raise RuntimeError('event lacks exact Inspector activation id') from error
+    if not isinstance(activation_id, str) or not activation_id.startswith('inspector-review-'):
+        raise RuntimeError('event Inspector activation id is invalid')
 
     local_error = None
     result_path = Path(sys.argv[2])
@@ -72,7 +75,7 @@ def main():
     ddb = session.client('dynamodb', config=config)
     budget = ddb.get_item(
         TableName=BUDGET_TABLE,
-        Key={'PK': {'S': 'INSPECTOR#' + ACTIVATION_ID}, 'SK': {'S': 'BUDGET'}},
+        Key={'PK': {'S': 'INSPECTOR#' + activation_id}, 'SK': {'S': 'BUDGET'}},
         ConsistentRead=True).get('Item')
 
     key = f'factory-scope-receipts/{plan_digest[7:]}/reviewer.json'
@@ -101,6 +104,7 @@ def main():
     result = classify(
         budget_item=budget, reviewer_versions=versions, local_error=local_error)
     result.update({
+        'activation_id': activation_id,
         'plan_digest': plan_digest,
         'budget_reservation_found': bool(budget),
         'reserved_cost_microusd': (
