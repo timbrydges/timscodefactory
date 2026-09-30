@@ -193,10 +193,17 @@ The next read-only `scripts/probe_acceptance_inspector_agreement.py` checks
 whether an Anthropic first-use case is on file and whether a public Sonnet 5.5
 agreement offer exists. It emits only presence and count; it does not print
 use-case contents, offer tokens or signed legal URLs or accept any terms.
-The owner-run diagnostic found one public Sonnet 5.5 offer. The use-case
-presence field was above the visible section of the supplied screenshot, so
-its state is still unknown. The earlier diagnostic displayed an expiring
-signed legal URL; do not copy that URL into durable evidence.
+The owner-run compact diagnostic found one public Sonnet 5.5 offer and
+confirmed that an Anthropic first-use case is present. No agreement was
+created, no model call occurred, and no task material was sent. AWS documents
+creation of the foundation-model agreement with the public offer token as the
+next access step. That owner-controlled terms-acceptance action must not run
+without explicit owner confirmation. The repository provides
+`scripts/request_acceptance_inspector_agreement.py`, which rechecks the exact
+account, model, use-case presence and single public offer, requires the exact
+owner confirmation string, and never prints the offer token, use-case contents
+or signed legal URL. After submission, rerun the model-access inventory and
+record the agreement state before any Inspector task material is sent.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the

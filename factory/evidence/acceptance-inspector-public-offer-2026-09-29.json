@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
-  "status": "PUBLIC_OFFER_FOUND_NO_AGREEMENT_CREATED",
+  "status": "PUBLIC_OFFER_AND_USE_CASE_PRESENT_NO_AGREEMENT_CREATED",
   "observed_local_date": "2026-09-29",
   "account": "666730517561",
   "region": "ca-central-1",
   "model": "anthropic.claude-sonnet-5-5",
   "public_offer_count": 1,
-  "anthropic_use_case_present": "UNKNOWN_FROM_VISIBLE_SCREENSHOT",
+  "anthropic_use_case_present": true,
   "source": "owner-supplied AWS CloudShell screenshot of read-only diagnostic",
   "model_calls": 0,
   "task_material_sent": false,
   "access_changed": false,
-  "next_check": "rerun compact diagnostic to observe Anthropic use-case presence"
+  "next_check": "owner review and explicit acceptance of the public model agreement, then rerun model access inventory"
 }
