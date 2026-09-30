@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -182,10 +183,11 @@ class LiveInspectorReviewTests(unittest.TestCase):
     def test_exact_authorized_review_reserves_calls_once_and_publishes_receipt(self):
         event = fixture()
         table, bedrock, s3, signer = BudgetTable(), Bedrock(), S3(), Signer()
-        result = handle_inspector_live_review(
-            event, role='inspector', commit=COMMIT, signer=signer,
-            now=NOW, root=ROOT, session=Session(s3), database=table,
-            bedrock=bedrock)
+        with patch('factory_runtime.receipt_transport.s3_client', return_value=s3):
+            result = handle_inspector_live_review(
+                event, role='inspector', commit=COMMIT, signer=signer,
+                now=NOW, root=ROOT, session=Session(s3), database=table,
+                bedrock=bedrock)
         self.assertEqual(result['status'],
                          'INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED')
         self.assertEqual(result['model_calls'], 1)
