@@ -138,8 +138,8 @@ class InspectorReviewRuntime:
         if not 0 < len(raw) <= MAX_RESPONSE_BYTES:
             raise StateError('Inspector provider response exceeds bounded size')
         assessment = parse_assessment(raw, request)
-        actual = ((Decimal(input_tokens) * Decimal('2.00') +
-                   Decimal(output_tokens) * Decimal('10.00')) / Decimal(1000000))
+        actual = ((Decimal(input_tokens) * Decimal('3.00') +
+                   Decimal(output_tokens) * Decimal('15.00')) / Decimal(1000000))
         if actual > Decimal(reservation['reserved_cost_usd']) or actual >= Decimal('0.25'):
             raise StateError('Inspector provider usage exceeds reserved budget')
         return AuthenticatedInspectorDecision(
