@@ -255,3 +255,19 @@ reviewer-publication requirement, zero model calls, and operational execution
 still disabled. Evidence is
 `factory/evidence/acceptance-inspector-runtime-boundary-live-verification-2026-09-29.json`.
 A live Inspector provider call still requires separate owner spending authority.
+
+The first owner-authorized Sonnet 5.5 Inspector invocation reached the Bedrock
+`Converse` API only after the one-call budget reservation was durably consumed.
+AWS returned `AccessDeniedException` stating that
+`anthropic.claude-sonnet-5-5` is not available for this account. No reviewer
+receipt version exists and no successful inference/token usage was observed.
+The Factory therefore forbids retry under that activation. Evidence is
+`factory/evidence/acceptance-inspector-sonnet-5-5-runtime-denial-2026-09-30.json`.
+
+AWS currently documents Global Claude Sonnet 4.6 as supported from
+`ca-central-1` using `global.anthropic.claude-sonnet-4-6`. The repository now
+provides `scripts/probe_inspector_sonnet_4_6_access.py` to check this account's
+control-plane agreement, authorization, entitlement, profile and first-use-case
+state without accepting terms, changing access or invoking a model. A fallback
+model selection, agreement acceptance, IAM/budget change or provider call
+requires separate owner authorization.

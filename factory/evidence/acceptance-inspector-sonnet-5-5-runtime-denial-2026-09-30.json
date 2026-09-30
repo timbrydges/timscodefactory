@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_RUNTIME_ACCESS_DENIED_NO_RECEIPT",
+  "observed_at": "2026-09-30T05:06:10Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-review-2026-09-30-001",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "runtime_error_code": "AccessDeniedException",
+  "runtime_error_summary": "anthropic.claude-sonnet-5-5 is not available for this account",
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": "240960",
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "provider_request_attempted": true,
+  "successful_model_inference_observed": false,
+  "billed_token_usage_observed": false,
+  "production_release_authorized": false,
+  "operational_execution_enabled": false,
+  "source": "owner-supplied AWS CloudShell reconciliation screenshot",
+  "next_check": "read-only account access probe for the documented global Claude Sonnet 4.6 fallback; no provider invocation"
+}
