@@ -32,7 +32,10 @@ from test_dispatch_ledger import NOW
 
 class RoleDeploymentTests(unittest.TestCase):
     def test_transport_preparation_accepts_completed_prior_update_only(self):
-        parameters = [{'ParameterKey': 'EnableBuilderAcceptanceIam', 'ParameterValue': 'true'}]
+        parameters = [
+            {'ParameterKey': 'EnableBuilderAcceptanceIam', 'ParameterValue': 'true'},
+            {'ParameterKey': 'EnableInspectorAcceptanceIam', 'ParameterValue': 'true'},
+        ]
         for status in ('CREATE_COMPLETE', 'UPDATE_COMPLETE'):
             validate_existing_stack({'StackStatus': status, 'Parameters': parameters})
         for status in ('UPDATE_IN_PROGRESS', 'UPDATE_ROLLBACK_COMPLETE',
