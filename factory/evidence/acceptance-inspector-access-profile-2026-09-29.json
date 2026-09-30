@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_ACCESS_PROFILE_VERIFIED_NO_INFERENCE",
+  "observed_at": "2026-09-30T02:37:57Z",
+  "account": "666730517561",
+  "source": "owner-supplied AWS CloudShell screenshot of post-agreement verification",
+  "model": {
+    "region": "ca-central-1",
+    "model_id": "anthropic.claude-sonnet-5-5",
+    "agreement": "AVAILABLE",
+    "authorization": "AUTHORIZED",
+    "entitlement": "AVAILABLE",
+    "region_availability": "AVAILABLE"
+  },
+  "inference_profile": {
+    "id": "global.anthropic.claude-sonnet-5-5",
+    "status": "ACTIVE",
+    "type": "SYSTEM_DEFINED",
+    "profile_arn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5",
+    "model_arns": [
+      "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5",
+      "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5"
+    ]
+  },
+  "policy_preparation_status": "PREPARED_UNATTACHED",
+  "model_calls": 0,
+  "task_material_sent": false,
+  "access_changed_by_verification": false,
+  "next_check": "rerun the no-charge dummy-text Sonnet 5.5 token-counting probe after agreement activation"
+}

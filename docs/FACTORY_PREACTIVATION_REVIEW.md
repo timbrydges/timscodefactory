@@ -207,9 +207,15 @@ guarded request from CloudShell. AWS accepted the request, reported four
 `PENDING` observations, then reported `AVAILABLE`; the command made zero model
 calls and sent no Factory task material. Evidence is recorded in
 `factory/evidence/acceptance-inspector-agreement-activation-2026-09-29.json`.
-Before any Inspector task material or model invocation, rerun the exact
-model-access inventory and require agreement, authorization, entitlement and
-regional availability to be green.
+The post-agreement verification then showed Sonnet 5.5 with agreement
+`AVAILABLE`, authorization `AUTHORIZED`, entitlement `AVAILABLE`, and regional
+availability `AVAILABLE`. The global Sonnet 5.5 inference profile is `ACTIVE`,
+`SYSTEM_DEFINED`, and routes only to the exact regionless and Canada Central
+foundation-model ARNs already present in the reviewed IAM candidate. The
+unattached policy renderer returned `PREPARED_UNATTACHED`; no model call or task
+material was sent. Evidence is recorded in
+`factory/evidence/acceptance-inspector-access-profile-2026-09-29.json`.
+The next no-charge check is the dummy-text Sonnet 5.5 token-counting probe.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
