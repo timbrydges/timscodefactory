@@ -153,6 +153,12 @@ class InspectorRuntimeTests(unittest.TestCase):
         schema = provider_request['toolConfig']['tools'][0]['toolSpec']['inputSchema']['json']
         self.assertEqual(set(schema['required']), {'verdict', 'rationale', 'evidence'})
         self.assertNotIn('plan_digest', schema['properties'])
+        self.assertEqual(schema['properties']['rationale'],
+                         {'type': 'string', 'minLength': 1, 'maxLength': 2000})
+        self.assertEqual(schema['properties']['evidence']['minItems'], 1)
+        self.assertEqual(schema['properties']['evidence']['maxItems'], 8)
+        self.assertEqual(schema['properties']['evidence']['items'],
+                         {'type': 'string', 'minLength': 1, 'maxLength': 500})
         schema = provider_request['toolConfig']['tools'][0]['toolSpec']['inputSchema']['json']
         self.assertEqual(set(schema['required']), {'verdict', 'rationale', 'evidence'})
         self.assertNotIn('plan_digest', schema['properties'])
@@ -208,6 +214,19 @@ class InspectorRuntimeTests(unittest.TestCase):
             InspectorBudgetStore('tims-factory-acceptance-budget', table))
         with self.assertRaisesRegex(StateError, 'provider response or usage is malformed'):
             runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+
+    def test_parser_bounds_are_reflected_in_tool_schema(self):
+        plan, request = fixture()
+        calls = []
+        runtime = InspectorReviewRuntime(
+            Bedrock(provider_response(request), calls=calls),
+            InspectorBudgetStore('tims-factory-acceptance-budget', Table(calls)))
+        runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        provider_request = next(item[1] for item in calls if item[0] == 'bedrock')
+        schema = provider_request['toolConfig']['tools'][0]['toolSpec']['inputSchema']['json']
+        self.assertEqual(schema['properties']['rationale']['maxLength'], 2000)
+        self.assertEqual(schema['properties']['evidence']['maxItems'], 8)
+        self.assertEqual(schema['properties']['evidence']['items']['maxLength'], 500)
 
     def test_free_text_assessment_is_rejected_after_reservation(self):
         plan, request = fixture()
