@@ -197,6 +197,18 @@ class InspectorRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, 'provider response or usage is malformed'):
             runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
 
+    def test_tool_input_cannot_override_runtime_bound_digests(self):
+        plan, request = fixture()
+        table = Table()
+        response = provider_response(request)
+        response['output']['message']['content'][0]['toolUse']['input']['plan_digest'] = (
+            'sha256:' + '0' * 64)
+        runtime = InspectorReviewRuntime(
+            Bedrock(response),
+            InspectorBudgetStore('tims-factory-acceptance-budget', table))
+        with self.assertRaisesRegex(StateError, 'provider response or usage is malformed'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+
     def test_free_text_assessment_is_rejected_after_reservation(self):
         plan, request = fixture()
         table = Table()
