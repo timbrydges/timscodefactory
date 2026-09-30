@@ -7,8 +7,6 @@ from __future__ import annotations
 
 import json
 
-import boto3
-
 ACCOUNT = '666730517561'
 CANDIDATES = (
     ('ca-central-1', 'anthropic.claude-sonnet-5-5'),
@@ -40,6 +38,8 @@ def inventory(client_factory):
 
 
 def main():
+    import boto3
+
     account = boto3.client('sts', region_name='ca-central-1').get_caller_identity()['Account']
     if account != ACCOUNT:
         raise RuntimeError('wrong AWS account')
