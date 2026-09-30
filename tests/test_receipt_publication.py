@@ -96,7 +96,7 @@ class ReceiptPublicationTests(unittest.TestCase):
         current = plan()
         client = FakeS3('review-version-1')
         signer = Signer('independent_inspector_service', b'r' * 64)
-        with self.assertRaisesRegex(StateError, 'verdict authentication'):
+        with self.assertRaisesRegex(StateError, 'authenticated Inspector'):
             VersionedS3ReceiptPublisher(
                 client, signer, kind='reviewer').publish(current, now=NOW)
         self.assertEqual(client.calls, [])
