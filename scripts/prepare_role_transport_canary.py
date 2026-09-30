@@ -169,9 +169,9 @@ def verify_inspector_runtime_boundary(proof, *, commit, nonce, verifier, now):
     expected = {'kind': 'role_result',
         'producer_identity': INSPECTOR_IDENTITY, 'source_commit': commit,
         'nonce': nonce, 'task_id': 'deterministic-text-fingerprint',
-        'model_id': 'global.anthropic.claude-sonnet-5-5',
+        'model_id': 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
         'maximum_cost_usd_per_call': '0.25',
-        'reserved_cost_usd': '0.24096',
+        'reserved_cost_usd': '0.24144',
         'maximum_provider_calls': 1,
         'maximum_request_bytes': 42020,
         'reviewer_publication_requires_authenticated_decision': True,
@@ -203,7 +203,7 @@ def verify(plan_path):
         raise RuntimeError('role transport stack update not complete')
     validate_existing_stack(stack)
     inline = aws('iam', 'get-role-policy', '--role-name', 'tims-factory-executor-inspector',
-                 '--policy-name', 'acceptance-inspector-exact-sonnet-5-5')['PolicyDocument']
+                 '--policy-name', 'acceptance-inspector-fallback-sonnet-4-5')['PolicyDocument']
     if isinstance(inline, str):
         from urllib.parse import unquote
         inline = json.loads(unquote(inline))
