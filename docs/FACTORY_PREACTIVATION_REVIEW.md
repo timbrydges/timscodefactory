@@ -191,8 +191,12 @@ access conclusion. The observation is recorded in
 `factory/evidence/acceptance-inspector-agreement-inventory-2026-09-29.json`.
 The next read-only `scripts/probe_acceptance_inspector_agreement.py` checks
 whether an Anthropic first-use case is on file and whether a public Sonnet 5.5
-agreement offer exists. It emits only presence, count, and legal URLs; it
-does not print the use-case contents or offer tokens or accept any terms.
+agreement offer exists. It emits only presence and count; it does not print
+use-case contents, offer tokens or signed legal URLs or accept any terms.
+The owner-run diagnostic found one public Sonnet 5.5 offer. The use-case
+presence field was above the visible section of the supplied screenshot, so
+its state is still unknown. The earlier diagnostic displayed an expiring
+signed legal URL; do not copy that URL into durable evidence.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
