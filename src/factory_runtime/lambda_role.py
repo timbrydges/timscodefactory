@@ -18,8 +18,8 @@ from factory_state.scope import canonical
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
-INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-live-review-authorization-2026-09-30-003'
-INSPECTOR_ACTIVATION_ID = 'inspector-review-2026-09-30-003'
+INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-sonnet45-fallback-authorization-2026-09-30'
+INSPECTOR_ACTIVATION_ID = 'inspector-fallback-2026-09-30-001'
 INSPECTOR_CONTRACT_DIGEST = 'sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa'
 INSPECTOR_INPUT_DIGEST = 'sha256:e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418'
 
@@ -133,13 +133,13 @@ def _disabled_inspector_runtime(root, *, now):
     from .inspector_budget import InspectorBudgetStore, _price
     from .inspector_runtime import InspectorReviewRuntime
 
-    policy_path = root / 'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json'
+    policy_path = root / 'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'
     try:
         policy = json.loads(policy_path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError) as error:
         raise StateError('Inspector budget policy is unavailable') from error
     reserved = _price(policy, now=now)
-    if str(reserved) != '0.24096':
+    if str(reserved) != '0.24144':
         raise StateError('Inspector conservative reservation differs from reviewed policy')
 
     class NoOperationalIO:
@@ -189,7 +189,7 @@ def handle_inspector_runtime_boundary_probe(event, *, role, commit, signer, now,
 
 
 def _load_inspector_live_authorization(root):
-    path = root / 'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30-003.json'
+    path = root / 'factory/evidence/acceptance-inspector-sonnet45-fallback-authorization-2026-09-30.json'
     try:
         document = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError) as error:
@@ -200,10 +200,10 @@ def _load_inspector_live_authorization(root):
         'owner_identity': 'tim_brydges',
         'task_id': 'deterministic-text-fingerprint',
         'activation_id': INSPECTOR_ACTIVATION_ID,
-        'model_id': 'global.anthropic.claude-sonnet-5-5',
+        'model_id': 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
         'currency': 'USD',
         'maximum_cost_usd': '0.25',
-        'conservative_reservation_usd': '0.24096',
+        'conservative_reservation_usd': '0.24144',
         'maximum_provider_calls': 1,
         'maximum_retries': 0,
         'maximum_request_bytes': 42020,
@@ -295,7 +295,7 @@ def handle_inspector_live_review(event, *, role, commit, signer, now, root,
 
     authorization, plan = _validate_inspector_live_event(
         event, role=role, commit=commit, now=now, root=root)
-    policy = json.loads((root/'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json'
+    policy = json.loads((root/'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'
                          ).read_text(encoding='utf-8'))
     if (policy.get('model_id') != authorization['model_id'] or
             policy.get('maximum_total_cost_usd') != authorization['maximum_cost_usd'] or
