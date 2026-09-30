@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "status": "IAM_ENABLED_OPERATIONAL_DISABLED_VERIFIED",
+  "observed_at": "2026-09-30T02:49:05Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "source_commit": "b9dd94fc865e2d7bd78e34fd480e52d8f391600c",
+  "stack": "tims-factory-roles",
+  "role": "tims-factory-executor-inspector",
+  "policy": "acceptance-inspector-exact-sonnet-5-5",
+  "inline_policy_verified": true,
+  "operational_execution_enabled": false,
+  "model_calls_by_verifier": 0,
+  "source": "owner-supplied AWS CloudShell screenshot of guarded prepare, execute, and verify sequence",
+  "next_check": "dummy-text Sonnet 5.5 token-counting probe only; no acceptance task material"
+}
