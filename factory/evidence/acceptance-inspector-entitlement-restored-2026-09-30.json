@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "status": "SONNET_5_5_ACCOUNT_ENTITLEMENT_READY",
+  "observed_at": "2026-09-30T06:08:35Z",
+  "account": "666730517561",
+  "model_id": "anthropic.claude-sonnet-5-5",
+  "marketplace_agreements_count": 1,
+  "received_licenses_count": 2,
+  "received_grants_count": 2,
+  "license_manager_role_exists": true,
+  "marketplace_license_role_exists": true,
+  "model_calls": 0,
+  "source": "owner-supplied AWS CloudShell screenshot",
+  "note": "The earlier failed Inspector attempt remains non-retryable; any later provider call requires a fresh bounded authorization."
+}
