@@ -138,15 +138,20 @@ class VersionedS3ReceiptPublisher:
         self.client, self.signer = client, signer
         self.kind, self.bucket = kind, bucket
 
-    def publish(self, plan, *, now):
-        # A prepared plan already contains an ACCEPTED reviewer payload. The
-        # possession of the reviewer KMS key does not establish that an AI
-        # Inspector assessed the untrusted material. Until a verified model
-        # decision is bound to this exact plan, never sign that payload.
-        if self.kind == 'reviewer':
-            raise StateError('Inspector verdict authentication is not implemented')
+    def publish(self, plan, *, now, inspector_decision=None):
         plan_digest = receipt_plan_digest(plan)
-        payload, expected_identity = plan.capability_payload, 'tim_brydges'
+        if self.kind == 'reviewer':
+            # The model response is never accepted directly from a caller.
+            # Only the isolated Inspector runtime can construct the sealed
+            # decision object after a durable one-call budget reservation.
+            from .inspector_runtime import validate_authenticated_decision
+            validate_authenticated_decision(inspector_decision, plan)
+            payload = plan.review_payload
+            expected_identity = plan.review_payload.get('reviewer_identity')
+        else:
+            if inspector_decision is not None:
+                raise StateError('owner receipt cannot consume Inspector evidence')
+            payload, expected_identity = plan.capability_payload, 'tim_brydges'
         if self.signer.identity != expected_identity:
             raise StateError('receipt signer differs from reviewed plan')
         signature = self.signer.sign(payload, now=now)
