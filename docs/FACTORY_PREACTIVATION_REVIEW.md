@@ -173,10 +173,15 @@ to test this account's no-charge access. It does not select that model or
 transfer the Sonnet 5.5 price, policy, or allowance. A successful count probe
 would still require a fresh exact price, isolated IAM/budget binding and an
 authenticated Inspector runtime before task material or a provider call.
-The first dummy-text Sonnet 5 probe reached the endpoint but returned HTTP
-403. The probe now reports the bounded structured error type and message to
-distinguish missing CountTokens permission from other account or request
-failures. No invocation or task data was sent.
+The dummy-text Sonnet 5 probe reached the endpoint but returned HTTP 403 with
+`permission_error`: `anthropic.claude-sonnet-5 is not available for this
+account`. This is an account model-availability failure; do not infer that
+granting `bedrock-mantle:CountTokens` alone resolves it. The observation is
+recorded in `factory/evidence/acceptance-inspector-model-access-2026-09-29.json`.
+No invocation or task data was sent. The read-only
+`scripts/probe_acceptance_inspector_model_access.py` queries AWS's
+GetFoundationModelAvailability for exact candidates in the applicable
+Regions. It changes no agreement, IAM policy, entitlement or model selection.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
