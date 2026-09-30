@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_PROVIDER_ACCESS_DENIED_AFTER_DURABLE_RESERVATION",
+  "observed_at": "2026-09-30T05:06:10Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "activation_id": "inspector-review-2026-09-30-001",
+  "plan_digest": "sha256:423cf47323ff7b694b20aa435762106fa07170ac2bc42312aec64f37a20bccfe",
+  "provider_error": "AccessDeniedException",
+  "provider_error_summary": "anthropic.claude-sonnet-5-5 is not available for this account",
+  "retry_count_reported": 0,
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": 240960,
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "classification": "ONE_CALL_RESERVATION_CONSUMED_OR_OUTCOME_UNCERTAIN",
+  "production_release_authorized": false,
+  "operational_execution_enabled": false,
+  "source": "owner-supplied AWS CloudShell screenshot from read-only reconciliation",
+  "next_check": "read-only AWS Marketplace and License Manager entitlement/subscription diagnostic; no provider invocation"
+}
