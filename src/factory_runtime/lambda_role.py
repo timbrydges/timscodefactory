@@ -18,6 +18,10 @@ from factory_state.scope import canonical
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
+INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-live-review-authorization-2026-09-30'
+INSPECTOR_ACTIVATION_ID = 'inspector-review-2026-09-30-001'
+INSPECTOR_CONTRACT_DIGEST = 'sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa'
+INSPECTOR_INPUT_DIGEST = 'sha256:e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418'
 
 
 def validate_probe(event, *, role, commit):
@@ -184,6 +188,155 @@ def handle_inspector_runtime_boundary_probe(event, *, role, commit, signer, now,
         'operational_execution_enabled': False}
 
 
+def _load_inspector_live_authorization(root):
+    path = root / 'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30.json'
+    try:
+        document = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError, TypeError) as error:
+        raise StateError('Inspector live authorization is unavailable') from error
+    expected = {
+        'schema_version': '1.0',
+        'event_id': INSPECTOR_AUTHORIZATION_ID,
+        'owner_identity': 'tim_brydges',
+        'task_id': 'deterministic-text-fingerprint',
+        'activation_id': INSPECTOR_ACTIVATION_ID,
+        'model_id': 'global.anthropic.claude-sonnet-5-5',
+        'currency': 'USD',
+        'maximum_cost_usd': '0.25',
+        'conservative_reservation_usd': '0.24096',
+        'maximum_provider_calls': 1,
+        'maximum_retries': 0,
+        'maximum_request_bytes': 42020,
+        'contract_sha256': INSPECTOR_CONTRACT_DIGEST.removeprefix('sha256:'),
+        'input_sha256': INSPECTOR_INPUT_DIGEST.removeprefix('sha256:'),
+        'reviewer_identity': SIGNERS['inspector'],
+        'reviewer_receipt_publication': 'ONLY_IF_AUTHENTICATED_ACCEPTED_DECISION',
+        'production_release_authorized': False,
+    }
+    if (not isinstance(document, dict) or
+            any(document.get(key) != value for key, value in expected.items()) or
+            not isinstance(document.get('authorization_text'), str) or
+            not document['authorization_text'].strip() or
+            not isinstance(document.get('authorized_at'), str)):
+        raise StateError('Inspector live authorization differs from owner approval')
+    return document
+
+
+def _decode_inspector_live_plan(document, *, commit, now):
+    from factory_runtime.intake import IntakePlan
+    from factory_runtime.receipt_transport import receipt_plan_digest
+    from factory_state.dispatch import DispatchRequest, DynamoDBDispatchStore
+    from factory_state.model import Lease
+
+    fields = {'factory_id', 'task_id', 'state', 'state_version', 'lease',
+              'request', 'capability_payload', 'review_payload', 'plan_digest'}
+    if (not isinstance(document, dict) or set(document) != fields or
+            type(document.get('state_version')) is not int or
+            not isinstance(document.get('lease'), dict) or
+            not isinstance(document.get('request'), dict) or
+            not isinstance(document.get('capability_payload'), dict) or
+            not isinstance(document.get('review_payload'), dict)):
+        raise StateError('Inspector live plan is malformed')
+    try:
+        lease = Lease(**{**document['lease'],
+            'expires_at': datetime.fromisoformat(document['lease']['expires_at'])})
+        request = DispatchRequest(**document['request'])
+        plan = IntakePlan(document['factory_id'], document['task_id'], document['state'],
+            document['state_version'], lease, request,
+            document['capability_payload'], document['review_payload'])
+    except (TypeError, ValueError, KeyError) as error:
+        raise StateError('Inspector live plan is malformed') from error
+    cap, review = plan.capability_payload, plan.review_payload
+    expected_review_binding = DynamoDBDispatchStore._binding(request)
+    if (document['plan_digest'] != receipt_plan_digest(plan) or
+            (plan.factory_id, plan.task_id, plan.state) !=
+                ('tims-software-factory', 'deterministic-text-fingerprint', 'IMPLEMENTATION') or
+            plan.lease.role_id != 'engineering_agent' or plan.lease.revoked or
+            plan.lease.authoritative_identity != SIGNERS['builder'] or
+            not now < plan.lease.expires_at or
+            request.source_commit != commit or
+            request.contract_digest != INSPECTOR_CONTRACT_DIGEST or
+            request.input_digest != INSPECTOR_INPUT_DIGEST or
+            request.objective_id != 'autonomy' or request.capability_id != 'acceptance' or
+            cap.get('kind') != 'capability' or cap.get('owner_identity') != 'tim_brydges' or
+            cap.get('contract_digest') != INSPECTOR_CONTRACT_DIGEST or
+            review.get('kind') != 'scope_review' or review.get('verdict') != 'ACCEPTED' or
+            review.get('reviewer_identity') != SIGNERS['inspector'] or
+            review.get('binding') != expected_review_binding):
+        raise StateError('Inspector live plan differs from owner-authorized task')
+    for payload in (cap, review):
+        if (type(payload.get('issued_at')) is not int or
+                type(payload.get('expires_at')) is not int or
+                not payload['issued_at'] <= now.timestamp() < payload['expires_at'] or
+                payload['expires_at'] > plan.lease.expires_at.timestamp()):
+            raise StateError('Inspector live plan receipt window is invalid')
+    return plan
+
+
+def _validate_inspector_live_event(event, *, role, commit, now, root):
+    fields = {'kind', 'source_commit', 'task_id', 'authorization_id', 'plan', 'request'}
+    if (role != 'inspector' or not isinstance(event, dict) or set(event) != fields or
+            event.get('kind') != 'inspector_live_review' or
+            event.get('source_commit') != commit or
+            event.get('task_id') != 'deterministic-text-fingerprint' or
+            event.get('authorization_id') != INSPECTOR_AUTHORIZATION_ID or
+            not isinstance(event.get('request'), dict)):
+        raise StateError('Inspector live review event differs from owner authorization')
+    authorization = _load_inspector_live_authorization(root)
+    plan = _decode_inspector_live_plan(event['plan'], commit=commit, now=now)
+    return authorization, plan
+
+
+def handle_inspector_live_review(event, *, role, commit, signer, now, root,
+                                 session, database, bedrock):
+    from .inspector_budget import InspectorBudgetStore
+    from .inspector_runtime import InspectorReviewRuntime
+    from .receipt_transport import VersionedS3ReceiptPublisher, s3_client
+
+    authorization, plan = _validate_inspector_live_event(
+        event, role=role, commit=commit, now=now, root=root)
+    policy = json.loads((root/'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json'
+                         ).read_text(encoding='utf-8'))
+    if (policy.get('model_id') != authorization['model_id'] or
+            policy.get('maximum_total_cost_usd') != authorization['maximum_cost_usd'] or
+            policy.get('conservative_maximum_cost_usd') !=
+                authorization['conservative_reservation_usd'] or
+            policy.get('maximum_provider_calls') != 1 or
+            policy.get('maximum_request_bytes') != authorization['maximum_request_bytes']):
+        raise StateError('Inspector budget policy differs from owner authorization')
+    request_material = InspectorReviewRuntime._material(event['request'])
+    if request_material.get('activation_id') != INSPECTOR_ACTIVATION_ID:
+        raise StateError('Inspector activation ID differs from owner authorization')
+    runtime = InspectorReviewRuntime(
+        bedrock, InspectorBudgetStore('tims-factory-acceptance-budget', database))
+    decision = runtime.review(
+        request=event['request'], plan=plan, policy=policy, now=now)
+    result = {
+        'status': 'INSPECTOR_REVIEW_REJECTED',
+        'plan_digest': decision.plan_digest,
+        'verdict': decision.verdict,
+        'rationale': decision.rationale,
+        'evidence': list(decision.evidence),
+        'model_id': decision.model_id,
+        'input_tokens': decision.input_tokens,
+        'output_tokens': decision.output_tokens,
+        'total_tokens': decision.total_tokens,
+        'actual_cost_usd': decision.actual_cost_usd,
+        'model_calls': 1,
+        'provider_calls_remaining': 0,
+        'reviewer_receipt_version': None,
+        'production_release_authorized': False,
+        'operational_execution_enabled': False,
+    }
+    if decision.verdict == 'ACCEPTED':
+        publication = VersionedS3ReceiptPublisher(
+            s3_client(session), signer, kind='reviewer').publish(
+                plan, now=now, inspector_decision=decision)
+        result['status'] = 'INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED'
+        result['reviewer_receipt_version'] = publication.version_id
+    return result
+
+
 def _transport_event(event, *, role, commit):
     if (role not in {'planner', 'builder', 'inspector'} or not isinstance(event, dict) or
             set(event) != {'kind', 'source_commit', 'nonce', 'input_base64'} or
@@ -317,7 +470,7 @@ def handler(event, context):
     elif operational == 'false':
         if not isinstance(event, dict) or event.get('kind') not in {
                 'identity_probe', 'transport_canary', 'operational_boundary_probe',
-                'inspector_runtime_boundary_probe'}:
+                'inspector_runtime_boundary_probe', 'inspector_live_review'}:
             raise StateError('unsupported role invocation')
         if event['kind'] == 'identity_probe':
             validate_probe(event, role=role, commit=commit)
@@ -326,6 +479,9 @@ def handler(event, context):
         elif event['kind'] == 'inspector_runtime_boundary_probe':
             if role != 'inspector':
                 raise StateError('Inspector runtime boundary probe requires Inspector role')
+        elif event['kind'] == 'inspector_live_review':
+            _validate_inspector_live_event(
+                event, role=role, commit=commit, now=datetime.now(timezone.utc), root=root)
     else:
         raise StateError('operational role kill switch is invalid')
     import boto3
@@ -357,6 +513,15 @@ def handler(event, context):
     if event['kind'] == 'inspector_runtime_boundary_probe':
         return handle_inspector_runtime_boundary_probe(
             event, role=role, commit=commit, signer=signer, now=now, root=root)
+    if event['kind'] == 'inspector_live_review':
+        review_config = Config(connect_timeout=3, read_timeout=105,
+            retries={'total_max_attempts': 1, 'mode': 'standard'})
+        return handle_inspector_live_review(
+            event, role=role, commit=commit, signer=signer, now=now, root=root,
+            session=session,
+            database=boto3.client('dynamodb', region_name='ca-central-1', config=config),
+            bedrock=boto3.client('bedrock-runtime', region_name='ca-central-1',
+                                config=review_config))
     database = boto3.client('dynamodb', region_name='ca-central-1', config=config)
     return handle_transport(event, role=role, commit=commit, signer=signer, now=now,
         database=database, table=os.environ['EXECUTION_TABLE'])
