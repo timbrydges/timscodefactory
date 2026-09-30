@@ -11,7 +11,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import boto3
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -50,6 +49,7 @@ def _matches(state):
 
 
 def main():
+    import boto3
     sts = boto3.client('sts', region_name=REGION)
     if sts.get_caller_identity().get('Account') != ACCOUNT:
         raise RuntimeError('wrong AWS account')
