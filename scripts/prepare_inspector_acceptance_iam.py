@@ -1,4 +1,4 @@
-"""Prepare and verify the exact Inspector Sonnet 5.5 IAM change set.
+"""Prepare and verify the exact Inspector Sonnet 4.5 fallback IAM change set.
 
 Preparation creates only a CloudFormation change set. Execution is a separate,
 explicit step. The Inspector Lambda operational switch remains false throughout,
@@ -23,7 +23,7 @@ PARAMETER = 'EnableInspectorAcceptanceIam'
 ROLE_LOGICAL = 'InspectorRole'
 FUNCTION_LOGICAL = 'InspectorFunction'
 ROLE_NAME = 'tims-factory-executor-inspector'
-POLICY_NAME = 'acceptance-inspector-exact-sonnet-5-5'
+POLICY_NAME = 'acceptance-inspector-fallback-sonnet-4-5'
 
 
 def validate_changes(changes):
@@ -81,7 +81,7 @@ def validate_template():
             'Action': ['dynamodb:PutItem'],
             'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
             'Condition': {'ForAllValues:StringEquals': {
-                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-review-2026-09-30-003']}}}:
+                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-fallback-2026-09-30-001']}}}:
         raise RuntimeError('Inspector one-call budget reservation policy differs')
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 
