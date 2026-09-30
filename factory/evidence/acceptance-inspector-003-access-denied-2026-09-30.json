@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_ACTIVATION_003_ACCESS_DENIED",
+  "observed_at": "2026-09-30T07:50:47Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-review-2026-09-30-003",
+  "model_id": "global.anthropic.claude-sonnet-5-5",
+  "plan_digest": "sha256:8a0def27803baff83a5626bbb662222ea676855c6abcad01ecb9769158f8097f",
+  "runtime_error_code": "AccessDeniedException",
+  "runtime_error_summary": "anthropic.claude-sonnet-5-5 is not available for this account",
+  "retry_count_reported": 0,
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": 240960,
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "model_call_outcome": "provider_rejected_before_model_response",
+  "production_release_authorized": false,
+  "source": "owner-supplied AWS CloudShell reconciliation screenshot",
+  "next_action": "do not retry Sonnet 5.5; escalate the account-level availability contradiction to AWS Support or use a separately authorized supported Inspector fallback model"
+}
