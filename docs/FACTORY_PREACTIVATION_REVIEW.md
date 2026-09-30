@@ -170,11 +170,19 @@ reserves USD 0.24096 against the USD 0.25 one-call allowance. The conditional
 DynamoDB write remains single-use, and an uncertain reservation or provider
 outcome permits no retry. This budget fallback authorizes no call by itself.
 
-The reviewer receipt publisher now fails closed even with a prepared
-`ACCEPTED` plan and the Inspector signing identity. That planned payload is
-not an actual independent verdict. A future Inspector runtime must bind an
-authenticated model decision to the exact reviewed bytes and plan before
-reviewer signing can be enabled. The owner receipt publisher remains usable.
+The reviewer receipt publisher still fails closed for a prepared
+`ACCEPTED` plan or possession of the Inspector signing identity alone.
+`InspectorReviewRuntime` now supplies the missing authentication path in code:
+it verifies the exact prepared request and intake-plan digests, durably consumes
+the single conservative budget reservation before one retry-disabled Sonnet 5.5
+Converse call, validates provider usage and the bounded structured assessment,
+and returns a sealed decision object. Reviewer publication accepts only a sealed
+`ACCEPTED` decision bound to the same plan, input and contract digests; rejected,
+forged, malformed or uncertain outcomes cannot sign or publish. A provider
+transport error occurs after the durable reservation, so a retry fails closed.
+This is implementation only until the Inspector operational Lambda composition,
+deployment and live canary are separately verified. The owner receipt publisher
+remains independently usable.
 
 `parse_assessment` checks a bounded JSON response against the three exact
 review digests and rejects duplicate fields or unexpected authority claims.
