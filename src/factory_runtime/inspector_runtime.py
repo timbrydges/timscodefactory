@@ -96,11 +96,38 @@ class InspectorReviewRuntime:
                 not isinstance(request.get('system'), str) or not request['system'].strip()):
             raise StateError('Inspector runtime request differs from exact intake plan')
 
+        assessment_schema = {
+            'type': 'object',
+            'properties': {
+                'plan_digest': {'type': 'string'},
+                'input_digest': {'type': 'string'},
+                'contract_digest': {'type': 'string'},
+                'verdict': {'type': 'string', 'enum': ['ACCEPTED', 'REJECTED']},
+                'rationale': {'type': 'string'},
+                'evidence': {'type': 'array', 'items': {'type': 'string'},
+                             'minItems': 1},
+            },
+            'required': ['plan_digest', 'input_digest', 'contract_digest',
+                         'verdict', 'rationale', 'evidence'],
+            'additionalProperties': False,
+        }
         provider_request = {
             'modelId': PROFILE,
             'system': [{'text': request['system']}],
             'messages': [{'role': 'user', 'content': [{'text': request['user']}]}],
             'inferenceConfig': {'maxTokens': MAX_OUTPUT_TOKENS, 'temperature': 0},
+            'toolConfig': {
+                'tools': [{
+                    'toolSpec': {
+                        'name': 'submit_inspector_assessment',
+                        'description': (
+                            'Return the exact bounded Inspector assessment. '
+                            'This tool does not sign, publish, or authorize anything.'),
+                        'inputSchema': {'json': assessment_schema},
+                    }
+                }],
+                'toolChoice': {'tool': {'name': 'submit_inspector_assessment'}},
+            },
         }
         request_bytes = json.dumps(
             provider_request, sort_keys=True, separators=(',', ':'),
@@ -118,10 +145,16 @@ class InspectorReviewRuntime:
         try:
             content = response['output']['message']['content']
             usage = response['usage']
-            if (not isinstance(content, list) or len(content) != 1 or
-                    not isinstance(content[0], dict) or set(content[0]) != {'text'} or
-                    not isinstance(content[0]['text'], str)):
+            if (response.get('stopReason') != 'tool_use' or
+                    not isinstance(content, list) or len(content) != 1 or
+                    not isinstance(content[0], dict) or set(content[0]) != {'toolUse'} or
+                    not isinstance(content[0]['toolUse'], dict)):
                 raise ValueError('invalid content')
+            tool = content[0]['toolUse']
+            if (tool.get('name') != 'submit_inspector_assessment' or
+                    not isinstance(tool.get('toolUseId'), str) or
+                    not isinstance(tool.get('input'), dict)):
+                raise ValueError('invalid tool use')
             input_tokens = usage['inputTokens']
             output_tokens = usage['outputTokens']
             total_tokens = usage['totalTokens']
@@ -134,7 +167,7 @@ class InspectorReviewRuntime:
         except (KeyError, TypeError, ValueError) as error:
             raise StateError('Inspector provider response or usage is malformed') from error
 
-        raw = content[0]['text'].encode('utf-8')
+        raw = json.dumps(tool['input'], sort_keys=True, separators=(',', ':')).encode('utf-8')
         if not 0 < len(raw) <= MAX_RESPONSE_BYTES:
             raise StateError('Inspector provider response exceeds bounded size')
         assessment = parse_assessment(raw, request)

@@ -51,7 +51,11 @@ class Bedrock:
             'evidence': ['contract digest matches', 'input digest matches'],
         }
         return {
-            'output': {'message': {'content': [{'text': json.dumps(response)}]}},
+            'output': {'message': {'content': [{'toolUse': {
+                'toolUseId': 'assessment-live-1',
+                'name': 'submit_inspector_assessment',
+                'input': response}}]}},
+            'stopReason': 'tool_use',
             'usage': {'inputTokens': 300, 'outputTokens': 60, 'totalTokens': 360},
         }
 

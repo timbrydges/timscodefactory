@@ -124,7 +124,11 @@ def provider_response(request, verdict='ACCEPTED'):
             'contract_digest': material['contract_digest'],
             'verdict': verdict, 'rationale': 'exact bounded task reviewed',
             'evidence': ['digests and scope match']}
-    return {'output': {'message': {'content': [{'text': json.dumps(body)}]}},
+    return {'output': {'message': {'content': [{'toolUse': {
+                'toolUseId': 'assessment-1',
+                'name': 'submit_inspector_assessment',
+                'input': body}}]}},
+            'stopReason': 'tool_use',
             'usage': {'inputTokens': 200, 'outputTokens': 50, 'totalTokens': 250}}
 
 
@@ -142,6 +146,13 @@ class InspectorRuntimeTests(unittest.TestCase):
         decision = runtime.review(request=request, plan=plan,
                                   policy=self.policy, now=NOW)
         self.assertEqual([item[0] for item in calls], ['budget', 'bedrock'])
+        provider_request = next(item[1] for item in calls if item[0] == 'bedrock')
+        self.assertEqual(
+            provider_request['toolConfig']['toolChoice'],
+            {'tool': {'name': 'submit_inspector_assessment'}})
+        self.assertEqual(
+            provider_request['toolConfig']['tools'][0]['toolSpec']['name'],
+            'submit_inspector_assessment')
         self.assertEqual(decision.verdict, 'ACCEPTED')
         self.assertEqual(decision.model_id, PROFILE)
         self.assertEqual(decision.actual_cost_usd, '0.00135')
@@ -170,6 +181,22 @@ class InspectorRuntimeTests(unittest.TestCase):
             VersionedS3ReceiptPublisher(S3(), Signer(), kind='reviewer').publish(
                 plan, now=NOW, inspector_decision=SimpleNamespace(
                     verdict='ACCEPTED', plan_digest=receipt_plan_digest(plan)))
+
+    def test_free_text_assessment_is_rejected_after_reservation(self):
+        plan, request = fixture()
+        table = Table()
+        bad = {'output': {'message': {'content': [{'text': '{"verdict":"ACCEPTED"}'}]}},
+               'stopReason': 'end_turn',
+               'usage': {'inputTokens': 200, 'outputTokens': 20, 'totalTokens': 220}}
+        bedrock = Bedrock(bad)
+        runtime = InspectorReviewRuntime(
+            bedrock, InspectorBudgetStore('tims-factory-acceptance-budget', table))
+        with self.assertRaisesRegex(StateError, 'provider response or usage is malformed'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertEqual(len(bedrock.calls), 1)
+        with self.assertRaisesRegex(StateError, 'already reserved'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertEqual(len(bedrock.calls), 1)
 
     def test_provider_failure_consumes_reservation_and_cannot_retry(self):
         plan, request = fixture()

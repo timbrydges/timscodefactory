@@ -31,6 +31,7 @@ class InspectorPromptTests(unittest.TestCase):
         self.assertNotIn('rationale', material['review_request'])
         self.assertNotIn('signature', request)
         self.assertNotIn('receipt_versions', request)
+        self.assertIn('submit_inspector_assessment', request['system'])
 
     def test_tampering_and_preselected_approval_fail_closed(self):
         packet = self.packet()
