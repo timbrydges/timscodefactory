@@ -64,7 +64,7 @@ def main():
         raise SystemExit(3)
 
     service = AuthenticatedIntakeService(
-        states, DynamoDBDispatchStore(TABLE, client), clock=lambda: now)
+        states, DynamoDBDispatchStore(TABLE, client), key_loader=(lambda _at: {}), clock=lambda: now)
     plan = service.prepare(
         FACTORY, TASK, role_id='engineering_agent', source_commit=source(),
         objective_id='autonomy', capability_id='acceptance',
