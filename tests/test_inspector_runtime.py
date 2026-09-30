@@ -182,6 +182,22 @@ class InspectorRuntimeTests(unittest.TestCase):
                 plan, now=NOW, inspector_decision=SimpleNamespace(
                     verdict='ACCEPTED', plan_digest=receipt_plan_digest(plan)))
 
+    def test_free_text_assessment_is_rejected_after_reservation(self):
+        plan, request = fixture()
+        table = Table()
+        bad = {'output': {'message': {'content': [{'text': '{"verdict":"ACCEPTED"}'}]}},
+               'stopReason': 'end_turn',
+               'usage': {'inputTokens': 200, 'outputTokens': 20, 'totalTokens': 220}}
+        bedrock = Bedrock(bad)
+        runtime = InspectorReviewRuntime(
+            bedrock, InspectorBudgetStore('tims-factory-acceptance-budget', table))
+        with self.assertRaisesRegex(StateError, 'provider response or usage is malformed'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertEqual(len(bedrock.calls), 1)
+        with self.assertRaisesRegex(StateError, 'already reserved'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertEqual(len(bedrock.calls), 1)
+
     def test_provider_failure_consumes_reservation_and_cannot_retry(self):
         plan, request = fixture()
         table = Table()
