@@ -21,7 +21,8 @@ def validate_changes(changes):
     expected = {'ControllerInvoke'} | {role.title()+suffix for role in ROLES
         for suffix in ('Function', 'Version')}
     found = {change['ResourceChange']['LogicalResourceId'] for change in changes}
-    if found != expected or len(changes) != len(expected):
+    allowed = (expected, expected | {'InspectorRole'})
+    if found not in allowed or len(changes) != len(found):
         raise RuntimeError(f'unexpected transport update resources: {sorted(found)}')
     for change in changes:
         item = change['ResourceChange']; logical = item['LogicalResourceId']
@@ -32,7 +33,9 @@ def validate_changes(changes):
             if replacement != 'True':
                 raise RuntimeError('published Lambda versions must be replaced')
         elif replacement != 'False':
-            raise RuntimeError('functions and controller policy must update in place')
+            raise RuntimeError('functions, role and controller policy must update in place')
+        if logical == 'InspectorRole' and item.get('ResourceType') != 'AWS::IAM::Role':
+            raise RuntimeError('Inspector budget update must remain an IAM role modification')
 
 
 def validate_existing_stack(stack):
@@ -199,6 +202,15 @@ def verify(plan_path):
     if stack['StackStatus'] != 'UPDATE_COMPLETE':
         raise RuntimeError('role transport stack update not complete')
     validate_existing_stack(stack)
+    inline = aws('iam', 'get-role-policy', '--role-name', 'tims-factory-executor-inspector',
+                 '--policy-name', 'acceptance-inspector-exact-sonnet-5-5')['PolicyDocument']
+    if isinstance(inline, str):
+        from urllib.parse import unquote
+        inline = json.loads(unquote(inline))
+    expected_inspector = json.loads((ROOT/'infra/roles/functions.cloudformation.json').read_text(
+        encoding='utf-8'))['Resources']['InspectorRole']['Properties']['Policies'][1]['Fn::If'][1]['PolicyDocument']
+    if inline != expected_inspector:
+        raise RuntimeError('deployed Inspector acceptance policy differs from reviewed template')
     outputs = {x['OutputKey']: x['OutputValue'] for x in stack['Outputs']}
     versions = {outputs[role.title()+'VersionArn'] for role in ROLES}
     if versions & set(plan['previous_versions'].values()) or len(versions) != 3:
