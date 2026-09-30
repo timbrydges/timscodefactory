@@ -155,7 +155,7 @@ def fixture():
         'plan_digest': receipt_plan_digest(plan),
     }
     material = {
-        'activation_id': 'inspector-review-2026-09-30-001',
+        'activation_id': 'inspector-review-2026-09-30-002',
         'plan_digest': plan_document['plan_digest'],
         'input_digest': INSPECTOR_INPUT_DIGEST,
         'contract_digest': INSPECTOR_CONTRACT_DIGEST,

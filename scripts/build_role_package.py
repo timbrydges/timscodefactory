@@ -26,7 +26,7 @@ def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
         'factory/evals/provider-qualification.yaml',
         'factory/evals/provider-repair-corpus-v1.json',
         'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json',
-        'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30.json',
+        'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30-002.json',
     }
     paths = provider_paths | {contract_path, schema_path, contract['approval']['evidence'],
              contract['acceptance_target']['evidence'], contract['pricing_reference']['evidence']}
