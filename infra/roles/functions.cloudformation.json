@@ -542,7 +542,7 @@
             "Fn::If": [
               "InspectorAcceptanceIamEnabled",
               {
-                "PolicyName": "acceptance-inspector-exact-sonnet-5-5",
+                "PolicyName": "acceptance-inspector-fallback-sonnet-4-5",
                 "PolicyDocument": {
                   "Version": "2012-10-17",
                   "Statement": [
@@ -550,7 +550,7 @@
                       "Sid": "ExactInspectorProfile",
                       "Effect": "Allow",
                       "Action": "bedrock:InvokeModel",
-                      "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5",
+                      "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
                       "Condition": {
                         "StringEquals": {
                           "aws:RequestedRegion": "ca-central-1"
@@ -562,12 +562,12 @@
                       "Effect": "Allow",
                       "Action": "bedrock:InvokeModel",
                       "Resource": [
-                        "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-5-5",
-                        "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-5-5"
+                        "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                        "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
                       ],
                       "Condition": {
                         "StringEquals": {
-                          "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5"
+                          "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
                         }
                       }
                     },
@@ -581,7 +581,7 @@
                       "Condition": {
                         "ForAllValues:StringEquals": {
                           "dynamodb:LeadingKeys": [
-                            "INSPECTOR#inspector-review-2026-09-30-003"
+                            "INSPECTOR#inspector-fallback-2026-09-30-001"
                           ]
                         }
                       }
