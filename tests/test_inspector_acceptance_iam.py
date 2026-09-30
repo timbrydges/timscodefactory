@@ -17,7 +17,7 @@ class InspectorAcceptanceIamTests(unittest.TestCase):
         template = json.loads(inspector_iam.TEMPLATE.read_text())
         policy = template['Resources']['InspectorRole']['Properties']['Policies'][1]['Fn::If']
         self.assertEqual(policy[0], 'InspectorAcceptanceIamEnabled')
-        self.assertEqual(policy[1]['PolicyName'], 'acceptance-inspector-exact-sonnet-5-5')
+        self.assertEqual(policy[1]['PolicyName'], 'acceptance-inspector-fallback-sonnet-4-5')
         self.assertEqual(policy[2], {'Ref': 'AWS::NoValue'})
         self.assertEqual(
             template['Resources']['InspectorFunction']['Properties']['Environment']['Variables']
