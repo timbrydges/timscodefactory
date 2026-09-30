@@ -100,9 +100,13 @@ class InspectorReviewRuntime:
             'type': 'object',
             'properties': {
                 'verdict': {'type': 'string', 'enum': ['ACCEPTED', 'REJECTED']},
-                'rationale': {'type': 'string'},
-                'evidence': {'type': 'array', 'items': {'type': 'string'},
-                             'minItems': 1},
+                'rationale': {'type': 'string', 'minLength': 1, 'maxLength': 2000},
+                'evidence': {
+                    'type': 'array',
+                    'items': {'type': 'string', 'minLength': 1, 'maxLength': 500},
+                    'minItems': 1,
+                    'maxItems': 8,
+                },
             },
             'required': ['verdict', 'rationale', 'evidence'],
             'additionalProperties': False,
