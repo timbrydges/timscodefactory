@@ -123,6 +123,67 @@ def handle_operational_boundary_probe(event, *, role, commit, signer, now, root=
         'operational_execution_enabled': False}
 
 
+def _disabled_inspector_runtime(root, *, now):
+    from types import SimpleNamespace
+
+    from .inspector_budget import InspectorBudgetStore, _price
+    from .inspector_runtime import InspectorReviewRuntime
+
+    policy_path = root / 'factory/evidence/acceptance-inspector-budget-policy-2026-09-29.json'
+    try:
+        policy = json.loads(policy_path.read_text(encoding='utf-8'))
+    except (OSError, ValueError, TypeError) as error:
+        raise StateError('Inspector budget policy is unavailable') from error
+    reserved = _price(policy, now=now)
+    if str(reserved) != '0.24096':
+        raise StateError('Inspector conservative reservation differs from reviewed policy')
+
+    class NoOperationalIO:
+        def __getattr__(self, name):
+            raise StateError('disabled Inspector cannot access operational IO')
+
+    bedrock = SimpleNamespace(
+        meta=SimpleNamespace(
+            endpoint_url='https://bedrock-runtime.ca-central-1.amazonaws.com',
+            config=SimpleNamespace(retries={'total_max_attempts': 1})),
+        converse=NoOperationalIO())
+    budget = InspectorBudgetStore('tims-factory-acceptance-budget', NoOperationalIO())
+    runtime = InspectorReviewRuntime(bedrock, budget)
+    if (runtime.client is not bedrock or runtime.budget is not budget or
+            runtime.budget.table_name != 'tims-factory-acceptance-budget'):
+        raise StateError('disabled Inspector runtime composition differs')
+    return policy
+
+
+def handle_inspector_runtime_boundary_probe(event, *, role, commit, signer, now, root=None):
+    expected = {'kind', 'source_commit', 'nonce', 'task_id'}
+    if (role != 'inspector' or not isinstance(event, dict) or set(event) != expected or
+            event.get('kind') != 'inspector_runtime_boundary_probe' or
+            event.get('source_commit') != commit or
+            event.get('task_id') != 'deterministic-text-fingerprint' or
+            not isinstance(event.get('nonce'), str) or
+            not re.fullmatch(r'[a-zA-Z0-9-]{16,64}', event['nonce']) or
+            signer.identity != SIGNERS['inspector']):
+        raise StateError('invalid Inspector runtime boundary probe')
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
+    policy = _disabled_inspector_runtime(root, now=now)
+    payload = {'kind': 'role_result',
+        'producer_identity': SIGNERS['inspector'], 'source_commit': commit,
+        'nonce': event['nonce'], 'task_id': event['task_id'],
+        'model_id': policy['model_id'],
+        'maximum_cost_usd_per_call': policy['maximum_total_cost_usd'],
+        'reserved_cost_usd': policy['conservative_maximum_cost_usd'],
+        'maximum_provider_calls': policy['maximum_provider_calls'],
+        'maximum_request_bytes': policy['maximum_request_bytes'],
+        'reviewer_publication_requires_authenticated_decision': True,
+        'operational_execution_enabled': False,
+        'purpose': 'inspector-runtime-boundary-deployment-verification-only',
+        'issued_at': int(now.timestamp()), 'expires_at': int(now.timestamp()) + 300}
+    return {'payload': payload, 'signature_base64': base64.b64encode(
+        signer.sign(payload, now=now)).decode(), 'model_calls': 0,
+        'operational_execution_enabled': False}
+
+
 def _transport_event(event, *, role, commit):
     if (role not in {'planner', 'builder', 'inspector'} or not isinstance(event, dict) or
             set(event) != {'kind', 'source_commit', 'nonce', 'input_base64'} or
@@ -255,12 +316,16 @@ def handler(event, context):
             root, commit, os.environ.get(ACTIVATION_CONFIG), datetime.now(timezone.utc))
     elif operational == 'false':
         if not isinstance(event, dict) or event.get('kind') not in {
-                'identity_probe', 'transport_canary', 'operational_boundary_probe'}:
+                'identity_probe', 'transport_canary', 'operational_boundary_probe',
+                'inspector_runtime_boundary_probe'}:
             raise StateError('unsupported role invocation')
         if event['kind'] == 'identity_probe':
             validate_probe(event, role=role, commit=commit)
         elif event['kind'] == 'transport_canary':
             _transport_event(event, role=role, commit=commit)
+        elif event['kind'] == 'inspector_runtime_boundary_probe':
+            if role != 'inspector':
+                raise StateError('Inspector runtime boundary probe requires Inspector role')
     else:
         raise StateError('operational role kill switch is invalid')
     import boto3
@@ -288,6 +353,9 @@ def handler(event, context):
         return handle_probe(event, role=role, commit=commit, signer=signer, now=now)
     if event['kind'] == 'operational_boundary_probe':
         return handle_operational_boundary_probe(
+            event, role=role, commit=commit, signer=signer, now=now, root=root)
+    if event['kind'] == 'inspector_runtime_boundary_probe':
+        return handle_inspector_runtime_boundary_probe(
             event, role=role, commit=commit, signer=signer, now=now, root=root)
     database = boto3.client('dynamodb', region_name='ca-central-1', config=config)
     return handle_transport(event, role=role, commit=commit, signer=signer, now=now,
