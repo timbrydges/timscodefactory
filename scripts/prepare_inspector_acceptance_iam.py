@@ -72,9 +72,9 @@ def validate_template():
     if policy[0] != 'InspectorAcceptanceIamEnabled' or policy[2] != {'Ref': 'AWS::NoValue'}:
         raise RuntimeError('Inspector acceptance IAM must be conditional')
     document = policy[1]['PolicyDocument']
-    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 3:
+    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 4:
         raise RuntimeError('Inspector acceptance policy differs from reviewed exact policy')
-    budget = document['Statement'][2]
+    budget = document['Statement'][3]
     if budget != {
             'Sid': 'ReserveExactInspectorReview',
             'Effect': 'Allow',
