@@ -30,7 +30,7 @@ class InspectorAgreementProbeTests(unittest.TestCase):
              {'modelId': MODEL, 'offerType': 'PUBLIC'})])
         self.assertTrue(result['anthropic_use_case_present'])
         self.assertEqual(result['public_offer_count'], 1)
-        self.assertEqual(result['legal_terms_urls'], ['https://example.org/terms'])
+        self.assertNotIn('legal_terms_urls', result)
         self.assertNotIn('private', str(result))
         self.assertFalse(result['access_changed'])
 
