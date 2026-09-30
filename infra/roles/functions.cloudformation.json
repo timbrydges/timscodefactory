@@ -21,20 +21,36 @@
     "EnableBuilderAcceptanceIam": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": ["false", "true"]
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
     },
     "EnableInspectorAcceptanceIam": {
       "Type": "String",
       "Default": "false",
-      "AllowedValues": ["false", "true"]
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
     }
   },
   "Conditions": {
     "BuilderAcceptanceIamEnabled": {
-      "Fn::Equals": [{"Ref": "EnableBuilderAcceptanceIam"}, "true"]
+      "Fn::Equals": [
+        {
+          "Ref": "EnableBuilderAcceptanceIam"
+        },
+        "true"
+      ]
     },
     "InspectorAcceptanceIamEnabled": {
-      "Fn::Equals": [{"Ref": "EnableInspectorAcceptanceIam"}, "true"]
+      "Fn::Equals": [
+        {
+          "Ref": "EnableInspectorAcceptanceIam"
+        },
+        "true"
+      ]
     }
   },
   "Resources": {
@@ -241,8 +257,12 @@
         "ManagedPolicyArns": {
           "Fn::If": [
             "BuilderAcceptanceIamEnabled",
-            ["arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder"],
-            {"Ref": "AWS::NoValue"}
+            [
+              "arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder"
+            ],
+            {
+              "Ref": "AWS::NoValue"
+            }
           ]
         },
         "Policies": [
@@ -321,7 +341,10 @@
                     {
                       "Sid": "ReadAndGuardExactAcceptanceState",
                       "Effect": "Allow",
-                      "Action": ["dynamodb:GetItem", "dynamodb:ConditionCheckItem"],
+                      "Action": [
+                        "dynamodb:GetItem",
+                        "dynamodb:ConditionCheckItem"
+                      ],
                       "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
                       "Condition": {
                         "ForAllValues:StringLike": {
@@ -335,8 +358,17 @@
                     {
                       "Sid": "OwnExactAcceptanceExecution",
                       "Effect": "Allow",
-                      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
-                      "Resource": {"Fn::GetAtt": ["RoleExecutions", "Arn"]},
+                      "Action": [
+                        "dynamodb:GetItem",
+                        "dynamodb:PutItem",
+                        "dynamodb:UpdateItem"
+                      ],
+                      "Resource": {
+                        "Fn::GetAtt": [
+                          "RoleExecutions",
+                          "Arn"
+                        ]
+                      },
                       "Condition": {
                         "ForAllValues:StringEquals": {
                           "dynamodb:LeadingKeys": [
@@ -348,13 +380,17 @@
                     {
                       "Sid": "InvokePinnedCredentialFreeBroker",
                       "Effect": "Allow",
-                      "Action": ["lambda:InvokeFunction"],
+                      "Action": [
+                        "lambda:InvokeFunction"
+                      ],
                       "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:3"
                     }
                   ]
                 }
               },
-              {"Ref": "AWS::NoValue"}
+              {
+                "Ref": "AWS::NoValue"
+              }
             ]
           }
         ]
@@ -516,7 +552,9 @@
                       "Action": "bedrock:InvokeModel",
                       "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5",
                       "Condition": {
-                        "StringEquals": {"aws:RequestedRegion": "ca-central-1"}
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
                       }
                     },
                     {
@@ -532,11 +570,28 @@
                           "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-5-5"
                         }
                       }
+                    },
+                    {
+                      "Sid": "ReserveExactInspectorReview",
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:PutItem"
+                      ],
+                      "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget",
+                      "Condition": {
+                        "ForAllValues:StringEquals": {
+                          "dynamodb:LeadingKeys": [
+                            "INSPECTOR#inspector-review-2026-09-30-001"
+                          ]
+                        }
+                      }
                     }
                   ]
                 }
               },
-              {"Ref": "AWS::NoValue"}
+              {
+                "Ref": "AWS::NoValue"
+              }
             ]
           }
         ]
