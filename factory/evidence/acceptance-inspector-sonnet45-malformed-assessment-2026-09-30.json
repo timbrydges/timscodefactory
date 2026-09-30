@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "SONNET_4_5_PROVIDER_RESPONSE_REJECTED_AS_MALFORMED",
+  "observed_at": "2026-09-30T08:19:51Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-fallback-2026-09-30-001",
+  "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "plan_digest": "sha256:f6fad127415216d5cdd66f0ccbadac18f6aec028dbcfddc85ca7a87429793423",
+  "provider_call_completed": true,
+  "provider_response_received": true,
+  "provider_response_validation": "REJECTED",
+  "runtime_error": "StateError: Inspector assessment is malformed",
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": 241440,
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "production_release_authorized": false,
+  "source": "owner-supplied AWS CloudShell reconciliation screenshot",
+  "next_action": "replace free-text JSON response with a forced structured tool-use assessment before any newly authorized Inspector call"
+}
