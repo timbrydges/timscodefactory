@@ -18,8 +18,8 @@ from factory_state.scope import canonical
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
-INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-live-review-authorization-2026-09-30-002'
-INSPECTOR_ACTIVATION_ID = 'inspector-review-2026-09-30-002'
+INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-live-review-authorization-2026-09-30-003'
+INSPECTOR_ACTIVATION_ID = 'inspector-review-2026-09-30-003'
 INSPECTOR_CONTRACT_DIGEST = 'sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa'
 INSPECTOR_INPUT_DIGEST = 'sha256:e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418'
 
@@ -189,7 +189,7 @@ def handle_inspector_runtime_boundary_probe(event, *, role, commit, signer, now,
 
 
 def _load_inspector_live_authorization(root):
-    path = root / 'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30-002.json'
+    path = root / 'factory/evidence/acceptance-inspector-live-review-authorization-2026-09-30-003.json'
     try:
         document = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError) as error:
