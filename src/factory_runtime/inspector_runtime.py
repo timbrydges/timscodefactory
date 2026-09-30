@@ -99,16 +99,12 @@ class InspectorReviewRuntime:
         assessment_schema = {
             'type': 'object',
             'properties': {
-                'plan_digest': {'type': 'string'},
-                'input_digest': {'type': 'string'},
-                'contract_digest': {'type': 'string'},
                 'verdict': {'type': 'string', 'enum': ['ACCEPTED', 'REJECTED']},
                 'rationale': {'type': 'string'},
                 'evidence': {'type': 'array', 'items': {'type': 'string'},
                              'minItems': 1},
             },
-            'required': ['plan_digest', 'input_digest', 'contract_digest',
-                         'verdict', 'rationale', 'evidence'],
+            'required': ['verdict', 'rationale', 'evidence'],
             'additionalProperties': False,
         }
         provider_request = {
@@ -151,9 +147,11 @@ class InspectorReviewRuntime:
                     not isinstance(content[0]['toolUse'], dict)):
                 raise ValueError('invalid content')
             tool = content[0]['toolUse']
+            tool_input = tool.get('input')
             if (tool.get('name') != 'submit_inspector_assessment' or
                     not isinstance(tool.get('toolUseId'), str) or
-                    not isinstance(tool.get('input'), dict)):
+                    not isinstance(tool_input, dict) or
+                    set(tool_input) != {'verdict', 'rationale', 'evidence'}):
                 raise ValueError('invalid tool use')
             input_tokens = usage['inputTokens']
             output_tokens = usage['outputTokens']
@@ -167,7 +165,16 @@ class InspectorReviewRuntime:
         except (KeyError, TypeError, ValueError) as error:
             raise StateError('Inspector provider response or usage is malformed') from error
 
-        raw = json.dumps(tool['input'], sort_keys=True, separators=(',', ':')).encode('utf-8')
+        bound_assessment = {
+            'plan_digest': request['plan_digest'],
+            'input_digest': material['input_digest'],
+            'contract_digest': material['contract_digest'],
+            'verdict': tool_input['verdict'],
+            'rationale': tool_input['rationale'],
+            'evidence': tool_input['evidence'],
+        }
+        raw = json.dumps(
+            bound_assessment, sort_keys=True, separators=(',', ':')).encode('utf-8')
         if not 0 < len(raw) <= MAX_RESPONSE_BYTES:
             raise StateError('Inspector provider response exceeds bounded size')
         assessment = parse_assessment(raw, request)

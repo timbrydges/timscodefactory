@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "SONNET_4_5_STRUCTURED_ASSESSMENT_BINDING_REJECTED",
+  "observed_at": "2026-09-30T08:54:03Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-fallback-2026-09-30-002",
+  "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "plan_digest": "sha256:e7efd952ed39b964edfbfc6fa7a3db0a0cb689ff8f1d6d2898e5dad93f21741f",
+  "provider_call_completed": true,
+  "structured_tool_response_received": true,
+  "provider_response_validation": "REJECTED",
+  "runtime_error": "StateError: Inspector assessment differs from exact review binding",
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": 241440,
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "production_release_authorized": false,
+  "source": "owner-supplied AWS CloudShell reconciliation screenshot",
+  "next_action": "bind trusted plan/input/contract digests in runtime instead of asking the model to echo them"
+}

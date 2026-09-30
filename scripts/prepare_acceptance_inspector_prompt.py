@@ -66,9 +66,10 @@ def render(packet: dict) -> dict:
             'Assess whether the exact proposed capability is within the contract and '
             'the scope binding, and identify conflicts or missing evidence. '
             'When the submit_inspector_assessment tool is available, use that tool exactly '
-            'once with the exact plan_digest, input_digest, and contract_digest from the '
-            'user data, verdict (ACCEPTED or REJECTED), rationale, and an array of evidence '
-            'strings. Otherwise return only JSON with those same fields. Do not claim to '
+            'once with verdict (ACCEPTED or REJECTED), rationale, and an array of evidence '
+            'strings. The runtime binds the trusted plan/input/contract digests itself; do '
+            'not copy or transform those digests into the tool arguments. Otherwise return '
+            'only JSON with verdict, rationale, and evidence. Do not claim to '
             'have signed, published, or authorized anything.'),
         'user': json.dumps(material, sort_keys=True, ensure_ascii=True)}
 

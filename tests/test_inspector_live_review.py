@@ -43,9 +43,6 @@ class Bedrock:
         self.calls.append(request)
         material = json.loads(request['messages'][0]['content'][0]['text'])
         response = {
-            'plan_digest': material['plan_digest'],
-            'input_digest': material['input_digest'],
-            'contract_digest': material['contract_digest'],
             'verdict': 'ACCEPTED',
             'rationale': 'Exact bounded acceptance scope is consistent.',
             'evidence': ['contract digest matches', 'input digest matches'],
