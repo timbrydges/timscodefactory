@@ -46,13 +46,37 @@ def main():
     market = _safe(lambda: marketplace.search_agreements(
         catalog='AWSMarketplace',
         filters=[
-            {'name': 'AcceptorAccountId', 'values': [ACCOUNT]},
+            {'name': 'PartyType', 'values': ['Acceptor']},
+            {'name': 'AgreementType', 'values': ['PurchaseAgreement']},
+            {'name': 'ResourceIdentifier', 'values': [PRODUCT_ID]},
         ],
-        maxResults=100))
+        maxResults=50))
+
+    iam = session.client('iam', region_name='us-east-1', config=cfg)
+    def role_exists(name):
+        result = _safe(lambda: iam.get_role(RoleName=name))
+        if result['ok']:
+            return {'ok': True, 'exists': True}
+        if result.get('error_code') == 'NoSuchEntity':
+            return {'ok': True, 'exists': False}
+        return result
+
+    roles = {
+        'AWSServiceRoleForAWSLicenseManagerRole':
+            role_exists('AWSServiceRoleForAWSLicenseManagerRole'),
+        'AWSServiceRoleForMarketplaceLicenseManagement':
+            role_exists('AWSServiceRoleForMarketplaceLicenseManagement'),
+    }
 
     license_manager = session.client('license-manager', region_name='us-east-1', config=cfg)
-    licenses = _safe(lambda: license_manager.list_received_licenses(MaxResults=100))
-    grants = _safe(lambda: license_manager.list_received_grants(MaxResults=100))
+    if roles['AWSServiceRoleForAWSLicenseManagerRole'].get('exists') is True:
+        licenses = _safe(lambda: license_manager.list_received_licenses(MaxResults=100))
+        grants = _safe(lambda: license_manager.list_received_grants(MaxResults=100))
+    else:
+        licenses = {'ok': False, 'skipped': True,
+                    'reason': 'AWSServiceRoleForAWSLicenseManagerRole is absent'}
+        grants = {'ok': False, 'skipped': True,
+                  'reason': 'AWSServiceRoleForAWSLicenseManagerRole is absent'}
 
     result = {
         'status': 'SONNET_5_5_ACCOUNT_ACCESS_DIAGNOSTIC_READ_ONLY',
@@ -63,6 +87,7 @@ def main():
         'bedrock_availability': availability,
         'bedrock_public_offer': agreements,
         'marketplace_agreements': market,
+        'service_linked_roles': roles,
         'received_licenses': licenses,
         'received_grants': grants,
         'model_calls': 0,
