@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_AGREEMENT_AVAILABLE",
+  "observed_at": "2026-09-30T02:33:48Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "model": "anthropic.claude-sonnet-5-5",
+  "owner_authorized": true,
+  "request_status": "INSPECTOR_AGREEMENT_REQUEST_SUBMITTED",
+  "agreement_status_sequence": [
+    "PENDING",
+    "PENDING",
+    "PENDING",
+    "PENDING",
+    "AVAILABLE"
+  ],
+  "final_agreement_status": "AVAILABLE",
+  "public_offer_count": 1,
+  "model_calls": 0,
+  "task_material_sent": false,
+  "access_changed": true,
+  "source": "owner-supplied AWS CloudShell screenshot after explicit owner authorization",
+  "next_check": "rerun exact model availability inventory before any Inspector task material or model invocation"
+}
