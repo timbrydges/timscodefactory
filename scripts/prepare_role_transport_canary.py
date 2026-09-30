@@ -38,16 +38,21 @@ def validate_existing_stack(stack):
     if stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
         raise RuntimeError('role stack must have a completed deployment')
     parameters = {p['ParameterKey']: p['ParameterValue'] for p in stack['Parameters']}
-    if parameters.get('EnableBuilderAcceptanceIam') != 'true':
-        raise RuntimeError('reviewed Builder acceptance IAM must remain enabled')
+    for key, label in (('EnableBuilderAcceptanceIam', 'Builder'),
+                       ('EnableInspectorAcceptanceIam', 'Inspector')):
+        if parameters.get(key) != 'true':
+            raise RuntimeError(f'reviewed {label} acceptance IAM must remain enabled')
 
 
 def validate_builder_parameter(parameters):
-    matches = [p for p in parameters if p.get('ParameterKey') == 'EnableBuilderAcceptanceIam']
-    if (len(matches) != 1 or
-            not (matches[0].get('UsePreviousValue') is True or
-                 matches[0].get('ParameterValue') == 'true')):
-        raise RuntimeError('transport update must preserve Builder acceptance IAM')
+    for key, label in (('EnableBuilderAcceptanceIam', 'Builder'),
+                       ('EnableInspectorAcceptanceIam', 'Inspector')):
+        matches = [p for p in parameters if p.get('ParameterKey') == key]
+        if (len(matches) != 1 or
+                not (matches[0].get('UsePreviousValue') is True or
+                     matches[0].get('ParameterValue') == 'true')):
+            raise RuntimeError(
+                f'transport update must preserve {label} acceptance IAM')
 
 
 def prepare(package, plan_path):
@@ -69,7 +74,10 @@ def prepare(package, plan_path):
     parameters = [{'ParameterKey': k, 'ParameterValue': v} for k,v in {
         'ArtifactBucket': BUCKET, 'ArtifactKey': key, 'ArtifactVersion': version,
         'CodeSha256': manifest['code_sha256']}.items()]
-    parameters.append({'ParameterKey': 'EnableBuilderAcceptanceIam', 'UsePreviousValue': True})
+    parameters.extend([
+        {'ParameterKey': 'EnableBuilderAcceptanceIam', 'UsePreviousValue': True},
+        {'ParameterKey': 'EnableInspectorAcceptanceIam', 'UsePreviousValue': True},
+    ])
     template = ROOT/'infra/roles/functions.cloudformation.json'
     aws('cloudformation', 'validate-template', '--template-body', 'file://'+str(template))
     name = 'transport-'+commit[:12]+'-'+uuid.uuid4().hex[:8]
