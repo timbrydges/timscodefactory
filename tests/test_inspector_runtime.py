@@ -153,6 +153,9 @@ class InspectorRuntimeTests(unittest.TestCase):
         schema = provider_request['toolConfig']['tools'][0]['toolSpec']['inputSchema']['json']
         self.assertEqual(set(schema['required']), {'verdict', 'rationale', 'evidence'})
         self.assertNotIn('plan_digest', schema['properties'])
+        schema = provider_request['toolConfig']['tools'][0]['toolSpec']['inputSchema']['json']
+        self.assertEqual(set(schema['required']), {'verdict', 'rationale', 'evidence'})
+        self.assertNotIn('plan_digest', schema['properties'])
         self.assertEqual(decision.verdict, 'ACCEPTED')
         self.assertEqual(decision.model_id, PROFILE)
         self.assertEqual(decision.actual_cost_usd, '0.00135')
