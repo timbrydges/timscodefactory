@@ -1,8 +1,8 @@
-"""Read-only reconciliation for the one-shot Inspector review.
+"""Read-only reconciliation for a one-shot Inspector review.
 
-Never invokes Lambda or Bedrock and never writes DynamoDB/S3. It checks the
-local Lambda error body, the durable one-call budget reservation, exact reviewer
-receipt version presence, and recent Inspector Lambda error messages.
+Never invokes Lambda or Bedrock and never writes DynamoDB/S3. It can reconcile
+from either the saved event or the durable activation ID when CloudShell /tmp
+state has disappeared.
 """
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ ACCOUNT = '666730517561'
 REGION = 'ca-central-1'
 BUDGET_TABLE = 'tims-factory-acceptance-budget'
 BUCKET = 'tims-software-factory-666730517561-ca-central-1'
+
+
 def classify(*, budget_item, reviewer_versions, local_error):
     reserved = bool(budget_item)
     receipt = bool(reviewer_versions)
@@ -23,46 +25,62 @@ def classify(*, budget_item, reviewer_versions, local_error):
             'status': 'NO_DURABLE_RESERVATION_FOUND',
             'provider_call_may_have_occurred': False,
             'retry_permitted': False,
-            'reason': 'The runtime invokes Bedrock only after a successful durable reservation; investigate the pre-reservation Lambda error before creating any new authorization.',
+            'reason': 'No durable reservation exists; this reconciler grants no retry authority.',
         }
     if receipt:
         return {
             'status': 'REVIEWER_RECEIPT_FOUND_AFTER_UNCERTAIN_CLIENT_RESULT',
             'provider_call_may_have_occurred': True,
             'retry_permitted': False,
-            'reason': 'The one-call reservation exists and an immutable reviewer receipt version exists; do not invoke again.',
+            'reason': 'The reservation and immutable reviewer receipt both exist; do not invoke again.',
         }
     return {
         'status': 'ONE_CALL_RESERVATION_CONSUMED_OR_OUTCOME_UNCERTAIN',
         'provider_call_may_have_occurred': True,
         'retry_permitted': False,
-        'reason': 'The one-call reservation exists without a reviewer receipt. This may be a rejected review or a failed/uncertain provider/publication outcome; no retry is permitted.',
+        'reason': 'The one-call reservation exists without a reviewer receipt; no retry is permitted.',
         'local_error_present': bool(local_error),
     }
 
 
-def main():
-    if len(sys.argv) != 3:
-        raise SystemExit('usage: reconcile_live_inspector_review.py EVENT.json RESULT.json')
-    event = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+def _load_local_result(path_text):
+    if not path_text:
+        return None
+    path = Path(path_text)
+    if not path.exists():
+        return None
+    raw = path.read_text(encoding='utf-8', errors='replace')[:65536]
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return {'raw': raw}
+
+
+def _activation_from_event(path_text):
+    event = json.loads(Path(path_text).read_text(encoding='utf-8'))
     plan_digest = event.get('plan', {}).get('plan_digest')
-    if not isinstance(plan_digest, str) or not plan_digest.startswith('sha256:'):
-        raise RuntimeError('event lacks exact plan digest')
     try:
         activation_id = json.loads(event['request']['user'])['activation_id']
     except (KeyError, TypeError, ValueError) as error:
         raise RuntimeError('event lacks exact Inspector activation id') from error
-    if not isinstance(activation_id, str) or not activation_id.startswith('inspector-review-'):
-        raise RuntimeError('event Inspector activation id is invalid')
+    return activation_id, plan_digest
 
-    local_error = None
-    result_path = Path(sys.argv[2])
-    if result_path.exists():
-        raw = result_path.read_text(encoding='utf-8', errors='replace')[:65536]
-        try:
-            local_error = json.loads(raw)
-        except ValueError:
-            local_error = {'raw': raw}
+
+def main():
+    if len(sys.argv) not in {2, 3}:
+        raise SystemExit(
+            'usage: reconcile_live_inspector_review.py '
+            'ACTIVATION_ID [RESULT.json] | EVENT.json [RESULT.json]')
+
+    first = sys.argv[1]
+    local_error = _load_local_result(sys.argv[2] if len(sys.argv) == 3 else None)
+    if first.startswith('inspector-review-'):
+        activation_id, plan_digest = first, None
+    else:
+        activation_id, plan_digest = _activation_from_event(first)
+
+    if not isinstance(activation_id, str) or not activation_id.startswith('inspector-review-'):
+        raise RuntimeError('Inspector activation id is invalid')
 
     import boto3
     from botocore.config import Config
@@ -78,28 +96,41 @@ def main():
         Key={'PK': {'S': 'INSPECTOR#' + activation_id}, 'SK': {'S': 'BUDGET'}},
         ConsistentRead=True).get('Item')
 
-    key = f'factory-scope-receipts/{plan_digest[7:]}/reviewer.json'
-    s3 = session.client('s3', config=config)
-    listed = s3.list_object_versions(Bucket=BUCKET, Prefix=key, MaxKeys=5)
-    versions = [
-        {'version_id': item.get('VersionId'), 'is_latest': item.get('IsLatest'),
-         'last_modified': item.get('LastModified').isoformat()
-            if item.get('LastModified') else None}
-        for item in listed.get('Versions', [])
-        if item.get('Key') == key
-    ]
+    if budget:
+        durable_plan = budget.get('plan_digest', {}).get('S')
+        if plan_digest is None:
+            plan_digest = durable_plan
+        elif durable_plan != plan_digest:
+            raise RuntimeError('saved event plan digest differs from durable reservation')
+
+    if budget and (not isinstance(plan_digest, str) or not plan_digest.startswith('sha256:')):
+        raise RuntimeError('durable reservation lacks exact plan digest')
+
+    versions = []
+    if isinstance(plan_digest, str) and plan_digest.startswith('sha256:'):
+        key = f'factory-scope-receipts/{plan_digest[7:]}/reviewer.json'
+        s3 = session.client('s3', config=config)
+        listed = s3.list_object_versions(Bucket=BUCKET, Prefix=key, MaxKeys=5)
+        versions = [
+            {'version_id': item.get('VersionId'), 'is_latest': item.get('IsLatest'),
+             'last_modified': item.get('LastModified').isoformat()
+                if item.get('LastModified') else None}
+            for item in listed.get('Versions', [])
+            if item.get('Key') == key
+        ]
 
     logs = session.client('logs', config=config)
-    start_ms = int((time.time() - 1800) * 1000)
+    start_ms = int((time.time() - 7200) * 1000)
     events = logs.filter_log_events(
         logGroupName='/aws/lambda/tims-factory-inspector',
-        startTime=start_ms, limit=100).get('events', [])
+        startTime=start_ms, limit=200).get('events', [])
     error_lines = []
     for item in events:
         message = item.get('message', '')
-        if any(token in message for token in ('ERROR', 'Error', 'Exception', 'Traceback', 'AccessDenied')):
+        if any(token in message for token in
+               ('ERROR', 'Error', 'Exception', 'Traceback', 'AccessDenied')):
             error_lines.append(message.strip()[:2000])
-    error_lines = error_lines[-12:]
+    error_lines = error_lines[-20:]
 
     result = classify(
         budget_item=budget, reviewer_versions=versions, local_error=local_error)
