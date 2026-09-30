@@ -246,3 +246,12 @@ The next no-charge check is the dummy-text Sonnet 5.5 token-counting probe.
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
 schedule `DISABLED`.
+
+The model-free Inspector runtime boundary has now been verified live at source
+commit `7ba7ec2eb9f37953e6476d5cdfe13a0e25de9bdd` on Inspector Lambda version
+`:10`. The signed proof bound Sonnet 5.5, the separate USD 0.25 one-call cap,
+USD 0.24096 conservative reservation, 42,020-byte request limit, authenticated
+reviewer-publication requirement, zero model calls, and operational execution
+still disabled. Evidence is
+`factory/evidence/acceptance-inspector-runtime-boundary-live-verification-2026-09-29.json`.
+A live Inspector provider call still requires separate owner spending authority.
