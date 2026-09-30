@@ -202,8 +202,14 @@ without explicit owner confirmation. The repository provides
 `scripts/request_acceptance_inspector_agreement.py`, which rechecks the exact
 account, model, use-case presence and single public offer, requires the exact
 owner confirmation string, and never prints the offer token, use-case contents
-or signed legal URL. After submission, rerun the model-access inventory and
-record the agreement state before any Inspector task material is sent.
+or signed legal URL. Tim explicitly authorized the Sonnet 5.5 public model agreement and ran the
+guarded request from CloudShell. AWS accepted the request, reported four
+`PENDING` observations, then reported `AVAILABLE`; the command made zero model
+calls and sent no Factory task material. Evidence is recorded in
+`factory/evidence/acceptance-inspector-agreement-activation-2026-09-29.json`.
+Before any Inspector task material or model invocation, rerun the exact
+model-access inventory and require agreement, authorization, entitlement and
+regional availability to be green.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
