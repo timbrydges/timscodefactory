@@ -154,14 +154,21 @@ tokens from Canada (Central). The separate Inspector price snapshot in
 `factory/evidence/acceptance-inspector-pricing-2026-09-29.json` expires in
 24 hours. At 42,020 input and 4,096 output tokens its quoted maximum is
 USD 0.125; the proposed independent allowance reserves USD 0.25 for one
-attempt, with no retry after an uncertain result. The isolated reservation
-primitive is not wired to an invocation or granted IAM, and its token count
-must come from a supported exact-model token counting preflight before any
-future call. AWS documents that CRIS-only Claude models may not support
-`bedrock-runtime` CountTokens, and `bedrock-mantle` is unavailable in
-`ca-central-1`. `scripts/probe_acceptance_inspector_tokens.py` tests both
-the Canadian runtime and US East Mantle count paths using dummy text only.
-Do not send acceptance task material to an unverified counting endpoint.
+attempt, with no retry after an uncertain result. The owner-run dummy-text
+preflight confirmed there is no usable exact CountTokens path for Sonnet 5.5
+in this commercial account: `bedrock-runtime` returned `ValidationException`
+and the US East `bedrock-mantle` path returned HTTP 404, with zero model calls
+and no task material sent. AWS documents that CRIS-only Claude models may not
+support CountTokens on `bedrock-runtime`; the Sonnet 5.5 model card currently
+lists its Mantle availability only in GovCloud West.
+
+The budget gate therefore fails closed without pretending to know an exact
+token count. `acceptance-inspector-budget-policy-2026-09-29.json` reserves a
+fixed 100,000 input tokens plus 4,096 output tokens for any request of at most
+42,020 bytes. At the locked USD 2/M input and USD 10/M output rates, that
+reserves USD 0.24096 against the USD 0.25 one-call allowance. The conditional
+DynamoDB write remains single-use, and an uncertain reservation or provider
+outcome permits no retry. This budget fallback authorizes no call by itself.
 
 The reviewer receipt publisher now fails closed even with a prepared
 `ACCEPTED` plan and the Inspector signing identity. That planned payload is
