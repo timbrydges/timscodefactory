@@ -35,6 +35,13 @@ class InspectorReconcileTests(unittest.TestCase):
         self.assertTrue(result['provider_call_may_have_occurred'])
         self.assertFalse(result['retry_permitted'])
 
+    def test_fallback_activation_stays_fail_closed(self):
+        result = classify(
+            budget_item={'PK': {'S': 'INSPECTOR#inspector-fallback-2026-09-30-001'}},
+            reviewer_versions=[], local_error={'errorMessage': 'provider failure'})
+        self.assertTrue(result['provider_call_may_have_occurred'])
+        self.assertFalse(result['retry_permitted'])
+
 
 if __name__ == '__main__':
     unittest.main()
