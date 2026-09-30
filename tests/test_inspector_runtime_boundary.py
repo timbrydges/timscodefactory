@@ -11,7 +11,7 @@ from factory_runtime.lambda_role import handle_inspector_runtime_boundary_probe
 from factory_state.model import StateError
 from prepare_role_transport_canary import verify_inspector_runtime_boundary
 
-NOW = datetime(2026, 9, 29, 11, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
 COMMIT = 'a' * 40
 NONCE = 'inspector-runtime-1234'
 
@@ -44,9 +44,9 @@ class InspectorRuntimeBoundaryTests(unittest.TestCase):
         self.assertEqual(proof['model_calls'], 0)
         self.assertFalse(proof['operational_execution_enabled'])
         payload = proof['payload']
-        self.assertEqual(payload['model_id'], 'global.anthropic.claude-sonnet-5-5')
+        self.assertEqual(payload['model_id'], 'global.anthropic.claude-sonnet-4-5-20250929-v1:0')
         self.assertEqual(payload['maximum_cost_usd_per_call'], '0.25')
-        self.assertEqual(payload['reserved_cost_usd'], '0.24096')
+        self.assertEqual(payload['reserved_cost_usd'], '0.24144')
         self.assertEqual(payload['maximum_provider_calls'], 1)
         self.assertEqual(payload['maximum_request_bytes'], 42020)
         self.assertTrue(payload['reviewer_publication_requires_authenticated_decision'])
