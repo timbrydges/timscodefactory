@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "SONNET_4_5_STRUCTURED_ASSESSMENT_BOUNDED_FIELD_REJECTED",
+  "observed_at": "2026-09-30T10:07:55Z",
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "task_id": "deterministic-text-fingerprint",
+  "activation_id": "inspector-fallback-2026-09-30-003",
+  "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "plan_digest": "sha256:e2b06c9f58b22f3f38f3f42a37fea159de3c97eaf8648477e43a41d9d018784d",
+  "provider_call_completed": true,
+  "structured_tool_response_received": true,
+  "runtime_bound_digests": true,
+  "runtime_error": "StateError: Inspector assessment differs from exact review binding",
+  "budget_reservation_found": true,
+  "reserved_cost_microusd": 241440,
+  "reviewer_receipt_versions": [],
+  "retry_permitted": false,
+  "production_release_authorized": false,
+  "diagnosis": "With runtime-bound digests and exact response fields already enforced, the remaining parser rejection conditions are rationale/evidence bounds. The tool schema did not yet encode the parser's max lengths and max item count.",
+  "next_action": "make the Bedrock tool schema enforce the same rationale/evidence bounds as the trusted parser before any new authorization"
+}
