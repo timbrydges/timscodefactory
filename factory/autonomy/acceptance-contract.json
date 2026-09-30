@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "tims-factory-autonomy-acceptance-001",
+  "task_id": "deterministic-text-fingerprint",
+  "objective": "Implement and independently verify one tiny deterministic Python command-line tool through the autonomous Planner, Builder, and Inspector path.",
+  "runtime": "python3.12",
+  "entrypoint": "fingerprint.py",
+  "behavior": {
+    "input": "One UTF-8 file path argument; maximum 4096 bytes.",
+    "output": "One canonical compact JSON line with keys byte_count, sha256, and text.",
+    "digest": "Lowercase SHA-256 of the exact input bytes.",
+    "errors": "Nonzero exit with a concise stderr message for missing arguments, unreadable files, invalid UTF-8, or oversized input."
+  },
+  "allowed_write_paths": [
+    "fingerprint.py",
+    "tests/test_fingerprint.py"
+  ],
+  "required_test_command": [
+    "python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-v"
+  ],
+  "acceptance": [
+    "ASCII and Unicode input produce deterministic canonical JSON and the exact byte digest.",
+    "Repeated runs are byte-for-byte identical.",
+    "Missing, unreadable, invalid UTF-8, and over-4096-byte inputs fail closed without partial stdout.",
+    "Implementation uses only the Python standard library and performs no network access.",
+    "Builder changes only the two allowlisted paths.",
+    "Inspector binds its verdict to the exact Builder commit and reruns the required tests."
+  ],
+  "provider_authorization": {
+    "provider_family": "openai",
+    "model_id": "gpt-5.6-sol",
+    "target_alias": "coding_primary_sol_live",
+    "maximum_total_cost_usd": "5.00",
+    "maximum_cost_per_call_usd": "0.25",
+    "maximum_provider_calls": 3,
+    "maximum_automated_wall_clock_hours": 24
+  },
+  "role_sequence": [
+    "software_architect",
+    "engineering_agent",
+    "independent_inspector"
+  ],
+  "remediation_cycles": 0,
+  "production_release_authorized": false,
+  "prohibited": [
+    "Secrets, credentials, personal data, employer data, or external network calls.",
+    "Changes outside the two allowlisted implementation paths.",
+    "Workflow, branch-rule, permission, release, deployment, or Factory-control changes."
+  ]
+}
