@@ -52,7 +52,9 @@ def main():
         activation_id = json.loads(event['request']['user'])['activation_id']
     except (KeyError, TypeError, ValueError) as error:
         raise RuntimeError('event lacks exact Inspector activation id') from error
-    if not isinstance(activation_id, str) or not activation_id.startswith('inspector-review-'):
+    if (not isinstance(activation_id, str) or
+            not (activation_id.startswith('inspector-review-') or
+                 activation_id.startswith('inspector-fallback-'))):
         raise RuntimeError('event Inspector activation id is invalid')
 
     local_error = None
