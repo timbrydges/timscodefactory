@@ -182,6 +182,17 @@ No invocation or task data was sent. The read-only
 `scripts/probe_acceptance_inspector_model_access.py` queries AWS's
 GetFoundationModelAvailability for exact candidates in the applicable
 Regions. It changes no agreement, IAM policy, entitlement or model selection.
+The owner-run inventory returned `AUTHORIZED`, `AVAILABLE` entitlement and
+region, but `NOT_AVAILABLE` agreement for Sonnet 5.5, Sonnet 5 and Sonnet 4.6.
+AWS documents `NOT_AVAILABLE` agreement as access not established. This is a
+concrete account-level gate, even though other fields are green. The Haiku 3
+entry returned `ValueError` from the exact model-ID check and establishes no
+access conclusion. The observation is recorded in
+`factory/evidence/acceptance-inspector-agreement-inventory-2026-09-29.json`.
+The next read-only `scripts/probe_acceptance_inspector_agreement.py` checks
+whether an Anthropic first-use case is on file and whether a public Sonnet 5.5
+agreement offer exists. It emits only presence, count, and legal URLs; it
+does not print the use-case contents or offer tokens or accept any terms.
 
 Until the target change and remaining technical gates are recorded,
 keep the contract default `DENY`, all operational switches off, and the
