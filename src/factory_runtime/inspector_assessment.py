@@ -50,14 +50,25 @@ def parse_assessment(raw: bytes, request: dict) -> InspectorAssessment:
                 not material[key].startswith('sha256:') or
                 len(material[key]) != 71 or
                 response.get(key) != material[key] for key in binding) or
-            request.get('plan_digest') != material['plan_digest'] or
-            response.get('verdict') not in ('ACCEPTED', 'REJECTED') or
-            not isinstance(response.get('rationale'), str) or
-            not 1 <= len(response['rationale'].strip()) <= 2000 or
-            not isinstance(response.get('evidence'), list) or
-            not 1 <= len(response['evidence']) <= 8 or
-            any(not isinstance(item, str) or not 1 <= len(item.strip()) <= 500
-                for item in response['evidence'])):
+            request.get('plan_digest') != material['plan_digest']):
         raise StateError('Inspector assessment differs from exact review binding')
+    # Only field names and numeric bounds enter diagnostics, never model text.
+    if response.get('verdict') not in ('ACCEPTED', 'REJECTED'):
+        raise StateError('Inspector assessment invalid verdict enum')
+    rationale = response.get('rationale')
+    if not isinstance(rationale, str):
+        raise StateError('Inspector assessment rationale must be a string')
+    if not 1 <= len(rationale.strip()) <= 2000:
+        raise StateError(f'Inspector assessment rationale length={len(rationale.strip())}; allowed=1..2000')
+    evidence = response.get('evidence')
+    if not isinstance(evidence, list):
+        raise StateError('Inspector assessment evidence must be an array')
+    if not 1 <= len(evidence) <= 8:
+        raise StateError(f'Inspector assessment evidence count={len(evidence)}; allowed=1..8')
+    for index, item in enumerate(evidence):
+        if not isinstance(item, str):
+            raise StateError(f'Inspector assessment evidence[{index}] must be a string')
+        if not 1 <= len(item.strip()) <= 500:
+            raise StateError(f'Inspector assessment evidence[{index}] length={len(item.strip())}; allowed=1..500')
     return InspectorAssessment(*(response[key] for key in binding),
         response['verdict'], response['rationale'], tuple(response['evidence']))

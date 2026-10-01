@@ -79,7 +79,10 @@ def render(packet: dict) -> dict:
             'the scope binding, and identify conflicts or missing evidence. '
             'When the submit_inspector_assessment tool is available, use that tool exactly '
             'once with verdict (ACCEPTED or REJECTED), rationale, and an array of evidence '
-            'strings. The runtime binds the trusted plan/input/contract digests itself; do '
+            'strings. Keep rationale concise: 1 to 2000 characters, preferably under 1000. '
+            'Return 1 to 8 evidence strings, each 1 to 500 characters, preferably under 250. '
+            'These are character limits, not token limits. Do not add other fields. '
+            'The runtime binds the trusted plan/input/contract digests itself; do '
             'not copy or transform those digests into the tool arguments. Otherwise return '
             'only JSON with verdict, rationale, and evidence. Do not claim to '
             'have signed, published, or authorized anything.'),
