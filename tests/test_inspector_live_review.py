@@ -20,7 +20,9 @@ from factory_runtime.receipt_transport import receipt_plan_digest
 from factory_state.dispatch import DispatchRequest, DynamoDBDispatchStore
 from factory_state.model import Lease, StateError
 
-NOW = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
+NOW = datetime.fromisoformat(json.loads((ROOT /
+    'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'
+    ).read_text())['observed_at'].replace('Z', '+00:00'))
 COMMIT = 'a' * 40
 
 

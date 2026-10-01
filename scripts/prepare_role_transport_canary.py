@@ -17,6 +17,17 @@ BUILDER_IDENTITY = 'engineering_agent_service'
 INSPECTOR_IDENTITY = 'independent_inspector_service'
 
 
+def validate_inspector_price():
+    """Fail before deployment writes when the packaged price has expired."""
+    sys.path.insert(0, str(ROOT / 'src'))
+    from factory_runtime.inspector_budget import _price
+
+    policy = json.loads((ROOT /
+        'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'
+        ).read_text(encoding='utf-8'))
+    _price(policy, now=datetime.now(timezone.utc))
+
+
 def validate_changes(changes):
     expected = {'ControllerInvoke'} | {role.title()+suffix for role in ROLES
         for suffix in ('Function', 'Version')}
@@ -60,6 +71,7 @@ def validate_builder_parameter(parameters):
 
 
 def prepare(package, plan_path):
+    validate_inspector_price()
     commit = source()
     if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError('wrong AWS account')
@@ -103,6 +115,7 @@ def prepare(package, plan_path):
 
 
 def execute(plan_path):
+    validate_inspector_price()
     plan_path = Path(plan_path).resolve(); plan = json.loads(plan_path.read_text())
     if plan['source_commit'] != source() or aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError('deployment account/source changed')
