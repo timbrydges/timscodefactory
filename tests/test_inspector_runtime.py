@@ -246,6 +246,23 @@ class InspectorRuntimeTests(unittest.TestCase):
             runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
         self.assertEqual(len(bedrock.calls), 1)
 
+    def test_invalid_field_reports_usage_without_releasing_reservation(self):
+        plan, request = fixture()
+        response = provider_response(request)
+        response['output']['message']['content'][0]['toolUse']['input']['rationale'] = 'x' * 2001
+        bedrock = Bedrock(response)
+        runtime = InspectorReviewRuntime(
+            bedrock, InspectorBudgetStore('tims-factory-acceptance-budget', Table()))
+        with self.assertRaises(StateError) as caught:
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertIn('rationale length=2001', str(caught.exception))
+        self.assertIn('actual_cost_usd=0.00135', str(caught.exception))
+        self.assertIn('provider_calls_remaining=0', str(caught.exception))
+        self.assertNotIn('x' * 20, str(caught.exception))
+        with self.assertRaisesRegex(StateError, 'already reserved'):
+            runtime.review(request=request, plan=plan, policy=self.policy, now=NOW)
+        self.assertEqual(len(bedrock.calls), 1)
+
     def test_provider_failure_consumes_reservation_and_cannot_retry(self):
         plan, request = fixture()
         table = Table()

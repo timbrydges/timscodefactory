@@ -179,13 +179,18 @@ class InspectorReviewRuntime:
         }
         raw = json.dumps(
             bound_assessment, sort_keys=True, separators=(',', ':')).encode('utf-8')
-        if not 0 < len(raw) <= MAX_RESPONSE_BYTES:
-            raise StateError('Inspector provider response exceeds bounded size')
-        assessment = parse_assessment(raw, request)
         actual = ((Decimal(input_tokens) * Decimal('3.00') +
                    Decimal(output_tokens) * Decimal('15.00')) / Decimal(1000000))
         if actual > Decimal(reservation['reserved_cost_usd']) or actual >= Decimal('0.25'):
             raise StateError('Inspector provider usage exceeds reserved budget')
+        try:
+            if not 0 < len(raw) <= MAX_RESPONSE_BYTES:
+                raise StateError('Inspector provider response exceeds bounded size')
+            assessment = parse_assessment(raw, request)
+        except StateError as error:
+            raise StateError(
+                f'{error}; input_tokens={input_tokens}; output_tokens={output_tokens}; '
+                f'actual_cost_usd={actual}; provider_calls_remaining=0') from error
         return AuthenticatedInspectorDecision(
             assessment.plan_digest, assessment.input_digest,
             assessment.contract_digest, assessment.verdict,

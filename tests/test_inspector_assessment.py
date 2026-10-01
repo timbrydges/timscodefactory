@@ -53,6 +53,27 @@ class InspectorAssessmentTests(unittest.TestCase):
         with self.assertRaises(StateError):
             parse_assessment(raw.encode(), request)
 
+    def test_field_diagnostics_keep_bounds_and_do_not_echo_model_text(self):
+        request, response = self.pending()
+        cases = (
+            ({'verdict': 'PRIVATE_MODEL_TEXT'}, 'invalid verdict enum'),
+            ({'rationale': 'x' * 2001}, 'rationale length=2001'),
+            ({'rationale': '   '}, 'rationale length=0'),
+            ({'evidence': ['PRIVATE_MODEL_TEXT'] * 9}, 'evidence count=9'),
+            ({'evidence': ['x' * 501]}, 'evidence[0] length=501'),
+            ({'evidence': [123]}, 'evidence[0] must be a string'),
+        )
+        for change, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                with self.assertRaises(StateError) as caught:
+                    parse_assessment(json.dumps({**response, **change}).encode(), request)
+                self.assertIn(diagnostic, str(caught.exception))
+                self.assertNotIn('PRIVATE_MODEL_TEXT', str(caught.exception))
+                self.assertNotIn('x' * 20, str(caught.exception))
+        response.update(rationale='x' * 2000, evidence=['y' * 500] * 8)
+        self.assertEqual(parse_assessment(json.dumps(response).encode(), request).verdict,
+                         'REJECTED')
+
 
 if __name__ == '__main__':
     unittest.main()
