@@ -171,7 +171,7 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         shutil.copytree(ROOT / 'factory', root / 'factory')
-        path = root / 'factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json'
+        path = root / 'factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-10-01.json'
         evidence = json.loads(path.read_text())
         evidence['input_usd_per_million_tokens'] = '3.99'
         path.write_text(json.dumps(evidence))
