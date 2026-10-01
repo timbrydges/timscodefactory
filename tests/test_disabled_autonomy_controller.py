@@ -42,7 +42,7 @@ class DisabledAutonomyControllerTests(unittest.TestCase):
         self.assertEqual(len(validate_template()), 64)
         template = json.loads((ROOT / 'infra/acceptance/controller-disabled.cloudformation.json').read_text())
         self.assertEqual(template['Resources']['AcceptanceAlias']['Properties']['Name'], 'acceptance')
-        self.assertGreater(template['Resources']['ControllerFunction']['Properties']['Timeout'], 65)
+        self.assertGreater(template['Resources']['ControllerFunction']['Properties']['Timeout'], 185)
         names = list(template['Resources'])
         changes = [{'ResourceChange': {'LogicalResourceId': name, 'Action': 'Add'}}
                    for name in names]

@@ -33,7 +33,7 @@ def validate_template():
             role.get('RoleName') != ROLE or function.get('FunctionName') != FUNCTION or
             function.get('Role') != {'Fn::GetAtt': ['ControllerRole', 'Arn']} or
             function.get('Handler') != 'factory_runtime.autonomy_controller_lambda.handler' or
-            function.get('Timeout') != 120 or
+            function.get('Timeout') != 300 or
             function.get('Environment') != {
                 'Variables': {'FACTORY_AUTONOMY_CONTROLLER_ENABLED': 'false'}} or
             role.get('Policies') != [{'PolicyName': 'canary-logs-only',
@@ -95,9 +95,9 @@ def prepare(package, path, *, mode='CREATE'):
         if isinstance(deployed, str):
             deployed = json.loads(deployed)
         props = deployed['Resources']['ControllerFunction']['Properties']
-        if props.get('Timeout') not in {10, 120}:
+        if props.get('Timeout') not in {10, 120, 300}:
             raise RuntimeError('unexpected deployed controller timeout')
-        props['Timeout'] = 120
+        props['Timeout'] = 300
         if deployed != json.loads(TEMPLATE.read_text(encoding='utf-8')):
             raise RuntimeError('deployed controller differs beyond reviewed timeout update')
     package = Path(package).resolve()
@@ -197,7 +197,7 @@ def verify(path):
             config.get('CodeSha256') != plan['artifact']['code_sha256'] or
             config.get('Role') != f'arn:aws:iam::{ACCOUNT}:role/{ROLE}' or
             config.get('Handler') != 'factory_runtime.autonomy_controller_lambda.handler' or
-            config.get('Timeout') != 120 or
+            config.get('Timeout') != 300 or
             config.get('Environment', {}).get('Variables') !=
                 {'FACTORY_AUTONOMY_CONTROLLER_ENABLED': 'false'}):
         raise RuntimeError('controller alias, code, role or kill switch differs')

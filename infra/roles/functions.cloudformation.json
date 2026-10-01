@@ -426,7 +426,7 @@
           }
         },
         "MemorySize": 256,
-        "Timeout": 60,
+        "Timeout": 180,
         "Environment": {
           "Variables": {
             "FACTORY_ROLE": "builder",

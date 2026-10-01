@@ -51,7 +51,7 @@
           "S3ObjectVersion": {"Ref": "ArtifactVersion"}
         },
         "MemorySize": 128,
-        "Timeout": 120,
+        "Timeout": 300,
         "Environment": {"Variables": {"FACTORY_AUTONOMY_CONTROLLER_ENABLED": "false"}},
         "Description": "Disabled acceptance controller; only model-free deployment probe"
       }

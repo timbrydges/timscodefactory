@@ -52,14 +52,14 @@ def lambda_client(session):
     from botocore.config import Config
     return session.client('lambda', region_name='ca-central-1',
         endpoint_url='https://lambda.ca-central-1.amazonaws.com',
-        config=Config(connect_timeout=5, read_timeout=65,
+        config=Config(connect_timeout=5, read_timeout=185,
                       retries={'total_max_attempts': 1, 'mode': 'standard'}))
 
 
 class LambdaRoleExecutor:
     """DispatchWorker adapter. The guard is a trusted activation/budget service.
 
-    Each configured function must have a <=60s execution limit. All invocation
+    Each configured function must have a <=180s execution limit. All invocation
     errors, including network timeouts, leave the worker's STARTED record intact.
     No exception is treated as proof that a role did not execute.
     """
