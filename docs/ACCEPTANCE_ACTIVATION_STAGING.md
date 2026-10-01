@@ -32,3 +32,40 @@ all preparation checks pass and is never overwritten.
 Freeze the operational candidate before requesting an independently authorized
 Inspector review. A review of an older commit or expired scope cannot authorize
 a new candidate. Consumed Inspector activations must never be reset or retried.
+
+## Guarded disabled configuration deployment
+
+`scripts/stage_disabled_acceptance_config.py prepare COMPONENT BINDING JOB PLAN`
+rebuilds the bundle and prepares one CloudFormation change set for `broker`,
+`builder` or `controller`. `execute PLAN` permits exactly one in-place function
+environment change, with all existing code, IAM, parameters, published versions
+and the controller alias preserved. It checks the disabled no-retry schedule,
+source checkout, template, runtime settings and revision again before execution.
+The prepared template is compared with the actual AWS change set before use.
+
+The staging command never signs receipts, grants permissions, publishes a
+Lambda version, changes an alias, enables a schedule or invokes a function.
+It updates only the unpublished function configuration. Receipt authenticity,
+deployed source matching and all final activation gates remain required before
+any live activation; a staged configuration is not evidence those gates passed.
+
+An uncertain execution is saved as attempted before the AWS request. Use
+`reconcile PLAN` to read the result; never retry `execute`. Reconciliation and
+`verify PLAN` remain read-only even after receipt expiry. Plans cannot be
+overwritten during preparation. Subsequent code-deployment tools deliberately
+reject the staged template until that configuration is explicitly accounted for.
+
+The model-free staging canary requires no job or receipt:
+
+```text
+python scripts/stage_disabled_acceptance_config.py prepare-canary controller CANARY_PLAN
+python scripts/stage_disabled_acceptance_config.py execute CANARY_PLAN
+python scripts/stage_disabled_acceptance_config.py prepare-cleanup CANARY_PLAN CLEANUP_PLAN
+python scripts/stage_disabled_acceptance_config.py execute CLEANUP_PLAN
+```
+
+It adds only an inert `FACTORY_CONFIGURATION_CANARY` marker, verifies the
+environment-only update, then removes exactly that marker with the same guard.
+Published runtime versions and the acceptance alias must remain unchanged
+through both steps. A canary is deployment-mechanism evidence, not a substitute
+for paid scope review, signed receipts or final activation verification.

@@ -87,7 +87,7 @@ def terraform_vars():
 def assert_controller():
     stack = aws('cloudformation', 'describe-stacks',
                 '--stack-name', 'tims-factory-autonomy-controller-disabled')['Stacks'][0]
-    if stack.get('StackStatus') != 'CREATE_COMPLETE':
+    if stack.get('StackStatus') not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
         raise RuntimeError('disabled controller target has not completed deployment')
     outputs = {x['OutputKey']: x['OutputValue'] for x in stack['Outputs']}
     version = outputs.get('ControllerVersionArn', '')
