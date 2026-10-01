@@ -33,6 +33,7 @@ def validate_template():
             role.get('RoleName') != ROLE or function.get('FunctionName') != FUNCTION or
             function.get('Role') != {'Fn::GetAtt': ['ControllerRole', 'Arn']} or
             function.get('Handler') != 'factory_runtime.autonomy_controller_lambda.handler' or
+            function.get('Timeout') != 120 or
             function.get('Environment') != {
                 'Variables': {'FACTORY_AUTONOMY_CONTROLLER_ENABLED': 'false'}} or
             role.get('Policies') != [{'PolicyName': 'canary-logs-only',
@@ -45,8 +46,19 @@ def validate_template():
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 
 
-def validate_changes(changes):
+def validate_changes(changes, mode='CREATE'):
     items = [entry['ResourceChange'] for entry in changes]
+    if mode == 'UPDATE':
+        expected = {'ControllerFunction': 'False', 'ControllerVersion': 'True',
+                    'AcceptanceAlias': 'False'}
+        if (len(items) != len(expected) or
+                {item.get('LogicalResourceId') for item in items} != set(expected) or
+                any(item.get('Action') != 'Modify' or item.get('Replacement') !=
+                    expected[item['LogicalResourceId']] for item in items)):
+            raise RuntimeError('controller update must change only code, version and alias')
+        return
+    if mode != 'CREATE':
+        raise RuntimeError('invalid controller deployment mode')
     if (len(items) != len(RESOURCES) or
             {item.get('LogicalResourceId') for item in items} != RESOURCES or
             any(item.get('Action') != 'Add' for item in items)):
@@ -61,15 +73,33 @@ def checked_plan(path, status):
             plan.get('artifact', {}).get('source_commit') != plan.get('source_commit') or
             aws('sts', 'get-caller-identity').get('Account') != ACCOUNT):
         raise RuntimeError('controller deployment plan differs from reviewed source/account')
-    validate_changes(plan['changes'])
+    validate_changes(plan['changes'], plan.get('mode', 'CREATE'))
     return plan
 
 
-def prepare(package, path):
+def prepare(package, path, *, mode='CREATE'):
     commit = source()
     digest = validate_template()
     if aws('sts', 'get-caller-identity').get('Account') != ACCOUNT:
         raise RuntimeError('wrong AWS account')
+    if mode not in {'CREATE', 'UPDATE'}:
+        raise RuntimeError('invalid controller deployment mode')
+    previous_version = None
+    if mode == 'UPDATE':
+        stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
+        if stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'}:
+            raise RuntimeError('controller stack is not ready for update')
+        previous_version = next(x['OutputValue'] for x in stack['Outputs']
+                                if x['OutputKey'] == 'ControllerVersionArn')
+        deployed = aws('cloudformation', 'get-template', '--stack-name', STACK)['TemplateBody']
+        if isinstance(deployed, str):
+            deployed = json.loads(deployed)
+        props = deployed['Resources']['ControllerFunction']['Properties']
+        if props.get('Timeout') not in {10, 120}:
+            raise RuntimeError('unexpected deployed controller timeout')
+        props['Timeout'] = 120
+        if deployed != json.loads(TEMPLATE.read_text(encoding='utf-8')):
+            raise RuntimeError('deployed controller differs beyond reviewed timeout update')
     package = Path(package).resolve()
     manifest = json.loads(package.with_suffix('.json').read_text(encoding='utf-8'))
     if (manifest.get('source_commit') != commit or
@@ -88,17 +118,17 @@ def prepare(package, path):
     aws('cloudformation', 'validate-template', '--template-body', 'file://' + str(TEMPLATE))
     name = 'disabled-controller-' + commit[:12] + '-' + uuid.uuid4().hex[:8]
     created = aws('cloudformation', 'create-change-set', '--stack-name', STACK,
-                  '--change-set-name', name, '--change-set-type', 'CREATE',
+                  '--change-set-name', name, '--change-set-type', mode,
                   '--template-body', 'file://' + str(TEMPLATE), '--parameters',
                   json.dumps(parameters), '--capabilities', 'CAPABILITY_NAMED_IAM')
     arn = created['Id']
     aws('cloudformation', 'wait', 'change-set-create-complete', '--change-set-name', arn)
     described = aws('cloudformation', 'describe-change-set', '--change-set-name', arn)
-    validate_changes(described['Changes'])
+    validate_changes(described['Changes'], mode)
     plan = {'status': 'PREPARED_NOT_EXECUTED', 'source_commit': commit,
             'artifact': manifest, 'template_sha256': digest, 'change_set_arn': arn,
             'stack_id': described['StackId'], 'changes': described['Changes'],
-            'model_calls_authorized': 0}
+            'model_calls_authorized': 0, 'mode': mode, 'previous_version': previous_version}
     Path(path).write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'status': plan['status'], 'source_commit': commit,
                       'resources': sorted(RESOURCES)}))
@@ -108,13 +138,21 @@ def execute(path):
     plan = checked_plan(path, 'PREPARED_NOT_EXECUTED')
     described = aws('cloudformation', 'describe-change-set',
                     '--change-set-name', plan['change_set_arn'])
-    validate_changes(described['Changes'])
+    mode = plan.get('mode', 'CREATE')
+    validate_changes(described['Changes'], mode)
     if (described.get('ExecutionStatus') != 'AVAILABLE' or
             described.get('StackId') != plan['stack_id'] or
             described['Changes'] != plan['changes']):
         raise RuntimeError('reviewed controller change set changed or is unavailable')
+    if mode == 'UPDATE':
+        stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
+        versions = {x['OutputKey']: x['OutputValue'] for x in stack['Outputs']}
+        if (stack['StackId'] != plan['stack_id'] or
+                stack['StackStatus'] not in {'CREATE_COMPLETE', 'UPDATE_COMPLETE'} or
+                versions.get('ControllerVersionArn') != plan['previous_version']):
+            raise RuntimeError('controller changed since preparation')
     aws('cloudformation', 'execute-change-set', '--change-set-name', plan['change_set_arn'])
-    aws('cloudformation', 'wait', 'stack-create-complete', '--stack-name', STACK)
+    aws('cloudformation', 'wait', 'stack-' + mode.lower() + '-complete', '--stack-name', STACK)
     plan['status'] = 'DEPLOYED_PENDING_PROBE'
     Path(path).write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'status': plan['status'], 'source_commit': plan['source_commit']}))
@@ -124,13 +162,14 @@ def reconcile(path):
     plan = checked_plan(path, 'PREPARED_NOT_EXECUTED')
     described = aws('cloudformation', 'describe-change-set',
                     '--change-set-name', plan['change_set_arn'])
-    validate_changes(described['Changes'])
+    mode = plan.get('mode', 'CREATE')
+    validate_changes(described['Changes'], mode)
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
     if (described.get('ExecutionStatus') != 'EXECUTE_COMPLETE' or
             described.get('StackId') != plan['stack_id'] or
             described['Changes'] != plan['changes'] or
             stack.get('StackId') != plan['stack_id'] or
-            stack.get('StackStatus') != 'CREATE_COMPLETE'):
+            stack.get('StackStatus') != mode + '_COMPLETE'):
         raise RuntimeError('controller change set has not completed exactly as prepared')
     plan['status'] = 'DEPLOYED_PENDING_PROBE'
     Path(path).write_text(json.dumps(plan, indent=2) + '\n', encoding='utf-8')
@@ -140,7 +179,8 @@ def reconcile(path):
 def verify(path):
     plan = checked_plan(path, 'DEPLOYED_PENDING_PROBE')
     stack = aws('cloudformation', 'describe-stacks', '--stack-name', STACK)['Stacks'][0]
-    if stack.get('StackId') != plan['stack_id'] or stack.get('StackStatus') != 'CREATE_COMPLETE':
+    if (stack.get('StackId') != plan['stack_id'] or
+            stack.get('StackStatus') != plan.get('mode', 'CREATE') + '_COMPLETE'):
         raise RuntimeError('controller stack differs from prepared deployment')
     outputs = {item['OutputKey']: item['OutputValue'] for item in stack['Outputs']}
     version = outputs.get('ControllerVersionArn')
@@ -157,6 +197,7 @@ def verify(path):
             config.get('CodeSha256') != plan['artifact']['code_sha256'] or
             config.get('Role') != f'arn:aws:iam::{ACCOUNT}:role/{ROLE}' or
             config.get('Handler') != 'factory_runtime.autonomy_controller_lambda.handler' or
+            config.get('Timeout') != 120 or
             config.get('Environment', {}).get('Variables') !=
                 {'FACTORY_AUTONOMY_CONTROLLER_ENABLED': 'false'}):
         raise RuntimeError('controller alias, code, role or kill switch differs')
@@ -196,9 +237,10 @@ def verify(path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 4 and sys.argv[1] == 'prepare':
-        prepare(sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 4 and sys.argv[1] in {'prepare', 'prepare-update'}:
+        prepare(sys.argv[2], sys.argv[3],
+                mode='UPDATE' if sys.argv[1] == 'prepare-update' else 'CREATE')
     elif len(sys.argv) == 3 and sys.argv[1] in {'execute', 'reconcile', 'verify'}:
         {'execute': execute, 'reconcile': reconcile, 'verify': verify}[sys.argv[1]](sys.argv[2])
     else:
-        raise SystemExit('use prepare PACKAGE PLAN | execute PLAN | reconcile PLAN | verify PLAN')
+        raise SystemExit('use prepare[-update] PACKAGE PLAN | execute PLAN | reconcile PLAN | verify PLAN')

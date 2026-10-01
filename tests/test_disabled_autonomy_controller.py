@@ -42,6 +42,7 @@ class DisabledAutonomyControllerTests(unittest.TestCase):
         self.assertEqual(len(validate_template()), 64)
         template = json.loads((ROOT / 'infra/acceptance/controller-disabled.cloudformation.json').read_text())
         self.assertEqual(template['Resources']['AcceptanceAlias']['Properties']['Name'], 'acceptance')
+        self.assertGreater(template['Resources']['ControllerFunction']['Properties']['Timeout'], 65)
         names = list(template['Resources'])
         changes = [{'ResourceChange': {'LogicalResourceId': name, 'Action': 'Add'}}
                    for name in names]
@@ -49,6 +50,19 @@ class DisabledAutonomyControllerTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             validate_changes(changes + [{'ResourceChange': {'LogicalResourceId': 'Extra',
                                                             'Action': 'Add'}}])
+
+    def test_update_rejects_iam_changes_deletions_and_function_replacement(self):
+        changes = [{'ResourceChange': {'LogicalResourceId': name, 'Action': 'Modify',
+                                       'Replacement': replacement}}
+                   for name, replacement in [('ControllerFunction', 'False'),
+                        ('ControllerVersion', 'True'), ('AcceptanceAlias', 'False')]]
+        validate_changes(changes, 'UPDATE')
+        for field, value in [('LogicalResourceId', 'ControllerRole'),
+                             ('Action', 'Remove'), ('Replacement', 'True')]:
+            bad = json.loads(json.dumps(changes))
+            bad[0]['ResourceChange'][field] = value
+            with self.subTest(field=field), self.assertRaises(RuntimeError):
+                validate_changes(bad, 'UPDATE')
 
 
 if __name__ == '__main__':
