@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "status": "FRESH_OFFICIAL_PRICE_REFERENCE",
-  "observed_at": "2026-09-30T07:55:33Z",
-  "expires_at": "2026-10-01T07:55:33Z",
+  "observed_at": "2026-10-01T20:00:00Z",
+  "expires_at": "2026-10-02T20:00:00Z",
   "source_region": "ca-central-1",
   "inference_scope": "Global Cross-region Inference",
   "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",

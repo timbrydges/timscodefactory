@@ -28,7 +28,7 @@ class ConditionalTable:
 class InspectorBudgetTests(unittest.TestCase):
     def setUp(self):
         self.policy = json.loads((ROOT/'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json').read_text())
-        self.now = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
+        self.now = datetime.fromisoformat(self.policy['observed_at'].replace('Z', '+00:00'))
         self.table = ConditionalTable()
         self.budget = InspectorBudgetStore('tims-factory-acceptance-budget', self.table)
         self.args = dict(activation_id='acceptance-001', plan_digest='sha256:' + 'a'*64,

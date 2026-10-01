@@ -1,4 +1,5 @@
 import base64
+import json
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -11,7 +12,9 @@ from factory_runtime.lambda_role import handle_inspector_runtime_boundary_probe
 from factory_state.model import StateError
 from prepare_role_transport_canary import verify_inspector_runtime_boundary
 
-NOW = datetime(2026, 9, 30, 8, 0, tzinfo=timezone.utc)
+NOW = datetime.fromisoformat(json.loads((ROOT /
+    'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'
+    ).read_text())['observed_at'].replace('Z', '+00:00'))
 COMMIT = 'a' * 40
 NONCE = 'inspector-runtime-1234'
 
