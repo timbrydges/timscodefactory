@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "status": "INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED",
+  "observed_at": "2026-10-01T22:33:22.592965+00:00",
+  "source_commit": "b6dfee774ca7c0fefadc18fb471d86583dcccf48",
+  "pull_request": 262,
+  "activation_id": "inspector-fallback-2026-10-01-006",
+  "inspector_version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:22",
+  "plan_digest": "sha256:5e285323e21f364bd452f108fe13a75754660b6054071cb7551274bbd9fb5e87",
+  "verdict": "ACCEPTED",
+  "review_scope": "Pre-implementation scope only; no implementation acceptance or release authorization.",
+  "reviewer_receipt_version": "qJVkkowwgrmaDvb8CmskP5tFFETDOa0z",
+  "reviewer_receipt_signature_verified": true,
+  "reviewer_receipt_expires_at": "2026-10-01T23:01:35+00:00",
+  "input_tokens": 2597,
+  "output_tokens": 587,
+  "total_tokens": 3184,
+  "actual_cost_usd": "0.016596",
+  "reserved_cost_usd": "0.24144",
+  "budget_reservation_found": true,
+  "model_calls": 1,
+  "provider_calls_remaining": 0,
+  "retry_permitted": false,
+  "operational_execution_enabled": false,
+  "autonomous_scheduling_enabled": false,
+  "production_release_authorized": false,
+  "raw_evidence_location": "/home/cloudshell-user/factory-evidence/activation-006-262/",
+  "validation": {
+    "main_ci": "PASSED",
+    "unit_tests_run": 684,
+    "unit_tests_skipped": 13,
+    "aws_status": "THREE_ROLE_TRANSPORTS_AND_TWO_OPERATIONAL_BOUNDARIES_VERIFIED"
+  },
+  "remaining_gates": [
+    "fresh_builder_pricing",
+    "guarded_operational_role_activation",
+    "live_controller_runtime_deployment",
+    "guarded_schedule_activation"
+  ],
+  "receipt_reuse_constraint": "Receipt is bound to the exact plan, source commit and expiry; it must not be copied to a new plan or renewed without an independent review."
+}
