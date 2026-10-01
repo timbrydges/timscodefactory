@@ -26,8 +26,8 @@ REGION = 'ca-central-1'
 TABLE = 'tims-software-factory-state'
 FACTORY = 'tims-software-factory'
 TASK = 'deterministic-text-fingerprint'
-ACTIVATION = 'inspector-fallback-2026-09-30-004'
-AUTHORIZATION = 'acceptance-inspector-sonnet45-fallback-authorization-2026-09-30-004'
+ACTIVATION = 'inspector-fallback-2026-10-01-005'
+AUTHORIZATION = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-01-005'
 
 
 def source():
