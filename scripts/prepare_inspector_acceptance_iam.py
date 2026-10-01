@@ -81,7 +81,7 @@ def validate_template():
             'Action': ['dynamodb:PutItem'],
             'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
             'Condition': {'ForAllValues:StringEquals': {
-                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-fallback-2026-09-30-004']}}}:
+                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-fallback-2026-10-01-005']}}}:
         raise RuntimeError('Inspector one-call budget reservation policy differs')
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 
