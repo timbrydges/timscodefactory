@@ -69,3 +69,24 @@ environment-only update, then removes exactly that marker with the same guard.
 Published runtime versions and the acceptance alias must remain unchanged
 through both steps. A canary is deployment-mechanism evidence, not a substitute
 for paid scope review, signed receipts or final activation verification.
+
+## Owner receipt publication
+
+The `factory-owner-signing` workflow has a separate `publish_owner_receipt` job.
+It remains disabled unless `FACTORY_OWNER_RECEIPT_PUBLICATION_ENABLED` is exactly
+`true`. It requires the owner actor on `main`, the first workflow attempt, the
+exact plan encoded as base64 and a separate owner-approved `sha256:` plan digest.
+Inputs reach Python through environment variables, not shell interpolation.
+
+`publish_acceptance_owner_receipt.py` rejects a changed source, task, scope,
+lease, digest, price window or signer identity before signing. It uses the
+enrolled non-exportable owner KMS key and writes only the owner's encrypted,
+checksum-bound, immutable receipt with `IfNoneMatch: *`. It cannot generate an
+Inspector approval or enable execution. No model call is made. Both workflow
+reruns and client retries are disabled; an uncertain result must be reconciled
+by reading the exact receipt key and verifying its signature before proceeding.
+An attempt record is retained as a workflow artifact even when publication fails.
+
+Do not enable or dispatch this job with a stale or placeholder plan. Prepare the
+final candidate and exact scope first. A signed owner receipt is only one input
+to the later guarded activation, and does not clear the operating-contract gates.
