@@ -17,7 +17,8 @@ class ReadinessTests(unittest.TestCase):
             'reviewer_receipt_expires_at': (self.now + timedelta(minutes=30)).isoformat(),
             'status': 'INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED',
             'reviewer_receipt_signature_verified': True}
-        self.functions = {role: {'State': 'Active', 'Timeout': 120 if role == 'controller' else 60,
+        self.functions = {role: {'State': 'Active', 'Timeout':
+            {'controller': 300, 'builder': 180, 'broker': 120}[role],
             'Environment': {'Variables': {flag: 'true', binding: 'configured'}}}
             for role, (_, flag, binding) in FUNCTIONS.items()}
 
@@ -54,6 +55,32 @@ class ReadinessTests(unittest.TestCase):
         for blocker in ('builder_pricing_not_current', 'operating_contract_not_active',
                         'guarded_schedule_activation'):
             self.assertIn(blocker, result['blockers'])
+
+    def test_builder_cannot_expire_before_nested_broker(self):
+        self.functions['builder']['Timeout'] = 60
+        self.assertIn('builder_timeout_does_not_cover_broker', self.report()['blockers'])
+
+    def test_shipped_timeouts_cover_provider_and_nested_invocations_without_retries(self):
+        import json
+        from factory_runtime.cloud_roles import lambda_client
+        from factory_runtime.openai_provider import OpenAIProviderPolicy
+        root = Path(__file__).resolve().parents[1]
+        role = json.loads((root / 'infra/roles/functions.cloudformation.json').read_text())
+        broker = json.loads((root / 'infra/acceptance/broker-canary.cloudformation.json').read_text())
+        controller = json.loads((root / 'infra/acceptance/controller-disabled.cloudformation.json').read_text())
+        builder_timeout = role['Resources']['BuilderFunction']['Properties']['Timeout']
+        broker_timeout = broker['Resources']['BrokerFunction']['Properties']['Timeout']
+        controller_timeout = controller['Resources']['ControllerFunction']['Properties']['Timeout']
+        from unittest.mock import Mock, patch
+        session = Mock()
+        with patch.dict(sys.modules, {'botocore.config': SimpleNamespace(Config=SimpleNamespace)}):
+            lambda_client(session)
+        config = session.client.call_args.kwargs['config']
+        self.assertEqual(config.retries['total_max_attempts'], 1)
+        self.assertLess(OpenAIProviderPolicy().timeout_seconds, broker_timeout)
+        self.assertLess(broker_timeout + 30, builder_timeout)
+        self.assertLess(builder_timeout, config.read_timeout)
+        self.assertLess(config.read_timeout + config.connect_timeout + 60, controller_timeout)
 
 
 if __name__ == '__main__':

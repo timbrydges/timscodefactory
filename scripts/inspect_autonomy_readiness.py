@@ -59,6 +59,10 @@ def assess(allowance, commit, receipt, functions, schedule, *, now):
             blockers.append(role + '_activation_config_missing')
     controller_timeout = functions.get('controller', {}).get('Timeout', 0)
     builder_timeout = functions.get('builder', {}).get('Timeout', 0)
+    broker_timeout = functions.get('broker', {}).get('Timeout', 0)
+    if (type(builder_timeout) is not int or type(broker_timeout) is not int
+            or builder_timeout <= broker_timeout):
+        blockers.append('builder_timeout_does_not_cover_broker')
     if (type(controller_timeout) is not int or type(builder_timeout) is not int
             or controller_timeout <= builder_timeout):
         blockers.append('controller_timeout_does_not_cover_builder')

@@ -294,7 +294,7 @@ class RoleDeploymentTests(unittest.TestCase):
                 [f'ROLE#{SIGNERS[role]}#FACTORY#tims-software-factory#TASK#cloud-role-canary-*'])
             self.assertFalse(any(a.startswith(('kms:','bedrock:','iam:')) for s in statements for a in s['Action']))
             props = resources[name+'Function']['Properties']
-            self.assertEqual(props['Timeout'], 120 if role == 'inspector' else 60)
+            self.assertEqual(props['Timeout'], {'inspector': 120, 'builder': 180, 'planner': 60}[role])
             self.assertNotIn('ReservedConcurrentExecutions',props)
             self.assertEqual(props['Environment']['Variables']['EXECUTION_TABLE'],
                              {'Ref':'RoleExecutions'})
