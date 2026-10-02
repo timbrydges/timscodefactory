@@ -125,6 +125,20 @@ def handler(event, context):
         return service.tick(event)
     if flag != 'false':
         raise StateError('acceptance controller deployment is not disabled')
+    from .inspection_completion import ENABLED as COMPLETION_ENABLED
+    if os.environ.get(COMPLETION_ENABLED) == 'true':
+        from .inspection_completion import InspectionCompletion, validate_event, validate_bundle
+        from factory_state.dynamodb import DynamoDBStateStore
+        validate_event(event, commit)
+        now = datetime.now(timezone.utc)
+        validate_bundle(root, now)
+        import boto3
+        from botocore.config import Config
+        database = boto3.client('dynamodb', region_name='ca-central-1',
+            config=Config(connect_timeout=5, read_timeout=10,
+                retries={'total_max_attempts': 1, 'mode': 'standard'}))
+        return InspectionCompletion(root, DynamoDBStateStore('tims-software-factory-state', database),
+            clock=lambda: datetime.now(timezone.utc)).complete()
     if (not isinstance(event, dict) or set(event) != {'kind', 'source_commit', 'nonce', 'task_id'} or
             event.get('kind') != 'disabled_controller_probe' or
             event.get('source_commit') != commit or
