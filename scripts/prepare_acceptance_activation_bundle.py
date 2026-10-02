@@ -81,7 +81,7 @@ def build_activation_bundle(binding, raw, *, root=ROOT, now):
     if len(encode(common)) > 2048 or len(encode(builder)) > 2048 or len(encode(config)) > 3500:
         raise StateError('activation configuration exceeds runtime size limit')
     blockers = list(allowance.pending_gates)
-    if not allowance.activation_ready:
+    if not allowance.permits_activation(activation):
         blockers.append('operating_contract_not_active')
     else:
         # Exercise the actual deployment parsers without creating clients or

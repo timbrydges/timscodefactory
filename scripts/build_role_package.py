@@ -32,6 +32,8 @@ def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
     paths = provider_paths | {contract_path, schema_path, contract['approval']['evidence'],
              contract['acceptance_target']['evidence'], contract['pricing_reference']['evidence']}
     paths.update(gate['evidence'] for gate in contract['activation']['verified_gates'].values())
+    if contract['approval'].get('commissioning_evidence'):
+        paths.add(contract['approval']['commissioning_evidence'])
     manifest = (root / 'MANIFEST.sha256').read_text(encoding='utf-8')
     tracked = {line.split('  ', 1)[1] for line in manifest.splitlines()}
     for name in paths:

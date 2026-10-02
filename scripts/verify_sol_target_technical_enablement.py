@@ -45,7 +45,8 @@ def verify(root: Path = ROOT) -> dict:
                 'evidence': 'factory/evidence/sol-target-technical-enablement-2026-09-29.json'} or
             'approved_target_technical_enablement' in contract['activation']['pending_gates'] or
             contract['authority']['production_release'] != 'DENY' or
-            contract['status'] != 'OWNER_APPROVED_AWAITING_TECHNICAL_GATES'):
+            contract['status'] not in {'OWNER_APPROVED_AWAITING_TECHNICAL_GATES',
+                                       'GUARDED_COMMISSIONING'}):
         raise ValueError('Sol target technical evidence differs from exact merged source')
     return {'status': record['status'], 'source_commit': record['source_commit'],
             'model_calls': 0}

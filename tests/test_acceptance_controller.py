@@ -43,6 +43,9 @@ class AcceptanceControllerTests(unittest.TestCase):
             contract = yaml.safe_load(path.read_text())
             if active:
                 contract['status'] = 'ACTIVE'
+                contract['approval'].pop('commissioning_evidence', None)
+                for key in ('autonomous_task_progression', 'schedule_activation', 'provider_calls'):
+                    contract['authority'][key] = 'ALLOW_AFTER_ALL_GATES'
             if clear_gates:
                 contract['activation']['pending_gates'] = []
             path.write_text(yaml.safe_dump(contract, sort_keys=False))
@@ -77,7 +80,7 @@ class AcceptanceControllerTests(unittest.TestCase):
 
     def test_clearing_gates_without_active_status_still_denies(self):
         controller, states = self.controller(self.root(clear_gates=True))
-        with self.assertRaisesRegex(StateError, 'active deployment'):
+        with self.assertRaisesRegex(StateError, 'three unverified live gates'):
             controller.tick(EVENT)
         self.assertEqual(states.reads, 0)
 

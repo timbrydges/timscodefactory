@@ -116,6 +116,9 @@ class LiveProviderActivationTests(unittest.IsolatedAsyncioTestCase):
                     reserved_cost_usd=Decimal('1.00'), now=observed + timedelta(hours=1),
                 )
             contract['status'] = 'ACTIVE'
+            contract['approval'].pop('commissioning_evidence', None)
+            for key in ('autonomous_task_progression', 'schedule_activation', 'provider_calls'):
+                contract['authority'][key] = 'ALLOW_AFTER_ALL_GATES'
             contract['activation']['pending_gates'] = []
             contract_path.write_text(yaml.safe_dump(contract, sort_keys=False))
             authorization = authorize_live_qualification(
