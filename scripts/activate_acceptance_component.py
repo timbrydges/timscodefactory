@@ -162,6 +162,7 @@ def published(component, template, before, *, version=None, check_alias=True):
     env = resolve(properties['Environment']['Variables'], template, params)
     if (config['CodeSha256'] != params['CodeSha256'] or config['Role'] != before['role'] or
             config['Handler'] != properties['Handler'] or config['Timeout'] != properties['Timeout'] or
+            any(config.get(key) != properties[key] for key in ('Runtime', 'Architectures', 'MemorySize')) or
             config['Environment']['Variables'] != env or config.get('State') != 'Active' or
             sum(len(k.encode()) + len(v.encode()) for k, v in env.items()) > 4096):
         raise RuntimeError('published component configuration differs')
@@ -217,6 +218,10 @@ def checked(plan, *, live):
     assert_schedule()
     if live:
         verify_live_scope(plan['binding'], raw, now=now)
+        secret = aws('secretsmanager', 'describe-secret', '--secret-id',
+                     'tims-software-factory/provider/openai/acceptance')
+        if secret.get('ARN') != plan['binding']['provider_secret_arn'] or secret.get('DeletedDate') is not None:
+            raise RuntimeError('activation secret reference differs from staged provider secret')
         for component in ('broker', 'builder'):
             if component == plan['component']:
                 break
