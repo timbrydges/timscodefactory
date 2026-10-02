@@ -11,6 +11,8 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+from factory_runtime.lambda_role import INSPECTOR_AUTHORIZATION_ID
 
 
 def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
@@ -27,7 +29,7 @@ def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
         'factory/evals/provider-repair-corpus-v1.json',
         'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json',
         'factory/evidence/acceptance-inspector-sonnet45-pricing-2026-09-30.json',
-        'factory/evidence/acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-007.json',
+        f'factory/evidence/{INSPECTOR_AUTHORIZATION_ID}.json',
     }
     paths = provider_paths | {contract_path, schema_path, contract['approval']['evidence'],
              contract['acceptance_target']['evidence'], contract['pricing_reference']['evidence']}
@@ -84,4 +86,6 @@ def build(output, *, extra_paths=()):
 
 
 if __name__ == '__main__':
+    from verify_inspector_activation_binding import verify
+    verify()
     build(sys.argv[1], extra_paths=contract_paths())

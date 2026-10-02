@@ -1,0 +1,18 @@
+{
+  "kind": "inspector_pre_provider_failure",
+  "activation_id": "inspector-fallback-2026-10-02-007",
+  "source_commit": "0869eba1baf17dd5fe09ab45395985907bc85c24",
+  "lambda_version": 26,
+  "request_id": "75e01da1-0058-4f63-8d4a-0bee5653c1ca",
+  "plan_digest": "sha256:da0d1b7e3cea4c9e5340139fa06232e3716e2680ff49ef71c14e2fd7c78dfa6c",
+  "status": "FAILED_DURING_BUDGET_RESERVATION_BEFORE_PROVIDER",
+  "deployed_budget_permission_activation": "inspector-fallback-2026-10-01-006",
+  "activation_007_budget_record_absent_after_attempt": true,
+  "lambda_invocations": 1,
+  "provider_invocations": 0,
+  "retry_performed": false,
+  "new_invocation_authorized_by_this_record": false,
+  "evidence_directory": "~/factory-evidence/activation-007-274",
+  "evidence_files": ["attempt.json", "event.json", "result.json", "budget.json", "runtime-logs.json", "iam-denial.json"],
+  "limitation": "No accepted Inspector receipt was produced. The runtime failed in the reservation step before its provider invocation. Do not retry the recorded attempt."
+}

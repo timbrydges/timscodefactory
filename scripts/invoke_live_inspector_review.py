@@ -13,6 +13,7 @@ from pathlib import Path
 
 import boto3
 from botocore.config import Config
+from verify_inspector_activation_binding import verify, verify_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCOUNT = '666730517561'
@@ -31,6 +32,7 @@ def source():
 def main():
     if len(sys.argv) != 3:
         raise SystemExit('usage: invoke_live_inspector_review.py EVENT.json OUT.json')
+    verify()
     event = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
     if (not isinstance(event, dict) or event.get('kind') != 'inspector_live_review' or
             event.get('source_commit') != source()):
@@ -50,6 +52,10 @@ def main():
         raise RuntimeError('exact Inspector version is unavailable')
 
     lam = session.client('lambda', config=config)
+    policy = session.client('iam', config=config).get_role_policy(
+        RoleName='tims-factory-executor-inspector',
+        PolicyName='acceptance-inspector-fallback-sonnet-4-5')['PolicyDocument']
+    verify_policy(policy)
     deployed = lam.get_function_configuration(FunctionName=arn)
     env = deployed.get('Environment',{}).get('Variables',{})
     if (deployed.get('State') != 'Active' or
