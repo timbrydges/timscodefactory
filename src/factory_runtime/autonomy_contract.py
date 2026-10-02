@@ -19,9 +19,9 @@ COMMISSIONING_GATES = (
     'live_controller_runtime_deployment',
     'guarded_schedule_activation',
 )
-COMMISSIONING_ID = 'factory-acceptance-commissioning-004'
+COMMISSIONING_ID = 'factory-acceptance-commissioning-005'
 ACCEPTANCE_CAPABILITY_ID = COMMISSIONING_ID
-COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-004-authorization.json'
+COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-005-authorization.json'
 
 
 @dataclass(frozen=True)
@@ -102,7 +102,7 @@ def _commissioning_window(root, contract, pending):
         'model_id': 'gpt-5.6-sol', 'currency': 'USD',
         'maximum_provider_calls': 3, 'maximum_cost_usd_per_call': '0.25',
         'maximum_reserved_cost_usd': '0.75', 'maximum_wall_clock_hours': 24,
-        'maximum_remediation_cycles': 0, 'maximum_retries': 0,
+        'maximum_remediation_cycles': 1, 'maximum_retries': 0,
         'pending_gates': list(COMMISSIONING_GATES), 'claims_live_gates_verified': False,
         'fresh_owner_and_reviewer_signatures_required': True,
         'immutable_source_job_and_role_pins_required': True,
