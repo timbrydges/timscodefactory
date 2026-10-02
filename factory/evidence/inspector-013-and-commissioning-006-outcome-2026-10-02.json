@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "source_commit": "4449a8e273cd6d2466a52c45dab271c6b3d54bbc",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-013",
+    "status": "ACCEPTED_SCOPE_ONLY",
+    "model_calls": 1,
+    "actual_cost_usd": "0.017514",
+    "reviewer_receipt_version": "oVxrT8zo3ffj6KgO3q7L1iD61jvQ5d_c",
+    "plan_digest": "sha256:330867ad33f895248f54837c428a01af95968c51bdbf635a6c4ac09eced60ba0"
+  },
+  "owner_receipt": {
+    "workflow_run": 37037704138,
+    "version_id": "velSR.LX.kV2o17El_9k7i0b_jAEfTAn",
+    "publication_enabled_after_completion": false
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-006",
+    "scheduled_at": "2026-10-02T17:11:06Z",
+    "dispatch_id": "5f9245900a50a9376aeadde8b7784e414543facdb0090d9298d54650acec9d29",
+    "provider_attempts": 1,
+    "reserved_usd": "0.25",
+    "actual_cost_usd": "0.04256500",
+    "outcome": "RECEIPT_RECORDED_ARTIFACT_RETURNED",
+    "provider_deadline_seconds": 90,
+    "broker_request_id": "bb6300f5-fd0a-4191-b292-1b6a9b4f8a9c",
+    "broker_version": 30,
+    "retries": 0,
+    "artifact_returned": true,
+    "output_digest": "sha256:d60669619dd3f0a515b84ea4bf7a8154783bf2047f474335b4f31540f38fb048",
+    "candidate_repository": "timbrydges/tims-factory-autonomy-acceptance",
+    "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+    "candidate_pr": "https://github.com/timbrydges/tims-factory-autonomy-acceptance/pull/2",
+    "independent_implementation_acceptance_complete": false
+  },
+  "safe_state": {
+    "verified_at": "2026-10-02T17:17:13.526761+00:00",
+    "components": {
+      "BrokerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:31",
+      "BuilderVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:49",
+      "ControllerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:28",
+      "InspectorVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:37",
+      "PlannerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-planner:37"
+    },
+    "all_execution_flags": false,
+    "schedule": "DISABLED",
+    "schedule_expression": "rate(15 minutes)",
+    "temporary_concurrency_quarantines_removed": true,
+    "task": {
+      "leases_preserved": 6,
+      "state": "INSPECTION",
+      "version": 10
+    },
+    "historical_budget_rows_verified_unchanged": 19,
+    "prior_005_timeout_claim_preserved": true
+  },
+  "preservation": {
+    "do_not_retry_prior_calls": true,
+    "retain_all_budgets_claims_dispatches_and_leases": true,
+    "overall_cap_usd": "5.00",
+    "total_retained_reservations_usd": "4.87016",
+    "original_expiry": "2026-10-03T03:01:53Z",
+    "production_release_authorized": false
+  },
+  "next_gate": "Separately authorized independent implementation Inspector review of exact candidate commit, with required tests rerun and sufficient overall budget reservation."
+}
