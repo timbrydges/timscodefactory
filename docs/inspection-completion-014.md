@@ -30,6 +30,23 @@ persistence are in memory. It verifies duplicate delivery, unknown provider
 outcomes and invalid signatures; it is not proof of live provider quality,
 DynamoDB contention, or unattended production readiness.
 
+## Verified live completion
+
+On 2026-10-02 at 19:36:58 UTC, controller version 30 consumed the signed verdict
+once and advanced the task to QA v12. The final audit at 19:39:22 UTC verified
+all 26 budget rows unchanged, all 15 prior non-state task records unchanged,
+exactly two new normal controller audit events, and all seven leases preserved
+and revoked. Controller version 31 restored the logging-only role and passed
+the disabled runtime probe. Every operational execution flag and the schedule
+remain disabled. No model call or production release occurred.
+
+The deployed runtime is PR #289, commit
+`c8da72cd4cd044fdf37e2c174edff510b0d3063a`. Its Linux CI ran 779 tests with 13
+existing skips; the static, simulation, Docker, HTTP and TLS gates passed.
+The checked-in proof is
+`factory/evidence/inspector-014-completion-proof-2026-10-02.json`.
+This evidence-only update requires no redeployment.
+
 ## Future pilot: draft only, not an activation
 
 Proposed scope: one exact candidate, beginning at QA, followed by independent
