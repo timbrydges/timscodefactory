@@ -50,7 +50,9 @@ def _disabled_builder_backend(root, *, commit, now):
     from .operational_backend import AcceptanceOperationalBackend
 
     allowance = load_autonomy_operating_allowance(root)
-    if (allowance.status == 'ACTIVE' or not allowance.pending_gates or
+    # Inert probes remain usable after contract gates close. Their disabled
+    # backend and no-IO clients, not pending contract status, prevent execution.
+    if ((not allowance.activation_ready and not allowance.pending_gates) or
             allowance.production_release_authorized or
             allowance.acceptance_task_id != 'deterministic-text-fingerprint' or
             allowance.target_alias != 'coding_primary_sol_live' or

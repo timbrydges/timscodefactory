@@ -74,8 +74,10 @@ class BuilderOperationalCompositionTests(unittest.TestCase):
         self.assertEqual(service.backend.executor.function_arn, broker)
 
     def test_disabled_probe_composes_actual_service_without_io(self):
-        allowance = _disabled_builder_backend(self.root(), commit=COMMIT, now=NOW)
-        self.assertEqual(allowance.acceptance_task_id, 'deterministic-text-fingerprint')
+        for active in (False, True):
+            with self.subTest(active=active):
+                allowance = _disabled_builder_backend(self.root(active=active), commit=COMMIT, now=NOW)
+                self.assertEqual(allowance.acceptance_task_id, 'deterministic-text-fingerprint')
 
     def test_disabled_probe_rejects_unpinned_broker_composition(self):
         original = _builder_service
@@ -88,7 +90,7 @@ class BuilderOperationalCompositionTests(unittest.TestCase):
                 _disabled_builder_backend(self.root(), commit=COMMIT, now=NOW)
 
     def test_cloud_deployment_kill_switch_rejects_dispatch_before_aws(self):
-        root = self.root()
+        root = self.root(active=True)
         event = {'schema_version': '1.0', 'factory_id': 'tims-software-factory'}
         with patch.dict(os.environ, {'LAMBDA_TASK_ROOT': str(root), 'FACTORY_ROLE': 'builder',
                 'FACTORY_OPERATIONAL_EXECUTION_ENABLED': 'false'}):
