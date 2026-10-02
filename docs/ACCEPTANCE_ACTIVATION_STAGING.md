@@ -125,7 +125,7 @@ IAM, enable execution or clear any operating-contract gate.
 
 ## Owner-authorized first-run commissioning
 
-The owner approved the bounded commissioning exception with ìI approve!î on
+The owner approved the bounded commissioning exception with ‚ÄúI approve!‚Äù on
 2026-10-02 at 03:01:53 UTC. Its absolute expiry is 2026-10-03 at 03:01:53 UTC.
 The checked-in contract records this authority; runtime execution remains disabled.
 
@@ -157,3 +157,30 @@ required. The per-effect runtime and no-retry guards are unchanged. Generic
 provider qualification and production release cannot use commissioning authority.
 All execution switches remain off until the separate guarded deployment steps
 pass; this authorization does not supply live gate evidence or itself enable a schedule.
+
+## Guarded publication and one scheduled delivery
+
+`activate_acceptance_component.py` publishes broker, Builder, then controller.
+Each stage requires the actual fresh owner and Inspector signatures, immutable
+published job, unchanged unleased task, absent activation budget, current source
+artifact and exact IAM. All three components must use the same package bytes.
+Predecessor journals bind numeric versions and their complete configurations.
+Builder IAM is repinned to the newly published broker; controller IAM is limited
+to the task, activation budget, immutable job/receipt versions and Builder.
+Changing the version Description forces configuration-only Lambda publication.
+The controller alias receives explicit zero asynchronous retries and a 60-second
+event-age bound. Every component step leaves the schedule disabled.
+
+`activate_acceptance_schedule.py` rechecks the complete chain and fresh scope,
+then changes the existing disabled schedule to one UTC `at(...)` delivery.
+This commissioning run does not turn on recurring operation. The scheduled time
+must leave at least five minutes before every scope deadline. Both Scheduler and
+Lambda have zero configured retries; durable dispatch and budget guards remain
+necessary because delivery is not an exactly-once guarantee. The schedule is
+retained after completion for read-only reconciliation. Its delivery result,
+durable dispatch, task and budget must be inspected before claiming success.
+
+All mutations persist an attempt before submission. An unknown result must be
+reconciled read-only; never re-submit or manually invoke the controller to
+compensate. No tool signs scope, resets budgets, retries a provider, clears live
+gates, or grants production-release authority.
