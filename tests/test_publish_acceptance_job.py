@@ -16,6 +16,7 @@ sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'scripts'), str(ROOT / 'tests')]
 from factory_state.model import CONTROLLER_IDENTITY, StateError, TaskState
 from prepare_acceptance_job import BINDING_FIELDS, PLAN_FIELDS
 import publish_acceptance_job as publication
+from verify_acceptance_staging_scope import verify_scope
 from scope_dispatch_canary import fixture_keys, sign
 import test_prepare_acceptance_activation_bundle as fixtures
 from test_receipt_transport import FakeS3
@@ -143,6 +144,40 @@ class JobPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, 'exact attempted bytes'):
             publication.reconcile(journal, s3=self.s3)
         self.assertEqual(len(self.s3.writes), 1)
+
+    def staging(self):
+        binding, raw, _ = fixtures.ActivationBundleTests().material()
+        return verify_scope(binding, raw, commit=self.binding['source_commit'], now=self.now,
+            s3=self.s3, states=self.states, database=self.database)
+
+    def test_staging_checks_actual_immutable_job_and_both_signatures_without_writes(self):
+        self.s3.job = fixtures.ActivationBundleTests().material()[1]
+        result = self.staging()
+        self.assertFalse(result['activation_authorized'])
+        self.assertEqual(result['job_version_id'], 'job-v1')
+        self.assertIn('operating_contract_not_active', result['contract_blockers'])
+        self.assertEqual(len(self.s3.calls), 3)
+        self.assertEqual(self.s3.calls[-1]['VersionId'], 'job-v1')
+        self.assertEqual(self.s3.writes, [])
+
+    def test_staging_rejects_changed_published_bytes_and_task_drift(self):
+        self.s3.job = fixtures.ActivationBundleTests().material()[1] + b' '
+        with self.assertRaisesRegex(StateError, 'digest differs'):
+            self.staging()
+        self.states.load_state.side_effect = [self.state, replace(self.state, version=2)]
+        with self.assertRaisesRegex(StateError, 'changed during'):
+            self.staging()
+        self.assertEqual(self.s3.writes, [])
+
+    def test_staging_rejects_forged_receipt_before_reading_job(self):
+        key = next(iter(self.s3.documents))
+        envelope = json.loads(self.s3.documents[key])
+        envelope['signature_base64'] = base64.b64encode(b'x' * 64).decode()
+        self.s3.documents[key] = json.dumps(envelope).encode()
+        with self.assertRaises(StateError):
+            self.staging()
+        self.assertTrue(all(call['Key'].startswith('factory-scope-receipts/') for call in self.s3.calls))
+        self.assertEqual(self.s3.writes, [])
 
 
 if __name__ == '__main__':

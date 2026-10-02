@@ -1,10 +1,13 @@
 import copy
+import base64
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'src')]
@@ -22,6 +25,37 @@ def changes(component='controller'):
 
 
 class DisabledConfigTests(unittest.TestCase):
+    def test_binding_preparation_rejects_live_scope_before_cloud_change_preparation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binding, job = Path(directory) / 'binding.json', Path(directory) / 'job.json'
+            binding.write_text('{}')
+            job.write_bytes(b'{}')
+            with patch.object(stage, 'build_activation_bundle', return_value={}), \
+                 patch.object(stage, 'verify_live_scope', side_effect=RuntimeError('invalid signature')), \
+                 patch.object(stage, 'prepare_bundle') as prepare:
+                with self.assertRaisesRegex(RuntimeError, 'invalid signature'):
+                    stage.prepare('controller', binding, job, Path(directory) / 'plan.json')
+                prepare.assert_not_called()
+
+    def test_binding_execute_rechecks_scope_but_readonly_reconcile_does_not(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'plan.json'
+            plan = {'mode': 'binding', 'tool_source_commit': 'a' * 40,
+                'prepared_at': datetime.now(timezone.utc).isoformat(), 'binding': {},
+                'job_base64': base64.b64encode(b'{}').decode(), 'component': 'controller',
+                'bundle': {}, 'template_sha256': hashlib.sha256(b'{}').hexdigest()}
+            path.write_text(json.dumps(plan))
+            with patch.object(stage, 'source', return_value='a' * 40), \
+                 patch.object(stage, 'aws', return_value={'Account': stage.ACCOUNT}), \
+                 patch.object(stage, 'build_activation_bundle', return_value={}), \
+                 patch.object(stage, 'render', return_value=({}, {})), \
+                 patch.object(stage, 'assert_schedule'), \
+                 patch.object(stage, 'verify_live_scope', side_effect=RuntimeError('scope expired')) as live:
+                with self.assertRaisesRegex(RuntimeError, 'scope expired'):
+                    stage.checked(path)
+                stage.checked(path, current_time=False)
+                self.assertEqual(live.call_count, 1)
+
     def test_canary_has_no_activation_settings_and_cleanup_uses_exact_original(self):
         bundle = stage.canary_bundle('controller', 'a' * 32)
         self.assertEqual(bundle['environment_updates']['controller'], {

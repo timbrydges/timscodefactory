@@ -2,7 +2,7 @@
 
 Each plan updates one existing CloudFormation function. Published versions and
 the controller alias remain unchanged. A failed execute requires reconciliation,
-not another execute attempt. Receipt authenticity is a later activation gate.
+not another execute attempt. Binding stages require live signed scope checks.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from pathlib import Path
 from prepare_acceptance_activation_bundle import build_activation_bundle
 from prepare_role_deployment import ACCOUNT, ROOT, aws, source
 from verify_disabled_autonomy_schedule import INPUT, NAME, ROLE, TARGET
+from verify_acceptance_staging_scope import verify_live_scope
 
 COMPONENTS = {
     'builder': ('tims-factory-roles', 'infra/roles/functions.cloudformation.json',
@@ -136,6 +137,8 @@ def checked(path, *, current_time=True):
         bundle = canary_bundle(plan['component'], plan['canary_nonce'])
     elif mode == 'binding':
         bundle = build_activation_bundle(plan['binding'], base64.b64decode(plan['job_base64'], validate=True), now=now)
+        if current_time:
+            verify_live_scope(plan['binding'], base64.b64decode(plan['job_base64'], validate=True), now=now)
     else:
         raise RuntimeError('unknown staging mode')
     baseline, proposed = render(plan['component'], bundle)
@@ -153,6 +156,7 @@ def prepare(component, binding_path, job_path, path):
     binding = json.loads(Path(binding_path).read_text())
     raw = Path(job_path).read_bytes()
     bundle = build_activation_bundle(binding, raw, now=now)
+    verify_live_scope(binding, raw, now=now)
     prepare_bundle(component, bundle, path, now=now, mode='binding',
                    binding=binding, job_base64=base64.b64encode(raw).decode())
 

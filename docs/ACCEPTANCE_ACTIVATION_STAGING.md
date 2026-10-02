@@ -43,11 +43,17 @@ and the controller alias preserved. It checks the disabled no-retry schedule,
 source checkout, template, runtime settings and revision again before execution.
 The prepared template is compared with the actual AWS change set before use.
 
+For binding stages, preparation and execution each read both pinned receipts,
+verify their real signatures, check the authoritative unleased task and unused
+budget, and read the exact published job version with its checksum. Changed,
+forged or expired scope fails before any cloud configuration mutation. Canary
+stages carry no activation binding and do not require scope receipts.
+
 The staging command never signs receipts, grants permissions, publishes a
 Lambda version, changes an alias, enables a schedule or invokes a function.
-It updates only the unpublished function configuration. Receipt authenticity,
-deployed source matching and all final activation gates remain required before
-any live activation; a staged configuration is not evidence those gates passed.
+It updates only the unpublished function configuration. Deployed source matching,
+IAM and all final activation gates remain required before live activation;
+staging verification does not authorize execution or reserve provider spend.
 
 An uncertain execution is saved as attempted before the AWS request. Use
 `reconcile PLAN` to read the result; never retry `execute`. Reconciliation and
