@@ -266,3 +266,20 @@ override to IMPLEMENTATION v7, preserving consumed evidence and lease history.
 A new exclusive journal and state-version guard prevent replay. It makes no
 provider call and cannot recover any later failure. Fresh Inspector and owner
 signatures are required before commissioning 005.
+
+## Commissioning 005 timeout and bounded generation settings
+
+Inspector 012 accepted in one call (USD 0.016284). The authorized owner
+recovery committed IMPLEMENTATION v7 without erasing history. Commissioning
+005 reserved one USD 0.25 call and issued a fifth lease, reaching v8. Its
+provider adapter timed out at 60 seconds with no completed response stored.
+Actual provider cost is unknown; retain the full reservation and STARTED
+dispatch/claim. No successful artifact receipt or implementation exists.
+The recovery cycle is consumed. Never repeat 012 or 005, reset their budgets,
+or reuse their signatures. A new paid scope requires separate owner approval.
+
+Acceptance-only generation now explicitly uses low reasoning effort and a
+90-second deadline, leaving 30 seconds inside the existing 120-second broker
+Lambda limit. Token, price, no-retry, credential and artifact limits remain
+unchanged. This is a tested configuration mitigation, not a verified live
+provider success. Deploy it disabled; no new provider call is authorized here.

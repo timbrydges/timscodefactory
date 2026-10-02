@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "source_commit": "6d7983a022427a3686f6976a88d4f9e1ab985528",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-012",
+    "status": "ACCEPTED",
+    "model_calls": 1,
+    "actual_cost_usd": "0.016284",
+    "reviewer_receipt_version": "1c3s7Kp7k6vgK40jE8m9KRAkMFkNyLp9",
+    "plan_digest": "sha256:30e6a3fda4d8b7d195eeeefe167a97af070fb3cc649e19f52cbe3663d160b690"
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-005",
+    "scheduled_at": "2026-10-02T16:10:24Z",
+    "dispatch_id": "175af642b7abda751ae85edb8338e1eaa4e1af935a2038fceca72d427a74bf81",
+    "provider_attempts": 1,
+    "reserved_usd": "0.25",
+    "actual_cost_usd": null,
+    "outcome": "PROVIDER_TIMEOUT_UNKNOWN_EXTERNAL_OUTCOME",
+    "provider_deadline_seconds": 60,
+    "broker_request_id": "43f32bbc-9111-416f-be49-f9080e006529",
+    "broker_version": 26,
+    "retries": 0,
+    "artifact_returned": false,
+    "implementation_complete": false
+  },
+  "owner_recovery": {
+    "event_id": "acceptance-artifact-recovery-005",
+    "from_state": "INSPECTION",
+    "from_version": 6,
+    "to_state": "IMPLEMENTATION",
+    "to_version": 7,
+    "consumed": true
+  },
+  "preservation": {
+    "do_not_retry_prior_calls": true,
+    "retain_all_budgets_claims_dispatches_and_leases": true,
+    "overall_cap_usd": "5.00",
+    "original_expiry": "2026-10-03T03:01:53Z",
+    "production_release_authorized": false
+  }
+}
