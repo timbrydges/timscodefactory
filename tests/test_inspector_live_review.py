@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 
 from factory_runtime.lambda_role import (
     INSPECTOR_AUTHORIZATION_ID,
+    ACCEPTANCE_CAPABILITY_ID,
     INSPECTOR_CONTRACT_DIGEST,
     INSPECTOR_INPUT_DIGEST,
     handle_inspector_live_review,
@@ -108,13 +109,13 @@ def fixture():
     lease = Lease('auto-' + '1' * 24, 'engineering_agent',
                   'engineering_agent_service', NOW + timedelta(minutes=45))
     request = DispatchRequest(
-        lease.lease_id, 'autonomy', 'acceptance', COMMIT,
+        lease.lease_id, 'autonomy', ACCEPTANCE_CAPABILITY_ID, COMMIT,
         INSPECTOR_CONTRACT_DIGEST, INSPECTOR_INPUT_DIGEST)
     times = {'issued_at': int(NOW.timestamp()) - 30,
              'expires_at': int(NOW.timestamp()) + 1200}
     capability = {
         'kind': 'capability', 'factory_id': 'tims-software-factory',
-        'objective_id': 'autonomy', 'capability_id': 'acceptance',
+        'objective_id': 'autonomy', 'capability_id': ACCEPTANCE_CAPABILITY_ID,
         'contract_digest': INSPECTOR_CONTRACT_DIGEST,
         'owner_identity': 'tim_brydges',
         'required_evidence': 'exact acceptance scope',
@@ -158,7 +159,7 @@ def fixture():
         'plan_digest': receipt_plan_digest(plan),
     }
     material = {
-        'activation_id': 'inspector-fallback-2026-10-02-008',
+        'activation_id': 'inspector-fallback-2026-10-02-009',
         'plan_digest': plan_document['plan_digest'],
         'input_digest': INSPECTOR_INPUT_DIGEST,
         'contract_digest': INSPECTOR_CONTRACT_DIGEST,

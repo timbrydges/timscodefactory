@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from factory_runtime.acceptance_jobs import _unique
-from factory_runtime.autonomy_contract import load_autonomy_operating_allowance
+from factory_runtime.autonomy_contract import ACCEPTANCE_CAPABILITY_ID, load_autonomy_operating_allowance
 from factory_runtime.lambda_role import _decode_inspector_live_plan
 from factory_runtime.receipt_transport import VersionedS3ReceiptPublisher
 from factory_state.kms_signer import EnrolledKmsReceiptSigner, assert_role_identity
@@ -41,7 +41,7 @@ def validate_plan(document, approved_digest, commit, *, now, root=ROOT):
             set(review) != {'kind', 'factory_id', 'task_id', 'binding', 'verdict',
             'reviewer_identity', 'rationale', 'issued_at', 'expires_at'} or
             cap['factory_id'] != plan.factory_id or cap['objective_id'] != 'autonomy' or
-            cap['capability_id'] != 'acceptance' or review['factory_id'] != plan.factory_id or
+            cap['capability_id'] != ACCEPTANCE_CAPABILITY_ID or review['factory_id'] != plan.factory_id or
             review['task_id'] != plan.task_id or plan.request.lease_id != plan.lease.lease_id or
             plan.state_version < 1 or (plan.lease.expires_at - now).total_seconds() > 3600 or
             any(payload['expires_at'] - payload['issued_at'] > 1800 for payload in (cap, review)) or

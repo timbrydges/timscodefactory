@@ -41,7 +41,8 @@ def verified_job(binding, document, versions, *, commit, now, s3, states, databa
         raise StateError('published receipt versions are required')
     state = states.load_state(plan.factory_id, plan.task_id)
     if (state is None or (state.factory_id, state.task_id, state.state, state.version) !=
-            (plan.factory_id, plan.task_id, plan.state, plan.state_version) or state.leases):
+            (plan.factory_id, plan.task_id, plan.state, plan.state_version) or
+            any(lease.active_at(now) or lease.lease_id == plan.lease.lease_id for lease in state.leases)):
         raise StateError('job plan no longer matches an unleased authoritative task')
     budget = database.get_item(TableName='tims-factory-acceptance-budget',
         Key={'PK': {'S': 'ACTIVATION#' + binding['activation_id']}, 'SK': {'S': 'BUDGET'}},

@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'scripts'), str(ROOT / 'tests')]
 
-from factory_runtime.autonomy_contract import load_autonomy_operating_allowance
+from factory_runtime.autonomy_contract import ACCEPTANCE_CAPABILITY_ID, load_autonomy_operating_allowance
 from factory_runtime.intake import IntakePlan
 from factory_runtime.receipt_transport import receipt_plan_digest
 from factory_runtime.worker import digest
@@ -28,7 +28,9 @@ class ActivationBundleTests(unittest.TestCase):
         binding.update(contract_digest=digest(contract), starts_at=now.isoformat(),
                        expires_at=(now + timedelta(hours=1)).isoformat())
         plan['lease']['expires_at'] = (now + timedelta(minutes=30)).isoformat()
-        plan['request'].update(contract_digest=digest(contract), input_digest=digest(task_input))
+        plan['request'].update(contract_digest=digest(contract), input_digest=digest(task_input),
+                               capability_id=ACCEPTANCE_CAPABILITY_ID)
+        plan['capability_payload']['capability_id'] = ACCEPTANCE_CAPABILITY_ID
         plan['capability_payload']['contract_digest'] = digest(contract)
         plan['review_payload']['binding'] = DynamoDBDispatchStore._binding(DispatchRequest(**plan['request']))
         for payload in (plan['capability_payload'], plan['review_payload']):

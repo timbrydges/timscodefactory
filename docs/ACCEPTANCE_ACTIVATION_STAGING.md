@@ -141,8 +141,9 @@ at most USD 0.25 each (USD 0.75 total reserved exposure), within the existing
 USD 5 ceiling, for at most 24 hours from the recorded authorization. Fresh
 pricing, receipt expiry and the activation window can shorten that period.
 There are no retries or remediation cycles and no production-release authority.
-The separately approved one-call Inspector 008 review remains a separate budget.
-Inspector 007 failed before the provider call and is not retried.
+Inspector reviews remain a separate budget. Inspector 008 accepted once; the
+commissioning 001 delivery stopped before dispatch on a timestamp inconsistency.
+Neither attempt may be replayed.
 
 The actual approval is recorded in
 `factory/evidence/guarded-commissioning-authorization.json`. The contract selects
@@ -151,6 +152,21 @@ The actual approval is recorded in
 activation, or a changed list of pending gates fails closed. The authorization
 must be packaged with the reviewed runtime, and its absolute expiry cannot be
 extended by restarting or using another activation ID.
+
+On 2026-10-02 at 12:19:52 UTC the owner approved safe task recovery, one fresh
+Inspector 009 review (USD 0.25 cap, USD 0.24144 reservation, no retries), and one
+new commissioning attempt under the same three-call/USD 0.75 bounds and original
+2026-10-03 03:01:53 UTC expiry. The selected commissioning evidence is now
+`factory/evidence/guarded-commissioning-002-authorization.json`, for
+`factory-acceptance-commissioning-002`; the original evidence remains intact.
+This approval does not reset a budget, extend expiry, or authorize production.
+
+The new capability identifier equals the new commissioning activation ID, so
+fresh signatures cannot collide with the immutable approval from attempt 001.
+Preparation rejects an existing capability before any Inspector call. Publication
+and staging retain expired or revoked lease history, reject active leases, and
+reject reuse of the new plan's lease ID. Recovery never erases old approvals,
+leases, dispatch records, or provider reservations.
 
 Both fresh scope signatures, exact code/job/role versions, reviewed IAM,
 disabled-first deployment, the durable unused budget and task state remain

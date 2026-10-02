@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'src'), str(ROOT/'scripts')]
 
 from factory_runtime.intake import AuthenticatedIntakeService
+from factory_runtime.autonomy_contract import ACCEPTANCE_CAPABILITY_ID
 from factory_runtime.receipt_transport import receipt_plan_digest
 from factory_runtime.worker import digest
 from factory_state.dispatch import DynamoDBDispatchStore
@@ -55,6 +56,13 @@ def main():
         raise RuntimeError('input bytes differ')
 
     client = boto3.client('dynamodb', region_name=REGION)
+    # Each separately authorized commissioning attempt uses fresh immutable
+    # capability scope. Never overwrite or reuse a prior approval record.
+    existing = client.get_item(TableName=TABLE, Key={
+        'PK': {'S': f'FACTORY#{FACTORY}#TASK#SCOPE#OBJECTIVE#autonomy'},
+        'SK': {'S': 'CAPABILITY#' + ACCEPTANCE_CAPABILITY_ID}}, ConsistentRead=True)
+    if existing.get('Item'):
+        raise RuntimeError('commissioning capability already exists; do not reuse its scope')
     states = DynamoDBStateStore(TABLE, client)
     state = states.load_state(FACTORY, TASK)
     if state is None:
@@ -69,7 +77,7 @@ def main():
         states, DynamoDBDispatchStore(TABLE, client), key_loader=(lambda _at: {}), clock=lambda: now)
     plan = service.prepare(
         FACTORY, TASK, role_id='engineering_agent', source_commit=source(),
-        objective_id='autonomy', capability_id='acceptance',
+        objective_id='autonomy', capability_id=ACCEPTANCE_CAPABILITY_ID,
         contract_bytes=contract, input_bytes=task_input,
         reviewer_identity='independent_inspector_service',
         required_evidence='Exact immutable acceptance contract and independent Inspector decision',
