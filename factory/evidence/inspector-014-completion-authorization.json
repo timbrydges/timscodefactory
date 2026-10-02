@@ -1,0 +1,16 @@
+{
+  "owner_identity": "tim_brydges",
+  "authorization_id": "inspector-014-completion-authorization",
+  "authorized_at": "2026-10-02T19:22:09+00:00",
+  "authorization_text": "Owner accepted the proposed model-free workflow integration and mock-provider tests: I accept l, proceed. Consume the existing signed Inspector 014 implementation verdict through the controller's normal INSPECTION to QA transition, preserve all history, and prepare but do not activate a future pilot.",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "review_sha256": "23f8f990ac44612663dc056c8f318dbe412fcac3f1220367e02b79efc7d220c7",
+  "baseline_sha256": "9229d33c2fd6b866e03c3f3ff7a7fd558d784bf39678f3da1c9bad6c7c41be20",
+  "from_state": "INSPECTION",
+  "from_version": 10,
+  "target_state": "QA",
+  "maximum_model_calls": 0,
+  "schedule_enabled": false,
+  "production_release_authorized": false,
+  "expires_at": "2026-10-03T03:01:53+00:00"
+}
