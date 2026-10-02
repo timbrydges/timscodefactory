@@ -1,0 +1,62 @@
+{
+  "source_commit": "c8569ced63dc3141ab74f69837f05840c4185996",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-010",
+    "status": "INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED",
+    "actual_cost_usd": "0.015879",
+    "provider_calls": 1,
+    "reviewer_receipt_version": "aiipjf2PmxHfUmflaTNDg.UBrL9Zck1u"
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-003",
+    "status": "STOPPED_HTTP_401_AUTHENTICATION_FAILURE",
+    "scheduled_at": "2026-10-02T14:21:45Z",
+    "dispatch_id": "010d652ff88235b258c55417f1a24e0c3ef4dbe87103349b189ddff301ecfe83",
+    "dispatch_status": "STARTED",
+    "reserved_usd": "0.25",
+    "actual_cost_usd": null,
+    "retries": 0
+  },
+  "safe_state": {
+    "utc": "2026-10-02T14:27:34.806202+00:00",
+    "source_commit": "c8569ced63dc3141ab74f69837f05840c4185996",
+    "components": {
+      "PlannerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-planner:32",
+      "BuilderVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:38",
+      "InspectorVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:32",
+      "ControllerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:17",
+      "BrokerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:20"
+    },
+    "schedule": "DISABLED",
+    "task": {
+      "state": "IMPLEMENTATION",
+      "version": 4,
+      "leases_preserved": 3
+    },
+    "commissioning_reservation_preserved": {
+      "PK": {
+        "S": "ACTIVATION#factory-acceptance-commissioning-003"
+      },
+      "SK": {
+        "S": "BUDGET"
+      },
+      "calls": {
+        "N": "1"
+      },
+      "expires_at": {
+        "N": "1790953766"
+      },
+      "reserved_microusd": {
+        "N": "250000"
+      }
+    }
+  },
+  "evidence_directory": "/home/cloudshell-user/factory-evidence/activation-010-280",
+  "production_release_authorized": false,
+  "credential_replacement": {
+    "status": "INSTALLED",
+    "aws_secret_version": "ebb6cc21-2df9-4b06-8f55-2b0661f27f69",
+    "authentication_tested": false,
+    "model_calls": 0
+  }
+}
