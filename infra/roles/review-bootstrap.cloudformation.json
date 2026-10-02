@@ -1,0 +1,403 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DRAFT: disabled QA/security identities. Two recurring KMS keys require owner approval. No models, state, secrets, schedules or controller invocation grants.",
+  "Parameters": {
+    "ArtifactBucket": {
+      "Type": "String",
+      "AllowedValues": [
+        "tims-software-factory-666730517561-ca-central-1"
+      ]
+    },
+    "ArtifactKey": {
+      "Type": "String"
+    },
+    "ArtifactVersion": {
+      "Type": "String"
+    },
+    "CodeSha256": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "QaKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "tims-factory-review-qa isolated signing; not yet enrolled",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-review-qa"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "QaAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-review-qa",
+        "TargetKeyId": {
+          "Ref": "QaKey"
+        }
+      }
+    },
+    "QaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-review-qa",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnIdentityChallengeOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "QaKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "QaKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-review-qa:*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "QaLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-review-qa",
+        "RetentionInDays": 14
+      }
+    },
+    "QaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "QaLogs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-review-qa",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.review_role_probe.handler",
+        "Timeout": 30,
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QaRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "Environment": {
+          "Variables": {
+            "FACTORY_REVIEW_ROLE": "qa",
+            "FACTORY_REVIEW_KEY_ARN": {
+              "Fn::GetAtt": [
+                "QaKey",
+                "Arn"
+              ]
+            },
+            "FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false"
+          }
+        }
+      }
+    },
+    "QaVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QaFunction"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    },
+    "SecurityKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "tims-factory-review-security isolated signing; not yet enrolled",
+        "KeySpec": "ECC_NIST_EDWARDS25519",
+        "KeyUsage": "SIGN_VERIFY",
+        "MultiRegion": false,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "OwnerAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::666730517561:root"
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenySigningOutsideExactRole",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "kms:Sign",
+              "Resource": "*",
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-review-security"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "SecurityAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/tims-factory-review-security",
+        "TargetKeyId": {
+          "Ref": "SecurityKey"
+        }
+      }
+    },
+    "SecurityRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-review-security",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OwnIdentityChallengeOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GetPublicKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "SecurityKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "SecurityKey",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:SigningAlgorithm": "ED25519_SHA_512",
+                      "kms:MessageType": "RAW"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-review-security:*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "SecurityLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-review-security",
+        "RetentionInDays": 14
+      }
+    },
+    "SecurityFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "SecurityLogs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-review-security",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.review_role_probe.handler",
+        "Timeout": 30,
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "SecurityRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "Environment": {
+          "Variables": {
+            "FACTORY_REVIEW_ROLE": "security",
+            "FACTORY_REVIEW_KEY_ARN": {
+              "Fn::GetAtt": [
+                "SecurityKey",
+                "Arn"
+              ]
+            },
+            "FACTORY_OPERATIONAL_EXECUTION_ENABLED": "false"
+          }
+        }
+      }
+    },
+    "SecurityVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SecurityFunction"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "QaKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "QaKey",
+          "Arn"
+        ]
+      }
+    },
+    "QaVersionArn": {
+      "Value": {
+        "Ref": "QaVersion"
+      }
+    },
+    "SecurityKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SecurityKey",
+          "Arn"
+        ]
+      }
+    },
+    "SecurityVersionArn": {
+      "Value": {
+        "Ref": "SecurityVersion"
+      }
+    }
+  }
+}
