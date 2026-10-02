@@ -326,3 +326,28 @@ unchanged USD 5 cap. Another standard USD 0.24144 Inspector reservation would
 raise that total to USD 5.11160 and therefore requires separate owner approval
 for the call and a sufficient overall cap. No budget or state reset, prior-call
 retry, new Builder call, or expiry extension is authorized by this evidence.
+
+## Independent implementation Inspector 014
+
+The owner approved one separate Inspector call for Builder candidate
+`09a758184c890eda200326a18fb166641194e32e`, maximum USD 0.25 and reservation
+USD 0.24144, with no retries. The separate overall cap is USD 5.25; all prior
+reservations remain held (USD 4.87016 before this call, USD 5.11160 after).
+The original expiry remains 2026-10-03T03:01:53Z. No new Builder call, state
+reset, schedule activation, or production release is authorized.
+
+The disabled Inspector has a separate implementation-review event. It accepts
+only the exact bundled packet and manually inspected source hashes, reruns the
+11 required tests in Python 3.12 with an isolated temporary directory and
+credential-free subprocess environment, then reserves 014 before one Bedrock
+call. Test failure spends nothing; uncertain provider outcomes consume the
+reservation. Its signed evidence binds the candidate commit, file hashes,
+actual test output, and model assessment. It is not a scope-review receipt and
+cannot authorize dispatch or release. No general-purpose code runner exists.
+
+`invoke_implementation_inspector.py` requires the exact clean deployed package,
+INSPECTION v10 with six preserved leases, the completed Builder claim, all
+execution flags and schedule disabled, and USD 4.87016 prior reservations.
+It journals the attempt before invoking an exact Inspector version and verifies
+the returned signature and evidence hashes. An existing output directory or
+budget record blocks replay. Preserve the result even on failure.

@@ -473,7 +473,8 @@ def handler(event, context):
     elif operational == 'false':
         if not isinstance(event, dict) or event.get('kind') not in {
                 'identity_probe', 'transport_canary', 'operational_boundary_probe',
-                'inspector_runtime_boundary_probe', 'inspector_live_review'}:
+                'inspector_runtime_boundary_probe', 'inspector_live_review',
+                'inspector_implementation_review'}:
             raise StateError('unsupported role invocation')
         if event['kind'] == 'identity_probe':
             validate_probe(event, role=role, commit=commit)
@@ -485,6 +486,9 @@ def handler(event, context):
         elif event['kind'] == 'inspector_live_review':
             _validate_inspector_live_event(
                 event, role=role, commit=commit, now=datetime.now(timezone.utc), root=root)
+        elif event['kind'] == 'inspector_implementation_review':
+            from .implementation_inspector import validate
+            validate(event, role=role, commit=commit, now=datetime.now(timezone.utc), root=root)
     else:
         raise StateError('operational role kill switch is invalid')
     import boto3
@@ -516,6 +520,13 @@ def handler(event, context):
     if event['kind'] == 'inspector_runtime_boundary_probe':
         return handle_inspector_runtime_boundary_probe(
             event, role=role, commit=commit, signer=signer, now=now, root=root)
+    if event['kind'] == 'inspector_implementation_review':
+        from .implementation_inspector import handle
+        review_config = Config(connect_timeout=3, read_timeout=90,
+            retries={'total_max_attempts': 1, 'mode': 'standard'})
+        return handle(event, role=role, commit=commit, root=root, now=now, signer=signer,
+            database=boto3.client('dynamodb', region_name='ca-central-1', config=config),
+            bedrock=boto3.client('bedrock-runtime', region_name='ca-central-1', config=review_config))
     if event['kind'] == 'inspector_live_review':
         review_config = Config(connect_timeout=3, read_timeout=105,
             retries={'total_max_attempts': 1, 'mode': 'standard'})

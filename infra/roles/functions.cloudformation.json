@@ -595,6 +595,21 @@
                           ]
                         }
                       }
+                    },
+                    {
+                      "Sid": "ReserveExactImplementationReview",
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:PutItem"
+                      ],
+                      "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget",
+                      "Condition": {
+                        "ForAllValues:StringEquals": {
+                          "dynamodb:LeadingKeys": [
+                            "INSPECTOR#inspector-fallback-2026-10-02-014"
+                          ]
+                        }
+                      }
                     }
                   ]
                 }

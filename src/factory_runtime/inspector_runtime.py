@@ -96,6 +96,11 @@ class InspectorReviewRuntime:
                 not isinstance(request.get('system'), str) or not request['system'].strip()):
             raise StateError('Inspector runtime request differs from exact intake plan')
 
+        return self._review_bound(request=request, policy=policy, now=now)
+
+    def _review_bound(self, *, request: dict, policy: dict, now):
+        """Shared single-call transport; entry points must validate trusted bindings."""
+        material = self._material(request)
         assessment_schema = {
             'type': 'object',
             'properties': {
