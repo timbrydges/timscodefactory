@@ -7,6 +7,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
+from dataclasses import replace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -14,6 +15,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 
 from factory_runtime.acceptance_broker_lambda import handler, handle_probe
 from factory_state.model import StateError
+from factory_runtime.autonomy_contract import load_autonomy_operating_allowance
 from build_acceptance_broker_package import contract_paths
 
 
@@ -23,6 +25,15 @@ EVENT = {'kind': 'acceptance_broker_probe', 'source_commit': COMMIT,
 
 
 class AcceptanceBrokerLambdaTests(unittest.TestCase):
+    def test_ready_contract_does_not_enable_model_free_probe(self):
+        allowance = replace(load_autonomy_operating_allowance(ROOT), status='ACTIVE', pending_gates=())
+        with patch('factory_runtime.autonomy_contract.load_autonomy_operating_allowance', return_value=allowance):
+            reply = handle_probe(EVENT, source_commit=COMMIT, enabled='false')
+            self.assertEqual(reply['provider_calls'], 0)
+            self.assertFalse(reply['credentials_read'])
+            with self.assertRaisesRegex(StateError, 'kill switch'):
+                handle_probe(EVENT, source_commit=COMMIT, enabled='true')
+
     def test_probe_has_no_model_or_release_authority(self):
         reply = handle_probe(EVENT, source_commit=COMMIT, enabled='false')
         self.assertEqual(reply['provider_calls'], 0)

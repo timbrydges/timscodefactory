@@ -25,7 +25,8 @@ def _disabled_broker_backend(root: Path, *, source_commit: str) -> None:
     from .openai_provider import OpenAIProviderPolicy
 
     allowance = load_autonomy_operating_allowance(root)
-    if (allowance.status == 'ACTIVE' or not allowance.pending_gates or
+    # A ready contract must not prevent verifying a still-disabled deployment.
+    if ((not allowance.activation_ready and not allowance.pending_gates) or
             allowance.production_release_authorized or
             allowance.acceptance_task_id != 'deterministic-text-fingerprint' or
             allowance.target_alias != 'coding_primary_sol_live' or
