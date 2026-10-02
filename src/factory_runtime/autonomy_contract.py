@@ -19,9 +19,9 @@ COMMISSIONING_GATES = (
     'live_controller_runtime_deployment',
     'guarded_schedule_activation',
 )
-COMMISSIONING_ID = 'factory-acceptance-commissioning-002'
+COMMISSIONING_ID = 'factory-acceptance-commissioning-003'
 ACCEPTANCE_CAPABILITY_ID = COMMISSIONING_ID
-COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-002-authorization.json'
+COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-003-authorization.json'
 
 
 @dataclass(frozen=True)

@@ -210,3 +210,13 @@ The schedule was disabled and the runtime quarantined. See
 `factory/evidence/inspector-009-and-commissioning-002-outcome-2026-10-02.json`.
 Neither the dispatch nor Inspector 009 may be retried. Future HTTP failures
 report only a validated numeric status, never upstream bodies or credentials.
+
+The owner approved fresh Inspector 010 and commissioning 003 on 2026-10-02
+at 13:45:56 UTC, retaining the same USD 0.25 Inspector cap, USD 0.24144
+Inspector reservation, three-call/USD 0.75 commissioning bound, overall USD 5
+ceiling and original expiry. The selected evidence is
+`factory/evidence/guarded-commissioning-003-authorization.json`.
+Wait for the existing lease to expire before preparing the fresh live review;
+do not revoke it early, erase history, reset reservations or replay attempt 002.
+Fresh signatures and all deployment gates remain required; no pending live gate
+is claimed complete and production release remains prohibited.
