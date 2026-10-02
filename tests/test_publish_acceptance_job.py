@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'scripts'), str(ROOT / 'tests')]
 
-from factory_state.model import CONTROLLER_IDENTITY, StateError, TaskState
+from factory_state.model import CONTROLLER_IDENTITY, Lease, StateError, TaskState
 from prepare_acceptance_job import BINDING_FIELDS, PLAN_FIELDS
 import publish_acceptance_job as publication
 from verify_acceptance_staging_scope import verify_scope
@@ -104,6 +104,37 @@ class JobPublicationTests(unittest.TestCase):
         self.s3.documents[key] = json.dumps(envelope).encode()
         with self.assertRaises(StateError):
             self.verify()
+        self.assertEqual(self.s3.writes, [])
+
+    def test_historical_leases_are_preserved_without_blocking_fresh_signed_scope(self):
+        expired = Lease('previous-attempt', 'engineering_agent', 'engineering_agent_service',
+                        self.now - timedelta(seconds=1))
+        revoked = replace(expired, lease_id='revoked-attempt', revoked=True,
+                          expires_at=self.now + timedelta(hours=1))
+        historical = replace(self.state, leases=(expired, revoked))
+        self.states.load_state.return_value = historical
+        self.s3.job = self.verify()[0]
+        self.assertEqual(self.staging()['job_version_id'], 'job-v1')
+        self.assertEqual(self.states.load_state.return_value, historical)
+        self.assertEqual(self.s3.writes, [])
+
+    def test_active_or_reused_lease_denies_before_receipt_io(self):
+        old = Lease('previous-attempt', 'engineering_agent', 'engineering_agent_service',
+                    self.now + timedelta(seconds=1))
+        for lease in (old, replace(old, lease_id=self.document['lease']['lease_id'],
+                                  expires_at=self.now - timedelta(seconds=1))):
+            self.states.load_state.return_value = replace(self.state, leases=(lease,))
+            with self.assertRaisesRegex(StateError, 'authoritative task'):
+                self.verify()
+        self.assertEqual(self.s3.calls, [])
+        self.assertEqual(self.s3.writes, [])
+
+    def test_staging_rejects_a_new_active_lease_after_signature_verification(self):
+        lease = Lease('concurrent-work', 'engineering_agent', 'engineering_agent_service',
+                      self.now + timedelta(minutes=1))
+        self.states.load_state.side_effect = [self.state, replace(self.state, leases=(lease,))]
+        with self.assertRaisesRegex(StateError, 'changed during'):
+            self.staging()
         self.assertEqual(self.s3.writes, [])
 
     def test_stale_state_spent_budget_source_drift_and_expiry_deny_before_receipt_io(self):

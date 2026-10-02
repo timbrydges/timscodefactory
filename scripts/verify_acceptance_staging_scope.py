@@ -29,7 +29,7 @@ def verify_scope(binding, raw, *, commit, now, s3, states, database, root=ROOT):
         document['task_id'], commit, binding['contract_digest'],
         datetime.fromisoformat(binding['starts_at']), datetime.fromisoformat(binding['expires_at']))
     state = states.load_state(activation.factory_id, activation.task_id)
-    if state is None or state.version != proof['task_state_version'] or state.leases:
+    if state is None or state.version != proof['task_state_version'] or any(lease.active_at(now) for lease in state.leases):
         raise StateError('authoritative task changed during staging verification')
     # Read the actual immutable object through the runtime decoder. Local bytes
     # and a syntactically valid version name are not publication evidence.

@@ -14,12 +14,13 @@ from pathlib import Path
 from factory_state.kms_signer import EnrolledKmsReceiptSigner, SIGNERS
 from factory_state.model import StateError
 from factory_state.scope import canonical
+from .autonomy_contract import ACCEPTANCE_CAPABILITY_ID
 
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
-INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-008'
-INSPECTOR_ACTIVATION_ID = 'inspector-fallback-2026-10-02-008'
+INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-009'
+INSPECTOR_ACTIVATION_ID = 'inspector-fallback-2026-10-02-009'
 INSPECTOR_CONTRACT_DIGEST = 'sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa'
 INSPECTOR_INPUT_DIGEST = 'sha256:e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418'
 
@@ -259,7 +260,7 @@ def _decode_inspector_live_plan(document, *, commit, now):
             request.source_commit != commit or
             request.contract_digest != INSPECTOR_CONTRACT_DIGEST or
             request.input_digest != INSPECTOR_INPUT_DIGEST or
-            request.objective_id != 'autonomy' or request.capability_id != 'acceptance' or
+            request.objective_id != 'autonomy' or request.capability_id != ACCEPTANCE_CAPABILITY_ID or
             cap.get('kind') != 'capability' or cap.get('owner_identity') != 'tim_brydges' or
             cap.get('contract_digest') != INSPECTOR_CONTRACT_DIGEST or
             review.get('kind') != 'scope_review' or review.get('verdict') != 'ACCEPTED' or

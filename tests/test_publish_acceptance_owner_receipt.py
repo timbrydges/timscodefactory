@@ -2,7 +2,7 @@ import json
 import sys
 import unittest
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -11,7 +11,9 @@ sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'src'), str(ROOT / 'tests')]
 
 import yaml
 from factory_runtime.receipt_transport import receipt_plan_digest
-from factory_state.model import StateError
+from factory_runtime.intake import IntakePlan
+from factory_state.dispatch import DispatchRequest, DynamoDBDispatchStore
+from factory_state.model import Lease, StateError
 from prepare_acceptance_job import PLAN_FIELDS
 from publish_acceptance_owner_receipt import publish, validate_plan
 import test_prepare_acceptance_activation_bundle as bundle_fixtures
@@ -19,6 +21,20 @@ from test_receipt_publication import FakeS3, Signer
 
 
 class OwnerReceiptTests(unittest.TestCase):
+    def test_legacy_capability_cannot_authorize_new_commissioning(self):
+        document, commit, now = self.material()
+        document['request']['capability_id'] = 'acceptance'
+        document['capability_payload']['capability_id'] = 'acceptance'
+        request = DispatchRequest(**document['request'])
+        document['review_payload']['binding'] = DynamoDBDispatchStore._binding(request)
+        plan = IntakePlan(document['factory_id'], document['task_id'], document['state'],
+            document['state_version'], Lease(**{**document['lease'],
+                'expires_at': datetime.fromisoformat(document['lease']['expires_at'])}),
+            request, document['capability_payload'], document['review_payload'])
+        document['plan_digest'] = receipt_plan_digest(plan)
+        with self.assertRaisesRegex(StateError, 'owner-authorized task'):
+            validate_plan(document, document['plan_digest'], commit, now=now)
+
     def material(self):
         binding, raw, now = bundle_fixtures.ActivationBundleTests().material()
         job = json.loads(raw)
