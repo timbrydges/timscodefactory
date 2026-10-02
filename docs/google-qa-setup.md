@@ -11,13 +11,27 @@ found. Secret values were not read. The signed-in Google AI Studio showed a paid
 Thought Engine project and a free Default Gemini Project. Neither existing key
 was copied or repurposed.
 
-## Credential setup awaiting approval
+## Credential setup verified, 2026-10-02
 
-Create a separate `Tims Software Factory QA` key in the existing Default Gemini
-Project (`gen-lang-client-0247455615`), verify its API restriction, and store it
-only in `tims-software-factory/provider/google/qa` in account 666730517561,
-ca-central-1. This does not attach Google billing, change another key, grant a
-runtime reader, or call a model. Creation and transfer require owner approval.
+After the owner's explicit approval, a separate `Tims Software Factory QA` key
+was created in Default Gemini Project (`gen-lang-client-0247455615`) and stored
+in `tims-software-factory/provider/google/qa` in account 666730517561,
+ca-central-1. Google Cloud displayed the key as Available and restricted to
+Gemini API, with its own linked service account. The project remains Free tier.
+No Google billing was attached, existing key changed, runtime reader granted,
+or model called.
+
+At 21:55:41 UTC, the AWSCURRENT value was read once per verification attempt
+and matched against the created key's in-memory digest without printing the
+stored value. The first read-only verification stopped because AWS omits
+`KmsKeyId` for its default key; the corrected verification resolved the default
+`alias/aws/secretsmanager` and confirmed AWS-managed encryption. Rotation and
+replication are disabled and no resource policy was added. Temporary key and
+clipboard values were cleared after verification. The secret was created through
+the console, not CloudFormation; do not execute the old empty-secret template
+against this existing name. Non-secret metadata is recorded in
+`factory/evidence/google-qa-credential-setup-2026-10-02.json`.
+
 The free project's data-use terms must be considered before approving a live
 request; paid and free Gemini tiers have different data-use terms.
 
@@ -58,7 +72,7 @@ Sources checked 2026-10-02:
 - https://ai.google.dev/gemini-api/docs/pricing
 - https://ai.google.dev/api/generate-content
 
-After credential setup, prepare broker-only secret access and Google egress,
+Next, prepare broker-only secret access and Google egress,
 durable one-attempt reservation, independently executed QA tests and signed
 report publication. Security follows accepted QA. No signer enrollment,
 scheduling, task transition or production release is part of this setup.
