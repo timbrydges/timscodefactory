@@ -159,7 +159,7 @@ def fixture():
         'plan_digest': receipt_plan_digest(plan),
     }
     material = {
-        'activation_id': 'inspector-fallback-2026-10-02-011',
+        'activation_id': 'inspector-fallback-2026-10-02-012',
         'plan_digest': plan_document['plan_digest'],
         'input_digest': INSPECTOR_INPUT_DIGEST,
         'contract_digest': INSPECTOR_CONTRACT_DIGEST,

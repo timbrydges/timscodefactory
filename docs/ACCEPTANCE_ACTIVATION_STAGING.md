@@ -249,3 +249,20 @@ The current INSPECTION state must not be treated as evidence of a code artifact.
 No automated remediation is authorized. A fresh owner-approved recovery scope
 and signed state transition are required before another implementation attempt;
 do not reset budgets, erase history, revoke leases early or replay 004.
+
+## Owner-approved recovery 005 (2026-10-02)
+
+The owner separately approved exactly one recovery cycle at 15:41:07Z,
+Inspector 012 (one call, USD 0.25 maximum, USD 0.24144 reservation) and
+commissioning 005 (up to three calls, USD 0.75 total). Zero retries, the
+USD 5 overall ceiling, original 2026-10-03T03:01:53Z expiry, and no production
+release remain binding. This supersedes the preceding zero-remediation limit
+only for this exact recovery. Historical authorizations remain unchanged.
+
+`recover_acceptance_missing_artifact.py NEW_JOURNAL.json` requires the exact
+INSPECTION v6 receipt and four already-revoked leases, disabled components
+and schedule, fresh pricing and authorization. It records an atomic owner
+override to IMPLEMENTATION v7, preserving consumed evidence and lease history.
+A new exclusive journal and state-version guard prevent replay. It makes no
+provider call and cannot recover any later failure. Fresh Inspector and owner
+signatures are required before commissioning 005.
