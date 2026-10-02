@@ -1,0 +1,89 @@
+{
+  "status": "DISABLED_REVIEW_IDENTITIES_VERIFIED",
+  "utc": "2026-10-02T21:13:36.620301+00:00",
+  "source_commit": "06fb6d111a0f9fb8463729bd38ba754dfe418074",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-review-bootstrap/385b9390-be9b-11f1-adc2-06f748bb68bd",
+  "code_sha256": "QMnHH5mYeKouxYU1mHSD9be9MK84bEkyPZofkBMY+Bw=",
+  "identities": [
+    {
+      "role": "qa",
+      "identity": "qa_engineer_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+      "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-review-qa:1",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+      "result": {
+        "payload": {
+          "kind": "identity_challenge",
+          "identity": "qa_engineer_service",
+          "purpose": "disabled-review-role-bootstrap-only",
+          "source_commit": "06fb6d111a0f9fb8463729bd38ba754dfe418074",
+          "nonce": "2401e4011ef246ea8a723055ab6b0346",
+          "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+          "issued_at": 1790975606,
+          "expires_at": 1790975906
+        },
+        "signature_base64": "eLaRfdKuJaTvkXgHfKYGcBLp8rXbe/kbe7i+IpomDqY0NmMdYuzfUwNPciyx6PDPe9GGJ0OeF27RI7/HaXXCBA==",
+        "model_calls": 0,
+        "state_writes": 0,
+        "operational_execution_enabled": false,
+        "scope_approval": false,
+        "production_release_authorized": false
+      },
+      "invocation_metadata": {
+        "StatusCode": 200,
+        "ExecutedVersion": "1"
+      }
+    },
+    {
+      "role": "security",
+      "identity": "deep_security_reviewer_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/12303b9c-fa89-44a2-8864-fbc7b3903ca9",
+      "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-review-security:1",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+      "result": {
+        "payload": {
+          "kind": "identity_challenge",
+          "identity": "deep_security_reviewer_service",
+          "purpose": "disabled-review-role-bootstrap-only",
+          "source_commit": "06fb6d111a0f9fb8463729bd38ba754dfe418074",
+          "nonce": "adf991f6729d4619bec8cb8bb1710683",
+          "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/12303b9c-fa89-44a2-8864-fbc7b3903ca9",
+          "issued_at": 1790975613,
+          "expires_at": 1790975913
+        },
+        "signature_base64": "FyZhdTW4HdXO3sTC7uQ8yBXnW+u3+L3OgfioxoXd5lEHNbAfcOp8AFKCtBrulASMq1ACdtrmpYXGyiWPmhLHBQ==",
+        "model_calls": 0,
+        "state_writes": 0,
+        "operational_execution_enabled": false,
+        "scope_approval": false,
+        "production_release_authorized": false
+      },
+      "invocation_metadata": {
+        "StatusCode": 200,
+        "ExecutedVersion": "1"
+      }
+    }
+  ],
+  "model_calls": 0,
+  "identity_invocations": 2,
+  "retries": 0,
+  "budget_rows_unchanged": 26,
+  "task_records_unchanged": 19,
+  "task_state": "QA",
+  "task_version": 12,
+  "schedule": "DISABLED",
+  "existing_functions_unchanged": true,
+  "signer_enrollment_changed": false,
+  "operational_execution_enabled": false,
+  "production_release_authorized": false,
+  "execution_approval": {
+    "utc": "2026-10-02T21:11:49.495030+00:00",
+    "approval": "Owner approved two disabled identities and keys plus one no-retry identity probe per role; recurring key costs disclosed.",
+    "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/review-bootstrap-291-7556dde0/216c3b5b-e2b0-46d2-845c-61a67edfb247",
+    "model_calls": 0
+  },
+  "verification_script_sha256": "fdffe381880fc77a43033ecd771e99c59f156b128f55aaea5a296d25646e8396",
+  "before_snapshot_sha256": "8df111eb258f68748a5ce75a0c958305390eea6cea27dce120c191e09eb2406e"
+}
