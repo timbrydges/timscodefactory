@@ -294,6 +294,7 @@ class FactoryStateMachine:
             replace(self._state, leases=self._state.leases + (lease,)),
             "LEASE_ISSUED",
             caller_identity,
+            now=now,
             details={
                 "lease_id": lease.lease_id,
                 "role_id": lease.role_id,
@@ -347,6 +348,7 @@ class FactoryStateMachine:
             updated,
             "STATE_TRANSITION",
             caller_identity,
+            now=now,
             details={"evidence_ids": sorted(item.evidence_id for item in checked)},
         )
 
@@ -500,8 +502,9 @@ class FactoryStateMachine:
         caller_identity: str,
         *,
         details: dict[str, Any] | None = None,
+        now: datetime | None = None,
     ) -> TaskState:
-        now = datetime.now(timezone.utc)
+        now = now or datetime.now(timezone.utc)
         updated = replace(
             updated,
             version=self._state.version + 1,
