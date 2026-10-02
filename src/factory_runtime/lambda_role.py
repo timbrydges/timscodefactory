@@ -380,7 +380,7 @@ def _builder_activation(root, commit, raw, now):
     except (ValueError, TypeError, KeyError) as error:
         raise StateError('Builder activation deployment is invalid') from error
     allowance = load_autonomy_operating_allowance(root)
-    if (not allowance.activation_ready or allowance.production_release_authorized or
+    if (not allowance.permits_activation(activation) or allowance.production_release_authorized or
             activation.factory_id != 'tims-software-factory' or
             activation.task_id != allowance.acceptance_task_id or
             activation.source_commit != commit or

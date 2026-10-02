@@ -42,7 +42,7 @@ def _controller_activation(root, commit, raw, now):
         raise StateError('acceptance controller deployment is invalid') from error
     allowance = load_autonomy_operating_allowance(root)
     match = FUNCTION.fullmatch(builder_arn) if isinstance(builder_arn, str) else None
-    if (not allowance.activation_ready or allowance.production_release_authorized or
+    if (not allowance.permits_activation(activation) or allowance.production_release_authorized or
             activation.factory_id != 'tims-software-factory' or
             activation.task_id != allowance.acceptance_task_id or
             activation.source_commit != commit or

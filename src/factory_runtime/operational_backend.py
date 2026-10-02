@@ -74,7 +74,7 @@ class AcceptanceOperationalBackend:
         allowance = load_autonomy_operating_allowance(self.repository_root)
         if allowance.production_release_authorized:
             raise StateError("operational backend cannot hold production release authority")
-        if not allowance.activation_ready:
+        if not allowance.permits_activation(self.activation):
             raise StateError("operational backend has pending activation gates")
         if allowance.target_alias != "coding_primary_sol_live" or allowance.model_id != "gpt-5.6-sol":
             raise StateError("operational backend target differs from owner authorization")

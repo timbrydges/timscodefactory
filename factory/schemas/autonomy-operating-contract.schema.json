@@ -8,7 +8,7 @@
     "schema_version": {"const": "1.0"},
     "contract_id": {"const": "tims-factory-autonomy-acceptance-001"},
     "contract_version": {"const": "1.0"},
-    "status": {"enum": ["OWNER_APPROVED_AWAITING_TECHNICAL_GATES", "ACTIVE", "PAUSED", "RETIRED"]},
+    "status": {"enum": ["OWNER_APPROVED_AWAITING_TECHNICAL_GATES", "GUARDED_COMMISSIONING", "ACTIVE", "PAUSED", "RETIRED"]},
     "approval": {
       "type": "object", "additionalProperties": false,
       "required": ["owner_identity", "authority", "approved_on", "evidence"],
@@ -16,7 +16,8 @@
         "owner_identity": {"const": "tim_brydges"},
         "authority": {"const": "factory_owner"},
         "approved_on": {"const": "2026-09-23"},
-        "evidence": {"const": "factory/evidence/autonomy-financial-authorization-2026-09-23.json"}
+        "evidence": {"const": "factory/evidence/autonomy-financial-authorization-2026-09-23.json"},
+        "commissioning_evidence": {"const": "factory/evidence/guarded-commissioning-authorization.json"}
       }
     },
     "provider": {
@@ -83,9 +84,9 @@
       "type": "object", "additionalProperties": false,
       "required": ["autonomous_task_progression", "schedule_activation", "provider_calls", "repository_writes", "infrastructure_changes", "production_release", "release_authority_identity"],
       "properties": {
-        "autonomous_task_progression": {"const": "ALLOW_AFTER_ALL_GATES"},
-        "schedule_activation": {"const": "ALLOW_AFTER_ALL_GATES"},
-        "provider_calls": {"const": "ALLOW_AFTER_ALL_GATES"},
+        "autonomous_task_progression": {"enum": ["ALLOW_AFTER_ALL_GATES", "ALLOW_GUARDED_COMMISSIONING"]},
+        "schedule_activation": {"enum": ["ALLOW_AFTER_ALL_GATES", "ALLOW_GUARDED_COMMISSIONING"]},
+        "provider_calls": {"enum": ["ALLOW_AFTER_ALL_GATES", "ALLOW_GUARDED_COMMISSIONING"]},
         "repository_writes": {"const": "DENY_UNTIL_EXACT_ACCEPTANCE_TASK"},
         "infrastructure_changes": {"const": "DENY_UNTIL_REVIEWED_DEPLOYMENT"},
         "production_release": {"const": "DENY"},

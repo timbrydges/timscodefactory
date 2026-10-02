@@ -37,7 +37,7 @@ class AcceptanceController:
         if not isinstance(event, dict) or event != expected:
             raise StateError('acceptance controller event differs from the exact task')
         allowance = load_autonomy_operating_allowance(self.root)
-        if (not allowance.activation_ready or allowance.production_release_authorized or
+        if (not allowance.permits_activation(self.activation) or allowance.production_release_authorized or
                 allowance.acceptance_task_id != expected['task_id'] or
                 allowance.target_alias != 'coding_primary_sol_live' or
                 allowance.model_id != 'gpt-5.6-sol' or

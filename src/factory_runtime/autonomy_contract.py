@@ -14,6 +14,13 @@ from factory_state.model import StateError
 
 CONTRACT_PATH = Path('factory/autonomy/operating-contract.yaml')
 SCHEMA_PATH = Path('factory/schemas/autonomy-operating-contract.schema.json')
+COMMISSIONING_GATES = (
+    'guarded_operational_role_activation',
+    'live_controller_runtime_deployment',
+    'guarded_schedule_activation',
+)
+COMMISSIONING_ID = 'factory-acceptance-commissioning-001'
+COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-authorization.json'
 
 
 @dataclass(frozen=True)
@@ -41,10 +48,77 @@ class AutonomyOperatingAllowance:
     maximum_request_bytes_at_cost_cap: int
     pending_gates: tuple[str, ...]
     production_release_authorized: bool
+    commissioning_starts_at: datetime | None = None
+    commissioning_expires_at: datetime | None = None
 
     @property
     def activation_ready(self) -> bool:
         return self.status == 'ACTIVE' and not self.pending_gates
+
+    def permits_activation(self, activation) -> bool:
+        """Commissioning is one bounded exception, never proof of closed gates."""
+        if self.activation_ready:
+            return True
+        from .autonomy import AutonomyActivation
+        return (self.status == 'GUARDED_COMMISSIONING' and
+            self.pending_gates == COMMISSIONING_GATES and
+            self.commissioning_starts_at is not None and
+            self.commissioning_expires_at is not None and
+            isinstance(activation, AutonomyActivation) and
+            activation.activation_id == COMMISSIONING_ID and
+            activation.factory_id == 'tims-software-factory' and
+            activation.task_id == self.acceptance_task_id and
+            activation.contract_digest == 'sha256:' + self.acceptance_contract_sha256 and
+            isinstance(activation.starts_at, datetime) and activation.starts_at.tzinfo is not None and
+            isinstance(activation.expires_at, datetime) and activation.expires_at.tzinfo is not None and
+            self.commissioning_starts_at <= activation.starts_at < activation.expires_at <=
+            self.commissioning_expires_at)
+
+
+def _commissioning_window(root, contract, pending):
+    active = contract['status'] == 'GUARDED_COMMISSIONING'
+    path = contract['approval'].get('commissioning_evidence')
+    expected_authority = 'ALLOW_GUARDED_COMMISSIONING' if active else 'ALLOW_AFTER_ALL_GATES'
+    if any(contract['authority'][key] != expected_authority for key in
+           ('autonomous_task_progression', 'schedule_activation', 'provider_calls')):
+        raise StateError('commissioning authority differs from contract status')
+    if not active:
+        if path is not None:
+            raise StateError('commissioning evidence requires explicit commissioning status')
+        return None, None
+    if path != COMMISSIONING_EVIDENCE or pending != COMMISSIONING_GATES:
+        raise StateError('commissioning must retain exactly the three unverified live gates')
+    try:
+        record = json.loads((root / path).read_text(encoding='utf-8'))
+    except (OSError, ValueError) as error:
+        raise StateError('commissioning requires separate owner authorization evidence') from error
+    expected = {
+        'kind': 'guarded_commissioning_authorization', 'owner_identity': 'tim_brydges',
+        'decision': 'AUTHORIZE_ONE_BOUNDED_COMMISSIONING_ACTIVATION',
+        'activation_id': COMMISSIONING_ID, 'factory_id': 'tims-software-factory',
+        'task_id': contract['acceptance_target']['task_id'],
+        'contract_sha256': contract['acceptance_target']['contract_sha256'],
+        'model_id': 'gpt-5.6-sol', 'currency': 'USD',
+        'maximum_provider_calls': 3, 'maximum_cost_usd_per_call': '0.25',
+        'maximum_reserved_cost_usd': '0.75', 'maximum_wall_clock_hours': 24,
+        'maximum_remediation_cycles': 0, 'maximum_retries': 0,
+        'pending_gates': list(COMMISSIONING_GATES), 'claims_live_gates_verified': False,
+        'fresh_owner_and_reviewer_signatures_required': True,
+        'immutable_source_job_and_role_pins_required': True,
+        'production_release_authorized': False,
+    }
+    if (not isinstance(record, dict) or set(record) != set(expected) |
+            {'authorization_text', 'authorized_at', 'expires_at'} or
+            any(type(record.get(key)) is not type(value) or record[key] != value
+                for key, value in expected.items()) or
+            not isinstance(record['authorization_text'], str) or
+            not record['authorization_text'].strip()):
+        raise StateError('commissioning evidence differs from bounded owner approval')
+    start = _pricing_time(record['authorized_at'], 'commissioning authorized_at')
+    end = _pricing_time(record['expires_at'], 'commissioning expires_at')
+    if not start < end <= start + timedelta(hours=24):
+        raise StateError('commissioning authorization exceeds its time bound')
+    return start, end
 
 
 def _decimal(value, name):
@@ -195,6 +269,7 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
             raise StateError('owner review exception differs from bounded approval')
     if contract['status'] == 'ACTIVE' and pending:
         raise StateError('active autonomy contract retains pending gates')
+    commissioning_start, commissioning_end = _commissioning_window(root, contract, pending)
     return AutonomyOperatingAllowance(contract['contract_id'], contract['status'], provider['family'],
         provider['model_id'], provider['target_alias'],
         target['repository_full_name'], target['repository_id'],
@@ -205,4 +280,5 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
         input_price, output_price, pricing_observed_at, pricing_expires_at,
         limits['maximum_request_bytes_at_cost_cap'],
-        pending, contract['authority']['production_release'] != 'DENY')
+        pending, contract['authority']['production_release'] != 'DENY',
+        commissioning_start, commissioning_end)

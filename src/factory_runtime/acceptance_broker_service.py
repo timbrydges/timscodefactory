@@ -50,7 +50,7 @@ class AcceptanceBrokerService:
             raise StateError('acceptance broker is disabled')
         now = self.clock()
         allowance = load_autonomy_operating_allowance(Path(self.repository_root))
-        if (not allowance.activation_ready or allowance.production_release_authorized or
+        if (not allowance.permits_activation(self.activation) or allowance.production_release_authorized or
                 not isinstance(now, datetime) or now.tzinfo is None or
                 not allowance.pricing_observed_at <= now < allowance.pricing_expires_at):
             raise StateError('acceptance broker activation or pricing is not ready')

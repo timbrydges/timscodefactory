@@ -97,7 +97,7 @@ def _activation(raw: str, *, source_commit: str, root: Path):
         raise StateError('broker activation deployment is invalid') from error
     allowance = load_autonomy_operating_allowance(root)
     now = datetime.now(timezone.utc)
-    if (not allowance.activation_ready or allowance.production_release_authorized or
+    if (not allowance.permits_activation(activation) or allowance.production_release_authorized or
             activation.factory_id != 'tims-software-factory' or
             activation.task_id != allowance.acceptance_task_id or
             activation.source_commit != source_commit or
