@@ -55,14 +55,14 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertIn('guarded_operational_role_activation', allowance.pending_gates)
         self.assertFalse(allowance.production_release_authorized)
         self.assertFalse(allowance.activation_ready)
-        self.assertEqual(allowance.status, 'OWNER_APPROVED_AWAITING_TECHNICAL_GATES')
+        self.assertEqual(allowance.status, 'GUARDED_COMMISSIONING')
+        self.assertIsNotNone(allowance.commissioning_expires_at)
 
     def test_no_pending_gates_alone_does_not_activate_roles(self):
         def change(value):
             value['activation']['pending_gates'] = []
-        allowance = load_autonomy_operating_allowance(self.mutate(change))
-        self.assertFalse(allowance.activation_ready)
-        self.assertEqual(allowance.pending_gates, ())
+        with self.assertRaisesRegex(StateError, 'three unverified'):
+            load_autonomy_operating_allowance(self.mutate(change))
 
     def test_active_status_requires_all_operational_gates(self):
         def change(value):

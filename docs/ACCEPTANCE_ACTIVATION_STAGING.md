@@ -123,10 +123,11 @@ expiry, state, budget, source, IAM and runtime settings. None of these commands
 reserve provider spend, change task state, sign receipts, invoke a role, grant
 IAM, enable execution or clear any operating-contract gate.
 
-## Proposal: separately authorized first-run commissioning
+## Owner-authorized first-run commissioning
 
-This proposal is not activated. The checked-in contract still denies execution,
-and no commissioning authorization evidence has been created.
+The owner approved the bounded commissioning exception with “I approve!” on
+2026-10-02 at 03:01:53 UTC. Its absolute expiry is 2026-10-03 at 03:01:53 UTC.
+The checked-in contract records this authority; runtime execution remains disabled.
 
 The remaining three gates are live activation proofs. Requiring them to be
 complete before allowing the first activation creates a startup dependency.
@@ -134,7 +135,7 @@ complete before allowing the first activation creates a startup dependency.
 named activation, `factory-acceptance-commissioning-001`, while keeping all three
 gates pending. It does not claim that the Factory is fully active or accepted.
 
-The proposed owner decision permits only the existing private
+The owner decision permits only the existing private
 `deterministic-text-fingerprint` acceptance task: at most three GPT-5.6-Sol calls,
 at most USD 0.25 each (USD 0.75 total reserved exposure), within the existing
 USD 5 ceiling, for at most 24 hours from the recorded authorization. Fresh
@@ -142,10 +143,9 @@ pricing, receipt expiry and the activation window can shorten that period.
 There are no retries or remediation cycles and no production-release authority.
 The separately approved one-call Inspector 007 review remains a separate budget.
 
-To take effect, the owner must explicitly approve this policy exception. A
-subsequent reviewed change must record that actual approval in
-`factory/evidence/guarded-commissioning-authorization.json`, select the new
-contract status, and explicitly set the three execution authority fields to
+The actual approval is recorded in
+`factory/evidence/guarded-commissioning-authorization.json`. The contract selects
+`GUARDED_COMMISSIONING` and sets the three execution authority fields to
 `ALLOW_GUARDED_COMMISSIONING`. Missing evidence, changed bounds, another
 activation, or a changed list of pending gates fails closed. The authorization
 must be packaged with the reviewed runtime, and its absolute expiry cannot be
@@ -156,4 +156,4 @@ disabled-first deployment, the durable unused budget and task state remain
 required. The per-effect runtime and no-retry guards are unchanged. Generic
 provider qualification and production release cannot use commissioning authority.
 All execution switches remain off until the separate guarded deployment steps
-pass; this proposal does not supply live gate evidence or enable a schedule.
+pass; this authorization does not supply live gate evidence or itself enable a schedule.

@@ -71,6 +71,9 @@ class AcceptanceBrokerServiceTests(unittest.TestCase):
         path = self.root / 'factory/autonomy/operating-contract.yaml'
         contract = yaml.safe_load(path.read_text())
         contract['status'] = 'ACTIVE'
+        contract['approval'].pop('commissioning_evidence', None)
+        for key in ('autonomous_task_progression', 'schedule_activation', 'provider_calls'):
+            contract['authority'][key] = 'ALLOW_AFTER_ALL_GATES'
         contract['activation']['pending_gates'] = []
         path.write_text(yaml.safe_dump(contract, sort_keys=False))
         self.activation = AutonomyActivation('acceptance-1', 'factory',

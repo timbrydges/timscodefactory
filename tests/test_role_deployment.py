@@ -121,7 +121,7 @@ class RoleDeploymentTests(unittest.TestCase):
             contract = yaml.safe_load(contract_path.read_text())
             contract['activation']['pending_gates'] = []
             contract_path.write_text(yaml.safe_dump(contract))
-            with self.assertRaisesRegex(StateError, 'disabled Builder operating contract differs'):
+            with self.assertRaisesRegex(StateError, 'three unverified live gates'):
                 handle_operational_boundary_probe(event, role='builder',
                     commit='a'*40, signer=Signer(), now=NOW, root=root)
 
