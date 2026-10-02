@@ -1,8 +1,11 @@
 import json
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
 from factory_runtime.acceptance_artifacts import builder_context, validate_builder_artifacts
 from factory_state.model import StateError

@@ -144,7 +144,7 @@ class CommissioningTests(unittest.TestCase):
         backend.reserve(state, request, dispatch_id='dispatch-1', now=self.now)
         self.assertEqual(budget.calls[0]['maximum_provider_calls'], 3)
         self.assertEqual(str(budget.calls[0]['maximum_cost_usd']), '0.25')
-        self.assertEqual(backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input'), b'accepted')
+        self.assertEqual(backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input'), fixtures.ARTIFACT)
         backend.enabled = False
         with self.assertRaisesRegex(StateError, 'disabled'):
             backend.check_activation(state, request, now=self.now)
