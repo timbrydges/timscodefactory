@@ -78,3 +78,27 @@ duplicate protection and fresh pricing/expiry. A model pilot would request at
 most one QA and one security attempt with zero retries, stopping before release;
 no model budget or activation is requested by this bootstrap. Do not advance
 QA based on local tests or identity-probe signatures.
+
+## Offline review preparation
+
+`scripts/prepare_candidate_reviews.py ROLE OUTPUT.json` prepares one exclusive
+output file for `qa` or `security` without AWS clients or provider calls. It pins
+the Builder 006 candidate, original contract, Inspector 014 evidence and verified
+bootstrap proof by their exact hashes. The security packet requires an accepted
+signed QA gate and a fresh security lease; preparation does not verify live state.
+Packets are `PREPARED_NOT_AUTHORIZED`, with zero calls or state writes authorized.
+
+`factory_runtime.review_preparation.parse_assessment` checks bounded model output
+against a reconstructed packet. It rejects changed candidates or permissions even
+if the caller recomputes the packet hash, cross-role responses, duplicate fields,
+unknown file paths and acceptance with high/critical findings. Every parsed result
+remains `UNAUTHENTICATED_ASSESSMENT` with no gate authority. A valid response shape
+does not prove the review occurred or that findings are complete.
+
+Pending operational work: provider selection (QA currently Google; security
+Anthropic), a separate owner-approved review contract with fresh prices and
+expiry, scoped broker permissions, durable one-attempt claims, signed result
+publication, approved signer enrollment and controller verification. Security
+execution must follow QA acceptance. Existing model allowances and remaining
+headroom do not authorize either new review. No runtime deployment is needed for
+this offline preparation, and bootstrap functions remain identity-only.
