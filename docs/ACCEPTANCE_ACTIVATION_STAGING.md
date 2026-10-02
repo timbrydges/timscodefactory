@@ -220,3 +220,12 @@ Wait for the existing lease to expire before preparing the fresh live review;
 do not revoke it early, erase history, reset reservations or replay attempt 002.
 Fresh signatures and all deployment gates remain required; no pending live gate
 is claimed complete and production release remains prohibited.
+
+Inspector 010 passed; commissioning 003 stopped after one provider HTTP 401.
+Its reservation and STARTED dispatch remain preserved, with zero retries.
+See `factory/evidence/inspector-010-and-commissioning-003-outcome-2026-10-02.json`.
+After replacement credential installation, the owner approved Inspector 011
+and commissioning 004 at 2026-10-02T14:59:18Z with the same per-call caps,
+three-call commissioning bound, overall USD 5 ceiling and original expiry.
+Wait for the existing lease to expire naturally; fresh signatures and all
+deployment gates remain required. No production release is authorized.
