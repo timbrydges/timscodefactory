@@ -141,7 +141,8 @@ at most USD 0.25 each (USD 0.75 total reserved exposure), within the existing
 USD 5 ceiling, for at most 24 hours from the recorded authorization. Fresh
 pricing, receipt expiry and the activation window can shorten that period.
 There are no retries or remediation cycles and no production-release authority.
-The separately approved one-call Inspector 007 review remains a separate budget.
+The separately approved one-call Inspector 008 review remains a separate budget.
+Inspector 007 failed before the provider call and is not retried.
 
 The actual approval is recorded in
 `factory/evidence/guarded-commissioning-authorization.json`. The contract selects
