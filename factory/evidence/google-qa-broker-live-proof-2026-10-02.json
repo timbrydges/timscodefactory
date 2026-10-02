@@ -1,0 +1,28 @@
+{
+  "status": "DEPLOYED_VERIFIED_DISABLED",
+  "stack_name": "tims-factory-google-qa-broker-recovery",
+  "source_commit": "8e61da3fefb0c0805efb10bda2c6bddc6cd63ffa",
+  "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-google-qa-broker:1",
+  "code_sha256": "/+Hw3F5r40GB2vZhjPuAVK8uQ+fi7qyutO/Hjmf38Es=",
+  "template_sha256": "18775303ea457d8b1c1b7af41fff93181b00de3072e2108c64429a39bdb48204",
+  "verified_at": "2026-10-02T23:47:32.501884+00:00",
+  "exact_permissions_verified": true,
+  "resources_verified": 4,
+  "reserved_concurrency": null,
+  "retained_external_table": "tims-factory-google-qa-attempts",
+  "probe_attempts": 1,
+  "probe_retries": 0,
+  "probe": {
+    "status": "GOOGLE_QA_BROKER_DISABLED",
+    "source_commit": "8e61da3fefb0c0805efb10bda2c6bddc6cd63ffa",
+    "activation_id": "google-qa-pilot-001",
+    "model_calls": 0,
+    "secret_reads": 0,
+    "ledger_writes": 0,
+    "task_state_writes": 0,
+    "gate_authority": false,
+    "production_release_authorized": false
+  },
+  "cloudshell_evidence_directory": "~/factory-evidence/google-qa-broker-296",
+  "quota_support_case": "179098392900384"
+}

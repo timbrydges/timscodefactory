@@ -1,5 +1,27 @@
 # Disabled Google QA broker deployment proposal
 
+## Verified deployment, 2026-10-02
+
+The original five-resource deployment rolled back because the account's applied
+concurrency limit is 10 and AWS requires 10 unreserved slots. The protected
+attempt table was retained. After separate owner approval, recovery stack
+`tims-factory-google-qa-broker-recovery` created the role, logs, function and
+immutable version 1 using shared capacity and the retained external table.
+There is no per-function reserved-concurrency cap in this approved recovery.
+
+Version 1 uses source `8e61da3fefb0c0805efb10bda2c6bddc6cd63ffa` and code hash
+`/+Hw3F5r40GB2vZhjPuAVK8uQ+fi7qyutO/Hjmf38Es=`. Exact permissions and configuration
+were verified. One synchronous probe passed, with no retries, model calls,
+credential reads or state writes; the attempt key remained absent afterwards.
+Evidence: `factory/evidence/google-qa-broker-live-proof-2026-10-02.json`.
+The original proposal below records the superseded reserved-capacity design;
+do not execute it against the retained table or the deployed function.
+The recovery does not depend on pending AWS Support case 179098392900384.
+
+Next preparation and disclosure boundary: `docs/google-qa-preflight.md`.
+
+## Original proposal (superseded by approved recovery)
+
 The next cloud change requires owner approval because it creates an AWS role
 that can read the dedicated Google QA secret. It does not authorize a model
 call, spend reservation, signed verdict or task transition.
