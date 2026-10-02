@@ -351,3 +351,21 @@ execution flags and schedule disabled, and USD 4.87016 prior reservations.
 It journals the attempt before invoking an exact Inspector version and verifies
 the returned signature and evidence hashes. An existing output directory or
 budget record blocks replay. Preserve the result even on failure.
+
+## Inspector 014 accepted the implementation
+
+The separately authorized live Inspector 014 independently reran all 11 required
+tests in its deployed Python 3.12 runtime and accepted Builder commit
+`09a758184c890eda200326a18fb166641194e32e`. One Sonnet call cost USD 0.023595;
+no retry occurred. Its KMS signature and candidate/test/assessment bindings
+were verified in CloudShell and independently on the operator PC. The signed
+result and final safety proof are retained as evidence. This closes the
+implementation-review gate for that exact candidate, not a production release.
+
+The post-call audit verified all five components and the schedule disabled,
+INSPECTION v10 with six leases preserved, all 25 earlier budget records
+unchanged, and commissioning 005/006 claims unchanged. Total retained
+reservations are USD 5.11160 under the approved USD 5.25 cap. Inspector 014 is
+consumed and must never be replayed. The original expiry remains unchanged.
+The evidence-only review deliberately does not advance task state or enable
+continued autonomous dispatch. Further runtime operation needs its own scope.

@@ -1,0 +1,27 @@
+{
+  "utc": "2026-10-02T17:44:35.796289+00:00",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "verdict": "ACCEPTED",
+  "tests_passed": 11,
+  "actual_cost_usd": "0.023595",
+  "model_calls": 1,
+  "retries": 0,
+  "components": {
+    "PlannerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-planner:38",
+    "BuilderVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:50",
+    "InspectorVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:38",
+    "ControllerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:28",
+    "BrokerVersionArn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-provider-broker:31"
+  },
+  "schedule": "DISABLED",
+  "task": {
+    "state": "INSPECTION",
+    "version": 10,
+    "leases_preserved": 6
+  },
+  "historical_budget_rows_unchanged": 25,
+  "total_retained_reservations_usd": "5.11160",
+  "overall_cap_usd": "5.25",
+  "prior_claims_005_006_unchanged": true,
+  "production_release_authorized": false
+}
