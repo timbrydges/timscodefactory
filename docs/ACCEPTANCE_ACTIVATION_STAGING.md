@@ -90,3 +90,29 @@ An attempt record is retained as a workflow artifact even when publication fails
 Do not enable or dispatch this job with a stale or placeholder plan. Prepare the
 final candidate and exact scope first. A signed owner receipt is only one input
 to the later guarded activation, and does not clear the operating-contract gates.
+
+## Signed execution-job publication
+
+`publish_acceptance_job.py verify BINDING PLAN RECEIPT_VERSIONS OUT` verifies
+the current clean source, fixed acceptance input/contract, fresh receipt and
+pricing windows, authoritative unleased task version, and unused activation
+budget. It reads only the two pinned S3 receipt versions and verifies their
+owner and independent Inspector signatures against the trusted key registry.
+The supplied version names or an `ACCEPTED` field alone cannot pass this gate.
+Verification performs no cloud writes.
+
+`publish_acceptance_job.py publish BINDING PLAN RECEIPT_VERSIONS ATTEMPT` repeats
+those checks and uploads exactly one encrypted, checksum-bound job to
+`factory-autonomy-jobs/<activation_id>/IMPLEMENTATION.json`. It uses an exclusive
+local attempt record, a conditional `IfNoneMatch: *` S3 write, and no client
+retries. The returned immutable version and stored bytes are checked before
+reporting publication. The job digest and version can then be supplied to the
+activation-bundle preparer with the identical bytes from the offline job encoder.
+
+If the upload response is lost, `publish_acceptance_job.py reconcile ATTEMPT`
+only reads the object and matches its complete bytes, checksum and immutable
+version to the attempted job. It never uploads again. Reconciliation proves
+publication, not current authorization; final activation must recheck receipt
+expiry, state, budget, source, IAM and runtime settings. None of these commands
+reserve provider spend, change task state, sign receipts, invoke a role, grant
+IAM, enable execution or clear any operating-contract gate.
