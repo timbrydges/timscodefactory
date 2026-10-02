@@ -45,12 +45,14 @@ class MemoryStates:
 class MemoryLedger:
     _binding=staticmethod(DynamoDBDispatchStore._binding)
     _key=staticmethod(DynamoDBDispatchStore._key)
+    _state_guard=DynamoDBDispatchStore._state_guard
     def __init__(self,client): self.client=client;self.table_name='state';self.rows={};self.enqueues=0
     def read(self,state,request):
         row=self.rows.get(request.lease_id)
         if row and row['binding'] != {'S':self._binding(request)}: raise StateError('binding conflict')
         return deepcopy(row)
     def enqueue(self,state,request,**kwargs):
+        self._state_guard(state,request,kwargs['now'])
         dispatch='dispatch-'+request.lease_id
         self.rows[request.lease_id]={**self._key(state,request),'binding':{'S':self._binding(request)},
             'status':{'S':'READY'},'dispatch_id':{'S':dispatch}}

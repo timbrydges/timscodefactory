@@ -53,6 +53,18 @@ def initial(state: str = "INTAKE") -> TaskState:
 
 
 class StateTransitionContractTests(unittest.TestCase):
+    def test_lease_and_transition_commit_the_validation_time(self):
+        machine = FactoryStateMachine(initial("IMPLEMENTATION"))
+        lease = Lease("clock-lease", "engineering_agent", "engineering_agent_service",
+                      NOW + timedelta(hours=1))
+        issued = machine.issue_lease(CONTROLLER, lease, expected_version=0, now=NOW)
+        self.assertEqual(issued.updated_at, NOW)
+        self.assertEqual(machine.last_audit_event['at'], NOW.isoformat())
+        later = NOW + timedelta(seconds=1)
+        paused = machine.transition(CONTROLLER, "PAUSED", expected_version=1, now=later)
+        self.assertEqual(paused.updated_at, later)
+        self.assertEqual(machine.last_audit_event['at'], later.isoformat())
+
     def test_st01_valid_transition(self):
         machine = FactoryStateMachine(initial())
         self.assertEqual(machine.transition(CONTROLLER, "SPECIFICATION", expected_version=0).state, "SPECIFICATION")

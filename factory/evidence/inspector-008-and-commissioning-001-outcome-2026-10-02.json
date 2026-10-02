@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "source_commit": "252570e4d4133d234a1104e88bca27869d569ef0",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-008",
+    "status": "INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED",
+    "provider_calls": 1,
+    "actual_cost_usd": "0.01551",
+    "reviewer_receipt_version": "l0ClY5.VWP0FShRTBZLqVx7hafW8Vge5",
+    "retry_permitted": false
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-001",
+    "scheduled_at": "2026-10-02T04:28:02Z",
+    "controller_request_id": "c56abf32-d2cb-4fea-bbf8-887d3482212d",
+    "status": "STOPPED_BEFORE_DISPATCH",
+    "error": "dispatch state is future-dated",
+    "task_state": "IMPLEMENTATION",
+    "task_version": 2,
+    "lease_persisted": true,
+    "dispatch_created": false,
+    "sol_budget_reserved": false,
+    "sol_provider_calls": 0,
+    "replayed": false
+  },
+  "evidence_directory": "~/factory-evidence/activation-008-276",
+  "production_release_authorized": false,
+  "note": "The scheduler delivered once. Lease commit sampled a later wall clock than intake validation; the unchanged dispatch guard rejected it before enqueue. This record neither authorizes a replay nor clears any pending operating gate."
+}
