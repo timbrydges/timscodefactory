@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -20,6 +21,9 @@ NOW = datetime.fromisoformat(yaml.safe_load(
     ['pricing_reference']['observed_at'].replace('Z', '+00:00')) + timedelta(hours=1)
 COMMIT = "a" * 40
 CONTRACT = "sha256:" + "b" * 64
+ARTIFACT = json.dumps({'schema_version': '1.0', 'files': {
+    'fingerprint.py': 'def main():\n    pass\n',
+    'tests/test_fingerprint.py': 'import unittest\n'}}).encode()
 
 
 class Budget:
@@ -39,7 +43,7 @@ class Budget:
 
 
 class Executor:
-    def __init__(self, output=b"accepted"):
+    def __init__(self, output=ARTIFACT):
         self.output = output
         self.calls = []
 
@@ -99,7 +103,7 @@ class OperationalBackendTests(unittest.TestCase):
         state, request = self.state_request()
         backend.check_activation(state, request, now=NOW)
         backend.reserve(state, request, dispatch_id="dispatch-1", now=NOW)
-        self.assertEqual(backend.execute(state, request, dispatch_id="dispatch-1", input_bytes=b"input"), b"accepted")
+        self.assertEqual(backend.execute(state, request, dispatch_id="dispatch-1", input_bytes=b"input"), ARTIFACT)
         self.assertEqual(budget.calls[0]["maximum_provider_calls"], 3)
         self.assertEqual(str(budget.calls[0]["maximum_cost_usd"]), "0.25")
         self.assertEqual(executor.calls[0]["target_alias"], "coding_primary_sol_live")
@@ -108,6 +112,16 @@ class OperationalBackendTests(unittest.TestCase):
         self.assertEqual(executor.calls[0]["dispatch_id"], "dispatch-1")
         self.assertEqual(executor.calls[0]["source_commit"], COMMIT)
         self.assertEqual(executor.calls[0]["contract_digest"], CONTRACT)
+
+    def test_clarification_reply_cannot_become_a_success_receipt_or_retry(self):
+        backend, budget, executor = self.backend(self.active_root(), enabled=True)
+        state, request = self.state_request()
+        backend.reserve(state, request, dispatch_id='dispatch-1', now=NOW)
+        executor.output = b'Please provide the contract and current file contents.'
+        with self.assertRaisesRegex(StateError, 'source artifacts; do not retry'):
+            backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input')
+        self.assertEqual(len(executor.calls), 1)
+        self.assertEqual(len(budget.reservations), 1)
 
     def test_active_backend_rejects_expired_or_future_pricing_before_budget_reservation(self):
         backend, budget, executor = self.backend(self.active_root(), enabled=True)

@@ -1,0 +1,8 @@
+{
+  "repository": "timbrydges/tims-factory-autonomy-acceptance",
+  "base_commit": "fcb4c535d4ea00962b26db14f59e34917ef2389f",
+  "files": {
+    "fingerprint.py": null,
+    "tests/test_fingerprint.py": null
+  }
+}

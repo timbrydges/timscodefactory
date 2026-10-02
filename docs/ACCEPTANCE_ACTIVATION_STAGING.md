@@ -229,3 +229,23 @@ and commissioning 004 at 2026-10-02T14:59:18Z with the same per-call caps,
 three-call commissioning bound, overall USD 5 ceiling and original expiry.
 Wait for the existing lease to expire naturally; fresh signatures and all
 deployment gates remain required. No production release is authorized.
+
+Commissioning 004 authenticated successfully and recorded one provider response
+for USD 0.003045 (conservative accounted cost). It advanced to INSPECTION v6,
+but the response only requested missing context and contained no implementation.
+This is transport success, not acceptance success. Preserve its signed receipt,
+four leases, completed broker claim and USD 0.25 reservation without replay.
+
+The Builder now receives the immutable contract and the source snapshot at
+`fcb4c535d4ea00962b26db14f59e34917ef2389f`, where both allowed paths are absent.
+Before signing a successful Builder receipt, require one JSON source package
+with exactly `fingerprint.py` and `tests/test_fingerprint.py`, both nonempty and
+syntactically valid Python. This check does not execute model code or establish
+functional correctness. The exact candidate still requires isolated tests and
+independent inspection bound to its commit. Recheck the acceptance repository
+base before applying any future candidate; never overwrite a changed base.
+
+The current INSPECTION state must not be treated as evidence of a code artifact.
+No automated remediation is authorized. A fresh owner-approved recovery scope
+and signed state transition are required before another implementation attempt;
+do not reset budgets, erase history, revoke leases early or replay 004.

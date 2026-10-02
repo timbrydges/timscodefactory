@@ -128,7 +128,7 @@ def handle_live(event, *, source_commit: str, activation_json: str,
         raise StateError('broker secret binding is invalid') from error
     provider = AcceptanceOpenAIProvider(credential_source,
         AcceptanceContractPricingSource(root), transport,
-        policy=OpenAIProviderPolicy(live_enabled=True))
+        policy=OpenAIProviderPolicy(live_enabled=True), repository_root=root)
     service = AcceptanceBrokerService(root, activation,
         DynamoDBAcceptanceBudgetStore('tims-factory-acceptance-budget', database),
         DynamoDBAcceptanceClaimStore('tims-factory-acceptance-broker-claims', database),
