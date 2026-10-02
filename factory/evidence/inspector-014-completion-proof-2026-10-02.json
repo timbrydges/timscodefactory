@@ -1,0 +1,111 @@
+{
+  "utc": "2026-10-02T19:39:22.504838+00:00",
+  "source_commit": "c8da72cd4cd044fdf37e2c174edff510b0d3063a",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "state": "QA",
+  "version": 12,
+  "model_calls": 0,
+  "budget_rows_unchanged": 26,
+  "prior_task_records_unchanged_except_state": 15,
+  "new_audit_events": [
+    {
+      "actor_identity": {
+        "S": "factory_controller_service"
+      },
+      "SK": {
+        "S": "EVENT#2026-10-02T19:36:58.984181+00:00#import-06b14a2e8e51058ce6bd9ba799b0d"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+      },
+      "from_version": {
+        "N": "10"
+      },
+      "to_version": {
+        "N": "11"
+      },
+      "details": {
+        "S": "{\"expires_at\": \"2026-10-03T03:01:53+00:00\", \"lease_id\": \"inspection-import-014\", \"role_id\": \"independent_inspector\"}"
+      },
+      "to_state": {
+        "S": "INSPECTION"
+      },
+      "from_state": {
+        "S": "INSPECTION"
+      },
+      "event_type": {
+        "S": "LEASE_ISSUED"
+      }
+    },
+    {
+      "actor_identity": {
+        "S": "factory_controller_service"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+      },
+      "event_type": {
+        "S": "STATE_TRANSITION"
+      },
+      "to_version": {
+        "N": "12"
+      },
+      "from_version": {
+        "N": "11"
+      },
+      "SK": {
+        "S": "EVENT#2026-10-02T19:36:58.984181+00:00#import-ac75e338b4a45b7853d08c5b44fc7"
+      },
+      "to_state": {
+        "S": "QA"
+      },
+      "from_state": {
+        "S": "INSPECTION"
+      },
+      "details": {
+        "S": "{\"evidence_ids\": [\"inspection-import-57d8a1fc1206cd08090740e06c19db4372ba58fcac89b0deea25328e6e15ca3a\"]}"
+      }
+    }
+  ],
+  "leases_preserved": 7,
+  "all_leases_revoked": true,
+  "evidence_id": "inspection-import-57d8a1fc1206cd08090740e06c19db4372ba58fcac89b0deea25328e6e15ca3a",
+  "controller_version": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:31",
+  "controller_restored_logs_only": true,
+  "all_execution_flags": false,
+  "schedule": "DISABLED",
+  "production_release_authorized": false,
+  "retained_reservations_usd": "5.11160",
+  "overall_cap_usd": "5.25",
+  "invoke_result": {
+    "status": "ADVANCED",
+    "state": "QA",
+    "version": 12,
+    "evidence_id": "inspection-import-57d8a1fc1206cd08090740e06c19db4372ba58fcac89b0deea25328e6e15ca3a",
+    "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+    "model_calls": 0,
+    "schedule_enabled": false,
+    "release_dispatched": false
+  },
+  "invoke_metadata": {
+    "StatusCode": 200,
+    "ExecutedVersion": "30"
+  },
+  "disabled_probe": {
+    "status": "DISABLED_AUTONOMY_CONTROLLER_ALIAS_VERIFIED",
+    "source_commit": "c8da72cd4cd044fdf37e2c174edff510b0d3063a",
+    "alias_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:acceptance",
+    "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-software-factory-autonomy-controller:31",
+    "proof": {
+      "kind": "disabled_controller_probe_result",
+      "source_commit": "c8da72cd4cd044fdf37e2c174edff510b0d3063a",
+      "nonce": "e94864fffd494b5794543c3e9165d0cb",
+      "task_id": "deterministic-text-fingerprint",
+      "controller_enabled": false,
+      "schedule_enabled": false,
+      "model_calls": 0,
+      "release_dispatched": false
+    }
+  },
+  "verification_script_sha256": "9aa691e3e7b80d49b712b57da6a058e5a084e51518bbb46f995b94d3c72668b0"
+}
