@@ -19,8 +19,8 @@ from .autonomy_contract import ACCEPTANCE_CAPABILITY_ID
 MAX_CANARY_INPUT = 4096
 OPERATIONAL_FLAG = 'FACTORY_OPERATIONAL_EXECUTION_ENABLED'
 ACTIVATION_CONFIG = 'FACTORY_ACCEPTANCE_ACTIVATION_JSON'
-INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-012'
-INSPECTOR_ACTIVATION_ID = 'inspector-fallback-2026-10-02-012'
+INSPECTOR_AUTHORIZATION_ID = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-013'
+INSPECTOR_ACTIVATION_ID = 'inspector-fallback-2026-10-02-013'
 INSPECTOR_CONTRACT_DIGEST = 'sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa'
 INSPECTOR_INPUT_DIGEST = 'sha256:e1aefa3eb9e1d4251c15285a353d1b8abbf0076acd515bff13133894a6a48418'
 
@@ -59,7 +59,7 @@ def _disabled_builder_backend(root, *, commit, now):
             allowance.target_alias != 'coding_primary_sol_live' or
             allowance.model_id != 'gpt-5.6-sol' or
             str(allowance.maximum_cost_per_call) != '0.25' or
-            allowance.maximum_provider_calls != 3 or
+            allowance.maximum_provider_calls != 1 or
             allowance.maximum_request_bytes_at_cost_cap != 42020):
         raise StateError('disabled Builder operating contract differs')
 

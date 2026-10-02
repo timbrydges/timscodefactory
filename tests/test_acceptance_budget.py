@@ -23,7 +23,9 @@ class AtomicTable:
         key = (item['PK']['S'], item['SK']['S'])
         if self.fail_before_commit:
             raise RuntimeError('outcome unknown before commit')
-        if key in self.rows or self.calls >= 3:
+        values = update['Update']['ExpressionAttributeValues']
+        if (key in self.rows or self.calls >= int(values[':max']['N'])
+                or self.calls * 250000 > int(values[':remaining']['N'])):
             raise RuntimeError('transaction canceled')
         self.rows[key] = item
         self.calls += 1
@@ -40,22 +42,22 @@ class AcceptanceBudgetTests(unittest.TestCase):
         self.store = DynamoDBAcceptanceBudgetStore('tims-factory-acceptance-budget', self.table)
         self.options = {'activation_id': 'acceptance-1',
                         'maximum_cost_usd': Decimal('0.25'),
-                        'maximum_provider_calls': 3,
+                        'maximum_provider_calls': 1,
                         'expires_at': datetime(2026, 9, 26, tzinfo=timezone.utc)}
 
     def reserve(self, dispatch):
         self.store.reserve(dispatch_id=dispatch, **self.options)
 
-    def test_three_attempts_and_idempotent_replay(self):
-        for dispatch in ('one', 'two', 'three'):
+    def test_one_attempt_and_idempotent_reconciliation(self):
+        for dispatch in ('one',):
             self.reserve(dispatch)
             self.store.assert_reserved(dispatch_id=dispatch, **{
                 key: value for key, value in self.options.items()
                 if key != 'maximum_provider_calls'})
         self.reserve('one')
-        self.assertEqual(self.table.calls, 3)
+        self.assertEqual(self.table.calls, 1)
         with self.assertRaisesRegex(StateError, 'exhausted'):
-            self.reserve('four')
+            self.reserve('two')
 
     def test_lost_response_reconciles_only_committed_identical_record(self):
         self.table.fail_after_commit = True
@@ -67,9 +69,10 @@ class AcceptanceBudgetTests(unittest.TestCase):
             self.reserve('one')
 
     def test_widened_authorization_fails_before_table_write(self):
-        self.options['maximum_provider_calls'] = 4
-        with self.assertRaisesRegex(StateError, 'owner authorization'):
-            self.reserve('one')
+        for count in (0, 2, 3, 4, True):
+            self.options['maximum_provider_calls'] = count
+            with self.subTest(count=count), self.assertRaisesRegex(StateError, 'owner authorization'):
+                self.reserve('one')
         self.assertEqual(self.table.calls, 0)
 
     def test_unknown_outcome_never_grants_an_attempt(self):

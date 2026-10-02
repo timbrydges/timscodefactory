@@ -31,7 +31,7 @@ def _disabled_broker_backend(root: Path, *, source_commit: str) -> None:
             allowance.acceptance_task_id != 'deterministic-text-fingerprint' or
             allowance.target_alias != 'coding_primary_sol_live' or
             allowance.model_id != 'gpt-5.6-sol' or
-            allowance.maximum_provider_calls != 3):
+            allowance.maximum_provider_calls != 1):
         raise StateError('disabled acceptance broker contract differs')
 
     class NoOperationalIO:

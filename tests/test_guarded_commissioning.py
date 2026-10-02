@@ -47,9 +47,9 @@ class CommissioningTests(unittest.TestCase):
             'task_id': 'deterministic-text-fingerprint',
             'contract_sha256': self.contract['acceptance_target']['contract_sha256'],
             'model_id': 'gpt-5.6-sol', 'currency': 'USD',
-            'maximum_provider_calls': 3, 'maximum_cost_usd_per_call': '0.25',
-            'maximum_reserved_cost_usd': '0.75', 'maximum_wall_clock_hours': 24,
-            'maximum_remediation_cycles': 1, 'maximum_retries': 0,
+            'maximum_provider_calls': 1, 'maximum_cost_usd_per_call': '0.25',
+            'maximum_reserved_cost_usd': '0.25', 'maximum_wall_clock_hours': 24,
+            'maximum_remediation_cycles': 0, 'maximum_retries': 0,
             'pending_gates': list(COMMISSIONING_GATES), 'claims_live_gates_verified': False,
             'fresh_owner_and_reviewer_signatures_required': True,
             'immutable_source_job_and_role_pins_required': True,
@@ -142,7 +142,7 @@ class CommissioningTests(unittest.TestCase):
             backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input')
         self.assertEqual(executor.calls, [])
         backend.reserve(state, request, dispatch_id='dispatch-1', now=self.now)
-        self.assertEqual(budget.calls[0]['maximum_provider_calls'], 3)
+        self.assertEqual(budget.calls[0]['maximum_provider_calls'], 1)
         self.assertEqual(str(budget.calls[0]['maximum_cost_usd']), '0.25')
         self.assertEqual(backend.execute(state, request, dispatch_id='dispatch-1', input_bytes=b'input'), fixtures.ARTIFACT)
         backend.enabled = False

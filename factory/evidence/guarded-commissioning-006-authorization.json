@@ -1,0 +1,29 @@
+{
+  "kind": "guarded_commissioning_authorization",
+  "owner_identity": "tim_brydges",
+  "decision": "AUTHORIZE_ONE_BOUNDED_COMMISSIONING_ACTIVATION",
+  "activation_id": "factory-acceptance-commissioning-006",
+  "factory_id": "tims-software-factory",
+  "task_id": "deterministic-text-fingerprint",
+  "contract_sha256": "7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "model_id": "gpt-5.6-sol",
+  "currency": "USD",
+  "maximum_provider_calls": 1,
+  "maximum_cost_usd_per_call": "0.25",
+  "maximum_reserved_cost_usd": "0.25",
+  "maximum_wall_clock_hours": 24,
+  "maximum_remediation_cycles": 0,
+  "maximum_retries": 0,
+  "pending_gates": [
+    "guarded_operational_role_activation",
+    "live_controller_runtime_deployment",
+    "guarded_schedule_activation"
+  ],
+  "claims_live_gates_verified": false,
+  "fresh_owner_and_reviewer_signatures_required": true,
+  "immutable_source_job_and_role_pins_required": true,
+  "production_release_authorized": false,
+  "authorization_text": "I approve (fresh Inspector 013 and one Builder 006 call, each capped at USD 0.25, after the current lease expires at 16:58:20 UTC; zero retries, unchanged USD 5 overall cap and original expiry, no production release).",
+  "authorized_at": "2026-10-02T16:26:54Z",
+  "expires_at": "2026-10-03T03:01:53Z"
+}
