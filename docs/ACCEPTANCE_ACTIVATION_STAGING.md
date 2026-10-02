@@ -283,3 +283,19 @@ Acceptance-only generation now explicitly uses low reasoning effort and a
 Lambda limit. Token, price, no-retry, credential and artifact limits remain
 unchanged. This is a tested configuration mitigation, not a verified live
 provider success. Deploy it disabled; no new provider call is authorized here.
+
+## Fresh Inspector 013 / single-call commissioning 006
+
+Owner approval recorded at 2026-10-02T16:26:54Z authorizes one Inspector call
+(maximum USD 0.25; reservation USD 0.24144) and exactly one Builder call
+(maximum/reservation USD 0.25), only after the existing lease expires at
+2026-10-02T16:58:20Z. Preserve the authoritative IMPLEMENTATION v8 state and
+five leases; no additional owner recovery, budget reset or prior-call replay.
+
+Commissioning 006 narrows the effective allowance and atomic DynamoDB budget
+to one call and USD 0.25. Immutable original financial evidence and acceptance
+contract remain unchanged. The overall USD 5 cap and 2026-10-03T03:01:53Z
+expiry remain binding. Retained reservations USD 4.37872 plus the new pair
+USD 0.49144 total USD 4.87016. Fresh Inspector and owner signatures, clean
+source pins, current pricing, disabled-deployment proofs and zero retries
+remain required. This authorization does not claim implementation success.

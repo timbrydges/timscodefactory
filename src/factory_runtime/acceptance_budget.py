@@ -55,7 +55,7 @@ class DynamoDBAcceptanceBudgetStore:
                 expires_at: datetime) -> None:
         expected = self._dispatch_record(activation_id, dispatch_id,
                                          maximum_cost_usd, expires_at)
-        if type(maximum_provider_calls) is not int or maximum_provider_calls != 3:
+        if type(maximum_provider_calls) is not int or maximum_provider_calls != 1:
             raise StateError('acceptance budget binding differs from owner authorization')
         epoch = int(expires_at.timestamp())
         aggregate_key = {'PK': expected['PK'], 'SK': {'S': 'BUDGET'}}
@@ -75,8 +75,8 @@ class DynamoDBAcceptanceBudgetStore:
                                 '#expiry': 'expires_at'},
                             'ExpressionAttributeValues': {
                                 ':zero': {'N': '0'}, ':one': {'N': '1'},
-                                ':cost': {'N': '250000'}, ':max': {'N': '3'},
-                                ':remaining': {'N': '4750000'}, ':expiry': {'N': str(epoch)}}}}
+                                ':cost': {'N': '250000'}, ':max': {'N': '1'},
+                                ':remaining': {'N': '0'}, ':expiry': {'N': str(epoch)}}}}
             ])
         except Exception as error:
             # Only an identical, already committed dispatch is a safe replay.

@@ -49,7 +49,7 @@ def validate_plan(document, approved_digest, commit, *, now, root=ROOT):
                 for value in (cap['required_evidence'], cap['stop_condition'], review['rationale']))):
         raise StateError('owner receipt scope or lifetime differs from bounded acceptance')
     allowance = load_autonomy_operating_allowance(root)
-    if (allowance.production_release_authorized or allowance.maximum_provider_calls != 3 or
+    if (allowance.production_release_authorized or allowance.maximum_provider_calls != 1 or
             str(allowance.maximum_cost_per_call) != '0.25' or
             plan.request.contract_digest != 'sha256:' + allowance.acceptance_contract_sha256 or
             not allowance.pricing_observed_at <= now < allowance.pricing_expires_at or

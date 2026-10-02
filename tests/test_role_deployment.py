@@ -52,7 +52,7 @@ class RoleDeploymentTests(unittest.TestCase):
             'producer_identity':SIGNERS['builder'],'source_commit':'a'*40,
             'nonce':'boundary-probe-1234','task_id':'deterministic-text-fingerprint',
             'target_alias':'coding_primary_sol_live','model_id':'gpt-5.6-sol',
-            'maximum_cost_usd_per_call':'0.25','maximum_provider_calls':3,
+            'maximum_cost_usd_per_call':'0.25','maximum_provider_calls':1,
             'maximum_request_bytes':42020,'provider_credentials_in_role':False,
             'operational_execution_enabled':False,
             'purpose':'operational-boundary-deployment-verification-only',
@@ -83,7 +83,7 @@ class RoleDeploymentTests(unittest.TestCase):
         self.assertEqual(payload['target_alias'], 'coding_primary_sol_live')
         self.assertEqual(payload['model_id'], 'gpt-5.6-sol')
         self.assertEqual(payload['maximum_cost_usd_per_call'], '0.25')
-        self.assertEqual(payload['maximum_provider_calls'], 3)
+        self.assertEqual(payload['maximum_provider_calls'], 1)
         self.assertEqual(payload['maximum_request_bytes'], 42020)
         self.assertFalse(payload['provider_credentials_in_role'])
         self.assertFalse(proof['operational_execution_enabled'])
@@ -116,7 +116,7 @@ class RoleDeploymentTests(unittest.TestCase):
             proof = handle_operational_boundary_probe(event, role='builder',
                 commit='a'*40, signer=Signer(), now=NOW, root=root)
             self.assertFalse(proof['operational_execution_enabled'])
-            self.assertEqual(proof['payload']['maximum_provider_calls'], 3)
+            self.assertEqual(proof['payload']['maximum_provider_calls'], 1)
             contract_path = root/'factory/autonomy/operating-contract.yaml'
             contract = yaml.safe_load(contract_path.read_text())
             contract['activation']['pending_gates'] = []
@@ -168,7 +168,7 @@ class RoleDeploymentTests(unittest.TestCase):
                  'Action': ['dynamodb:PutItem'],
                  'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
                  'Condition': {'ForAllValues:StringEquals': {'dynamodb:LeadingKeys':
-                     ['INSPECTOR#inspector-fallback-2026-10-02-012']}}}]})
+                     ['INSPECTOR#inspector-fallback-2026-10-02-013']}}}]})
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][0], 'BuilderAcceptanceIamEnabled')
         self.assertEqual(builder['ManagedPolicyArns']['Fn::If'][1],
             ['arn:aws:iam::666730517561:policy/tims-software-factory-acceptance-budget-builder'])

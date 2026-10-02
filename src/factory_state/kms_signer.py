@@ -79,7 +79,7 @@ class KmsReceiptSigner:
             expected = {'kind': kind, 'producer_identity': SIGNERS['builder'],
                 'task_id': 'deterministic-text-fingerprint',
                 'target_alias': 'coding_primary_sol_live', 'model_id': 'gpt-5.6-sol',
-                'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 3,
+                'maximum_cost_usd_per_call': '0.25', 'maximum_provider_calls': 1,
                 'maximum_request_bytes': 42020, 'provider_credentials_in_role': False,
                 'operational_execution_enabled': False,
                 'purpose': 'operational-boundary-deployment-verification-only'}

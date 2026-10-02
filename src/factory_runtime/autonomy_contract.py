@@ -19,9 +19,9 @@ COMMISSIONING_GATES = (
     'live_controller_runtime_deployment',
     'guarded_schedule_activation',
 )
-COMMISSIONING_ID = 'factory-acceptance-commissioning-005'
+COMMISSIONING_ID = 'factory-acceptance-commissioning-006'
 ACCEPTANCE_CAPABILITY_ID = COMMISSIONING_ID
-COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-005-authorization.json'
+COMMISSIONING_EVIDENCE = 'factory/evidence/guarded-commissioning-006-authorization.json'
 
 
 @dataclass(frozen=True)
@@ -100,9 +100,9 @@ def _commissioning_window(root, contract, pending):
         'task_id': contract['acceptance_target']['task_id'],
         'contract_sha256': contract['acceptance_target']['contract_sha256'],
         'model_id': 'gpt-5.6-sol', 'currency': 'USD',
-        'maximum_provider_calls': 3, 'maximum_cost_usd_per_call': '0.25',
-        'maximum_reserved_cost_usd': '0.75', 'maximum_wall_clock_hours': 24,
-        'maximum_remediation_cycles': 1, 'maximum_retries': 0,
+        'maximum_provider_calls': 1, 'maximum_cost_usd_per_call': '0.25',
+        'maximum_reserved_cost_usd': '0.25', 'maximum_wall_clock_hours': 24,
+        'maximum_remediation_cycles': 0, 'maximum_retries': 0,
         'pending_gates': list(COMMISSIONING_GATES), 'claims_live_gates_verified': False,
         'fresh_owner_and_reviewer_signatures_required': True,
         'immutable_source_job_and_role_pins_required': True,
@@ -278,7 +278,9 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         target['repository_ruleset_id'], target['required_status_check'],
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
-        limits['maximum_provider_calls'], limits['maximum_automated_wall_clock_hours'],
+        # The current paid scope narrows the original financial upper bound.
+        min(1, limits['maximum_provider_calls']),
+        limits['maximum_automated_wall_clock_hours'],
         input_price, output_price, pricing_observed_at, pricing_expires_at,
         limits['maximum_request_bytes_at_cost_cap'],
         pending, contract['authority']['production_release'] != 'DENY',

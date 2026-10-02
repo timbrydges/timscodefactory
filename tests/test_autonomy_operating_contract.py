@@ -40,7 +40,7 @@ class AutonomyOperatingContractTests(unittest.TestCase):
         self.assertEqual(allowance.acceptance_required_status_check, 'test')
         self.assertEqual(allowance.maximum_total_cost, Decimal('5.00'))
         self.assertEqual(allowance.maximum_cost_per_call, Decimal('0.25'))
-        self.assertEqual(allowance.maximum_provider_calls, 3)
+        self.assertEqual(allowance.maximum_provider_calls, 1)
         self.assertEqual(allowance.maximum_wall_clock_hours, 24)
         self.assertEqual(
             allowance.pricing_input_usd_per_million_tokens, Decimal('4.00'))
