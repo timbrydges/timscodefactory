@@ -39,13 +39,14 @@ class Pricing:
 class Transport:
     calls = 0
     payload = None
+    status_code = 200
 
     async def post_json(self, *, endpoint, headers, body, timeout_seconds):
         self.calls += 1
         self.request = json.loads(body)
         self.endpoint = endpoint
         self.headers = dict(headers)
-        return ProviderHTTPResponse(200, json.dumps(self.payload).encode())
+        return ProviderHTTPResponse(self.status_code, json.dumps(self.payload).encode())
 
 
 def response(*, model='gpt-5.6-sol', output_type='message', output_tokens=100):
@@ -109,6 +110,31 @@ class AcceptanceOpenAITests(unittest.TestCase):
             self.transport.payload = payload
             with self.subTest(payload=payload), self.assertRaises(OpenAIProviderProtocolError):
                 self.call()
+
+    def test_http_failure_reports_only_status_without_retry(self):
+        self.adapter.policy = OpenAIProviderPolicy(live_enabled=True)
+        self.transport.payload = {'error': {'message': 'private-upstream-data'}}
+        for status in (400, 401, 403, 404, 429, 500, 503):
+            with self.subTest(status=status):
+                self.transport.status_code = status
+                before = self.transport.calls
+                with self.assertRaises(OpenAIProviderProtocolError) as caught:
+                    self.call()
+                self.assertEqual(str(caught.exception),
+                    f'acceptance provider returned HTTP {status}; do not retry')
+                self.assertEqual(self.transport.calls, before + 1)
+
+    def test_malformed_http_status_is_not_logged_or_accepted(self):
+        self.adapter.policy = OpenAIProviderPolicy(live_enabled=True)
+        for status in (200.0, True, 99, 600, 'private-upstream-data'):
+            with self.subTest(status=status):
+                self.transport.status_code = status
+                before = self.transport.calls
+                with self.assertRaises(OpenAIProviderProtocolError) as caught:
+                    self.call()
+                self.assertEqual(str(caught.exception),
+                    'acceptance provider HTTP response is invalid')
+                self.assertEqual(self.transport.calls, before + 1)
 
 
 if __name__ == '__main__':

@@ -96,10 +96,17 @@ class AcceptanceOpenAIProvider:
         finally:
             credential = None
             headers = {}
-        if (not isinstance(response, ProviderHTTPResponse) or response.status_code != 200 or
+        if (not isinstance(response, ProviderHTTPResponse) or
+                type(response.status_code) is not int or
+                not 100 <= response.status_code <= 599 or
                 not isinstance(response.body, bytes) or
                 len(response.body) > policy.max_response_bytes):
             raise OpenAIProviderProtocolError('acceptance provider HTTP response is invalid')
+        if response.status_code != 200:
+            # Preserve only the validated numeric status. Upstream bodies and
+            # headers can contain credentials or task data and must stay private.
+            raise OpenAIProviderProtocolError(
+                f'acceptance provider returned HTTP {response.status_code}; do not retry')
         try:
             payload = json.loads(response.body.decode('utf-8'))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:

@@ -201,3 +201,12 @@ All mutations persist an attempt before submission. An unknown result must be
 reconciled read-only; never re-submit or manually invoke the controller to
 compensate. No tool signs scope, resets budgets, retries a provider, clears live
 gates, or grants production-release authority.
+
+Commissioning 002 delivered once on 2026-10-02 at 13:23:06 UTC after Inspector
+009 accepted. It reached Builder and the provider broker but stopped on an HTTP
+failure, leaving dispatch STARTED and one USD 0.25 reservation. The old adapter
+did not retain the numeric HTTP status; actual provider cost remains unknown.
+The schedule was disabled and the runtime quarantined. See
+`factory/evidence/inspector-009-and-commissioning-002-outcome-2026-10-02.json`.
+Neither the dispatch nor Inspector 009 may be retried. Future HTTP failures
+report only a validated numeric status, never upstream bodies or credentials.

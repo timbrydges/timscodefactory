@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "source_commit": "15add943e97b9b215d216240c83d4e7065800436",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-009",
+    "status": "INSPECTOR_REVIEW_ACCEPTED_AND_RECEIPT_PUBLISHED",
+    "provider_calls": 1,
+    "actual_cost_usd": "0.016878",
+    "reviewer_receipt_version": "AX_WhWJiMb3mVc9wB1d4WOtVcWGLR2nU",
+    "retry_permitted": false
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-002",
+    "scheduled_at": "2026-10-02T13:23:06Z",
+    "controller_request_id": "456abfb0-3a8c-48bd-b779-55003d0e79d2",
+    "builder_request_id": "e631d848-f755-46bd-bd80-1305c8257ffc",
+    "broker_request_id": "c2d79652-faec-4447-8b45-ffa45da1e750",
+    "status": "STOPPED_PROVIDER_HTTP_FAILURE",
+    "error": "acceptance provider HTTP response is invalid",
+    "http_status": null,
+    "actual_cost_usd": null,
+    "task_state": "IMPLEMENTATION",
+    "task_version": 3,
+    "dispatch_status": "STARTED",
+    "dispatch_id": "1e0298edf69dfcc30ac4cf3b57822b5665c222ffbf16f8af8f50eba90ecd5a25",
+    "sol_attempts_reserved": 1,
+    "sol_reserved_microusd": 250000,
+    "replayed": false
+  },
+  "owner_receipt_version": "bm0q7HqzSs38cAn61NCLrDrDYKQn.Iw7",
+  "owner_signing_workflow_run": 37011120252,
+  "job_version_id": "M8OpkwGFoik6NjHKrxE6Vfs4Ni_km_PF",
+  "evidence_directory": "~/factory-evidence/activation-009-278",
+  "production_release_authorized": false,
+  "note": "The scheduled delivery reached Builder and the broker once. The transport discarded the upstream error body, and the adapter collapsed HTTP status into a generic error; the status and actual charge cannot be recovered from this evidence. Schedule disabled and runtime quarantined before restoration. Preserve the STARTED dispatch, leases, claim and budget. No replay or new provider attempt is authorized by this record, and no pending operating gate is cleared."
+}
