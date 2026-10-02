@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from unittest.mock import AsyncMock
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -70,6 +71,18 @@ class AcceptanceOpenAITests(unittest.TestCase):
         with self.assertRaises(OpenAIProviderDisabledError):
             self.call()
         self.assertEqual((self.credentials.calls, self.transport.calls), (0, 0))
+
+    def test_timeout_is_terminal_with_exactly_one_transport_attempt(self):
+        self.adapter.policy = OpenAIProviderPolicy(live_enabled=True,
+            timeout_seconds=90, reasoning_effort='low')
+        self.transport.post_json = AsyncMock(side_effect=TimeoutError())
+        with self.assertRaisesRegex(OpenAIProviderProtocolError, 'timed out'):
+            self.call()
+        self.transport.post_json.assert_awaited_once()
+        sent = self.transport.post_json.call_args.kwargs
+        self.assertEqual(sent['timeout_seconds'], 90)
+        self.assertEqual(json.loads(sent['body'])['reasoning'], {'effort': 'low'})
+        self.assertEqual(self.credentials.calls, 1)
 
     def test_one_bounded_call_and_conservative_cost(self):
         self.adapter.policy = OpenAIProviderPolicy(live_enabled=True)

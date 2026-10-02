@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-from factory_runtime.acceptance_broker_lambda import handler, handle_probe
+from factory_runtime.acceptance_broker_lambda import handler, handle_probe, handle_live
 from factory_state.model import StateError
 from factory_runtime.autonomy_contract import load_autonomy_operating_allowance
 from build_acceptance_broker_package import contract_paths
@@ -25,6 +25,25 @@ EVENT = {'kind': 'acceptance_broker_probe', 'source_commit': COMMIT,
 
 
 class AcceptanceBrokerLambdaTests(unittest.TestCase):
+    def test_live_composition_bounds_generation_inside_lambda_timeout(self):
+        with patch('factory_runtime.acceptance_broker_lambda._activation'), \
+                patch('factory_runtime.provider_credentials.SecretsManagerProviderCredentialLeaseSource'), \
+                patch('factory_runtime.acceptance_openai.AcceptanceOpenAIProvider') as provider, \
+                patch('factory_runtime.acceptance_broker_service.AcceptanceBrokerService') as service:
+            handle_live({}, source_commit=COMMIT, activation_json='{}',
+                secret_arn='fixture', root=ROOT, database=object(),
+                secrets=object(), transport=object())
+        policy = provider.call_args.kwargs['policy']
+        template = json.loads((ROOT / 'infra/acceptance/broker-canary.cloudformation.json').read_text())
+        self.assertTrue(policy.live_enabled)
+        self.assertEqual(policy.reasoning_effort, 'low')
+        self.assertEqual(policy.timeout_seconds, 90)
+        self.assertLessEqual(policy.timeout_seconds + 30,
+            template['Resources']['BrokerFunction']['Properties']['Timeout'])
+        self.assertEqual(policy.max_output_tokens, 4096)
+        self.assertEqual(policy.max_request_bytes, 42020)
+        service.return_value.handle.assert_called_once_with({})
+
     def test_ready_contract_does_not_enable_model_free_probe(self):
         allowance = replace(load_autonomy_operating_allowance(ROOT), status='ACTIVE', pending_gates=())
         with patch('factory_runtime.autonomy_contract.load_autonomy_operating_allowance', return_value=allowance):

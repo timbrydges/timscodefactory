@@ -128,7 +128,11 @@ def handle_live(event, *, source_commit: str, activation_json: str,
         raise StateError('broker secret binding is invalid') from error
     provider = AcceptanceOpenAIProvider(credential_source,
         AcceptanceContractPricingSource(root), transport,
-        policy=OpenAIProviderPolicy(live_enabled=True), repository_root=root)
+        # This tiny source-generation task does not need the generic high-effort
+        # default. Leave 30 seconds inside the broker's 120-second Lambda limit
+        # for credential/pricing checks, persistence and response serialization.
+        policy=OpenAIProviderPolicy(live_enabled=True, reasoning_effort='low',
+                                    timeout_seconds=90), repository_root=root)
     service = AcceptanceBrokerService(root, activation,
         DynamoDBAcceptanceBudgetStore('tims-factory-acceptance-budget', database),
         DynamoDBAcceptanceClaimStore('tims-factory-acceptance-broker-claims', database),
