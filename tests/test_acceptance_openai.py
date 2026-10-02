@@ -81,6 +81,13 @@ class AcceptanceOpenAITests(unittest.TestCase):
         self.assertFalse(self.transport.request['store'])
         self.assertNotIn('tools', self.transport.request)
         self.assertEqual(self.transport.endpoint, 'https://api.openai.com/v1/responses')
+        context = json.loads(self.transport.request['input'])
+        self.assertEqual(context['request'], 'bounded input')
+        self.assertEqual(context['contract']['required_test_command'],
+                         ['python', '-m', 'unittest', 'discover', '-s', 'tests', '-v'])
+        self.assertEqual(context['source']['files'],
+                         {'fingerprint.py': None, 'tests/test_fingerprint.py': None})
+        self.assertIn('complete Python source strings', self.transport.request['instructions'])
 
     def test_stale_and_expensive_quote_fail_before_credential(self):
         self.adapter.policy = OpenAIProviderPolicy(live_enabled=True)
@@ -91,6 +98,16 @@ class AcceptanceOpenAITests(unittest.TestCase):
         self.pricing.output_price = Decimal('100')
         with self.assertRaises(OpenAIProviderPricingError):
             self.call()
+        self.assertEqual((self.credentials.calls, self.transport.calls), (0, 0))
+
+    def test_missing_context_stops_before_credentials_and_provider_call(self):
+        import tempfile
+        from factory_state.model import StateError
+        self.adapter.policy = OpenAIProviderPolicy(live_enabled=True)
+        with tempfile.TemporaryDirectory() as directory:
+            self.adapter.repository_root = Path(directory)
+            with self.assertRaisesRegex(StateError, 'context is missing or invalid'):
+                self.call()
         self.assertEqual((self.credentials.calls, self.transport.calls), (0, 0))
 
     def test_bad_target_and_cost_fail_before_credentials(self):

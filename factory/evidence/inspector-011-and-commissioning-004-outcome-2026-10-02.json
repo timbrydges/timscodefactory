@@ -1,0 +1,28 @@
+{
+  "source_commit": "85b76af0210b3974702c97c3ea71d459032e1351",
+  "inspector": {
+    "activation_id": "inspector-fallback-2026-10-02-011",
+    "status": "ACCEPTED",
+    "cost_usd": "0.016674",
+    "calls": 1
+  },
+  "commissioning": {
+    "activation_id": "factory-acceptance-commissioning-004",
+    "provider_status": "COMPLETE",
+    "artifact_status": "MISSING_IMPLEMENTATION_CONTEXT_REQUEST_ONLY",
+    "cost_usd_conservative_accounting": "0.00304500",
+    "provider_calls": 1,
+    "reserved_usd": "0.25",
+    "retries": 0,
+    "dispatch_id": "e754544a38e6148e4c2e34de29ed1ca60fba2ccf71234a9b98281980a68eaa21",
+    "receipt_digest": "sha256:ebaf36c94d64d2f29264b50db68410225e767a07ac06819d9ee6a71efb608c0f",
+    "output_digest": "sha256:ed8ff75c782c8bf6ab509c6109a44c170cecff659bc72448eaa9d03a4f48ce17",
+    "observed_task_state": "INSPECTION",
+    "observed_task_version": 6,
+    "leases_preserved": 4
+  },
+  "implementation_produced": false,
+  "acceptance_complete": false,
+  "production_release_authorized": false,
+  "recovery_requires_fresh_owner_scope": true
+}

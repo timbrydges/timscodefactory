@@ -23,6 +23,8 @@ def contract_paths(root: Path = ROOT) -> tuple[str, ...]:
     # Lambda task root. Missing profiles would leave the deployed controller
     # unable to validate the exact Sol target before any durable work.
     provider_paths = {
+        'factory/autonomy/acceptance-contract.json',
+        'factory/autonomy/acceptance-source-snapshot.json',
         'factory/profiles/provider-live-activation.yaml',
         'factory/profiles/provider-models.yaml',
         'factory/evals/provider-qualification.yaml',

@@ -133,4 +133,6 @@ class AcceptanceOperationalBackend:
         )
         if not isinstance(output, bytes) or len(output) > 65536:
             raise StateError("operational backend output exceeds the bounded role format")
+        from .acceptance_artifacts import validate_builder_artifacts
+        validate_builder_artifacts(output)
         return output
