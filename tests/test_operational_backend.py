@@ -104,7 +104,7 @@ class OperationalBackendTests(unittest.TestCase):
         backend.check_activation(state, request, now=NOW)
         backend.reserve(state, request, dispatch_id="dispatch-1", now=NOW)
         self.assertEqual(backend.execute(state, request, dispatch_id="dispatch-1", input_bytes=b"input"), ARTIFACT)
-        self.assertEqual(budget.calls[0]["maximum_provider_calls"], 3)
+        self.assertEqual(budget.calls[0]["maximum_provider_calls"], 1)
         self.assertEqual(str(budget.calls[0]["maximum_cost_usd"]), "0.25")
         self.assertEqual(executor.calls[0]["target_alias"], "coding_primary_sol_live")
         self.assertEqual(executor.calls[0]["model_id"], "gpt-5.6-sol")

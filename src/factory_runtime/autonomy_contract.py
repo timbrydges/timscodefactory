@@ -278,7 +278,8 @@ def load_autonomy_operating_allowance(root: Path) -> AutonomyOperatingAllowance:
         target['repository_ruleset_id'], target['required_status_check'],
         _decimal(limits['maximum_total_cost'], 'maximum total cost'),
         _decimal(limits['maximum_cost_per_call'], 'maximum cost per call'),
-        1 if commissioning_start is not None else limits['maximum_provider_calls'],
+        # The current paid scope narrows the original financial upper bound.
+        min(1, limits['maximum_provider_calls']),
         limits['maximum_automated_wall_clock_hours'],
         input_price, output_price, pricing_observed_at, pricing_expires_at,
         limits['maximum_request_bytes_at_cost_cap'],
