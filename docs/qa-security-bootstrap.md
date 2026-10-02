@@ -1,4 +1,4 @@
-# QA and security bootstrap: prepared, not deployed
+# QA and security bootstrap: deployed and verified, operations disabled
 
 The task is QA v12 after PR #289. Its immutable acceptance contract defines
 Planner, Builder and Inspector only. QA and security therefore need a separate
@@ -6,7 +6,7 @@ approved scope; the remaining USD 0.13840 under the previous ceiling is not an
 allowance for additional calls. Existing receipts, reservations and identities
 remain unchanged.
 
-The next concrete deployment is identity bootstrap only:
+The approved deployment is identity bootstrap only:
 
 - Stack: `tims-factory-review-bootstrap`, account 666730517561, ca-central-1.
 - Twelve new resources: two Ed25519 KMS keys, two aliases, two Lambda execution
@@ -38,7 +38,33 @@ Two retained keys therefore add approximately USD 2/month, plus metered KMS,
 Lambda, logs and S3 usage. This is separate from model budgets. Keys are retained
 on stack deletion; deleting a stack does not stop their storage charge. Disabling
 keys is reversible but also does not remove storage charges. Any permanent key
-deletion needs separate approval. No keys have been created by this change.
+deletion needs separate approval. Both keys were created after the owner's
+explicit approval of the two disabled roles, keys and one probe per role.
+
+## Verified deployment, 2026-10-02
+
+At 21:13:36 UTC, stack `tims-factory-review-bootstrap` was CREATE_COMPLETE and
+both version-1 functions passed their sole synchronous identity probe. The
+deployed package is commit `06fb6d111a0f9fb8463729bd38ba754dfe418074` (PR #291),
+code SHA256 `QMnHH5mYeKouxYU1mHSD9be9MK84bEkyPZofkBMY+Bw=`.
+
+The verifier checked both execution roles, inline policies, key policies,
+function configurations, absence of public URLs/event sources/resource-policy
+grants, and distinct public keys retrieved independently from AWS KMS. Each
+returned challenge signature was verified using that role's public key.
+There were exactly two identity invocations, zero retries and zero model calls.
+All 26 budget records, 19 task records and five existing function configurations
+were unchanged. The task remains QA v12 and the schedule remains disabled.
+
+Public fingerprints (evidence only, not operational enrollment):
+
+- QA: `sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17`
+- Security: `sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe`
+
+Signed challenges, public keys, invocation metadata, approval record and
+preservation checks are in
+`factory/evidence/qa-security-bootstrap-live-proof-2026-10-02.json`.
+No existing signer registry was changed. This evidence update needs no deploy.
 
 `scripts/verify_candidate_qa.py` pins the existing Builder 006 packet and files,
 reruns its 11 tests, then checks 41 valid inputs twice and nine invalid inputs
