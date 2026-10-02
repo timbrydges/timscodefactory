@@ -14,10 +14,10 @@ from pathlib import Path
 
 try:
     from .prepare_role_deployment import ACCOUNT, REGION, ROOT, aws, source
-    from .verify_inspector_activation_binding import expected_reservation
+    from .verify_inspector_activation_binding import expected_reservation, verify_implementation_policy
 except ImportError:
     from prepare_role_deployment import ACCOUNT, REGION, ROOT, aws, source
-    from verify_inspector_activation_binding import expected_reservation
+    from verify_inspector_activation_binding import expected_reservation, verify_implementation_policy
 
 STACK = 'tims-factory-roles'
 TEMPLATE = ROOT / 'infra/roles/functions.cloudformation.json'
@@ -74,11 +74,12 @@ def validate_template():
     if policy[0] != 'InspectorAcceptanceIamEnabled' or policy[2] != {'Ref': 'AWS::NoValue'}:
         raise RuntimeError('Inspector acceptance IAM must be conditional')
     document = policy[1]['PolicyDocument']
-    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 4:
+    if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 5:
         raise RuntimeError('Inspector acceptance policy differs from reviewed exact policy')
     budget = document['Statement'][3]
     if budget != expected_reservation():
         raise RuntimeError('Inspector one-call budget reservation policy differs')
+    verify_implementation_policy(document)
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 
 

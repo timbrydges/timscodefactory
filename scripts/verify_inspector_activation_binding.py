@@ -22,6 +22,16 @@ def verify_policy(policy):
         raise RuntimeError('Inspector budget IAM differs from the runtime activation; no invocation allowed')
 
 
+def verify_implementation_policy(policy):
+    from factory_runtime.implementation_inspector import ACTIVATION
+    expected = expected_reservation()
+    expected['Sid'] = 'ReserveExactImplementationReview'
+    expected['Condition']['ForAllValues:StringEquals']['dynamodb:LeadingKeys'] = ['INSPECTOR#' + ACTIVATION]
+    statements = [s for s in policy.get('Statement', []) if s.get('Sid') == expected['Sid']]
+    if statements != [expected]:
+        raise RuntimeError('implementation Inspector IAM differs; no invocation allowed')
+
+
 def verify(root=ROOT):
     record = json.loads((root / f'factory/evidence/{INSPECTOR_AUTHORIZATION_ID}.json').read_text())
     if record.get('event_id') != INSPECTOR_AUTHORIZATION_ID or record.get('activation_id') != INSPECTOR_ACTIVATION_ID:
@@ -29,6 +39,7 @@ def verify(root=ROOT):
     template = json.loads((root / 'infra/roles/functions.cloudformation.json').read_text())
     policy = template['Resources']['InspectorRole']['Properties']['Policies'][1]['Fn::If'][1]['PolicyDocument']
     verify_policy(policy)
+    verify_implementation_policy(policy)
     return {'activation_id': INSPECTOR_ACTIVATION_ID, 'authorization_id': INSPECTOR_AUTHORIZATION_ID,
             'status': 'INSPECTOR_ACTIVATION_BINDING_VERIFIED', 'model_calls': 0}
 

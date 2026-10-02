@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "owner_identity": "tim_brydges",
+  "event_id": "acceptance-inspector-implementation-authorization-2026-10-02-014",
+  "activation_id": "inspector-fallback-2026-10-02-014",
+  "authorized_at": "2026-10-02T17:27:16+00:00",
+  "authorization_text": "Owner approved one independent Inspector 014 call, maximum USD 0.25, reservation USD 0.24144, zero retries, raising the overall cap from USD 5 to USD 5.25. Original expiry unchanged; no new Builder call or production release.",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "packet_sha256": "27d080b9aeafc52050cab21d96ba31e6b7f1360c264a21c569eabb46ab3f6eab",
+  "maximum_calls": 1,
+  "maximum_retries": 0,
+  "maximum_cost_usd": "0.25",
+  "conservative_reservation_usd": "0.24144",
+  "overall_cap_usd": "5.25",
+  "prior_reservations_usd": "4.87016",
+  "expires_at": "2026-10-03T03:01:53+00:00",
+  "new_builder_calls": 0,
+  "production_release_authorized": false,
+  "scope": "Independent implementation review only; preserve all prior budget rows, claims, dispatches and leases. No state reset, schedule activation, or re-use of scope receipts. This separate approval does not rewrite the immutable acceptance contract."
+}
