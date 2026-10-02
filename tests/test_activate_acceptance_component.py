@@ -42,6 +42,11 @@ def material():
 
 
 class ActivationDeploymentTests(unittest.TestCase):
+    def test_iam_table_reference_matches_aws_resource_arn(self):
+        template = json.loads((ROOT / deploy.COMPONENTS['builder'][1]).read_text())
+        self.assertEqual(deploy.resolve({'Fn::GetAtt': ['RoleExecutions', 'Arn']}, template, {}),
+            'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-role-executions')
+
     def test_exact_templates_publish_immutable_configs_and_scoped_iam(self):
         binding, _, _, bundle = material()
         for component in deploy.COMPONENTS:

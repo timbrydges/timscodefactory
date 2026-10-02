@@ -95,7 +95,7 @@ def resolve(value, template, params):
         resource, attribute = value['Fn::GetAtt']
         if resource != 'RoleExecutions' or attribute != 'Arn':
             raise RuntimeError('unsupported IAM reference')
-        return f'arn:aws:dynamodb:{REGION}:{ACCOUNT}:table:' + template['Resources'][resource]['Properties']['TableName']
+        return f'arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/' + template['Resources'][resource]['Properties']['TableName']
     return {key: resolve(item, template, params) for key, item in value.items()}
 
 
