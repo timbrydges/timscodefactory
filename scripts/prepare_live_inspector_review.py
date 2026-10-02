@@ -20,14 +20,15 @@ from factory_state.dispatch import DynamoDBDispatchStore
 from factory_state.dynamodb import DynamoDBStateStore
 from prepare_acceptance_inspector_prompt import render
 from prepare_acceptance_inspector_review import build_packet
+from verify_inspector_activation_binding import verify as verify_activation_binding
+from factory_runtime.lambda_role import (
+    INSPECTOR_ACTIVATION_ID as ACTIVATION, INSPECTOR_AUTHORIZATION_ID as AUTHORIZATION)
 
 ACCOUNT = '666730517561'
 REGION = 'ca-central-1'
 TABLE = 'tims-software-factory-state'
 FACTORY = 'tims-software-factory'
 TASK = 'deterministic-text-fingerprint'
-ACTIVATION = 'inspector-fallback-2026-10-02-007'
-AUTHORIZATION = 'acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-007'
 
 
 def source():
@@ -43,6 +44,7 @@ def main():
     if len(sys.argv) != 2:
         raise SystemExit('usage: prepare_live_inspector_review.py OUT.json')
     now = datetime.now(timezone.utc)
+    verify_activation_binding()
     if boto3.client('sts', region_name=REGION).get_caller_identity()['Account'] != ACCOUNT:
         raise RuntimeError('wrong AWS account')
     contract = (ROOT/'factory/autonomy/acceptance-contract.json').read_bytes()

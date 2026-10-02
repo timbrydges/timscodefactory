@@ -21,6 +21,11 @@ def validate_inspector_price():
     """Fail before deployment writes when the packaged price has expired."""
     sys.path.insert(0, str(ROOT / 'src'))
     from factory_runtime.inspector_budget import _price
+    try:
+        from .verify_inspector_activation_binding import verify
+    except ImportError:
+        from verify_inspector_activation_binding import verify
+    verify(ROOT)
 
     policy = json.loads((ROOT /
         'factory/evidence/acceptance-inspector-sonnet45-budget-policy-2026-09-30.json'

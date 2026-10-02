@@ -14,8 +14,10 @@ from pathlib import Path
 
 try:
     from .prepare_role_deployment import ACCOUNT, REGION, ROOT, aws, source
+    from .verify_inspector_activation_binding import expected_reservation
 except ImportError:
     from prepare_role_deployment import ACCOUNT, REGION, ROOT, aws, source
+    from verify_inspector_activation_binding import expected_reservation
 
 STACK = 'tims-factory-roles'
 TEMPLATE = ROOT / 'infra/roles/functions.cloudformation.json'
@@ -75,13 +77,7 @@ def validate_template():
     if policy[1].get('PolicyName') != POLICY_NAME or len(document.get('Statement', [])) != 4:
         raise RuntimeError('Inspector acceptance policy differs from reviewed exact policy')
     budget = document['Statement'][3]
-    if budget != {
-            'Sid': 'ReserveExactInspectorReview',
-            'Effect': 'Allow',
-            'Action': ['dynamodb:PutItem'],
-            'Resource': 'arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-acceptance-budget',
-            'Condition': {'ForAllValues:StringEquals': {
-                'dynamodb:LeadingKeys': ['INSPECTOR#inspector-fallback-2026-10-01-006']}}}:
+    if budget != expected_reservation():
         raise RuntimeError('Inspector one-call budget reservation policy differs')
     return hashlib.sha256(TEMPLATE.read_bytes()).hexdigest()
 

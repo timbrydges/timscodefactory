@@ -191,7 +191,7 @@ def handle_inspector_runtime_boundary_probe(event, *, role, commit, signer, now,
 
 
 def _load_inspector_live_authorization(root):
-    path = root / 'factory/evidence/acceptance-inspector-sonnet45-fallback-authorization-2026-10-02-007.json'
+    path = root / f'factory/evidence/{INSPECTOR_AUTHORIZATION_ID}.json'
     try:
         document = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError) as error:
