@@ -1,0 +1,200 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Disabled Google QA broker. Pending owner permission approval; no live model path.",
+  "Parameters": {
+    "ArtifactBucket": {
+      "Type": "String",
+      "AllowedValues": [
+        "tims-software-factory-666730517561-ca-central-1"
+      ]
+    },
+    "ArtifactKey": {
+      "Type": "String"
+    },
+    "ArtifactVersion": {
+      "Type": "String"
+    },
+    "CodeSha256": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Attempts": {
+      "Type": "AWS::DynamoDB::Table",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "TableName": "tims-factory-google-qa-attempts",
+        "BillingMode": "PAY_PER_REQUEST",
+        "DeletionProtectionEnabled": true,
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE"
+          }
+        ],
+        "SSESpecification": {
+          "SSEEnabled": true
+        }
+      }
+    },
+    "Logs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/tims-factory-google-qa-broker",
+        "RetentionInDays": 14
+      }
+    },
+    "Role": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "tims-factory-google-qa-broker",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ExactGoogleCredentialAndAttemptOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+                  "Condition": {
+                    "ForAnyValue:StringEquals": {
+                      "secretsmanager:VersionStage": "AWSCURRENT"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "Attempts",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [
+                        "GOOGLE_QA#google-qa-pilot-001"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-google-qa-broker:*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Function": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "Logs"
+      ],
+      "Properties": {
+        "FunctionName": "tims-factory-google-qa-broker",
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "factory_runtime.google_qa_boundary.handler",
+        "Timeout": 120,
+        "MemorySize": 128,
+        "ReservedConcurrentExecutions": 1,
+        "Role": {
+          "Fn::GetAtt": [
+            "Role",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ArtifactBucket"
+          },
+          "S3Key": {
+            "Ref": "ArtifactKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "ArtifactVersion"
+          }
+        },
+        "Environment": {
+          "Variables": {
+            "FACTORY_GOOGLE_QA_ENABLED": "false",
+            "FACTORY_GOOGLE_SECRET_ARN": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+            "FACTORY_GOOGLE_SECRET_VERSION": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+            "FACTORY_GOOGLE_ATTEMPTS_TABLE": "tims-factory-google-qa-attempts"
+          }
+        }
+      }
+    },
+    "Version": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "VersionArn": {
+      "Value": {
+        "Ref": "Version"
+      }
+    },
+    "RoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Role",
+          "Arn"
+        ]
+      }
+    }
+  }
+}
