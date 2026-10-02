@@ -299,3 +299,30 @@ expiry remain binding. Retained reservations USD 4.37872 plus the new pair
 USD 0.49144 total USD 4.87016. Fresh Inspector and owner signatures, clean
 source pins, current pricing, disabled-deployment proofs and zero retries
 remain required. This authorization does not claim implementation success.
+
+## Commissioning 006 artifact and pending implementation review
+
+Inspector 013 accepted the preimplementation scope in one call (USD
+0.017514). Commissioning 006 then returned the two allowlisted files in one
+Builder call (USD 0.042565), recorded its receipt, and reached INSPECTION v10
+with all six leases preserved. The low-reasoning, 90-second provider settings
+have now produced a live artifact. Prior timeout claims remain untouched.
+
+The exact Builder bytes are candidate commit
+`09a758184c890eda200326a18fb166641194e32e` in acceptance-repository draft PR #2.
+All 11 required unit tests and 14 independent local behavior checks passed;
+the Python 3.12 GitHub test gate also passed on that exact commit. The pending
+implementation-inspection evidence packet binds the code, contract, hashes,
+and validation results. It authorizes no model call and supplies no verdict.
+
+The separate independent Inspector must still rerun required tests and bind
+its verdict to the candidate commit. Do not merge or claim completed Factory
+acceptance from the scope review or tests alone. No production release is
+authorized. All component execution flags and the schedule were verified
+disabled after delivery; temporary concurrency quarantines were removed.
+
+Preserved reservations total USD 4.87016, leaving USD 0.12984 under the
+unchanged USD 5 cap. Another standard USD 0.24144 Inspector reservation would
+raise that total to USD 5.11160 and therefore requires separate owner approval
+for the call and a sufficient overall cap. No budget or state reset, prior-call
+retry, new Builder call, or expiry extension is authorized by this evidence.
