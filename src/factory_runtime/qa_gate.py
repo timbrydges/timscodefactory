@@ -25,6 +25,8 @@ BASELINE = 'factory/evidence/qa-gate-001-baseline.json'
 BASELINE_SHA = 'eac3eea1934914008f10be0546f9c4ae6140cd8ebaf609d25baa61d5c11c1313'
 ATTESTATION = 'factory/evidence/qa-executor-attestation-live-proof-2026-10-03.json'
 ATTESTATION_SHA = 'd14e6f5476ce3e8087925dfe50d24cf925ce93a42b841677d33c26e61b936411'
+HISTORICAL_REGISTRY = 'factory/evidence/qa-executor-signers-2026-10-03.json'
+HISTORICAL_REGISTRY_SHA = '8475713e51d128b9351c47ced212813240d1faa3c84b22007df2ad256e4ab6c7'
 ENABLED = 'FACTORY_QA_GATE_ENABLED'
 CONFIG = 'FACTORY_QA_GATE_CONFIG'
 
@@ -35,7 +37,9 @@ def evidence(root):
     record = pinned(root, ATTESTATION, ATTESTATION_SHA)
     result = record['result']; payload = result['payload']
     issued = datetime.fromtimestamp(payload['issued_at'], timezone.utc)
-    keys = load_trusted_signers(root/REGISTRY, now=issued)
+    # Past provenance uses its exact registry; live approval still uses REGISTRY.
+    pinned(root, HISTORICAL_REGISTRY, HISTORICAL_REGISTRY_SHA)
+    keys = load_trusted_signers(root/HISTORICAL_REGISTRY, now=issued)
     signature_digest = SignedScopeStore('unused', None, keys)._verify(
         payload, base64.b64decode(result['signature_base64'], validate=True), IDENTITY, issued)
     if (payload['kind'] != 'qa_execution_attestation' or payload['purpose'] != 'executor-provenance-only' or
@@ -43,7 +47,7 @@ def evidence(root):
             payload['gate_authority'] is not False or payload['production_release_authorized'] is not False or
             any(payload[k] != packet[k] for k in ('candidate_commit','contract_digest','packet_digest')) or
             signature_digest != record['signed_payload_digest'] or
-            payload['registry_sha256'] != hashlib.sha256((root/REGISTRY).read_bytes()).hexdigest() or
+            payload['registry_sha256'] != HISTORICAL_REGISTRY_SHA or
             payload['report_digest'] != result['report']['report_digest'] or
             not validate_execution(result['report'], packet, root=root)):
         raise StateError('QA executor provenance differs or tests failed')

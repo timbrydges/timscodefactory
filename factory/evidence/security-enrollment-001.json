@@ -1,0 +1,27 @@
+{
+  "status": "APPROVED_REGISTRY_ENROLLMENT",
+  "approval_reply": "I approve",
+  "review_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+  "observation_sha256": "177e91a6fbaa61d96395cd8d79cbabe38c61e0a2bd9c7756a978127823f53ca5",
+  "before_registry_sha256": "8475713e51d128b9351c47ced212813240d1faa3c84b22007df2ad256e4ab6c7",
+  "after_registry_sha256": "6da51e17c4052b73f4649480aca52f8e9d3e7ced86c00a6b0b3764ca480cd25b",
+  "added_entry": {
+    "identity": "deep_security_reviewer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+    "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+    "not_before": 1791034056,
+    "expires_at": 1791120456,
+    "revoked": false
+  },
+  "existing_entries_unchanged": true,
+  "trust_seconds": 86400,
+  "model_calls": 0,
+  "signing_calls": 0,
+  "state_writes": 0,
+  "iam_changes": 0,
+  "new_keys": 0,
+  "runtime_deployed": false,
+  "security_execution_authorized": false,
+  "production_release_authorized": false
+}

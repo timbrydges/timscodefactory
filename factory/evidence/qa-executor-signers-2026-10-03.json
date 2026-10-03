@@ -46,15 +46,6 @@
       "not_before": 1790997153,
       "expires_at": 1791083553,
       "revoked": false
-    },
-    {
-      "identity": "deep_security_reviewer_service",
-      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
-      "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
-      "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
-      "not_before": 1791034056,
-      "expires_at": 1791120456,
-      "revoked": false
     }
   ]
 }

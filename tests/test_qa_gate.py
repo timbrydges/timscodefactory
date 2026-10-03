@@ -191,12 +191,19 @@ class QaGatePinnedEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             from factory_runtime.review_preparation import PACKET,REVIEW,BOOTSTRAP
-            for name in (PACKET,REVIEW,BOOTSTRAP,gate.ATTESTATION,gate.REGISTRY,gate.BUNDLE,gate.PROOF):
+            for name in (PACKET,REVIEW,BOOTSTRAP,gate.ATTESTATION,gate.REGISTRY,gate.HISTORICAL_REGISTRY,gate.BUNDLE,gate.PROOF):
                 p=root/name; p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes((ROOT/name).read_bytes())
-            for name in (gate.ATTESTATION,gate.BUNDLE,gate.PROOF):
+            for name in (gate.ATTESTATION,gate.BUNDLE,gate.PROOF,gate.HISTORICAL_REGISTRY):
                 p=root/name; raw=p.read_bytes(); p.write_bytes(raw+b' ')
                 with self.assertRaises(StateError): gate.evidence(root)
                 p.write_bytes(raw)
+
+    def test_historical_provenance_survives_live_registry_enrollment(self):
+        historical=json.loads((ROOT/gate.HISTORICAL_REGISTRY).read_bytes())
+        current=json.loads((ROOT/gate.REGISTRY).read_bytes())
+        self.assertNotIn('deep_security_reviewer_service',{x['identity'] for x in historical['signers']})
+        self.assertIn('deep_security_reviewer_service',{x['identity'] for x in current['signers']})
+        self.assertTrue(gate.evidence(ROOT)['executor_payload_digest'].startswith('sha256:'))
 
 
 if __name__=='__main__': unittest.main()
