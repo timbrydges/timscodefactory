@@ -3,6 +3,9 @@
 Offline only. No new provider call, credential read, signing operation, claim,
 candidate execution, Lambda deployment or state transition is included.
 
+Exact-request signature verification is prepared separately in
+`docs/pilot-002-signed-allowances.md`; no real allowance has been issued.
+
 The approved attempt ledger is now deployed and verified. Each of its three
 fixed role keys is absent; no budget is reserved. Existing provider settings and
 permissions are unchanged except for the three approved exact-row policies.
