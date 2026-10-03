@@ -14,7 +14,7 @@ MODULES=(
     'factory_runtime/pilot002_packets.py','factory_runtime/pilot002_authorization.py',
     'factory_runtime/pilot002_attempts.py','factory_runtime/pilot002_protocols.py',
     'factory_runtime/pilot002_transport.py','factory_runtime/pilot002_adapter.py',
-    'factory_runtime/pilot002_workflow.py','factory_state/model.py','factory_state/dynamodb.py',
+    'factory_runtime/pilot002_workflow.py','factory_runtime/pilot002_entrypoint.py','factory_state/model.py','factory_state/dynamodb.py',
     'factory_state/dispatch.py','factory_state/scope.py','factory_state/signers.py')
 MATERIAL=('factory/autonomy/pilot-002-contract.json','factory/evidence/pilot-002-task-budget-approval.json',
     'factory/evidence/pilot-002-baseline-source.json')
