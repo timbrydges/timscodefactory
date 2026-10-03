@@ -1,5 +1,14 @@
 # Pilot 002: one paused task initialization
 
+Completed after revised shared-capacity approval on 2026-10-03: immutable
+controller version 40 created the new PAUSED v0 state, marker and audit once.
+The old task is unchanged. Cleanup verified concurrency zero, disabled flag,
+logging-only access and removal of the temporary policy. No model calls or
+budget reservation occurred. Evidence:
+`factory/evidence/pilot-002-bootstrap-live-proof-2026-10-03.json`.
+The next prepared access boundary is `docs/pilot-002-attempt-ledger.md`.
+The following capacity proposal and failure description are historical.
+
 Status on 2026-10-03: the owner approved the reserved-one bootstrap, but AWS
 rolled back activation before any Lambda invocation. The account limit is 10
 and AWS's error requires at least 10 unreserved executions, so reserving one

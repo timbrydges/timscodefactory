@@ -1,0 +1,143 @@
+{
+  "status": "PILOT_002_BOOTSTRAP_COMPLETE_VERIFIED",
+  "verified_at": "2026-10-03T15:35:12.311653+00:00",
+  "source_commit": "0813cf8ce6106dcf0815fd8cd80fd2ca19267873",
+  "version": "40",
+  "code_sha256": "ab7gKQew+vLJIY6hTWq0bXvisexwMDjUVBBRtf07pPg=",
+  "task_id": "safe-workspace-fingerprint-001",
+  "state": "PAUSED",
+  "state_version": 0,
+  "capacity_mode": "shared-account-pool",
+  "bootstrap_invocations": 1,
+  "invocation_retries": 0,
+  "model_calls": 0,
+  "budget_reserved": false,
+  "old_task_unchanged": true,
+  "configuration": {
+    "approved": true,
+    "owner_identity": "tim_brydges",
+    "operation": "pilot-002-bootstrap",
+    "source_commit": "0813cf8ce6106dcf0815fd8cd80fd2ca19267873",
+    "task_id": "safe-workspace-fingerprint-001",
+    "contract_sha256": "eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+    "not_before": 1791041605,
+    "expires_at": 1791045205,
+    "nonce": "270a9a28d33d428bb63d53ae6abdfd22"
+  },
+  "temporary_policy": {
+    "PolicyName": "pilot-002-bootstrap-temporary",
+    "PolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem"
+          ],
+          "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+          "Condition": {
+            "ForAllValues:StringEquals": {
+              "dynamodb:LeadingKeys": [
+                "FACTORY#tims-software-factory#TASK#safe-workspace-fingerprint-001"
+              ]
+            },
+            "Null": {
+              "dynamodb:LeadingKeys": "false"
+            },
+            "DateGreaterThanEquals": {
+              "aws:CurrentTime": "2026-10-03T15:33:25+00:00"
+            },
+            "DateLessThan": {
+              "aws:CurrentTime": "2026-10-03T16:33:25+00:00"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "result": {
+    "status": "BOOTSTRAPPED_PAUSED_VERIFIED",
+    "task_id": "safe-workspace-fingerprint-001",
+    "state": "PAUSED",
+    "version": 0,
+    "writes": 3,
+    "model_calls": 0,
+    "leases": 0,
+    "budget_reserved": false,
+    "live_execution_authorized": false
+  },
+  "items": [
+    {
+      "version": {
+        "N": "0"
+      },
+      "state": {
+        "S": "PAUSED"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#safe-workspace-fingerprint-001"
+      },
+      "updated_at": {
+        "S": "2026-10-03T15:33:25+00:00"
+      },
+      "SK": {
+        "S": "STATE"
+      },
+      "payload": {
+        "S": "{\"active_lease_ids\": [], \"consumed_evidence_ids\": [], \"factory_id\": \"tims-software-factory\", \"leases\": [], \"state\": \"PAUSED\", \"task_id\": \"safe-workspace-fingerprint-001\", \"updated_at\": \"2026-10-03T15:33:25+00:00\", \"updated_by\": \"factory_controller_service\", \"version\": 0}"
+      }
+    },
+    {
+      "nonce": {
+        "S": "270a9a28d33d428bb63d53ae6abdfd22"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#safe-workspace-fingerprint-001"
+      },
+      "source_commit": {
+        "S": "0813cf8ce6106dcf0815fd8cd80fd2ca19267873"
+      },
+      "contract_sha256": {
+        "S": "eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf"
+      },
+      "SK": {
+        "S": "BOOTSTRAP#pilot-002"
+      },
+      "approval_sha256": {
+        "S": "0fd5790ed4ce9d4648cf3da27d640eafe6a5fe34b02e977738be61f468acbd45"
+      }
+    },
+    {
+      "to_version": {
+        "N": "0"
+      },
+      "details": {
+        "S": "{\"contract_sha256\": \"eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf\", \"live_execution_authorized\": false, \"owner_task_budget_approval_sha256\": \"0fd5790ed4ce9d4648cf3da27d640eafe6a5fe34b02e977738be61f468acbd45\"}"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#safe-workspace-fingerprint-001"
+      },
+      "event_type": {
+        "S": "TASK_BOOTSTRAPPED"
+      },
+      "to_state": {
+        "S": "PAUSED"
+      },
+      "SK": {
+        "S": "EVENT#2026-10-03T15:33:25+00:00#pilot-002-bootstrap"
+      },
+      "actor_identity": {
+        "S": "factory_controller_service"
+      }
+    }
+  ],
+  "cleanup": {
+    "at": "2026-10-03T15:35:12.301558+00:00",
+    "disabled": true,
+    "concurrency": 0,
+    "logging_only": true,
+    "temporary_access_removed": true
+  },
+  "production_release_authorized": false
+}
