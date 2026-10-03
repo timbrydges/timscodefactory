@@ -1,5 +1,8 @@
 # Pilot 002 exact-request owner allowances
 
+The offline composition with the fixed attempt ledger is documented in
+`docs/pilot-002-one-attempt-workflow.md`; it has no live runtime entrypoint.
+
 Offline verifier only. No real allowance is issued or signed, no owner key is
 read, and no runtime is deployed or enabled. Tests generate disposable local
 Ed25519 keys and synthetic request/cost/readiness fixtures. Those fixtures are
