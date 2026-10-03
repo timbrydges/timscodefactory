@@ -43,11 +43,13 @@ class Pilot002Adapter:
         bindings={'role':role,'model_id':packet['model_id'],'task_id':packet['task_id'],
             'source_commit':source_commit,'contract_digest':packet['contract_digest'],
             'packet_digest':packet['packet_digest'],'request_digest':_hash(self._request)}
-        expected={'kind':'pilot002_provider_rate_qualification',**bindings,'currency':'USD',
-            'complete_request_bound_qualified':True,'combined_output_bound_qualified':True,
+        free=isinstance(q,dict) and q.get('kind')=='pilot002_google_free_tier_qualification'
+        expected={'kind':'pilot002_google_free_tier_qualification' if free else 'pilot002_provider_rate_qualification',**bindings,'currency':'USD',
+            'complete_request_bound_qualified':not free,'combined_output_bound_qualified':not free,
             'standard_text_only_no_cache_rates':True,'output_token_bound':MAX_OUTPUT_TOKENS}
         extra={'input_token_bound','input_micro_usd_per_million','output_micro_usd_per_million',
             'issued_at','expires_at','evidence_digest'}
+        if free:extra.add('billing_observation')
         if (not isinstance(source_commit,str) or not re.fullmatch('[0-9a-f]{40}',source_commit) or
                 not isinstance(q,dict) or set(q)!=set(expected)|extra or
                 any(type(q[k]) is not type(v) or q[k]!=v for k,v in expected.items()) or
@@ -58,11 +60,24 @@ class Pilot002Adapter:
                 not q['issued_at']<q['expires_at']<=q['issued_at']+86400 or
                 not isinstance(q['evidence_digest'],str) or not re.fullmatch('sha256:[0-9a-f]{64}',q['evidence_digest'])):
             raise StateError('Pilot 002 rate qualification is missing, changed or unqualified')
+        if free:
+            observation=q['billing_observation']
+            expected_billing={'google_project':'gen-lang-client-0247455615','billing_account_linked':False,
+                'credential_project_verified':True,'data_scope':'public-synthetic-fixtures-only',
+                'free_tier_data_use_accepted':True}
+            if (role!='qa' or q['input_micro_usd_per_million']!=0 or q['output_micro_usd_per_million']!=0 or
+                    not isinstance(observation,dict) or set(observation)!=set(expected_billing)|{'observed_at','evidence_digest'} or
+                    any(type(observation[k]) is not type(v) or observation[k]!=v for k,v in expected_billing.items()) or
+                    type(observation['observed_at']) is not int or
+                    not observation['observed_at']<=q['issued_at']<q['expires_at']<=observation['observed_at']+300 or
+                    not isinstance(observation['evidence_digest'],str) or
+                    not re.fullmatch('sha256:[0-9a-f]{64}',observation['evidence_digest'])):
+                raise StateError('Pilot 002 Google free-tier billing or data-use observation invalid')
         maximum=_cost(q['input_token_bound'],q['output_token_bound'],q)
-        if not 0<maximum<=250000:raise StateError('Pilot 002 qualified cost exceeds cap or is zero')
+        if not (maximum==0 if free else 0<maximum<=250000):raise StateError('Pilot 002 qualified cost exceeds cap or is zero')
         _fresh(clock(),q)
-        self._pricing={'kind':'pilot002_qualified_request_cost_bound',**bindings,'currency':'USD',
-            'complete_request_bound_qualified':True,'maximum_cost_micro_usd':maximum,
+        self._pricing={'kind':'pilot002_google_free_tier_cost_bound' if free else 'pilot002_qualified_request_cost_bound',**bindings,'currency':'USD',
+            'complete_request_bound_qualified':not free,'maximum_cost_micro_usd':maximum,
             'issued_at':q['issued_at'],'expires_at':q['expires_at'],'evidence_digest':digest(q)}
         self._transport=Pilot002Transport(root,**self._context,enabled=enabled)
 

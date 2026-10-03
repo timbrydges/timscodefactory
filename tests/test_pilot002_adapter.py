@@ -23,7 +23,7 @@ class AdapterTests(unittest.TestCase):
         self.private=Ed25519PrivateKey.generate()
         self.keys={OWNER_IDENTITY:self.private.public_key().public_bytes(Encoding.PEM,PublicFormat.SubjectPublicKeyInfo)}
 
-    def setup_role(self,role='builder',enabled=True):
+    def setup_role(self,role='builder',enabled=True,free=False):
         context={'root':protocols.ROOT,**self.fixtures.context(role),'source_commit':'c'*40}
         packet=p._packet(protocols.ROOT,role,context.get('builder_response'),context.get('candidate_commit'))
         raw=p.request_bytes(protocols.ROOT,**self.fixtures.context(role))
@@ -35,6 +35,13 @@ class AdapterTests(unittest.TestCase):
             'standard_text_only_no_cache_rates':True,'input_token_bound':32768,'output_token_bound':4096,
             'input_micro_usd_per_million':1000000,'output_micro_usd_per_million':2000000,
             'issued_at':epoch,'expires_at':epoch+3600,'evidence_digest':'sha256:'+'a'*64}
+        if free:
+            q.update(kind='pilot002_google_free_tier_qualification',complete_request_bound_qualified=False,
+                combined_output_bound_qualified=False,input_micro_usd_per_million=0,output_micro_usd_per_million=0,
+                expires_at=epoch+300,billing_observation={'google_project':'gen-lang-client-0247455615',
+                    'billing_account_linked':False,'credential_project_verified':True,
+                    'data_scope':'public-synthetic-fixtures-only','free_tier_data_use_accepted':True,
+                    'observed_at':epoch,'evidence_digest':'sha256:'+'e'*64})
         adapter=p.Pilot002Adapter(**context,qualification=q,clock=self.clock,enabled=enabled)
         ready={'kind':'pilot002_provider_readiness',**bindings,'credential_route_verified':True,
             'model_access_verified':True,'repository_binding_verified':True,
@@ -43,7 +50,7 @@ class AdapterTests(unittest.TestCase):
             'pricing_digest':digest(adapter.pricing),'readiness_digest':digest(ready),
             'reserved_micro_usd':250000,'approved_cap_micro_usd':250000,'maximum_provider_calls':1,
             'retries':0,'task_state_writes':0,'gate_authority':False,'production_release_authorized':False,
-            'issued_at':epoch,'expires_at':epoch+600}
+            'issued_at':epoch,'expires_at':epoch+(300 if free else 600)}
         envelope={'payload':payload,'signature':base64.b64encode(self.private.sign(canonical(payload))).decode()}
         self.events=[];self.rows={};db=Mock()
         def claim(**args):
@@ -154,6 +161,49 @@ class AdapterTests(unittest.TestCase):
             adapter.send_once(request_bytes=raw,credential=transports.KEY,expected_request_digest=p._hash(raw))
         self.clock.return_value=self.now+timedelta(hours=2)
         self.assertEqual(adapter.parse_response(response,packet)['actual_micro_usd'],160)
+
+    def test_google_free_tier_runs_once_and_retains_full_hold(self):
+        adapter,_,_,_,envelope,args,db=self.setup_role('qa',free=True)
+        self.assertEqual(adapter.pricing['maximum_cost_micro_usd'],0)
+        connection=transports.Connection(transports.Response(canonical(self.fixtures.response('qa'))))
+        with patch.object(transports.p.http.client,'HTTPSConnection',return_value=connection):
+            result=p.run_bound_once(envelope,**args)
+            self.assertEqual(result['actual_micro_usd'],0)
+            self.assertEqual(next(iter(self.rows.values()))['reserved_micro_usd'],{'N':'250000'})
+            with self.assertRaisesRegex(StateError,'reservation'):p.run_bound_once(envelope,**args)
+        self.assertEqual(len(connection.calls),1)
+
+    def test_free_tier_never_applies_to_other_roles(self):
+        for role in ('builder','inspector'):
+            with self.subTest(role=role),self.assertRaises(StateError):self.setup_role(role,free=True)
+
+    def test_free_tier_requires_project_billing_credential_and_data_consent(self):
+        _,_,_,q,_,args,_=self.setup_role('qa',free=True)
+        context={k:args[k] for k in ('root','role','source_commit','builder_response','candidate_commit')}
+        for key,value in (('google_project','another-project'),('billing_account_linked',True),
+            ('credential_project_verified',False),('free_tier_data_use_accepted',False),
+            ('data_scope','private-data'),('observed_at',q['issued_at']-1),('evidence_digest','missing')):
+            changed=copy.deepcopy(q);changed['billing_observation'][key]=value
+            with self.subTest(key=key),self.assertRaises(StateError):
+                p.Pilot002Adapter(**context,qualification=changed,clock=self.clock)
+        for change in ({'output_micro_usd_per_million':1},{'expires_at':q['issued_at']+301},
+                       {'combined_output_bound_qualified':True}):
+            with self.subTest(change=change),self.assertRaises(StateError):
+                p.Pilot002Adapter(**context,qualification={**q,**change},clock=self.clock)
+
+    def test_free_tier_billing_evidence_change_invalidates_allowance(self):
+        _,_,_,_,envelope,args,db=self.setup_role('qa',free=True)
+        args['qualification']['billing_observation']['evidence_digest']='sha256:'+'f'*64
+        with patch.object(transports.p.http.client,'HTTPSConnection') as connect:
+            with self.assertRaisesRegex(StateError,'authorization'):p.run_bound_once(envelope,**args)
+            db.put_item.assert_not_called();args['load_credential'].assert_not_called();connect.assert_not_called()
+
+    def test_expired_free_observation_blocks_before_claim(self):
+        _,_,_,_,envelope,args,db=self.setup_role('qa',free=True)
+        self.clock.return_value=self.now+timedelta(seconds=300)
+        with patch.object(transports.p.http.client,'HTTPSConnection') as connect:
+            with self.assertRaises(StateError):p.run_bound_once(envelope,**args)
+            db.put_item.assert_not_called();connect.assert_not_called()
 
 
 if __name__=='__main__':unittest.main()

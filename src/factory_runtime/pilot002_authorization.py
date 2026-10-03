@@ -55,13 +55,15 @@ cost qualification. A packet byte count alone is never treated as a token bound.
     bindings = {'role':role, 'model_id':packet['model_id'], 'task_id':packet['task_id'],
         'source_commit':source_commit, 'contract_digest':packet['contract_digest'],
         'packet_digest':packet['packet_digest'], 'request_digest':request_digest}
-    price_expected = {'kind':'pilot002_qualified_request_cost_bound', **bindings,
-        'currency':'USD', 'complete_request_bound_qualified':True}
+    free = isinstance(pricing,dict) and pricing.get('kind')=='pilot002_google_free_tier_cost_bound'
+    price_expected = {'kind':'pilot002_google_free_tier_cost_bound' if free else 'pilot002_qualified_request_cost_bound', **bindings,
+        'currency':'USD', 'complete_request_bound_qualified':not free}
     price_extra = {'maximum_cost_micro_usd','issued_at','expires_at','evidence_digest'}
     if (not _exact(pricing, price_expected, price_extra) or
             type(pricing.get('maximum_cost_micro_usd')) is not int or
-            not 0 < pricing['maximum_cost_micro_usd'] <= CAP_MICRO_USD or
-            not _hash(pricing.get('evidence_digest')) or not _window(pricing, now, 86400)):
+            not (role=='qa' and pricing['maximum_cost_micro_usd']==0 if free else
+                0 < pricing['maximum_cost_micro_usd'] <= CAP_MICRO_USD) or
+            not _hash(pricing.get('evidence_digest')) or not _window(pricing, now, 300 if free else 86400)):
         raise StateError('Pilot 002 cost bound is unqualified, changed, expired or over cap')
     ready_expected = {'kind':'pilot002_provider_readiness', **bindings,
         'credential_route_verified':True, 'model_access_verified':True,

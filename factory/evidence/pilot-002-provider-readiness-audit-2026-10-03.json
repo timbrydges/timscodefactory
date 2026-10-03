@@ -1,0 +1,37 @@
+{
+  "status": "READ_ONLY_AUDIT_NOT_PRICING_QUALIFICATION_OR_ACTIVATION",
+  "observed_at": "2026-10-03T18:31:31Z",
+  "task_id": "safe-workspace-fingerprint-001",
+  "google": {
+    "project": "gen-lang-client-0247455615",
+    "billing_account_linked": false,
+    "billing_console": "https://console.cloud.google.com/billing/linkedaccount?project=gen-lang-client-0247455615",
+    "screenshot_sha256": "38403c395996381ff1830a9467fb772280bbcc34d649130bbb7abe55b59c3c3b",
+    "model": "gemini-3.8-flash",
+    "free_tier_input_and_output_usd": "0.00",
+    "free_tier_product_improvement_data_use": true,
+    "paid_standard_input_usd_per_million_until_2026_12_31": "0.75",
+    "paid_standard_output_including_thinking_usd_per_million_until_2026_12_31": "3.75",
+    "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+    "credential_project_binding_verified": false,
+    "pilot002_data_use_allowance_signed": false,
+    "combined_generate_content_output_bound_qualified": false,
+    "note": "The generic thinking guide's Interactions example alone does not qualify the current generateContent route. No paid fallback or billing linkage is authorized."
+  },
+  "openai": {
+    "model": "gpt-5.6-sol",
+    "standard_short_context_input_usd_per_million": "4.00",
+    "standard_short_context_output_usd_per_million": "20.00",
+    "pricing_source": "https://developers.openai.com/api/docs/pricing",
+    "exact_pilot002_request_input_bound_qualified": false
+  },
+  "inspector": {
+    "model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "current_source_confirms_global_profile": true,
+    "model_source": "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-4-5.html",
+    "fresh_request_price_qualified": false
+  },
+  "provider_generation_calls": 0,
+  "live_execution_authorized": false,
+  "new_runtime_deployed": false
+}
