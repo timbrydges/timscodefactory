@@ -1,6 +1,19 @@
-# Proposed synthetic-only Security gate 001
+# Completed synthetic-only Security gate 001
 
-Status: owner authorized the bounded operation, but the first lease request
+Status: completed at 2026-10-03 14:35 UTC: RELEASE_READY version 16,
+one Security signature, zero signing retries and zero model calls. Both
+functions were disabled and temporary access removed by 14:36 UTC. The
+original 15:25:43 UTC expiration was preserved. Authorization is consumed;
+do not repeat the operation. Completion evidence and offline verification:
+`factory/evidence/security-gate-001-live-proof-2026-10-03.json` and
+`python scripts/verify_security_gate_proof.py`.
+
+The repaired deployment used source `ab3ef926339a68a543ef60dbe10ef0eb8d91df34`,
+Security version 9 and controller version 39. One earlier controller call
+failed before writes; the repaired lease and completion each succeeded once.
+The fresh lease was revoked and both audit events and prior history verified.
+
+The first lease request
 was rejected before any state write or Security signature. The generated audit
 identifier was 41 characters; DynamoDB's adapter permits at most 36. The fix
 uses a four-character prefix plus the same 32 hexadecimal hash characters.
@@ -11,20 +24,20 @@ Containment was verified at 2026-10-03 14:27 UTC: task SECURITY_REVIEW version 1
 unchanged, zero signing invocations, both functions disabled, and temporary
 access removed. The failure proof is
 `factory/evidence/security-gate-001-contained-failure-2026-10-03.json`.
-Any continuation must preserve the original single-signature limit, durable
-journals and maximum one-hour access window; no invocation may be blindly
-repeated. The original scope acceptance remains synthetic-only.
+The repair preserved the original single-signature limit, durable journals
+and original maximum one-hour access window. The original scope acceptance
+remains synthetic-only.
 
-The proposed gate verifies the pinned successful Security validation and its
+The gate verifies the pinned successful Security validation and its
 historical public-key enrollment, the exact candidate/contract, the accepted
 scope and all retained findings. It never executes the candidate or a model.
 It signs a fresh gate verdict carrying the synthetic-only scope, open findings,
 absence of an OS sandbox claim, and production_release_authorized=false.
 
-## Next approval requested
+## Consumed approval scope
 
-Authorize the exact reviewed package on the existing Security and controller
-functions, initially disabled, and one bounded Security gate operation:
+The owner authorized the reviewed package on the existing Security and
+controller functions and one bounded Security gate operation:
 
 1. Temporarily grant the controller GetItem, PutItem and UpdateItem on only
    `FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint` in
@@ -57,3 +70,6 @@ The permission helper prepares both the exact grant and restoration templates.
 Validate actual change-set contents and resolved parameters before execution.
 If the enrollment cannot cover the entire operation, retain the hold; approval
 does not extend its expiration (2026-10-04 13:27:36 UTC).
+
+The next proposed task and budget are in `docs/autonomy-pilot-002-proposal.md`.
+That proposal has no live execution authority.
