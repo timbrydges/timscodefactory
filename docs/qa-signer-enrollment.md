@@ -1,8 +1,22 @@
-# Proposed QA signing identity enrollment
+# QA signing identity enrollment
+
+## Approved and deployed, 2026-10-03
+
+The owner approved the existing QA key for a bounded 24-hour window. PR #312
+added exactly that entry; controller version 32, source
+`7720bdf4320b3a558db2ea706ca55ac52e4330ce`, now contains the verified registry.
+Trust expires at **2026-10-04 03:12:33 UTC** without extending other enrollments.
+Verification checked the downloaded deployed ZIP, preserved version 31 and all
+existing signer entries, automatic expiry, the disabled controller probe, the
+disabled schedule and unchanged QA task version 12. No signing or model call
+occurred. Evidence: `factory/evidence/qa-signer-enrollment-live-proof-2026-10-03.json`.
+
+The procedure below records preparation and approval requirements. It cannot
+re-enroll or extend this entry without a separate reviewed change and approval.
 
 The Google assessment is ACCEPTED and 18 independent QA cases passed. Their
 combined evidence remains unsigned. The controller does not currently trust the
-QA bootstrap key for operational receipts.
+QA bootstrap key for operational receipts at the time this proposal was prepared.
 
 `scripts/prepare_qa_signer_enrollment.py OBSERVATION.json PROPOSAL.json` prepares
 an exclusive offline output from clean reviewed source. It does not modify the
