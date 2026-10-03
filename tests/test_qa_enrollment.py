@@ -85,8 +85,21 @@ class QaEnrollmentTests(unittest.TestCase):
         expired=validate_trusted_signers(registry,now=end)
         self.assertIn(enrollment.IDENTITY,active)
         self.assertNotIn(enrollment.IDENTITY,expired)
-        self.assertEqual(set(expired),set(active)-{enrollment.IDENTITY})
+        before_expiry=validate_trusted_signers(registry,now=end-timedelta(seconds=1))
+        self.assertEqual(set(expired),set(before_expiry)-{enrollment.IDENTITY})
         self.assertNotIn('deep_security_reviewer_service',active)
+
+    def test_security_enrollment_starts_and_expires_at_approved_boundaries(self):
+        registry=json.loads((ROOT/enrollment.REGISTRY).read_bytes())
+        identity='deep_security_reviewer_service'
+        entry=next(e for e in registry['signers'] if e['identity']==identity)
+        start=datetime.fromtimestamp(entry['not_before'],timezone.utc)
+        end=datetime.fromtimestamp(entry['expires_at'],timezone.utc)
+        self.assertEqual((end-start).total_seconds(),86400)
+        self.assertNotIn(identity,validate_trusted_signers(registry,now=start-timedelta(seconds=1)))
+        self.assertIn(identity,validate_trusted_signers(registry,now=start))
+        self.assertIn(identity,validate_trusted_signers(registry,now=end-timedelta(seconds=1)))
+        self.assertNotIn(identity,validate_trusted_signers(registry,now=end))
 
 
 if __name__=='__main__': unittest.main()

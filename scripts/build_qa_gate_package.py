@@ -10,4 +10,5 @@ if __name__=='__main__':
         'factory/evidence/google-qa-combined-bundle-2026-10-03.json',
         'factory/evidence/google-qa-live-proof-2026-10-03.json',
         'factory/evidence/qa-executor-attestation-live-proof-2026-10-03.json',
+        'factory/evidence/qa-executor-signers-2026-10-03.json',
         'factory/evidence/qa-gate-001-baseline.json'))
