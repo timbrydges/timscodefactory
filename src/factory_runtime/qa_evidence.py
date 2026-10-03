@@ -6,6 +6,7 @@ from factory_state.model import StateError
 from factory_state.scope import canonical
 from . import qa_execution
 from .google_qa import parse_response
+from .google_qa_records import parse_record
 from .qa_execution import fixtures
 from .review_preparation import validate_packet
 
@@ -47,15 +48,24 @@ def validate_execution(report, packet, *, root):
     return passed
 
 
-def combine(report, packet, *, root, google_response=None):
+def combine(report, packet, *, root, google_response=None, google_record=None):
+    if google_response is not None and google_record is not None:
+        raise StateError('supply one Google evidence representation, never two')
     passed = validate_execution(report, packet, root=root)
     assessment = None if google_response is None else parse_response(google_response, packet, root=root)
+    evidence_format = None if google_response is None else 'RAW_PROVIDER_RESPONSE'
+    evidence_bytes = google_response
+    if google_record is not None:
+        assessment = parse_record(google_record, packet, root=root)
+        evidence_format = 'RECORDED_UNSIGNED_PROVIDER_RESULT'
+        evidence_bytes = canonical(assessment)
     verdict = ('REJECTED' if not passed or (assessment and assessment['assessment']['verdict']=='REJECTED')
                else 'PENDING_GOOGLE' if assessment is None else 'READY_FOR_INDEPENDENT_PUBLICATION_REVIEW')
     return {'status':'UNSIGNED_QA_EVIDENCE_BUNDLE', 'review_status':verdict,
         'candidate_commit':packet['candidate_commit'], 'contract_digest':packet['contract_digest'],
         'packet_digest':packet['packet_digest'], 'local_report_digest':report['report_digest'],
         'local_cases_passed':passed, 'google_assessment':assessment,
-        'google_response_digest':None if google_response is None else 'sha256:'+hashlib.sha256(google_response).hexdigest(),
+        'google_response_digest':None if evidence_bytes is None else 'sha256:'+hashlib.sha256(evidence_bytes).hexdigest(),
+        'google_evidence_format':evidence_format,
         'gate_authority':False, 'production_release_authorized':False,
         'requires':['Trusted executor provenance','Fresh QA lease','Independent signer publication','Controller verification']}

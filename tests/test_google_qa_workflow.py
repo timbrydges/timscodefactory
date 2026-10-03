@@ -101,6 +101,15 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(self.table.item['reservation_status'],{'S':'HELD'})
         self.assertEqual(self.table.item['status'],{'S':'COMPLETE'})
         self.loader.assert_called_once()
+
+    def test_workflow_result_flows_into_independent_qa_bundle_without_a_second_call(self):
+        from factory_runtime.qa_execution import execute
+        from factory_runtime.qa_evidence import combine
+        result=self.run_workflow()
+        bundle=combine(execute(ROOT),self.packet,root=ROOT,google_record=canonical(result['response']))
+        self.assertEqual(bundle['review_status'],'READY_FOR_INDEPENDENT_PUBLICATION_REVIEW')
+        self.assertFalse(bundle['gate_authority'])
+        self.assertEqual(self.transport.send_once.call_count,1)
     def test_tampered_or_wrong_key_signature_never_reaches_reservation(self):
         envelope=self.signed(); envelope['payload']['approved_cap_micro_usd']=60000
         with self.assertRaises(StateError): self.verify(envelope)

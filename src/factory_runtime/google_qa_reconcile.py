@@ -1,14 +1,14 @@
 """Read-only observation of the fixed Google attempt, never permission to retry."""
 import hashlib
-import json
 import re
 from datetime import datetime, timezone
 
 from factory_state.model import StateError
 from factory_state.scope import canonical
-from .google_qa import MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, request_body
+from .google_qa import request_body
+from .google_qa_records import parse_record
 from .google_qa_boundary import ACTIVATION, KEY, TABLE
-from .review_preparation import BINDING, prepare, parse_assessment
+from .review_preparation import prepare
 
 BASE = {'PK', 'SK', 'status', 'request_digest', 'approval_digest', 'source_commit'}
 HOLD = {'pricing_digest', 'reservation_status', 'reserved_micro_usd',
@@ -39,35 +39,9 @@ def _time(value):
 
 
 def _response(raw, packet, root):
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise StateError('duplicate stored Google response field')
-            result[key] = value
-        return result
-    try:
-        if len(raw.encode()) > 20000:
-            raise StateError('stored Google response exceeds bound')
-        value = json.loads(raw, object_pairs_hook=unique)
-        expected = {'assessment', 'provider_family', 'model_id', 'input_tokens',
-                    'output_tokens_including_thinking', 'status', 'gate_authority'}
-        if (not isinstance(value, dict) or set(value) != expected or
-                value['provider_family'] != 'google' or value['model_id'] != MODEL or
-                value['status'] != 'UNAUTHENTICATED_PROVIDER_RESPONSE' or value['gate_authority'] is not False or
-                type(value['input_tokens']) is not int or not 0 <= value['input_tokens'] <= MAX_INPUT_TOKENS or
-                type(value['output_tokens_including_thinking']) is not int or
-                not 0 <= value['output_tokens_including_thinking'] <= MAX_OUTPUT_TOKENS):
-            raise StateError('stored Google response binding differs')
-        assessment = value['assessment']
-        fields = (*BINDING, 'verdict', 'rationale', 'findings')
-        parsed = parse_assessment(canonical({k: assessment[k] for k in fields}), packet, root=root)
-        if canonical(parsed) != canonical(assessment):
-            raise StateError('stored Google assessment differs')
-        return {'response_digest': 'sha256:' + hashlib.sha256(canonical(value)).hexdigest(),
-                'assessment_verdict': parsed['verdict']}
-    except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
-        raise StateError('stored Google response malformed') from None
+    value = parse_record(raw.encode(), packet, root=root)
+    return {'response_digest': 'sha256:' + hashlib.sha256(canonical(value)).hexdigest(),
+            'assessment_verdict': value['assessment']['verdict']}
 
 
 def inspect_item(item, *, root, source_commit, observed_at):

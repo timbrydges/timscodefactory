@@ -61,12 +61,14 @@ These are separate observations. No subscription, key or billing setting changed
 
 ## Remaining live gate
 
-Google's thinking guide documents a combined thought/output cutoff for the
-Interactions API's `max_output_tokens`. The current Factory request uses the
-generateContent API. Its reference describes `maxOutputTokens` as the response
-candidate limit. Do not silently treat an Interactions-specific statement as
-qualification of this request's combined billing envelope. The parser's rejection
-of an excessive response happens after provider work and cannot prevent charges.
+Google's thinking guide and its legacy generate-content thinking page describe a
+combined thought/output cutoff using the name `max_output_tokens`. The latter
+links to the generateContent reference, which describes `maxOutputTokens` as the
+response candidate limit. This additional documentation is relevant, but no
+production pricing/limit qualification has been approved or installed. The saved
+preflight remains unqualified. The parser's rejection of an excessive response
+happens after provider work and cannot prevent charges; never promote that
+post-response check into a pre-request billing guarantee.
 
 Resolve that bound, pin fresh pricing and evidence, authenticate a separate
 owner-approved generation allowance, then wire broker-only credential loading
