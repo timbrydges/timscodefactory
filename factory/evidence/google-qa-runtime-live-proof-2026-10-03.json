@@ -1,0 +1,22 @@
+{
+  "status": "DISABLED_RUNTIME_VERIFIED",
+  "verified_at": "2026-10-03T02:45:16.592045+00:00",
+  "source_commit": "7daa49830e00cc88d3a865ab30ae683b5a6db6fc",
+  "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-google-qa-broker:2",
+  "code_sha256": "ZrvgkTTFP5M2XR+0rN8jgWUGMIATTHUjpfchLLV9+O4=",
+  "old_version_preserved": true,
+  "iam_unchanged": true,
+  "attempt_unused": true,
+  "billing_policy": "UNLINKED_FREE_TIER",
+  "probe": {
+    "status": "GOOGLE_QA_BROKER_DISABLED",
+    "source_commit": "7daa49830e00cc88d3a865ab30ae683b5a6db6fc",
+    "activation_id": "google-qa-pilot-001",
+    "model_calls": 0,
+    "secret_reads": 0,
+    "ledger_writes": 0,
+    "task_state_writes": 0,
+    "gate_authority": false,
+    "production_release_authorized": false
+  }
+}
