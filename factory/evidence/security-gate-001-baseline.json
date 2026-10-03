@@ -1,0 +1,73 @@
+{
+  "active_lease_ids": [],
+  "consumed_evidence_ids": [
+    "inspection-import-57d8a1fc1206cd08090740e06c19db4372ba58fcac89b0deea25328e6e15ca3a",
+    "qa-gate-78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+    "result-86385b7aa783f6abdaa6f28b36da94febbff35c9dd319596e0b6e73fe32a9cc3",
+    "result-ebaf36c94d64d2f29264b50db68410225e767a07ac06819d9ee6a71efb608c0f"
+  ],
+  "factory_id": "tims-software-factory",
+  "leases": [
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T05:12:55.724079+00:00",
+      "lease_id": "auto-907d1e109b687c151afd34bb",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T14:08:55.003799+00:00",
+      "lease_id": "auto-a556ef20cb130af81d499834",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T15:09:26.675195+00:00",
+      "lease_id": "auto-2d4afbbe6af947b1cbb9591a",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T16:09:29.658179+00:00",
+      "lease_id": "auto-293f756b834378cb84d1300f",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T16:58:19.246972+00:00",
+      "lease_id": "auto-c9bdf39bce7d10f559cd2a47",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "engineering_agent_service",
+      "expires_at": "2026-10-02T17:58:47.279183+00:00",
+      "lease_id": "auto-b27cda3ebe97296d2dfe9c73",
+      "revoked": true,
+      "role_id": "engineering_agent"
+    },
+    {
+      "authoritative_identity": "independent_inspector_service",
+      "expires_at": "2026-10-03T03:01:53+00:00",
+      "lease_id": "inspection-import-014",
+      "revoked": true,
+      "role_id": "independent_inspector"
+    },
+    {
+      "authoritative_identity": "qa_engineer_service",
+      "expires_at": "2026-10-03T14:20:46+00:00",
+      "lease_id": "qa-gate-001",
+      "revoked": true,
+      "role_id": "qa_engineer"
+    }
+  ],
+  "state": "SECURITY_REVIEW",
+  "task_id": "deterministic-text-fingerprint",
+  "updated_at": "2026-10-03T13:21:40.037195+00:00",
+  "updated_by": "factory_controller_service",
+  "version": 14
+}
