@@ -1,0 +1,42 @@
+{
+  "kind": "google_qa_live_pilot_proof",
+  "activation_id": "google-qa-pilot-001",
+  "source_commit": "7daa49830e00cc88d3a865ab30ae683b5a6db6fc",
+  "version_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-google-qa-broker:3",
+  "code_sha256": "ZrvgkTTFP5M2XR+0rN8jgWUGMIATTHUjpfchLLV9+O4=",
+  "signing_workflow_run": 37091502510,
+  "pre_signing_dependency_failure_run": 37091323970,
+  "maximum_provider_calls": 1,
+  "provider_calls": 1,
+  "retries": 0,
+  "billing_account_linked": false,
+  "google_api_budget_usd": "0.00",
+  "latest_enable_flag": false,
+  "reserved_concurrency_after": 0,
+  "signing_workflow_enabled_after": false,
+  "reconciliation": {
+    "activation_id": "google-qa-pilot-001",
+    "expected_source_commit": "7daa49830e00cc88d3a865ab30ae683b5a6db6fc",
+    "request_digest": "sha256:70481ccd828f7eca1ce98615d0caf8cb0a1342b13cefa7074d0d90f2433b32ef",
+    "observed_at": "2026-10-03T02:57:40.890869+00:00",
+    "retry_authorized": false,
+    "generation_authorized": false,
+    "reservation_released": false,
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "billing_mode": "UNLINKED_FREE_TIER",
+    "reserved_micro_usd": 0,
+    "approved_cap_micro_usd": 0,
+    "approval_or_pricing_expired": false,
+    "response_digest": "sha256:6c35b3baf385e5104a42d4a88c690528ca9e35203d8080dd50842c208a985dcc",
+    "assessment_verdict": "ACCEPTED",
+    "status": "COMPLETE_UNSIGNED_HOLD_RETAINED"
+  },
+  "invocation": {
+    "StatusCode": 200,
+    "ExecutedVersion": "3"
+  },
+  "combined_bundle_digest": "sha256:b791272dae9b875a6d4282f17d2e7f8a3548ec051ec4b058b4173b0a53cc967f",
+  "gate_authority": false,
+  "production_release_authorized": false
+}
