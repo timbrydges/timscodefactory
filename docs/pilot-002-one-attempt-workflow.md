@@ -32,7 +32,9 @@ The injected deployment-owned adapter must construct a deterministic complete
 request, send only to its fixed approved provider endpoint with no automatic
 retry or redirect, and validate the provider's model identity, finish reason,
 all billed usage and actual cost. The workflow does not implement or qualify
-these provider protocols. Its transport-invocation count is not independent
+live provider adapters. Offline serialization and parsing are described in
+`pilot-002-provider-protocols.md`; they do not authenticate responses or qualify
+costs. Its transport-invocation count is not independent
 proof of an external provider's billing. Credential lifetime and timeout controls
 belong to the future reviewed broker implementation.
 
