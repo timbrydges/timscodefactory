@@ -43,11 +43,12 @@ def proposal(root, *, source_commit, billing, now):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('billing_evidence',type=Path); parser.add_argument('output',type=Path)
+    parser.add_argument('--target-source-commit',help='Exact verified deployed source; defaults to this checkout')
     args=parser.parse_args()
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip():
         raise RuntimeError('allowance preparation requires clean reviewed source')
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    payload=proposal(ROOT,source_commit=commit,billing=json.loads(args.billing_evidence.read_bytes()),now=datetime.now(timezone.utc))
+    payload=proposal(ROOT,source_commit=args.target_source_commit or commit,billing=json.loads(args.billing_evidence.read_bytes()),now=datetime.now(timezone.utc))
     with args.output.open('x',encoding='utf-8') as stream: json.dump(payload,stream,indent=2)
     print(json.dumps({'status':'UNSIGNED_NOT_AUTHORIZED','payload_digest':digest(payload),
         'maximum_cost_usd':'0.00','maximum_provider_calls':1,'retries':0,'expires_at':payload['expires_at']}))
