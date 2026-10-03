@@ -1,5 +1,11 @@
 # Google QA preflight approval boundary
 
+Completed after owner approval: the exact model was available and the full
+request counted 2,931 input tokens. Two HTTP requests, zero retries and zero
+generation calls are recorded in
+`factory/evidence/google-qa-preflight-live-proof-2026-10-03.json`.
+Do not rerun preflight 001. Next safeguards: `docs/google-qa-reservation.md`.
+
 The next external action is qualification, not generation. Offline preparation
 reconstructs the pinned candidate, contract, system instruction and output schema.
 The countTokens request embeds the complete generateContentRequest including its

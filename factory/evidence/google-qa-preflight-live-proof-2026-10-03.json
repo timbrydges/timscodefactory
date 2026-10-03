@@ -1,0 +1,19 @@
+{
+  "status": "PREFLIGHT_OBSERVED_NOT_GENERATION_AUTHORIZED",
+  "source_commit": "b52a4e439d18289ea3b921b03cdd0ff31ff4086a",
+  "count_request_sha256": "27d5d779de3a1857bb675b04a4ea491c78e98a37c71755d41ef117aefa8a8b62",
+  "started_at": "2026-10-03T00:53:57.443832+00:00",
+  "generation_calls": 0,
+  "model": {
+    "name": "models/gemini-3.8-flash",
+    "inputTokenLimit": 1048576,
+    "outputTokenLimit": 65536
+  },
+  "input_tokens": 2931,
+  "generation_request_sha256": "70481ccd828f7eca1ce98615d0caf8cb0a1342b13cefa7074d0d90f2433b32ef",
+  "http_requests": 2,
+  "retries": 0,
+  "output_thinking_cap_qualified": false,
+  "budget_reserved": false,
+  "gate_authority": false
+}
