@@ -7,7 +7,7 @@ is not held. Competing callers and the older attempt-only primitive collide on
 the same key. A timeout keeps the outcome uncertain; it never triggers a retry,
 refund, deletion, alternate activation key or new claim.
 
-Amounts use integer micro-USD, require a positive reservation at or below the
+Paid amounts use integer micro-USD, require a positive reservation at or below the
 approved cap, and reject booleans/floats. A conservative storage ceiling of USD 1
 is a rejection limit, not an allowance. Approval and pricing digests, expiry
 timestamps, source and request hashes are bound into the row. Expiry prevents
@@ -53,9 +53,9 @@ handler remains `google_qa_boundary.handler`. With the flag false, the adapter
 delegates to the existing disabled probe. Its enabled branch requires a source-
 pinned activation manifest, qualified pricing, a hash-pinned enrolled signer
 registry, and an exact source-bound signed allowance before creating AWS clients.
-The pricing window cannot outlive the owner's enrollment. No production manifest
-or pin exists: `ACTIVE_MANIFEST_SHA256` is intentionally None. Events and environment
-variables cannot override it. A reviewed activation change is still required.
+The policy window cannot outlive the owner's enrollment. A free-tier-only manifest
+is now pinned; events and environment variables cannot override it. It authorizes
+no generation by itself and does not qualify the disputed combined token cutoff.
 
 After authorization, the adapter requires the exact isolated broker role in the
 expected AWS account, uses clients with retries disabled, reserves the fixed
@@ -80,6 +80,28 @@ Free tier and Set up billing; Thought Engine displayed Tier 1 / Prepay.
 These are separate observations. No subscription, key or billing setting changed.
 
 ## Remaining live gate
+
+The project billing console was checked directly on 2026-10-03 and displayed no
+linked billing account for `gen-lang-client-0247455615`. The new alternative is
+therefore a FREE-TIER-ONLY pilot with a USD 0.00 cap and reservation. It still
+atomically claims the same one-attempt ledger key; it is not an unmetered bypass.
+A paid policy cannot use zero amounts, and a free policy cannot use paid rates.
+
+Before signing an allowance, the operator must verify that exact project's
+billing page again and bind the saved evidence digest and observation time into
+the signed owner receipt. The receipt expires no later than 300 seconds after
+the billing observation. Linked billing, stale/future observations, a different
+project, nonzero dollar caps and missing evidence are rejected. The runtime
+authenticates this owner attestation; it does not independently query Google
+Cloud Billing. Concurrent external billing changes are outside this control, so
+no billing linkage or paid fallback is permitted during the pilot. If free-tier
+capacity is unavailable, the one attempt fails and is not retried.
+
+The pinned free-tier policy expires at 2026-10-04 02:30 UTC. Fresh human approval,
+fresh billing verification, source-bound owner signing and deployment verification
+are still required before the one generation request. The billing screenshot and
+policy evidence are recorded without any credential value. This mode resolves
+the pilot's spending path without claiming to resolve Google's token-limit bug.
 
 Google's thinking guide and its legacy generate-content thinking page describe a
 combined thought/output cutoff using the name `max_output_tokens`. The latter

@@ -7,4 +7,6 @@ if __name__ == '__main__':
         'factory/evidence/builder-006-pending-implementation-inspection.json',
         'factory/evidence/inspector-014-signed-implementation-review-2026-10-02.json',
         'factory/evidence/qa-security-bootstrap-live-proof-2026-10-02.json',
-        'factory/evidence/google-qa-credential-setup-2026-10-02.json'))
+        'factory/evidence/google-qa-credential-setup-2026-10-02.json',
+        'factory/evidence/google-qa-runtime-activation.json',
+        'factory/evidence/google-qa-free-tier-policy-evidence-2026-10-03.json'))

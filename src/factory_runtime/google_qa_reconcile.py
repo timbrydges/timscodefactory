@@ -13,6 +13,7 @@ from .review_preparation import prepare
 BASE = {'PK', 'SK', 'status', 'request_digest', 'approval_digest', 'source_commit'}
 HOLD = {'pricing_digest', 'reservation_status', 'reserved_micro_usd',
         'approved_cap_micro_usd', 'claimed_at', 'approval_expires_at', 'pricing_expires_at'}
+FREE = {'billing_mode','billing_evidence_digest','billing_verified_at'}
 
 
 def _field(item, name, kind='S'):
@@ -62,22 +63,32 @@ def inspect_item(item, *, root, source_commit, observed_at):
         raise StateError('Google ledger key differs')
     status = _field(item, 'status')
     held = bool(set(item) & HOLD)
-    expected_fields = BASE | (HOLD if held else set()) | ({'response'} if status == 'COMPLETE' else set())
+    free = bool(set(item) & FREE)
+    expected_fields = BASE | (HOLD if held else set()) | (FREE if free else set()) | ({'response'} if status == 'COMPLETE' else set())
     if (status not in ('STARTED', 'COMPLETE') or set(item) != expected_fields or
             _field(item, 'source_commit') != source_commit or _field(item, 'request_digest') != digest):
         raise StateError('Google ledger scope or shape differs; manual reconciliation required')
+    if free and not held:
+        raise StateError('Google free-tier record requires an atomic claim')
     _digest(_field(item, 'approval_digest'))
     if held:
         _digest(_field(item, 'pricing_digest'))
         amounts = [_field(item, k, 'N') for k in ('reserved_micro_usd', 'approved_cap_micro_usd')]
-        if (any(not re.fullmatch('[1-9][0-9]{0,6}', n) for n in amounts) or
-                not 0 < int(amounts[0]) <= int(amounts[1]) <= 1000000 or
+        if (any(not re.fullmatch('0|[1-9][0-9]{0,6}', n) for n in amounts) or
+                not (amounts == ['0','0'] if free else 0 < int(amounts[0]) <= int(amounts[1]) <= 1000000) or
                 _field(item, 'reservation_status') != 'HELD'):
             raise StateError('Google ledger reservation differs')
         claimed, approval, pricing = [_time(_field(item, k)) for k in
             ('claimed_at', 'approval_expires_at', 'pricing_expires_at')]
         if claimed >= min(approval, pricing) or claimed > observed_at:
             raise StateError('Google ledger claim time differs')
+        if free:
+            billing_time = _time(_field(item,'billing_verified_at'))
+            _digest(_field(item,'billing_evidence_digest'))
+            if (_field(item,'billing_mode') != 'UNLINKED_FREE_TIER' or
+                    not billing_time.timestamp() <= claimed.timestamp() < approval.timestamp() <= billing_time.timestamp()+300):
+                raise StateError('Google free-tier ledger billing evidence differs')
+            result['billing_mode'] = 'UNLINKED_FREE_TIER'
         result.update(reserved_micro_usd=int(amounts[0]), approved_cap_micro_usd=int(amounts[1]),
                       approval_or_pricing_expired=observed_at >= min(approval, pricing))
     if status == 'COMPLETE':

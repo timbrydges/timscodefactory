@@ -106,5 +106,18 @@ class BrokerRuntimeTests(unittest.TestCase):
             with self.assertRaises(StateError): runtime.handler(self.event,None)
         self.factory.assert_not_called()
 
+    def test_free_tier_proposal_signs_and_runs_only_under_fixture_authority(self):
+        from prepare_google_qa_free_allowance import proposal
+        self.f.free_tier(); self.manifest['pricing']=self.f.pricing
+        raw=json.dumps(self.manifest).encode(); (self.root/runtime.MANIFEST).write_bytes(raw)
+        with patch.object(runtime,'ACTIVE_MANIFEST_SHA256',hashlib.sha256(raw).hexdigest()):
+            self.f.payload=proposal(self.root,source_commit=self.f.source,
+                billing=self.f.payload['billing_evidence'],now=self.f.now)
+            self.event['allowance']=self.f.signed()
+            result=self.run_broker()
+            self.assertEqual(result['status'],'GOOGLE_QA_COMPLETE_UNSIGNED')
+            self.assertEqual(self.f.table.item['approved_cap_micro_usd'],{'N':'0'})
+            self.assertEqual(self.f.transport.send_once.call_count,1)
+
 
 if __name__=='__main__': unittest.main()

@@ -92,6 +92,50 @@ class WorkflowTests(unittest.TestCase):
         return verify(self.signed() if envelope is None else envelope,packet=self.packet,root=ROOT,
             source_commit=self.source,pricing=self.pricing,trusted_keys=self.keys,now=self.now)
 
+    def free_tier(self):
+        self.pricing.update(kind='google_qa_free_tier_policy',combined_output_bound_qualified=False,
+            billing_mode='UNLINKED_FREE_TIER',google_project='gen-lang-client-0247455615',
+            input_micro_usd_per_million_tokens=0,output_micro_usd_per_million_tokens=0)
+        self.payload.update(pricing_digest=digest(self.pricing),reserved_micro_usd=0,approved_cap_micro_usd=0,
+            expires_at=int(self.now.timestamp())+300,billing_evidence={
+                'google_project':'gen-lang-client-0247455615','billing_account_linked':False,
+                'observed_at':int(self.now.timestamp()),'evidence_digest':'sha256:'+'e'*64})
+
+    def test_free_tier_zero_dollar_claim_is_bound_and_reconcilable(self):
+        from factory_runtime.google_qa_reconcile import inspect_item
+        self.free_tier(); self.run_workflow()
+        self.assertEqual(self.table.item['reserved_micro_usd'],{'N':'0'})
+        self.assertEqual(self.table.item['billing_mode'],{'S':'UNLINKED_FREE_TIER'})
+        # Mock ledger omits the response; inspect its still-valid STARTED form.
+        item={**self.table.item,'status':{'S':'STARTED'}}
+        result=inspect_item(item,root=ROOT,source_commit=self.source,observed_at=self.now+timedelta(hours=1))
+        self.assertEqual(result['billing_mode'],'UNLINKED_FREE_TIER')
+        self.assertFalse(result['retry_authorized'])
+        with self.assertRaises(StateError): self.run_workflow()
+        self.assertEqual(self.transport.send_once.call_count,1)
+
+    def test_free_tier_linked_stale_future_wrong_project_and_nonzero_cap_rejected(self):
+        self.free_tier(); original=copy.deepcopy(self.payload)
+        for field,value in [('billing_account_linked',True),('observed_at',int(self.now.timestamp())-301),
+                            ('observed_at',int(self.now.timestamp())+1),('google_project','other'),('evidence_digest','bad')]:
+            self.payload=copy.deepcopy(original); self.payload['billing_evidence'][field]=value
+            with self.subTest(field=field),self.assertRaises(StateError): self.run_workflow()
+            self.assertEqual(self.events,[])
+        self.payload=copy.deepcopy(original); self.payload['approved_cap_micro_usd']=1
+        with self.assertRaises(StateError): self.run_workflow()
+        self.assertEqual(self.events,[])
+
+    def test_free_tier_cannot_disguise_paid_prices_or_unbound_zero_reservations(self):
+        self.free_tier(); self.pricing['output_micro_usd_per_million_tokens']=1
+        self.payload['pricing_digest']=digest(self.pricing)
+        with self.assertRaises(StateError): self.run_workflow()
+        self.assertEqual(self.events,[])
+        self.free_tier(); args=self.verify()
+        for field in ('billing_evidence_digest','billing_verified_at'):
+            bad={**args}; del bad[field]
+            with self.assertRaises(StateError): self.store.begin(**bad)
+        self.assertIsNone(self.table.item)
+
     def test_signed_workflow_orders_effects_and_retains_hold(self):
         result=self.run_workflow()
         self.assertEqual(self.events,['reserve','credential','provider','complete'])
