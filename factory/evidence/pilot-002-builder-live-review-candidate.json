@@ -1,0 +1,230 @@
+{
+  "status": "UNSIGNED_REVIEW_CANDIDATE_NOT_AUTHORIZATION",
+  "prepared_at": "2026-10-03T22:58:12.088386+00:00",
+  "expires_at_utc": "2026-10-03T23:45:28+00:00",
+  "activation": {
+    "schema_version": "1.0",
+    "role": "builder",
+    "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+    "qualification": {
+      "kind": "pilot002_provider_rate_qualification",
+      "role": "builder",
+      "model_id": "gpt-5.6-sol",
+      "task_id": "safe-workspace-fingerprint-001",
+      "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+      "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+      "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+      "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+      "currency": "USD",
+      "complete_request_bound_qualified": true,
+      "combined_output_bound_qualified": true,
+      "standard_text_only_no_cache_rates": true,
+      "input_token_bound": 32768,
+      "output_token_bound": 4096,
+      "input_micro_usd_per_million": 4000000,
+      "output_micro_usd_per_million": 20000000,
+      "issued_at": 1791068292,
+      "expires_at": 1791152928,
+      "evidence_digest": "sha256:d2c9db658bab597428854dbb99bacbae1a5de59135dfca541bbcbc98374f57d9"
+    },
+    "readiness": {
+      "kind": "pilot002_builder_first_generation_readiness",
+      "role": "builder",
+      "model_id": "gpt-5.6-sol",
+      "task_id": "safe-workspace-fingerprint-001",
+      "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+      "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+      "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+      "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+      "credential_route_verified": true,
+      "model_access_verified": false,
+      "repository_binding_verified": true,
+      "model_metadata_verified": true,
+      "first_generation_failure_risk_accepted": true,
+      "issued_at": 1791068292,
+      "expires_at": 1791071128,
+      "evidence_digest": "sha256:0968c753a6b4749571db5632c10739961a6e1e31fe49193985305bd8a0c744d4"
+    },
+    "signer_registry": {
+      "schema_version": "1.0",
+      "enabled": true,
+      "signers": [
+        {
+          "identity": "tim_brydges",
+          "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA5BQtC6yBhasAz7A4tZgh+5tX9Z5t+xtvUR5OrHxPREs=\n-----END PUBLIC KEY-----\n",
+          "fingerprint": "sha256:1e3436db052d4812f762a43ae34f48d99403d01da86c3aad049381e1c80821ea",
+          "enrollment_commit": "1fb5b37106bdf2a29defa0d95d0bc657dfcc9ab5",
+          "not_before": 1790035200,
+          "expires_at": 1797811200,
+          "revoked": false
+        }
+      ]
+    },
+    "credential": {
+      "kind": "secretsmanager",
+      "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+      "version_id": "ebb6cc21-2df9-4b06-8f55-2b0661f27f69",
+      "json_key": null
+    },
+    "builder_response_base64": null,
+    "candidate_commit": null
+  },
+  "activation_sha256": "ba34487e5726356ecde8fd07212ed6aaf7a32292b591ed4018455881d9a4cf7e",
+  "allowance_payload": {
+    "kind": "pilot002_exact_request_allowance",
+    "owner_identity": "tim_brydges",
+    "role": "builder",
+    "model_id": "gpt-5.6-sol",
+    "task_id": "safe-workspace-fingerprint-001",
+    "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+    "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+    "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "pricing_digest": "sha256:aa20c964e2df2248878be1b57557f6801cf3ed2613a33f45a09523c39aaed02f",
+    "readiness_digest": "sha256:25f7179a8c8b36c318c5ccfd2bdd285482c7753365026240628735927f93c40b",
+    "reserved_micro_usd": 250000,
+    "approved_cap_micro_usd": 250000,
+    "maximum_provider_calls": 1,
+    "retries": 0,
+    "task_state_writes": 0,
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "issued_at": 1791068292,
+    "expires_at": 1791071128
+  },
+  "allowance_payload_digest": "sha256:68d4400d84f7a37207680eabe791b18a579855ae8fb2a47c1e6f750f2067cc04",
+  "pricing": {
+    "kind": "pilot002_qualified_request_cost_bound",
+    "role": "builder",
+    "model_id": "gpt-5.6-sol",
+    "task_id": "safe-workspace-fingerprint-001",
+    "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+    "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+    "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "currency": "USD",
+    "complete_request_bound_qualified": true,
+    "maximum_cost_micro_usd": 212992,
+    "issued_at": 1791068292,
+    "expires_at": 1791152928,
+    "evidence_digest": "sha256:3e6dfc5a2e4600ed2a991874a049349448e204a63e5ae7861f1bfe91f1ace8d1"
+  },
+  "evidence": {
+    "repository": {
+      "status": "EXACT_BASELINE_SOURCE_VERIFIED",
+      "observed_at": "2026-10-03T22:45:28.868413+00:00",
+      "repository": "timbrydges/tims-factory-autonomy-acceptance",
+      "commit": "1c876ac42305fb9295424759424a74263e4fc330",
+      "files_sha256": {
+        "fingerprint.py": "6db5d19de4ce05dd96a2f2f8de0cf45cf4345e291b7c775a7c789ec68917df31",
+        "tests/test_fingerprint.py": "75c03cb5d882be59e98ee48b897b818d99e9adf9a5c13190ed1b931505f8e7fa"
+      },
+      "executed": false
+    },
+    "runtime": {
+      "status": "BUILDER_STAGE_DEPLOYED_VERIFIED_DISABLED",
+      "observed_at": "2026-10-03T22:57:24.012983+00:00",
+      "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+      "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-builder-stage-20261003-001/6aa76c36-1674-44c8-a3b1-b2948e3f7cf2",
+      "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+      "stack_status": "UPDATE_COMPLETE",
+      "template_sha256": "fd9b1ad173327dd21ad0ce8baa4799f8dbcaa3eb54dd9cae9e0be55be65d9d2b",
+      "functions": {
+        "builder": {
+          "FunctionName": "tims-factory-pilot-002-builder",
+          "CodeSha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+          "Handler": "factory_runtime.pilot002_entrypoint.handler",
+          "Timeout": 180,
+          "State": "Active",
+          "LastUpdateStatus": "Successful",
+          "RevisionId": "a76a9b8a-7f59-4b3d-8ecf-ae8d14291968",
+          "execution_enabled": false,
+          "reserved_concurrency": 0
+        },
+        "inspector": {
+          "FunctionName": "tims-factory-pilot-002-inspector",
+          "CodeSha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+          "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+          "Timeout": 30,
+          "State": "Active",
+          "LastUpdateStatus": "Successful",
+          "RevisionId": "876ccd65-9939-47d1-a67b-bd1c52fb7173",
+          "execution_enabled": false,
+          "reserved_concurrency": 0
+        },
+        "qa": {
+          "FunctionName": "tims-factory-pilot-002-qa",
+          "CodeSha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+          "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+          "Timeout": 30,
+          "State": "Active",
+          "LastUpdateStatus": "Successful",
+          "RevisionId": "23285372-9fd9-43fa-8b73-c374ff8dccf2",
+          "execution_enabled": false,
+          "reserved_concurrency": 0
+        }
+      },
+      "attempt_rows_present": 0,
+      "provider_calls": 0,
+      "credential_reads": 0,
+      "signatures_created": 0
+    },
+    "credential_metadata": {
+      "status": "CREDENTIAL_METADATA_AUDIT_COMPLETE_NOT_ACTIVATION",
+      "observed_at": "2026-10-03T21:56:55.710164+00:00",
+      "roles": {
+        "builder": {
+          "role": "builder",
+          "model_id": "gpt-5.6-sol",
+          "status": "AUTHENTICATED_MODEL_METADATA_OBSERVED",
+          "http_requests": 1,
+          "generation_requests": 0,
+          "live_generation_readiness": false,
+          "project_binding_verified": false,
+          "credential_format": "raw",
+          "http_status": 200
+        },
+        "qa": {
+          "role": "qa",
+          "model_id": "gemini-3.8-flash",
+          "status": "AUTHENTICATED_MODEL_METADATA_OBSERVED",
+          "http_requests": 1,
+          "generation_requests": 0,
+          "live_generation_readiness": false,
+          "project_binding_verified": false,
+          "credential_format": "raw",
+          "http_status": 200
+        }
+      },
+      "generation_requests": 0,
+      "attempt_claims": 0,
+      "model_budget_used_micro_usd": 0,
+      "google_project_binding_verified": false
+    },
+    "token_observation": {
+      "status": "INPUT_TOKEN_COUNT_OBSERVED",
+      "generation_request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+      "count_request_digest": "sha256:38c472c1a4ad1f13af352ef96b1c77f8ba2bc14ede8c081a9d9b10b4cd1622ad",
+      "http_requests": 1,
+      "generation_requests": 0,
+      "cost_qualified": false,
+      "live_execution_authorized": false,
+      "http_status": 200,
+      "input_tokens": 2636,
+      "source_commit": "60427c8a1453a956fd7c22a388d7d4f921ebe6c7",
+      "observed_at": "2026-10-03T22:28:48.898333+00:00",
+      "attempt_claims": 0
+    }
+  },
+  "package_material_validation": {
+    "activation_sha256": "ba34487e5726356ecde8fd07212ed6aaf7a32292b591ed4018455881d9a4cf7e",
+    "role": "builder",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "material_expires_at": 1791071128,
+    "signed_allowance_included": false,
+    "activation_authorized": false
+  },
+  "kms_key_arn": "arn:aws:kms:ca-central-1:666730517561:key/4cdc8470-77f4-4c5a-a772-7b379f34fbbb",
+  "signature_created": false,
+  "provider_calls": 0
+}

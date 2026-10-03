@@ -1,0 +1,48 @@
+{
+  "status": "BUILDER_STAGE_DEPLOYED_VERIFIED_DISABLED",
+  "observed_at": "2026-10-03T22:57:24.012983+00:00",
+  "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-builder-stage-20261003-001/6aa76c36-1674-44c8-a3b1-b2948e3f7cf2",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "stack_status": "UPDATE_COMPLETE",
+  "template_sha256": "fd9b1ad173327dd21ad0ce8baa4799f8dbcaa3eb54dd9cae9e0be55be65d9d2b",
+  "functions": {
+    "builder": {
+      "FunctionName": "tims-factory-pilot-002-builder",
+      "CodeSha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+      "Handler": "factory_runtime.pilot002_entrypoint.handler",
+      "Timeout": 180,
+      "State": "Active",
+      "LastUpdateStatus": "Successful",
+      "RevisionId": "a76a9b8a-7f59-4b3d-8ecf-ae8d14291968",
+      "execution_enabled": false,
+      "reserved_concurrency": 0
+    },
+    "inspector": {
+      "FunctionName": "tims-factory-pilot-002-inspector",
+      "CodeSha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "Timeout": 30,
+      "State": "Active",
+      "LastUpdateStatus": "Successful",
+      "RevisionId": "876ccd65-9939-47d1-a67b-bd1c52fb7173",
+      "execution_enabled": false,
+      "reserved_concurrency": 0
+    },
+    "qa": {
+      "FunctionName": "tims-factory-pilot-002-qa",
+      "CodeSha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "Timeout": 30,
+      "State": "Active",
+      "LastUpdateStatus": "Successful",
+      "RevisionId": "23285372-9fd9-43fa-8b73-c374ff8dccf2",
+      "execution_enabled": false,
+      "reserved_concurrency": 0
+    }
+  },
+  "attempt_rows_present": 0,
+  "provider_calls": 0,
+  "credential_reads": 0,
+  "signatures_created": 0
+}
