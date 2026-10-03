@@ -48,6 +48,21 @@ reject that preview and use an additive version resource instead. Pin the packag
 S3 version and code hash; verify the deployed version
 before one synchronous execution without retries. Results remain unsigned.
 
+`scripts/prepare_qa_execution_deployment.py CURRENT_TEMPLATE PACKAGE_MANIFEST
+OUTPUT --object-version VERSION` now prepares that additive update offline.
+It pins the package digest and immutable S3 object version, derives a new version
+logical ID from the package hash, and preserves all existing parameters, outputs
+and resources except the QA function's Code, Handler and Timeout. An existing
+version for the same package is rejected instead of recreated.
+
+Before execution, use its `validate_changes` function with the actual proposed
+template from CloudFormation, the complete DescribeChangeSet response and exact
+stack ARN. All existing parameters must use their previous values. Only an
+in-place QA function update and one added version are accepted; replacements,
+deletions, permission changes, partial pages, duplicated changes and changed
+templates are rejected. This validator does not create or execute a change set,
+prove package contents, invoke QA, sign evidence or authorize a model call.
+
 ## Observed AWS execution
 
 The evidence in `factory/evidence/qa-execution-live-proof-2026-10-03.json`
