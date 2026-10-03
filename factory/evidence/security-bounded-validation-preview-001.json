@@ -1,0 +1,88 @@
+{
+  "scope": "fixed-candidate-synthetic-fixtures-only",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "packet_digest": "sha256:401d2cccb7066e68256cbd951bb5e32b2ce4b5429cf8cf224f47d90bd09c3185",
+  "source_sha256": "6db5d19de4ce05dd96a2f2f8de0cf45cf4345e291b7c775a7c789ec68917df31",
+  "runner_sha256": "05ce34e540bf8055d37fc99880efa9344a18ed9a69ed04fb38076d82c5d77001",
+  "static_payload_digest": "sha256:e8346508846688c8d925b2cf753c65e1961649c05d26d5a3c28ccc876047b45a",
+  "findings": [
+    {
+      "id": "unrestricted-input-path",
+      "disposition": "requires-caller-isolation",
+      "detail": "The CLI opens the supplied path and follows symlinks. It does not restrict reads to a workspace."
+    },
+    {
+      "id": "blocking-special-files",
+      "disposition": "requires-host-timeout",
+      "detail": "The byte limit does not bound open/read time; a FIFO or device may block. No regular-file check or timeout is present."
+    },
+    {
+      "id": "input-disclosure",
+      "disposition": "requires-output-handling",
+      "detail": "Successful JSON output includes the entire decoded input. Callers must prevent sensitive file inputs and unintended output disclosure."
+    }
+  ],
+  "controls": {
+    "caller_paths_accepted": false,
+    "caller_bytes_accepted": false,
+    "private_temporary_directory": true,
+    "regular_files_only": true,
+    "child_environment": "minimal-no-provider-credentials",
+    "process_timeout_seconds": 5,
+    "candidate_source": "exact-reviewed-sha256",
+    "raw_output_published": false,
+    "os_sandbox_claimed": false,
+    "production_use_authorized": false
+  },
+  "limitations": [
+    "Controls apply only to the closed synthetic acceptance runner",
+    "No general filesystem sandbox or unrestricted CLI safety is established",
+    "Input echo remains required by the contract; only synthetic data is used here"
+  ],
+  "model_calls": 0,
+  "task_state_writes": 0,
+  "gate_authority": false,
+  "production_release_authorized": false,
+  "status": "BOUNDED_VALIDATION_PASSED",
+  "cases": [
+    {
+      "case": "public-ascii",
+      "input_sha256": "d3b26e1f1ce13bde26578063b679fab4dbba401f23bc8ed938f8f4d5713f5048",
+      "input_bytes": 15,
+      "expected_success": true,
+      "passed": true
+    },
+    {
+      "case": "public-unicode",
+      "input_sha256": "9f26c91bb2f9622c1bffa4aa5a04eedfe42306ad508c763a6ee42de13fe370fb",
+      "input_bytes": 14,
+      "expected_success": true,
+      "passed": true
+    },
+    {
+      "case": "byte-boundary",
+      "input_sha256": "a2e659dacb4691e887ac0139f8893d04764ee197d70fb73d3190d56113d18e3e",
+      "input_bytes": 4096,
+      "expected_success": true,
+      "passed": true
+    },
+    {
+      "case": "oversized",
+      "input_sha256": "3e97197f4b8d46a893067c94ab15e195e3d97fb5f24eede5ef047b571240d92b",
+      "input_bytes": 4097,
+      "expected_success": false,
+      "passed": true
+    },
+    {
+      "case": "invalid-utf8",
+      "input_sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+      "input_bytes": 1,
+      "expected_success": false,
+      "passed": true
+    }
+  ],
+  "case_count": 5,
+  "candidate_executions": 5,
+  "report_digest": "sha256:555a3933174887d59c5133d6b28ad6c2e858132f7af3a16d40dcec586cb890fa"
+}
