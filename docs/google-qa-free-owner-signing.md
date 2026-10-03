@@ -22,6 +22,16 @@ exact proposal, active enrollment, caller role, public key, and returned signatu
 It does not assume a role or expand IAM/KMS access. Its output starts with an exclusive
 uncertainty marker; never automatically rerun signing after an error.
 
+The existing `factory-owner-signing` GitHub workflow is the approved role entry point.
+Its separate `sign_google_free_allowance` job remains disabled unless
+`FACTORY_GOOGLE_FREE_SIGNING_ENABLED` is explicitly enabled after owner approval.
+Pass the proposal as base64, its approved digest, and the verified deployed source.
+Inputs enter through environment variables, never interpolated shell commands.
+The job accepts only the owner actor on main, production environment, first run attempt.
+It returns a short-lived signed artifact and never invokes the broker. Disable its
+repository gate after the authorized run. Expired or uncertain results do not allow
+an automatic signing rerun or a second provider request.
+
 Signing is separate from invocation. Enabling the broker and publishing an enabled
 immutable version require the approved one-call procedure. A disabled immutable version
 cannot be enabled in place. Invoke only the verified enabled version once, with SDK
