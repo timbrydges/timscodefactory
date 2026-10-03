@@ -1,0 +1,248 @@
+{
+  "status": "ACCESS_PREVIEW_VALIDATED_NOT_EXECUTED",
+  "new_policies": 3,
+  "existing_resources_changed": 0,
+  "execution_enabled": false,
+  "reserved_concurrency": 0,
+  "provider_calls": 0,
+  "observed_at": "2026-10-03T21:36:24.183757+00:00",
+  "preparation_commit": "2e9d1195b3b3963d6f628054eb3df7bc296eb46a",
+  "change_set_id": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-access-20261003-001/a07292a5-f84a-4610-92de-e4697036d025",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "template_sha256": "2a27d3cfd0d18580f12c32bac6ac4d4f89c2eccbc3f95cad58ef0dbbb575fc5d",
+  "iam_simulations": [
+    {
+      "role": "builder",
+      "case": "own-dynamodb:PutItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "builder",
+      "case": "own-dynamodb:UpdateItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "builder",
+      "case": "other-role",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "missing-key-context",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "delete-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "scan-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "own-dynamodb:PutItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "inspector",
+      "case": "own-dynamodb:UpdateItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "inspector",
+      "case": "other-role",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "missing-key-context",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "delete-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "scan-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "qa",
+      "case": "own-dynamodb:PutItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "qa",
+      "case": "own-dynamodb:UpdateItem",
+      "decision": "allowed"
+    },
+    {
+      "role": "qa",
+      "case": "other-role",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "qa",
+      "case": "missing-key-context",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "qa",
+      "case": "delete-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "qa",
+      "case": "scan-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "own-secret",
+      "decision": "allowed"
+    },
+    {
+      "role": "builder",
+      "case": "other-secret-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "qa",
+      "case": "own-secret",
+      "decision": "allowed"
+    },
+    {
+      "role": "qa",
+      "case": "other-secret-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "exact-key-version-via-service",
+      "decision": "allowed"
+    },
+    {
+      "role": "builder",
+      "case": "wrong-kms:ViaService",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "wrong-kms:EncryptionContext:SecretARN",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "wrong-kms:EncryptionContext:SecretVersionId",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "builder",
+      "case": "direct-decrypt-denied",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "ExactInspectorProfile",
+      "decision": "allowed"
+    },
+    {
+      "role": "inspector",
+      "case": "stream-denied-ExactInspectorProfile",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "RegionalModelViaProfile",
+      "decision": "allowed"
+    },
+    {
+      "role": "inspector",
+      "case": "stream-denied-RegionalModelViaProfile",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "direct-model-denied-RegionalModelViaProfile",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "GlobalModelViaProfile",
+      "decision": "allowed"
+    },
+    {
+      "role": "inspector",
+      "case": "stream-denied-GlobalModelViaProfile",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "direct-model-denied-GlobalModelViaProfile",
+      "decision": "implicitDeny"
+    },
+    {
+      "role": "inspector",
+      "case": "wrong-source-region",
+      "decision": "implicitDeny"
+    }
+  ],
+  "iam_simulation_count": 36,
+  "safeguards": {
+    "builder": {
+      "disabled": true,
+      "reserved_concurrency": 0,
+      "attempt_unused": true,
+      "existing_logging_only_permissions": true
+    },
+    "inspector": {
+      "disabled": true,
+      "reserved_concurrency": 0,
+      "attempt_unused": true,
+      "existing_logging_only_permissions": true
+    },
+    "qa": {
+      "disabled": true,
+      "reserved_concurrency": 0,
+      "attempt_unused": true,
+      "existing_logging_only_permissions": true
+    }
+  },
+  "metadata": {
+    "observed_at": "2026-10-03T21:32:55.523661+00:00",
+    "status": "METADATA_ONLY_NO_SECRET_VALUES_OR_MODEL_CALLS",
+    "old_builder_credential_route_empty": true,
+    "credential_routes": {
+      "builder": {
+        "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+        "version_id": "ebb6cc21-2df9-4b06-8f55-2b0661f27f69",
+        "kms_key_id": "arn:aws:kms:ca-central-1:666730517561:key/134908eb-251f-443a-bfa0-f83d8f04c36c",
+        "name": "tims-software-factory/provider/openai/acceptance"
+      },
+      "qa": {
+        "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+        "version_id": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+        "kms_key_id": "aws/secretsmanager",
+        "name": "tims-software-factory/provider/google/qa"
+      }
+    },
+    "inspector_profile": {
+      "arn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "status": "ACTIVE",
+      "models": [
+        {
+          "modelArn": "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
+        },
+        {
+          "modelArn": "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
+        }
+      ]
+    }
+  },
+  "simulation_is_not_live_provider_readiness": true
+}
