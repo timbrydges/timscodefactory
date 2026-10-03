@@ -1,0 +1,23 @@
+{
+  "status": "REVIEW_CANDIDATE_NOT_LIVE_AUTHORIZATION",
+  "observed_at": "2026-10-03T22:30:48+00:00",
+  "model_id": "gpt-5.6-sol",
+  "currency": "USD",
+  "input_micro_usd_per_million": 4000000,
+  "output_micro_usd_per_million": 20000000,
+  "input_token_bound": 32768,
+  "output_token_bound": 4096,
+  "maximum_cost_micro_usd": 212992,
+  "pricing_source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+  "output_limit_source": "https://developers.openai.com/api/docs/guides/reasoning",
+  "count_source": "https://developers.openai.com/api/reference/python/resources/responses/subresources/input_tokens/methods/count",
+  "assumptions": [
+    "Same pinned single-turn text request and counted context; no conversation, previous response, tools or external files.",
+    "Standard service tier with explicit caching and no cache markers; no cache reads or writes requested.",
+    "The documented max_output_tokens limit includes reasoning and visible output.",
+    "The 32768 input bound exceeds the measured 2636; measurement is not an unlimited guarantee against provider changes.",
+    "Recheck provider terms or request changes before execution; the proposal expires within 24 hours of both observations."
+  ],
+  "model_generation_access_proven": false,
+  "live_execution_authorized": false
+}

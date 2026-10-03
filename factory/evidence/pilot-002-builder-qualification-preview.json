@@ -1,0 +1,49 @@
+{
+  "status": "QUALIFICATION_PROPOSED_AWAITING_REVIEW",
+  "qualification": {
+    "kind": "pilot002_provider_rate_qualification",
+    "role": "builder",
+    "model_id": "gpt-5.6-sol",
+    "task_id": "safe-workspace-fingerprint-001",
+    "source_commit": "60427c8a1453a956fd7c22a388d7d4f921ebe6c7",
+    "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+    "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "currency": "USD",
+    "complete_request_bound_qualified": true,
+    "combined_output_bound_qualified": true,
+    "standard_text_only_no_cache_rates": true,
+    "input_token_bound": 32768,
+    "output_token_bound": 4096,
+    "input_micro_usd_per_million": 4000000,
+    "output_micro_usd_per_million": 20000000,
+    "issued_at": 1791066800,
+    "expires_at": 1791152928,
+    "evidence_digest": "sha256:d2c9db658bab597428854dbb99bacbae1a5de59135dfca541bbcbc98374f57d9"
+  },
+  "pricing": {
+    "kind": "pilot002_qualified_request_cost_bound",
+    "role": "builder",
+    "model_id": "gpt-5.6-sol",
+    "task_id": "safe-workspace-fingerprint-001",
+    "source_commit": "60427c8a1453a956fd7c22a388d7d4f921ebe6c7",
+    "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+    "packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "currency": "USD",
+    "complete_request_bound_qualified": true,
+    "maximum_cost_micro_usd": 212992,
+    "issued_at": 1791066800,
+    "expires_at": 1791152928,
+    "evidence_digest": "sha256:f30d8ee7563e3b973ed405c87d86696d0d89d643996b4d6515b38b299056d6ab"
+  },
+  "reserved_micro_usd": 250000,
+  "live_execution_authorized": false,
+  "remaining_gates": [
+    "verified model access or owner-accepted Builder first-generation readiness",
+    "fresh repository and runtime readiness",
+    "reviewed owner-only signer configuration",
+    "exact owner-signed allowance",
+    "approved runtime activation"
+  ]
+}
