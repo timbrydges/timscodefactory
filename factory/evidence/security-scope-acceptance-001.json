@@ -1,0 +1,19 @@
+{
+  "decision_id": "security-scope-decision-001",
+  "owner_identity": "tim_brydges",
+  "approved": true,
+  "user_reply": "I approve! Continue on to the next approval",
+  "reviewed_document_commit": "6cd51c7edc98e7c8f098d1d1bf19f8da9def7e6b",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "scope": "fixed-candidate-synthetic-fixtures-only",
+  "accepted_findings": [
+    "unrestricted-input-path",
+    "blocking-special-files",
+    "input-disclosure"
+  ],
+  "general_use_findings_remain_open": true,
+  "os_sandbox_claimed": false,
+  "gate_execution_authorized": false,
+  "production_release_authorized": false,
+  "signed_validation_digest": "sha256:ad1de733c6a17293b245dd7c98b80d2255321ca36416009aed6e58cb33a4752f"
+}

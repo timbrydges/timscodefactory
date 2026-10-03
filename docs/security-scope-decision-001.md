@@ -1,7 +1,9 @@
-# Pending owner decision: synthetic demonstration scope
+# Accepted owner decision: synthetic demonstration scope
 
-Status: proposed, not approved. No finding is waived and no gate authority is
-conferred by this document or the completed execution proof.
+Status: owner approved with the reply "I approve! Continue on to the next approval"
+after reviewing the PR #323 scope decision. The exact acceptance is recorded in
+`factory/evidence/security-scope-acceptance-001.json`. No general-use finding is
+waived and no live gate execution authority is conferred by this decision.
 
 ## Exact decision requested
 
