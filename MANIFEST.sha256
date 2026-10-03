@@ -281,6 +281,7 @@ f8df27184a6b28b0b7b54b4adb3357a39d39ad64ad5b7a0c067b51aad2e82bb2  factory/eviden
 f2b0212a1c3923a94ae011377945978c8b890448db117fe607bce3cfe85d64d1  factory/evidence/pilot-002-bootstrap-live-proof-2026-10-03.json
 639a9fa1aff42f81b0c6e303768b26d27479fffe03372208dd663262631ed8ec  factory/evidence/pilot-002-contained-failure-2026-10-03.json
 9f8733a8f0b4644461ac8aba2399805b72fc2d6d6ccc5fba2eb32769ff91becf  factory/evidence/pilot-002-controller-baseline-2026-10-03.json
+364959dba4ca7e466c0e925dda18dfbbd0d6da13415ab5669e3ed7cbe27fdc5e  factory/evidence/pilot-002-disabled-runtime-preview.json
 3aec9817191530b9e0202d76f6033b894255978cbaa6da9481a342170f04d3b1  factory/evidence/pilot-002-provider-readiness-audit-2026-10-03.json
 0fd5790ed4ce9d4648cf3da27d640eafe6a5fe34b02e977738be61f468acbd45  factory/evidence/pilot-002-task-budget-approval.json
 e1e0a2e2aaab020281583ce5e40c16efc21a292287f072673fe0c68034ba376b  factory/evidence/pilot-closeout-2026-09-17.json

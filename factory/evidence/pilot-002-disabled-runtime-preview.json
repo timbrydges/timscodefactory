@@ -1,0 +1,37 @@
+{
+  "status": "VALIDATED_NOT_EXECUTED",
+  "new_functions": 3,
+  "new_logging_only_roles": 3,
+  "new_log_groups": 3,
+  "reserved_concurrency": 0,
+  "model_calls": 0,
+  "source_commit": "32abd21be68bb57f0112f27272ceb3a446b8f263",
+  "observed_at": "2026-10-03T20:53:13.401655+00:00",
+  "change_set_id": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-disabled-20261003-001/e528b6f5-da64-417e-b781-a4a64fd32dce",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "change_set_name": "pilot002-disabled-20261003-001",
+  "change_set_status": "CREATE_COMPLETE",
+  "execution_status": "AVAILABLE",
+  "preparation_commit": "5110308656e212b4dc5717ddbc07bbb5927c73f5",
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "pilot-002/runtime/32abd21be68bb57f0112f27272ceb3a446b8f263/5f0aac9efb9e2e0423bc3e66bd0b69339e3ef477d51d24a93d86a119e8e97320.zip",
+    "S3ObjectVersion": "IXN0Ldeo.nd7jkBYl0InjRvUgLChclGf"
+  },
+  "package_sha256": "5f0aac9efb9e2e0423bc3e66bd0b69339e3ef477d51d24a93d86a119e8e97320",
+  "package_code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+  "template_sha256": "abce76e0db170fa2296dbec6c60fdbfd0287058b410e827717b446777f236dac",
+  "two_linux_builds_identical": true,
+  "windows_difference": "Only cffi dist-info RECORD references platform-specific excluded bin script; all shipped code identical",
+  "attempt_rows_present": {
+    "builder": false,
+    "inspector": false,
+    "qa": false
+  },
+  "existing_provider_flags": {
+    "tims-factory-provider-broker": "false",
+    "tims-factory-inspector": "false",
+    "tims-factory-google-qa-broker": "false"
+  },
+  "controller_reserved_concurrency": 0
+}
