@@ -35,6 +35,12 @@ def validate_readiness(readiness, *, bindings, now):
     expected = {'kind':'pilot002_provider_readiness', **bindings,
         'credential_route_verified':True, 'model_access_verified':True,
         'repository_binding_verified':True}
+    # A first Builder attempt cannot claim prior generation success. The distinct
+    # readiness kind and explicit acceptance are bound by the owner's signature.
+    if isinstance(readiness,dict) and readiness.get('kind')=='pilot002_builder_first_generation_readiness':
+        if bindings.get('role')!='builder':raise StateError('First-generation readiness is Builder-only')
+        expected.update(kind='pilot002_builder_first_generation_readiness',model_access_verified=False,
+            model_metadata_verified=True,first_generation_failure_risk_accepted=True)
     if (not _exact(readiness, expected, {'issued_at','expires_at','evidence_digest'}) or
             not _hash(readiness.get('evidence_digest')) or not _window(readiness, now, 3600)):
         raise StateError('Pilot 002 provider or repository readiness is missing, changed or expired')

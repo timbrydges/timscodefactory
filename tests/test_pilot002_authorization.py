@@ -62,6 +62,50 @@ class AllowanceTests(unittest.TestCase):
             db=Mock();Pilot002AttemptStore(db).begin(**result)
             self.assertEqual(db.put_item.call_args.kwargs['Item']['reserved_micro_usd'],{'N':'250000'})
 
+    def first_generation(self,role='builder'):
+        payload,args=self.context(role)
+        args['readiness'].update(kind='pilot002_builder_first_generation_readiness',model_access_verified=False,
+            model_metadata_verified=True,first_generation_failure_risk_accepted=True)
+        payload['readiness_digest']=digest(args['readiness'])
+        return payload,args
+
+    def test_first_builder_generation_requires_exact_owner_bound_acceptance(self):
+        payload,args=self.first_generation()
+        result=verify(self.sign(payload),**args)
+        self.assertEqual(result['role'],'builder')
+        self.assertEqual(payload['maximum_provider_calls'],1);self.assertEqual(payload['retries'],0)
+        self.assertEqual(payload['reserved_micro_usd'],250000)
+        self.assertFalse(args['readiness']['model_access_verified'])
+
+    def test_first_generation_cannot_substitute_for_existing_signed_readiness(self):
+        payload,args=self.context();envelope=self.sign(payload)
+        _,new_args=self.first_generation()
+        with self.assertRaises(StateError):verify(envelope,**new_args)
+
+    def test_first_generation_rejects_missing_or_false_acceptance_and_claimed_access(self):
+        for field,value in [('first_generation_failure_risk_accepted',False),('model_metadata_verified',False),
+                            ('model_access_verified',True),('credential_route_verified',False),
+                            ('repository_binding_verified',False),('first_generation_failure_risk_accepted',1)]:
+            payload,args=self.first_generation();args['readiness'][field]=value
+            payload['readiness_digest']=digest(args['readiness'])
+            with self.assertRaises(StateError):verify(self.sign(payload),**args)
+        payload,args=self.first_generation();del args['readiness']['first_generation_failure_risk_accepted']
+        payload['readiness_digest']=digest(args['readiness'])
+        with self.assertRaises(StateError):verify(self.sign(payload),**args)
+
+    def test_first_generation_is_not_available_to_inspector_or_qa(self):
+        for role in ('inspector','qa'):
+            payload,args=self.first_generation(role)
+            with self.assertRaises(StateError):verify(self.sign(payload),**args)
+
+    def test_first_generation_still_rejects_staleness_and_expanded_allowance(self):
+        payload,args=self.first_generation();args['readiness']['expires_at']=self.epoch
+        payload['readiness_digest']=digest(args['readiness'])
+        with self.assertRaises(StateError):verify(self.sign(payload),**args)
+        for field,value in [('maximum_provider_calls',2),('retries',1),('approved_cap_micro_usd',250001)]:
+            payload,args=self.first_generation();payload[field]=value
+            with self.assertRaises(StateError):verify(self.sign(payload),**args)
+
     def test_valid_signature_cannot_expand_scope(self):
         for field,value in [('role','qa'),('maximum_provider_calls',2),('retries',1),('task_state_writes',1),
                             ('gate_authority',True),('production_release_authorized',True),

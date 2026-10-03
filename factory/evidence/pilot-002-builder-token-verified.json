@@ -1,0 +1,14 @@
+{
+  "status": "INPUT_TOKEN_COUNT_OBSERVED",
+  "generation_request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+  "count_request_digest": "sha256:38c472c1a4ad1f13af352ef96b1c77f8ba2bc14ede8c081a9d9b10b4cd1622ad",
+  "http_requests": 1,
+  "generation_requests": 0,
+  "cost_qualified": false,
+  "live_execution_authorized": false,
+  "http_status": 200,
+  "input_tokens": 2636,
+  "source_commit": "60427c8a1453a956fd7c22a388d7d4f921ebe6c7",
+  "observed_at": "2026-10-03T22:28:48.898333+00:00",
+  "attempt_claims": 0
+}

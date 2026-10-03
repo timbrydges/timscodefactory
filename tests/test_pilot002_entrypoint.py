@@ -74,6 +74,25 @@ class EntrypointTests(unittest.TestCase):
                 with self.assertRaisesRegex(StateError,'disabled'):p.dispatch(None,None,root=None,env=env,clock=None)
             read.assert_not_called();aws.assert_not_called()
 
+    def test_first_generation_denial_consumes_attempt_without_retry(self):
+        from factory_runtime.pilot002_packets import digest
+        self.setup_role()
+        self.doc['readiness'].update(kind='pilot002_builder_first_generation_readiness',model_access_verified=False,
+            model_metadata_verified=True,first_generation_failure_risk_accepted=True)
+        payload=self.event['allowance']['payload'];payload['readiness_digest']=digest(self.doc['readiness'])
+        self.event['allowance']['signature']=base64.b64encode(self.fixtures.private.sign(canonical(payload))).decode()
+        self.encode();self.connection.response.status=403
+        with patch.object(p,'_read',side_effect=self.read),patch.object(p,'_aws_session',return_value=self.session),\
+                patch.object(p,'_client',side_effect=lambda session,service:self.db if service=='dynamodb' else self.secret),\
+                patch.object(transports.p.http.client,'HTTPSConnection',return_value=self.connection):
+            with self.assertRaises(StateError):self.run_event()
+            with self.assertRaises(StateError):self.run_event()
+        self.assertEqual(self.fixtures.events,['claim','claim'])
+        self.assertEqual(len(self.fixtures.rows),1)
+        self.assertEqual(next(iter(self.fixtures.rows.values()))['reserved_micro_usd'],{'N':'250000'})
+        self.assertEqual(len(self.connection.calls),1)
+        self.secret.get_secret_value.assert_called_once()
+
     def test_bad_signature_or_invocation_overrides_create_no_clients(self):
         self.setup_role()
         original=copy.deepcopy(self.event)
