@@ -23,17 +23,21 @@ def verify(envelope, *, packet, root, source_commit, pricing, trusted_keys, now)
             not isinstance(source_commit, str) or not re.fullmatch('[0-9a-f]{40}', source_commit)):
         raise StateError('Google authorization context invalid')
     body = request_body(packet, root=root)
-    expected_pricing = {'kind':'google_qa_pricing_envelope','model_id':MODEL,'endpoint':ENDPOINT,
+    free = isinstance(pricing,dict) and pricing.get('kind') == 'google_qa_free_tier_policy'
+    expected_pricing = {'kind':'google_qa_free_tier_policy' if free else 'google_qa_pricing_envelope','model_id':MODEL,'endpoint':ENDPOINT,
         'currency':'USD','maximum_input_tokens':MAX_INPUT_TOKENS,
         'maximum_output_tokens_including_thinking':MAX_OUTPUT_TOKENS,
-        'combined_output_bound_qualified':True}
+        'combined_output_bound_qualified':not free}
+    if free:
+        expected_pricing.update(billing_mode='UNLINKED_FREE_TIER', google_project='gen-lang-client-0247455615')
     numeric = ('input_micro_usd_per_million_tokens','output_micro_usd_per_million_tokens',
                'issued_at','expires_at')
     if (not isinstance(pricing, dict) or set(pricing) != set(expected_pricing) | set(numeric) | {'evidence_digest'} or
             any(type(pricing.get(k)) is not type(v) or pricing[k] != v for k,v in expected_pricing.items()) or
             any(type(pricing.get(k)) is not int for k in numeric) or
-            not 0 < pricing['input_micro_usd_per_million_tokens'] <= 1000000000 or
-            not 0 < pricing['output_micro_usd_per_million_tokens'] <= 1000000000 or
+            not (pricing['input_micro_usd_per_million_tokens'] == pricing['output_micro_usd_per_million_tokens'] == 0
+                 if free else 0 < pricing['input_micro_usd_per_million_tokens'] <= 1000000000 and
+                 0 < pricing['output_micro_usd_per_million_tokens'] <= 1000000000) or
             not pricing['issued_at'] <= now.timestamp() < pricing['expires_at'] or
             not isinstance(pricing.get('evidence_digest'), str) or
             not re.fullmatch('sha256:[0-9a-f]{64}', pricing['evidence_digest'])):
@@ -54,13 +58,27 @@ def verify(envelope, *, packet, root, source_commit, pricing, trusted_keys, now)
     if not isinstance(envelope, dict) or set(envelope) != {'payload','signature'}:
         raise StateError('Google requires a signed owner allowance')
     payload = envelope['payload']
-    if (not isinstance(payload, dict) or set(payload) != set(expected) | {'approved_cap_micro_usd','issued_at','expires_at'} or
+    extra = {'billing_evidence'} if free else set()
+    if (not isinstance(payload, dict) or set(payload) != set(expected) | {'approved_cap_micro_usd','issued_at','expires_at'} | extra or
             any(type(payload.get(k)) is not type(v) or payload[k] != v for k,v in expected.items()) or
             type(payload.get('approved_cap_micro_usd')) is not int or
-            not 0 < reserved <= payload['approved_cap_micro_usd'] <= 1000000 or
+            not (reserved == payload['approved_cap_micro_usd'] == 0 if free else
+                 0 < reserved <= payload['approved_cap_micro_usd'] <= 1000000) or
             type(payload.get('issued_at')) is not int or type(payload.get('expires_at')) is not int or
             not payload['issued_at'] <= now.timestamp() < payload['expires_at'] <= pricing['expires_at']):
         raise StateError('Google signed allowance scope, amount or lifetime differs')
+    billing = {}
+    if free:
+        observation = payload['billing_evidence']
+        if (not isinstance(observation,dict) or set(observation) != {'google_project','billing_account_linked','observed_at','evidence_digest'} or
+                observation['google_project'] != 'gen-lang-client-0247455615' or observation['billing_account_linked'] is not False or
+                type(observation['observed_at']) is not int or
+                not observation['observed_at'] <= now.timestamp() < payload['expires_at'] <= observation['observed_at']+300 or
+                not isinstance(observation['evidence_digest'],str) or
+                not re.fullmatch('sha256:[0-9a-f]{64}',observation['evidence_digest'])):
+            raise StateError('Google free-tier billing observation missing, stale or linked')
+        billing = {'billing_evidence_digest':digest(observation),
+                   'billing_verified_at':datetime.fromtimestamp(observation['observed_at'],timezone.utc)}
     try:
         if not isinstance(envelope['signature'], str) or len(envelope['signature']) != 88:
             raise ValueError()
@@ -74,4 +92,4 @@ def verify(envelope, *, packet, root, source_commit, pricing, trusted_keys, now)
     return {'request_bytes':body,'approval_digest':approval_digest,'source_commit':source_commit,
         'reserved_micro_usd':reserved,'approved_cap_micro_usd':payload['approved_cap_micro_usd'],
         'pricing_digest':expected['pricing_digest'],'approval_expires_at':expiry,
-        'pricing_expires_at':pricing_expiry,'now':now}
+        'pricing_expires_at':pricing_expiry,'now':now,**billing}

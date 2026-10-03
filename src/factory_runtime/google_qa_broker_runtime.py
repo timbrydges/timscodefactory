@@ -1,4 +1,4 @@
-"""Gated broker integration. No production activation manifest is pinned yet."""
+"""Gated broker integration; fresh signed zero-dollar consent is still required."""
 import hashlib
 import json
 import os
@@ -16,9 +16,9 @@ from .google_qa_workflow import run_once
 from .review_preparation import prepare
 
 MANIFEST = 'factory/evidence/google-qa-runtime-activation.json'
-# A reviewed source change must install qualified pricing and pin these bytes.
+# Reviewed free-tier-only policy; this pin is not a generation authorization.
 # Invocation fields and environment variables cannot supply or override this pin.
-ACTIVE_MANIFEST_SHA256 = None
+ACTIVE_MANIFEST_SHA256 = '4112f45497bda70dbd265f43969060f8cafe29ea76bbd3f91692cf433c27a61e'
 SECRET_ARN = 'arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE'
 SECRET_VERSION = 'db69f4bf-38c0-43d5-8bbf-ce20d8e07282'
 ROLE_PREFIX = 'arn:aws:sts::666730517561:assumed-role/tims-factory-google-qa-broker/'

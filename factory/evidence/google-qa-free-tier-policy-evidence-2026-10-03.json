@@ -1,0 +1,19 @@
+{
+  "status": "FREE_TIER_POLICY_EVIDENCE_NOT_GENERATION_APPROVAL",
+  "google_project": "gen-lang-client-0247455615",
+  "billing_console_url": "https://console.cloud.google.com/billing/linkedaccount?project=gen-lang-client-0247455615",
+  "billing_account_linked": false,
+  "observation_date_utc": "2026-10-03",
+  "screenshot_sha256": "1f0209f958896ea09ede4a0d1b870449a30f3f772ec1080fdeac9ce38119586c",
+  "pricing_reference": "https://ai.google.dev/gemini-api/docs/pricing",
+  "basis": "The project console showed no linked billing account. The Gemini free tier has no token charges. This is a snapshot, not continuous billing monitoring.",
+  "constraints": [
+    "Operator must recheck the same project immediately before signing each allowance",
+    "Signed billing observation and allowance expire within 300 seconds",
+    "No billing linkage, paid fallback, retry, extra attempt or model switch authorized",
+    "Runtime verifies the signed owner observation; it has no Google Cloud Billing credential",
+    "Combined thought/output token cutoff remains unqualified; zero-dollar policy does not rely on it"
+  ],
+  "maximum_cost_usd": "0.00",
+  "generation_calls_authorized": 0
+}

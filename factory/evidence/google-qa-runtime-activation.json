@@ -1,0 +1,22 @@
+{
+  "activation_id": "google-qa-pilot-001",
+  "pricing": {
+    "kind": "google_qa_free_tier_policy",
+    "model_id": "gemini-3.8-flash",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+    "currency": "USD",
+    "maximum_input_tokens": 32768,
+    "maximum_output_tokens_including_thinking": 4096,
+    "combined_output_bound_qualified": false,
+    "billing_mode": "UNLINKED_FREE_TIER",
+    "google_project": "gen-lang-client-0247455615",
+    "input_micro_usd_per_million_tokens": 0,
+    "output_micro_usd_per_million_tokens": 0,
+    "issued_at": 1790994600,
+    "expires_at": 1791081000,
+    "evidence_digest": "sha256:8e7efc6de750c950553e8777602d3d42deb259a26878a6ee40d93086eb07236d"
+  },
+  "signer_registry_sha256": "44ba7126ad21e2f7162ceb2fa213907c7a65fdc9cfdcaec948448c32edf22077",
+  "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+  "secret_version": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282"
+}
