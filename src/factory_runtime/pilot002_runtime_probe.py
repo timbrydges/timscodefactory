@@ -44,6 +44,7 @@ def probe(event, *, root, env):
         facts(root)
         # Import the actual dependency chain without constructing a client.
         from .pilot002_adapter import Pilot002Adapter
+        from .pilot002_entrypoint import dispatch
         from .pilot002_packets import builder_packet
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         import cryptography

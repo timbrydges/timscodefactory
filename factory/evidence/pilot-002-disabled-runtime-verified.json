@@ -1,0 +1,78 @@
+{
+  "status": "PILOT002_DISABLED_RUNTIME_DEPLOYED_AND_VERIFIED",
+  "observed_at": "2026-10-03T20:59:38.531827+00:00",
+  "approval_pr": 340,
+  "merge_commit": "93df55ce2e595e42e545515ccf5b12000f314dd3",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "change_set_id": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-disabled-20261003-001/e528b6f5-da64-417e-b781-a4a64fd32dce",
+  "package_source_commit": "32abd21be68bb57f0112f27272ceb3a446b8f263",
+  "package_sha256": "5f0aac9efb9e2e0423bc3e66bd0b69339e3ef477d51d24a93d86a119e8e97320",
+  "roles": {
+    "builder": {
+      "status": "PILOT002_DISABLED_PACKAGE_VERIFIED",
+      "role": "builder",
+      "task_id": "safe-workspace-fingerprint-001",
+      "source_commit": "32abd21be68bb57f0112f27272ceb3a446b8f263",
+      "package_index_digest": "sha256:a2e21b90e6e17fd94af15fd37c3b5e8d81e098a5d7b762d2dcd5a909ee878689",
+      "builder_packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+      "verified_files": 178,
+      "cryptography_version": "46.0.5",
+      "botocore_version": "1.42.97",
+      "model_calls": 0,
+      "cloud_clients_created": 0,
+      "execution_enabled": false,
+      "gate_authority": false
+    },
+    "inspector": {
+      "status": "PILOT002_DISABLED_PACKAGE_VERIFIED",
+      "role": "inspector",
+      "task_id": "safe-workspace-fingerprint-001",
+      "source_commit": "32abd21be68bb57f0112f27272ceb3a446b8f263",
+      "package_index_digest": "sha256:a2e21b90e6e17fd94af15fd37c3b5e8d81e098a5d7b762d2dcd5a909ee878689",
+      "builder_packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+      "verified_files": 178,
+      "cryptography_version": "46.0.5",
+      "botocore_version": "1.42.97",
+      "model_calls": 0,
+      "cloud_clients_created": 0,
+      "execution_enabled": false,
+      "gate_authority": false
+    },
+    "qa": {
+      "status": "PILOT002_DISABLED_PACKAGE_VERIFIED",
+      "role": "qa",
+      "task_id": "safe-workspace-fingerprint-001",
+      "source_commit": "32abd21be68bb57f0112f27272ceb3a446b8f263",
+      "package_index_digest": "sha256:a2e21b90e6e17fd94af15fd37c3b5e8d81e098a5d7b762d2dcd5a909ee878689",
+      "builder_packet_digest": "sha256:d596ca5c9436bd984ae4c52542345b42bebeabbb06da4d6ad81164fede657cf2",
+      "verified_files": 178,
+      "cryptography_version": "46.0.5",
+      "botocore_version": "1.42.97",
+      "model_calls": 0,
+      "cloud_clients_created": 0,
+      "execution_enabled": false,
+      "gate_authority": false
+    }
+  },
+  "postchecks": {
+    "builder": {
+      "code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "concurrency": 0,
+      "logging_only": true
+    },
+    "inspector": {
+      "code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "concurrency": 0,
+      "logging_only": true
+    },
+    "qa": {
+      "code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "concurrency": 0,
+      "logging_only": true
+    }
+  },
+  "model_calls": 0,
+  "attempt_rows_present": false,
+  "existing_provider_flags_disabled": true,
+  "controller_reserved_concurrency": 0
+}
