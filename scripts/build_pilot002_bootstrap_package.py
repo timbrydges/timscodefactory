@@ -27,6 +27,7 @@ def build(output):
     with zipfile.ZipFile(output,'x',compression=zipfile.ZIP_DEFLATED) as archive:
         for name,raw in sorted(files.items()):
             info=zipfile.ZipInfo(name,(2026,1,1,0,0,0)); info.compress_type=zipfile.ZIP_DEFLATED
+            info.create_system=3  # Identical Unix archive metadata on Windows and Linux.
             info.external_attr=0o100644<<16; archive.writestr(info,raw)
     digest=hashlib.sha256(output.read_bytes()).digest()
     return {'source_commit':commit,'sha256':digest.hex(),'code_sha256':base64.b64encode(digest).decode(),
