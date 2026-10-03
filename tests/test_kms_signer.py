@@ -183,7 +183,12 @@ class KmsSignerTests(unittest.TestCase):
         bindings = json.loads((ROOT / 'factory/profiles/kms-signers.json').read_text())
         evidence = json.loads((ROOT / 'factory/evidence/signing-verification-2026-09-22.json').read_text())
         self.assertTrue(registry['enabled'])
-        self.assertEqual(len(registry['signers']), 4)
+        approval = json.loads((ROOT / 'factory/evidence/qa-signer-enrollment-approval-2026-10-03.json').read_text())
+        qa = next(x for x in registry['signers'] if x['identity'] == 'qa_engineer_service')
+        self.assertEqual(qa, approval['added_entry'])
+        self.assertEqual({x['identity'] for x in registry['signers']},
+                         {x['proof']['identity'] for x in evidence['signers']} | {'qa_engineer_service'})
+        self.assertEqual(len(registry['signers']), 5)
         self.assertEqual(len(bindings['signers']), 4)
         for record in evidence['signers']:
             proof = record['proof']
