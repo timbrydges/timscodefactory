@@ -40,7 +40,18 @@ authorized by this runner, validator or bundle builder.
 `qa_execute_unsigned` event for the fixed candidate, QA role and literal false
 operational flag. It has no cloud client, credential, model or KMS signing path.
 The Linux package builder includes the three pinned review-evidence files.
-Deployments should change only QaFunction and QaVersion in the existing review
-bootstrap stack, preserving every IAM/KMS/security resource and old immutable
-versions. Pin the package S3 version and code hash; verify the deployed version
+Deployments should modify only QaFunction and add a new QaExecutionVersion in the
+existing review bootstrap stack. Leave QaVersion untouched, preserving every
+IAM/KMS/security resource and old immutable version. Adding Retain policies during
+a version replacement did not prevent a ReplaceAndDelete change-set preview;
+reject that preview and use an additive version resource instead. Pin the package
+S3 version and code hash; verify the deployed version
 before one synchronous execution without retries. Results remain unsigned.
+
+## Observed AWS execution
+
+The evidence in `factory/evidence/qa-execution-live-proof-2026-10-03.json`
+records one execution of immutable QA version 2: all 18 cases passed on Linux
+Python 3.12.14. Version 1 and the Security function were preserved and IAM was
+verified unchanged. The bundle remains PENDING_GOOGLE; this operator observation
+is not a signed executor attestation and cannot authorize a task transition.
