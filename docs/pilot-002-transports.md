@@ -31,8 +31,10 @@ primitives sign the actual URI, body and headers; the ordinary DEBUG logging
 path is avoided because it can include session tokens. A deterministic fixture
 compares the resulting signature with standard botocore signing.
 
-Returned bytes are not yet an authenticated completion record. Response parsing,
-qualified pricing, transport-to-receipt binding, signed owner allowances,
+The disabled composition in `pilot-002-bound-adapter.md` binds returned bytes to
+the local attempt and checks usage against deployment-owned rate qualifications.
+Returned bytes are not yet a signed completion record. Fresh qualified pricing,
+durable signed evidence, signed owner allowances,
 deployment and live activation remain required. All current transport tests
 replace the connection with an in-memory fake; no production credentials,
 external requests, live compatibility test or model budget were used.
