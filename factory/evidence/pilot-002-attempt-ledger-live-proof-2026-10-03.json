@@ -1,0 +1,112 @@
+{
+  "status": "PILOT_002_ATTEMPT_LEDGER_DEPLOYED_VERIFIED",
+  "verified_at": "2026-10-03T15:48:01.679833+00:00",
+  "source_commit": "912fa6366b2e809607aab7b01f2310527aa86151",
+  "stack": "tims-factory-pilot-002-attempts",
+  "table": "tims-factory-pilot-002-attempts",
+  "encrypted": true,
+  "deletion_protected": true,
+  "retained": true,
+  "ttl_enabled": false,
+  "providers": {
+    "builder": {
+      "role": "tims-factory-acceptance-broker-canary",
+      "function": "tims-factory-provider-broker",
+      "configuration_unchanged": true,
+      "old_permissions_unchanged": true,
+      "new_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem"
+            ],
+            "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+            "Condition": {
+              "ForAllValues:StringEquals": {
+                "dynamodb:LeadingKeys": [
+                  "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#builder"
+                ]
+              },
+              "Null": {
+                "dynamodb:LeadingKeys": "false"
+              }
+            }
+          }
+        ]
+      },
+      "attempt_absent": true
+    },
+    "inspector": {
+      "role": "tims-factory-executor-inspector",
+      "function": "tims-factory-inspector",
+      "configuration_unchanged": true,
+      "old_permissions_unchanged": true,
+      "new_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem"
+            ],
+            "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+            "Condition": {
+              "ForAllValues:StringEquals": {
+                "dynamodb:LeadingKeys": [
+                  "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+                ]
+              },
+              "Null": {
+                "dynamodb:LeadingKeys": "false"
+              }
+            }
+          }
+        ]
+      },
+      "attempt_absent": true
+    },
+    "qa": {
+      "role": "tims-factory-google-qa-broker",
+      "function": "tims-factory-google-qa-broker",
+      "configuration_unchanged": true,
+      "old_permissions_unchanged": true,
+      "new_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem"
+            ],
+            "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+            "Condition": {
+              "ForAllValues:StringEquals": {
+                "dynamodb:LeadingKeys": [
+                  "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+                ]
+              },
+              "Null": {
+                "dynamodb:LeadingKeys": "false"
+              }
+            }
+          }
+        ]
+      },
+      "attempt_absent": true
+    }
+  },
+  "model_calls": 0,
+  "attempt_claims": 0,
+  "budget_reserved": false,
+  "new_task": "PAUSED v0",
+  "old_task": "RELEASE_READY v16",
+  "execution_activated": false
+}

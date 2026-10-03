@@ -1,5 +1,13 @@
 # Pilot 002 isolated spending and attempt records
 
+Deployment completed after explicit owner approval on 2026-10-03. Stack
+creation, encrypted retained/deletion-protected table, exact three role policies,
+unchanged provider configurations and three absent attempt keys were verified.
+No model call, claim, reservation or task transition occurred. Evidence:
+`factory/evidence/pilot-002-attempt-ledger-live-proof-2026-10-03.json`.
+The next offline protocol work is `docs/pilot-002-request-boundaries.md`.
+The deployment proposal below is preserved as the reviewed historical scope.
+
 Pending owner approval; offline implementation only. No live handler imports
 the new store, no claim is made and no provider request is sent.
 
