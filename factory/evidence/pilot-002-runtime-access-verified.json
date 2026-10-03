@@ -1,0 +1,41 @@
+{
+  "status": "PILOT002_SCOPED_ACCESS_DEPLOYED_DISABLED",
+  "observed_at": "2026-10-03T21:48:38.703855+00:00",
+  "approval_pr": 343,
+  "merge_commit": "b5bf1a38824057cdbff33ef67138cd51ce221de8",
+  "change_set_id": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-access-20261003-001/a07292a5-f84a-4610-92de-e4697036d025",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "stack_status": "UPDATE_COMPLETE",
+  "template_sha256": "2a27d3cfd0d18580f12c32bac6ac4d4f89c2eccbc3f95cad58ef0dbbb575fc5d",
+  "roles": {
+    "builder": {
+      "policy_matches_reviewed": true,
+      "code_unchanged": true,
+      "handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "attempt_unused": true
+    },
+    "inspector": {
+      "policy_matches_reviewed": true,
+      "code_unchanged": true,
+      "handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "attempt_unused": true
+    },
+    "qa": {
+      "policy_matches_reviewed": true,
+      "code_unchanged": true,
+      "handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "attempt_unused": true
+    }
+  },
+  "old_provider_flags_disabled": true,
+  "controller_reserved_concurrency": 0,
+  "function_invocations": 0,
+  "secret_value_reads": 0,
+  "provider_calls": 0
+}
