@@ -1,0 +1,289 @@
+{
+  "status": "QA_GATE_COMPLETED_VERIFIED",
+  "verified_at": "2026-10-03T13:21:45.997210+00:00",
+  "source_commit": "1941061f79bd703232801d3d71c1ff329792da35",
+  "package_sha256": "9cb745f00f81c05cdacda564ceddf4ebb5608d7efda77e3cab609b3a547670dc",
+  "code_sha256": "nLdF8A+BwFzazaVkzt3067VgjX79p348q2CbOlR2cNw=",
+  "authorization": {
+    "authorization_id": "qa-gate-001",
+    "owner_identity": "tim_brydges",
+    "approved": true,
+    "source_commit": "1941061f79bd703232801d3d71c1ff329792da35",
+    "not_before": 1791033646,
+    "expires_at": 1791037246,
+    "nonce": "03ca8cac56ea45af878429715f7c0aa5",
+    "recorded_google_evidence_accepted": true
+  },
+  "qa_version": "7",
+  "controller_version": "35",
+  "from_state": "QA",
+  "from_version": 12,
+  "lease_version": 13,
+  "state": "SECURITY_REVIEW",
+  "version": 14,
+  "signed_payload_digest": "sha256:78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+  "evidence_id": "qa-gate-78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+  "signed_result": {
+    "payload": {
+      "kind": "qa_gate_result",
+      "purpose": "qa-to-security-review-only",
+      "producer_identity": "qa_engineer_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+      "authorization_id": "qa-gate-001",
+      "source_commit": "1941061f79bd703232801d3d71c1ff329792da35",
+      "nonce": "03ca8cac56ea45af878429715f7c0aa5",
+      "factory_id": "tims-software-factory",
+      "task_id": "deterministic-text-fingerprint",
+      "baseline_sha256": "eac3eea1934914008f10be0546f9c4ae6140cd8ebaf609d25baa61d5c11c1313",
+      "lease_id": "qa-gate-001",
+      "lease_version": 13,
+      "target_state": "SECURITY_REVIEW",
+      "verdict": "ACCEPTED",
+      "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+      "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+      "packet_digest": "sha256:99f9c9b18352443348367ea7bcb03981e787e55209eac6050dadba2a0f7a291c",
+      "executor_payload_digest": "sha256:d25793738da5bc4db102198ad6ca6a726eaa00b63458eec004a44a51f7efb049",
+      "executor_report_digest": "sha256:c9b57f20505c5400ae602c42dd5618a8d4d1cdc88cb0f4ea3f1211097502f4e0",
+      "google_record_digest": "sha256:6c35b3baf385e5104a42d4a88c690528ca9e35203d8080dd50842c208a985dcc",
+      "google_evidence_type": "OWNER_ACCEPTED_RECORDED_UNSIGNED_RESPONSE",
+      "issued_at": 1791033698,
+      "expires_at": 1791037246,
+      "gate_authority": true,
+      "production_release_authorized": false,
+      "model_calls": 0
+    },
+    "signature_base64": "ANek6/3TfSOq6Q6a3MnDzRf6eOX5nwJUjx2KKMxb1I27zuCqnlwweehZc2e3EBYrRllEl9SBs8Nv4C/4afb3Aw=="
+  },
+  "controller_result": {
+    "status": "ADVANCED",
+    "state": "SECURITY_REVIEW",
+    "version": 14,
+    "evidence_id": "qa-gate-78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+    "model_calls": 0,
+    "schedule_enabled": false,
+    "release_dispatched": false
+  },
+  "audit_events_verified": 2,
+  "lease_revoked_verified": true,
+  "prior_history_preserved": true,
+  "old_versions_preserved": true,
+  "acceptance_alias_preserved": true,
+  "signing_invocations": 1,
+  "signing_retries": 0,
+  "controller_invocations": 2,
+  "model_calls": 0,
+  "schedule": "DISABLED",
+  "qa_concurrency": 0,
+  "controller_concurrency": 0,
+  "google_broker_concurrency": 0,
+  "gate_flags_disabled": true,
+  "security_execution_authorized": false,
+  "production_release_authorized": false,
+  "temporary_access_removed": {
+    "verified_at": "2026-10-03T13:22:15.899854+00:00",
+    "logging_only": true,
+    "functions_disabled": true
+  },
+  "permission_simulation": {
+    "exact_task": [
+      "allowed",
+      "allowed",
+      "allowed"
+    ],
+    "wrong_task": [
+      "implicitDeny",
+      "implicitDeny",
+      "implicitDeny"
+    ],
+    "missing_key": [
+      "implicitDeny",
+      "implicitDeny",
+      "implicitDeny"
+    ],
+    "expired": [
+      "implicitDeny",
+      "implicitDeny",
+      "implicitDeny"
+    ],
+    "before_start": [
+      "implicitDeny",
+      "implicitDeny",
+      "implicitDeny"
+    ],
+    "delete": [
+      "implicitDeny"
+    ]
+  },
+  "total_controller_invocations_including_denied_attempt": 3,
+  "final_state": {
+    "active_lease_ids": [],
+    "consumed_evidence_ids": [
+      "inspection-import-57d8a1fc1206cd08090740e06c19db4372ba58fcac89b0deea25328e6e15ca3a",
+      "qa-gate-78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+      "result-86385b7aa783f6abdaa6f28b36da94febbff35c9dd319596e0b6e73fe32a9cc3",
+      "result-ebaf36c94d64d2f29264b50db68410225e767a07ac06819d9ee6a71efb608c0f"
+    ],
+    "factory_id": "tims-software-factory",
+    "leases": [
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T05:12:55.724079+00:00",
+        "lease_id": "auto-907d1e109b687c151afd34bb",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T14:08:55.003799+00:00",
+        "lease_id": "auto-a556ef20cb130af81d499834",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T15:09:26.675195+00:00",
+        "lease_id": "auto-2d4afbbe6af947b1cbb9591a",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T16:09:29.658179+00:00",
+        "lease_id": "auto-293f756b834378cb84d1300f",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T16:58:19.246972+00:00",
+        "lease_id": "auto-c9bdf39bce7d10f559cd2a47",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "engineering_agent_service",
+        "expires_at": "2026-10-02T17:58:47.279183+00:00",
+        "lease_id": "auto-b27cda3ebe97296d2dfe9c73",
+        "revoked": true,
+        "role_id": "engineering_agent"
+      },
+      {
+        "authoritative_identity": "independent_inspector_service",
+        "expires_at": "2026-10-03T03:01:53+00:00",
+        "lease_id": "inspection-import-014",
+        "revoked": true,
+        "role_id": "independent_inspector"
+      },
+      {
+        "authoritative_identity": "qa_engineer_service",
+        "expires_at": "2026-10-03T14:20:46+00:00",
+        "lease_id": "qa-gate-001",
+        "revoked": true,
+        "role_id": "qa_engineer"
+      }
+    ],
+    "state": "SECURITY_REVIEW",
+    "task_id": "deterministic-text-fingerprint",
+    "updated_at": "2026-10-03T13:21:40.037195+00:00",
+    "updated_by": "factory_controller_service",
+    "version": 14
+  },
+  "verified_audits": [
+    {
+      "actor_identity": {
+        "S": "factory_controller_service"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+      },
+      "details": {
+        "S": "{\"expires_at\": \"2026-10-03T14:20:46+00:00\", \"lease_id\": \"qa-gate-001\", \"role_id\": \"qa_engineer\"}"
+      },
+      "to_version": {
+        "N": "13"
+      },
+      "from_version": {
+        "N": "12"
+      },
+      "from_state": {
+        "S": "QA"
+      },
+      "SK": {
+        "S": "EVENT#2026-10-03T13:21:31.597421+00:00#qa-6eb815aeac3d775aaf3740812b687c41"
+      },
+      "to_state": {
+        "S": "QA"
+      },
+      "event_type": {
+        "S": "LEASE_ISSUED"
+      }
+    },
+    {
+      "actor_identity": {
+        "S": "factory_controller_service"
+      },
+      "to_state": {
+        "S": "SECURITY_REVIEW"
+      },
+      "PK": {
+        "S": "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+      },
+      "event_type": {
+        "S": "STATE_TRANSITION"
+      },
+      "from_version": {
+        "N": "13"
+      },
+      "details": {
+        "S": "{\"evidence_ids\": [\"qa-gate-78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de\"]}"
+      },
+      "from_state": {
+        "S": "QA"
+      },
+      "to_version": {
+        "N": "14"
+      },
+      "SK": {
+        "S": "EVENT#2026-10-03T13:21:40.037195+00:00#qa-70a90c8d53d5f139994bfec1d11c6a7d"
+      }
+    }
+  ],
+  "permission_policy": {
+    "PolicyName": "qa-gate-001-temporary-state-access",
+    "PolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem"
+          ],
+          "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+          "Condition": {
+            "ForAllValues:StringEquals": {
+              "dynamodb:LeadingKeys": [
+                "FACTORY#tims-software-factory#TASK#deterministic-text-fingerprint"
+              ]
+            },
+            "Null": {
+              "dynamodb:LeadingKeys": "false"
+            },
+            "DateGreaterThanEquals": {
+              "aws:CurrentTime": "2026-10-03T13:20:46+00:00"
+            },
+            "DateLessThan": {
+              "aws:CurrentTime": "2026-10-03T14:20:46+00:00"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "operator_script_sha256": {
+    "access-run.py": "e0853394df1784ee51f00b376d7e7a4be95cf5a125bca88cd283942360116290",
+    "continue.py": "15c830012c5193abfc1a15a9e0f07931fe97245700d68e642d16cebf4dd9d1fd",
+    "prepare_qa_gate_access.py": "e817c82987cebf3d662119dd748b9be6c653c9f4cdec842450b4004ad61a58cb"
+  }
+}
