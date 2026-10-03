@@ -28,6 +28,16 @@ contradictory pass status and self-asserted gate authority are rejected. Failed
 tests or a rejected Google assessment produce REJECTED. Two passes produce only
 READY_FOR_INDEPENDENT_PUBLICATION_REVIEW, never an accepted Factory gate.
 
+For a saved broker result, use `--google-record RECORD.json` instead. This file
+contains the workflow's `response` object (also stored in the attempt ledger),
+not its outer completion envelope or a recreated raw Google response. The same
+strict record parser is used by reconciliation and evidence assembly. It rejects
+duplicate fields, extra fields, wrong models/candidates/roles, invalid usage and
+invented authority. The bundle labels the evidence representation and hashes the
+canonical recorded object; a raw response instead retains its original byte hash.
+The two input options are mutually exclusive. Neither proves provider provenance,
+signs a gate, performs another model call or releases the spending hold.
+
 Both artifacts are unsigned local evidence. Hashes bind content, not execution
 authenticity. A future publisher must establish trusted executor provenance and
 a fresh QA lease, then sign and submit through controller verification. No signer,

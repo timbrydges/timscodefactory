@@ -12,7 +12,8 @@ from factory_state.scope import canonical
 from factory_runtime.qa_execution import execute
 from factory_runtime.qa_evidence import combine
 from factory_runtime.review_preparation import BINDING, prepare
-from factory_runtime.google_qa import MODEL
+from factory_runtime.google_qa import MODEL, parse_response
+from factory_runtime.google_qa_records import parse_record
 
 
 class EvidenceTests(unittest.TestCase):
@@ -46,6 +47,26 @@ class EvidenceTests(unittest.TestCase):
         self.rehash(report)
         self.assertEqual(combine(report,self.packet,root=ROOT,google_response=self.response())['review_status'],'REJECTED')
         self.assertEqual(combine(self.report,self.packet,root=ROOT,google_response=self.response('REJECTED'))['review_status'],'REJECTED')
+
+    def test_recorded_result_combines_without_fabricating_raw_response_or_authority(self):
+        recorded=parse_response(self.response(),self.packet,root=ROOT)
+        raw_bundle=combine(self.report,self.packet,root=ROOT,google_response=self.response())
+        bundle=combine(self.report,self.packet,root=ROOT,google_record=json.dumps(recorded,indent=2).encode())
+        self.assertEqual(bundle['google_assessment'],raw_bundle['google_assessment'])
+        self.assertEqual(bundle['review_status'],'READY_FOR_INDEPENDENT_PUBLICATION_REVIEW')
+        self.assertEqual(bundle['google_evidence_format'],'RECORDED_UNSIGNED_PROVIDER_RESULT')
+        self.assertEqual(bundle['google_response_digest'],'sha256:'+hashlib.sha256(canonical(recorded)).hexdigest())
+        self.assertFalse(bundle['gate_authority'])
+        self.assertNotEqual(bundle['google_response_digest'],raw_bundle['google_response_digest'])
+        with self.assertRaises(StateError):
+            combine(self.report,self.packet,root=ROOT,google_record=canonical(recorded),google_response=self.response())
+
+    def test_recorded_rejection_stays_rejected_and_bad_records_fail(self):
+        recorded=parse_response(self.response('REJECTED'),self.packet,root=ROOT)
+        self.assertEqual(combine(self.report,self.packet,root=ROOT,google_record=canonical(recorded))['review_status'],'REJECTED')
+        for raw in (b'null',b'[]',b'x'*20001,b'\xff',canonical(recorded)[:-1]+b',"gate_authority":false}'):
+            with self.assertRaises(StateError): combine(self.report,self.packet,root=ROOT,google_record=raw)
+        with self.assertRaises(StateError): parse_record(canonical(recorded),prepare(ROOT,role='security'),root=ROOT)
 
     def test_rehashed_missing_duplicate_wrong_candidate_and_forged_authority_rejected(self):
         for change in ('missing','duplicate','candidate','runner','authority','status'):
