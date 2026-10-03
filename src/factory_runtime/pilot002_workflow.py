@@ -65,7 +65,7 @@ Successful results are still untrusted and cannot advance a Factory state.
         stage = 'response'
         if not isinstance(raw, bytes) or not 0 < len(raw) <= 262144:
             raise StateError('Pilot 002 raw provider response exceeds bound')
-        result = adapter.parse_response(raw, copy.deepcopy(packet))
+        result = copy.deepcopy(adapter.parse_response(raw, copy.deepcopy(packet)))
         if (not isinstance(result, dict) or set(result) != {'model_id','output_bytes','actual_micro_usd'} or
                 result['model_id'] != packet['model_id'] or
                 type(result['actual_micro_usd']) is not int or
