@@ -1,4 +1,4 @@
-"""Offline verification of exact-request owner allowances; no signing or IO.
+"""Offline exact-request owner verification; no signing or cloud/provider IO.
 
 Trusted keys, cost bounds and readiness observations MUST be supplied by the
 reviewed deployment, never by invocation fields. This verifies bindings and
