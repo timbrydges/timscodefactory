@@ -14,9 +14,10 @@ from factory_state.model import StateError
 from prepare_security_gate_access import LOG_POLICY, ROLE, TABLE
 
 
-def prepare(current, *, commit, code, starts_at, expires_at, nonce):
+def prepare(current, *, commit, code, starts_at, expires_at, nonce, capacity_mode='reserved-one'):
     boot.facts(ROOT)
-    if (not isinstance(commit,str) or not re.fullmatch('[0-9a-f]{40}',commit) or
+    if (capacity_mode not in ('reserved-one','shared-account-pool') or
+        not isinstance(commit,str) or not re.fullmatch('[0-9a-f]{40}',commit) or
         type(starts_at) is not int or type(expires_at) is not int or not 0<expires_at-starts_at<=3600 or
         not isinstance(nonce,str) or not re.fullmatch('[0-9a-f]{32}',nonce) or
         not isinstance(code,dict) or set(code)!={'S3Bucket','S3Key','S3ObjectVersion'} or
@@ -29,7 +30,7 @@ def prepare(current, *, commit, code, starts_at, expires_at, nonce):
         if ('Transform' in current or role['RoleName']!=ROLE or role['Policies']!=[LOG_POLICY] or
             role.get('ManagedPolicyArns') or fn['FunctionName']!='tims-software-factory-autonomy-controller' or
             fn['Role']!={'Fn::GetAtt':['ControllerRole','Arn']} or
-            fn['Handler']!='factory_runtime.security_gate_runtime.controller_handler' or
+            fn['Handler'] not in ('factory_runtime.security_gate_runtime.controller_handler','factory_runtime.pilot002_bootstrap.handler') or
             fn.get('ReservedConcurrentExecutions')!=0 or
             any(env.get(k,'false')!='false' for k in ('FACTORY_SECURITY_GATE_ENABLED','FACTORY_QA_GATE_ENABLED',boot.ENABLED)) or
             env.get('FACTORY_AUTONOMY_CONTROLLER_ENABLED')!='false' or
@@ -47,7 +48,13 @@ def prepare(current, *, commit, code, starts_at, expires_at, nonce):
     props['Environment']['Variables'].update({boot.ENABLED:'false',boot.CONFIG:json.dumps(config,sort_keys=True)})
     active=copy.deepcopy(disabled)
     active['Resources']['ControllerFunction']['Properties']['Environment']['Variables'][boot.ENABLED]='true'
-    active['Resources']['ControllerFunction']['Properties']['ReservedConcurrentExecutions']=1
+    if capacity_mode=='reserved-one':
+        active['Resources']['ControllerFunction']['Properties']['ReservedConcurrentExecutions']=1
+    else:
+        # Proposed only: removing the per-function reservation uses AWS's shared
+        # pool. Requires a separate owner decision; the atomic bootstrap guard
+        # still admits only one state/marker/audit transaction.
+        active['Resources']['ControllerFunction']['Properties'].pop('ReservedConcurrentExecutions')
     iso=lambda value:datetime.fromtimestamp(value,timezone.utc).isoformat()
     policy={'PolicyName':'pilot-002-bootstrap-temporary','PolicyDocument':{'Version':'2012-10-17','Statement':[{
         'Effect':'Allow','Action':['dynamodb:GetItem','dynamodb:PutItem'],'Resource':TABLE,
@@ -56,7 +63,7 @@ def prepare(current, *, commit, code, starts_at, expires_at, nonce):
             'DateGreaterThanEquals':{'aws:CurrentTime':iso(starts_at)},
             'DateLessThan':{'aws:CurrentTime':iso(expires_at)}}}]}}
     active['Resources']['ControllerRole']['Properties']['Policies'].append(policy)
-    return {'status':'PREPARED_NOT_AUTHORIZED','source_commit':commit,'config':config,
+    return {'status':'PREPARED_NOT_AUTHORIZED','source_commit':commit,'config':config,'capacity_mode':capacity_mode,
         'baseline_sha256':hashlib.sha256(json.dumps(current,sort_keys=True).encode()).hexdigest(),
         'disabled_template':disabled,'active_template':active,'restore_template':disabled,
         'rollback_template':copy.deepcopy(current),'temporary_policy':policy,
@@ -70,7 +77,7 @@ def validate_changes(plan, current, proposed, change_set, *, parameters, phase):
     config=plan['config']
     rebuilt=prepare(plan['rollback_template'],commit=plan['source_commit'],
         code=plan['disabled_template']['Resources']['ControllerFunction']['Properties']['Code'],
-        starts_at=config['not_before'],expires_at=config['expires_at'],nonce=config['nonce'])
+        starts_at=config['not_before'],expires_at=config['expires_at'],nonce=config['nonce'],capacity_mode=plan['capacity_mode'])
     if json.dumps(plan,sort_keys=True)!=json.dumps(rebuilt,sort_keys=True):
         raise StateError('Bootstrap proposal drifted')
     phases={'deploy':('rollback_template','disabled_template'),

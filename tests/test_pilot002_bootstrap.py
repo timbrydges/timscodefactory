@@ -144,5 +144,39 @@ class BootstrapTests(unittest.TestCase):
         drift=copy.deepcopy(plan); drift['active_template']['Resources']['ControllerRole']['Properties']['Policies'].append({'bad':True})
         with self.assertRaises(StateError):validate_changes(drift,baseline,plan['disabled_template'],cs,parameters={},phase='deploy')
 
+    def test_shared_capacity_is_explicit_proposal_and_restores_zero(self):
+        baseline=json.loads((ROOT/'factory/evidence/pilot-002-controller-baseline-2026-10-03.json').read_bytes())
+        args=dict(commit='a'*40,code={'S3Bucket':'bucket','S3Key':'key','S3ObjectVersion':'version'},
+                  starts_at=self.start,expires_at=self.start+3600,nonce='b'*32)
+        original=prepare(baseline,**args)
+        shared=prepare(original['disabled_template'],**args,capacity_mode='shared-account-pool')
+        self.assertEqual(shared['status'],'PREPARED_NOT_AUTHORIZED')
+        self.assertNotIn('ReservedConcurrentExecutions',shared['active_template']['Resources']['ControllerFunction']['Properties'])
+        self.assertEqual(shared['restore_template']['Resources']['ControllerFunction']['Properties']['ReservedConcurrentExecutions'],0)
+        self.assertEqual(shared['temporary_policy'],original['temporary_policy'])
+        self.assertEqual(shared['expected_items'],original['expected_items'])
+        self.assertEqual(shared['maximum_invocations'],1)
+        with self.assertRaises(StateError):prepare(baseline,**args,capacity_mode='unlimited')
+
+    def test_racing_bootstrap_transactions_cannot_overwrite(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier, Lock
+        barrier=Barrier(2); lock=Lock(); commits=[]
+        original=self.db.transact_write_items.side_effect
+        def racing_write(**kw):
+            barrier.wait(timeout=5)
+            with lock:
+                if self.rows:raise RuntimeError('TransactionCanceled: existing marker/state')
+                original(**kw);commits.append(kw)
+        self.db.transact_write_items.side_effect=racing_write
+        def invoke():
+            try:return self.run_bootstrap()['status']
+            except StateError:return 'REJECTED'
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(lambda _:invoke(),range(2)))
+        self.assertCountEqual(results,['BOOTSTRAPPED_PAUSED_VERIFIED','REJECTED'])
+        self.assertEqual(len(commits),1)
+        self.assertEqual(tuple(self.rows[i['SK']['S']] for i in boot.items(self.config)),boot.items(self.config))
+
 
 if __name__=='__main__':unittest.main()
