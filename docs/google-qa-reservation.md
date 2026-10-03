@@ -47,6 +47,23 @@ allowances. Existing broker version 1 remains disabled with no generation branch
 Signed QA publication, signer enrollment, fresh QA lease and controller acceptance
 remain separate gates; the preflight and local tests grant none of them.
 
+## Read-only reconciliation
+
+`scripts/reconcile_google_qa.py --expected-source-commit COMMIT OUTPUT.json`
+checks the AWS account and reads the fixed attempt key with a strongly consistent
+GetItem and SDK retries disabled. COMMIT is the expected attempted deployment,
+not necessarily the current checkout. The output file is exclusive. No secret,
+provider, signing or ledger-write operation is available in this path.
+
+Absence is only a point-in-time observation, never permission to call the model.
+STARTED remains an unknown outcome with its hold retained, including after expiry.
+A COMPLETE row must contain a valid candidate-bound unsigned assessment and usage;
+it still grants no gate authority or refund. Legacy claims without a reservation
+are reported separately. Wrong source/request bindings, partial holds, malformed
+or contradictory evidence and read errors fail closed without echoing raw data.
+This checks stored evidence consistency, not authenticated owner consent or proof
+that the provider ran. Reconciliation never retries generation or recycles a key.
+
 References checked 2026-10-03 UTC:
 - https://ai.google.dev/gemini-api/docs/thinking
 - https://ai.google.dev/api/generate-content
