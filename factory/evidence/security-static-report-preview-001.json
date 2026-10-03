@@ -1,0 +1,55 @@
+{
+  "status": "STATIC_FINDINGS_RECORDED_UNSIGNED",
+  "role": "security",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "packet_digest": "sha256:401d2cccb7066e68256cbd951bb5e32b2ce4b5429cf8cf224f47d90bd09c3185",
+  "files_sha256": {
+    "fingerprint.py": "6db5d19de4ce05dd96a2f2f8de0cf45cf4345e291b7c775a7c789ec68917df31",
+    "tests/test_fingerprint.py": "75c03cb5d882be59e98ee48b897b818d99e9adf9a5c13190ed1b931505f8e7fa"
+  },
+  "qa_gate_payload_digest": "sha256:78fbcba2454be98466d11e12929a071864206a7ee3ccddb1ba61e3aa635091de",
+  "qa_gate_proof_digest": "sha256:0c82155a62a47279fad79f9d56c0815e85efd829500100dd76a2d1159a405048",
+  "method": "AST inspection and manual observations bound to exact pinned source; candidate not executed",
+  "observations": {
+    "direct_imports": [
+      "hashlib",
+      "json",
+      "sys"
+    ],
+    "dynamic_execution_calls": [],
+    "read_request_bytes": 4097,
+    "accepted_input_bytes": 4096,
+    "utf8_errors": "strict",
+    "os_error_response": "error: unable to read input file",
+    "output_contains_full_input": true
+  },
+  "findings": [
+    {
+      "id": "unrestricted-input-path",
+      "disposition": "requires-caller-isolation",
+      "detail": "The CLI opens the supplied path and follows symlinks. It does not restrict reads to a workspace."
+    },
+    {
+      "id": "blocking-special-files",
+      "disposition": "requires-host-timeout",
+      "detail": "The byte limit does not bound open/read time; a FIFO or device may block. No regular-file check or timeout is present."
+    },
+    {
+      "id": "input-disclosure",
+      "disposition": "requires-output-handling",
+      "detail": "Successful JSON output includes the entire decoded input. Callers must prevent sensitive file inputs and unintended output disclosure."
+    }
+  ],
+  "limitations": [
+    "No dynamic security testing or candidate execution",
+    "No proof of host isolation, filesystem containment, dependency integrity or absence of all vulnerabilities",
+    "Historical QA signature is provenance, not a current lease or execution authorization"
+  ],
+  "model_calls": 0,
+  "candidate_executions": 0,
+  "task_state_writes": 0,
+  "gate_authority": false,
+  "production_release_authorized": false,
+  "report_digest": "sha256:ecbb97a0e9773c73a8a09e722f3b1f2f3005f35b8e68417dd8f064291c26eb4a"
+}
