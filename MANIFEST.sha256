@@ -265,7 +265,7 @@ e1e0a2e2aaab020281583ce5e40c16efc21a292287f072673fe0c68034ba376b  factory/eviden
 f17374be2c1b9b68ab84ec112777b1d261c24266234fb9b12d3d367fc294627d  factory/evidence/qa-execution-live-proof-2026-10-03.json
 d14e6f5476ce3e8087925dfe50d24cf925ce93a42b841677d33c26e61b936411  factory/evidence/qa-executor-attestation-live-proof-2026-10-03.json
 eac3eea1934914008f10be0546f9c4ae6140cd8ebaf609d25baa61d5c11c1313  factory/evidence/qa-gate-001-baseline.json
-ccf7d8a97e4a0f6cc5abfc2ca5a00d46d5fd8356d503e594a3ceb2ff4966dd31  factory/evidence/qa-gate-001-pre-signing-blocker-2026-10-03.json
+bdfc418763210b29546bbdb1ac99e79d21ff6ac17fb0af3e7bb80195e7cd8db2  factory/evidence/qa-gate-001-pre-signing-blocker-2026-10-03.json
 d3ccf8cd4fb845dad51373f921753a6b381628ccfb894043f61456a6153b03e8  factory/evidence/qa-security-bootstrap-live-proof-2026-10-02.json
 92027c2848f509de34fdf75ac2433498cc3aed8ca3b55ab2ad6e416a3d045dd2  factory/evidence/qa-signer-enrollment-approval-2026-10-03.json
 5bac629fd49f0dba116fe1eaaf653c39cad85ba18acb3b2a8da8166d62e877c3  factory/evidence/qa-signer-enrollment-live-proof-2026-10-03.json
