@@ -1,0 +1,33 @@
+{
+  "status": "PROPOSED_NOT_AUTHORIZED",
+  "identity": "deep_security_reviewer_service",
+  "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/12303b9c-fa89-44a2-8864-fbc7b3903ca9",
+  "role_arn": "arn:aws:iam::666730517561:role/tims-factory-review-security",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "packet_digest": "sha256:401d2cccb7066e68256cbd951bb5e32b2ce4b5429cf8cf224f47d90bd09c3185",
+  "current_registry_sha256": "8475713e51d128b9351c47ced212813240d1faa3c84b22007df2ad256e4ab6c7",
+  "observation_sha256": "801f5d95a2d7df983c25c4cc3028d037bc5ad1cba5bb65b3e21410a908407cc4",
+  "qa_gate_proof_sha256": "0c82155a62a47279fad79f9d56c0815e85efd829500100dd76a2d1159a405048",
+  "added_entry_preview": {
+    "identity": "deep_security_reviewer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+    "enrollment_commit": "06fb6d111a0f9fb8463729bd38ba754dfe418074",
+    "not_before": 1791033839,
+    "expires_at": 1791120239,
+    "revoked": false
+  },
+  "maximum_trust_seconds": 86400,
+  "activation_rule": "After owner approval, reverify the same key and unchanged registry, use the merged review commit and a fresh maximum 24-hour window; preserve every existing entry. This preview is not applied.",
+  "model_calls": 0,
+  "signing_calls": 0,
+  "state_writes": 0,
+  "iam_changes": 0,
+  "new_keys": 0,
+  "security_execution_authorized": false,
+  "production_release_authorized": false,
+  "requires": [
+    "Explicit owner approval before registering the existing Security key",
+    "Separate reviewed execution scope and fresh security lease before a signed verdict"
+  ]
+}

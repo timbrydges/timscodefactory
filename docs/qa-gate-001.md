@@ -1,9 +1,28 @@
 # Proposed QA gate 001
 
-Status: gate operation approved and code deployed; blocked before lease issuance.
-QA remains version 12. No gate signing invocation or state write occurred.
+Status: completed and verified at 2026-10-03T13:21:45Z. The task advanced from
+QA 12 through lease version 13 to SECURITY_REVIEW 14. QA version 7 made the sole
+gate signing request; controller version 35 verified it and committed the gate.
+Both audit events, the revoked lease, consumed evidence and preserved history
+were verified. No model call or signing retry occurred.
 
-## Verified permission blocker, 2026-10-03
+The owner separately approved the temporary exact-task database permission.
+Six IAM simulations verified allowed reads/updates and denied wrong/missing keys,
+deletion and times outside the one-hour window. After continuation, the full
+controller template and logging-only policy were restored. QA/controller flags
+are false, concurrency is zero, and the schedule and Google broker remain disabled.
+The original denied invocation and its journals remain intact; total controller
+invocations across the failed attempt and successful continuation were three.
+
+Public proof, signature, final state, audit records, permission policy/simulation,
+cleanup confirmation and operator-script hashes are in
+`factory/evidence/qa-gate-001-live-proof-2026-10-03.json` (SHA256
+`0c82155a62a47279fad79f9d56c0815e85efd829500100dd76a2d1159a405048`).
+The signature and pinned payload were independently verified after export.
+The signing allowance is now consumed. Never rerun either operator script.
+Security execution and production release remain unauthorized.
+
+## Resolved permission blocker, 2026-10-03
 
 The controller invocation failed at its first DynamoDB GetItem because its role
 was logging-only. Inspector completion had temporarily granted state access and
@@ -13,7 +32,7 @@ expansion, so it does not authorize restoring these permissions.
 
 Both gate flags were restored to false and QA/controller reserved concurrency
 to zero. Existing versions, acceptance alias, IAM and Security resources were
-preserved. The single QA signing authorization remains unused; never rerun the
+preserved. At that point the single QA signing authorization was unused; never rerun the
 original operator script or erase its activation/lease-failure journals.
 
 `prepare_qa_gate_access.py` prepares a separate, unapplied permission proposal:
