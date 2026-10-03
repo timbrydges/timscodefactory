@@ -1,9 +1,26 @@
-# Proposed Security static attestation 001
+# Verified Security static attestation 001
 
-Status: prepared for approval. No Security invocation, deployment, model request,
-task transition or release is authorized by these files.
+Status: owner approved and completed at 2026-10-03 13:44:32 UTC. Security version 3
+made the sole synchronous attestation invocation and one KMS signing call, with
+zero retries, model calls or task writes. The function was restored disabled with
+reserved concurrency zero. The task remains SECURITY_REVIEW 14, byte-for-byte
+unchanged. Other functions, permissions, previous versions and aliases were
+verified unchanged. The invocation authorization is consumed; never rerun it.
 
-The next bounded step is one independently signed static-observation report from
+The deployed source is `73c701546a91326b8ff849dc53d2f9a9d5b2dffc`, package SHA256
+`87f58c1f5a2e2b3636b8a50ab1fa1fae1670c7ce2e4f8651c3059aae9226dd28`.
+Disabled version 2 and bounded attestation version 3 are retained. Public proof is
+`factory/evidence/security-static-attestation-live-proof-2026-10-03.json`, SHA256
+`01868bd1a5bffc2f5032e13c9464f536af5dc83780d5c6df6260b7f3a008d34d`.
+The signature, report digest and all findings were independently verified after
+export. Signed payload digest:
+`sha256:e8346508846688c8d925b2cf753c65e1961649c05d26d5a3c28ccc876047b45a`.
+
+This proves the existing Security role signed the exact static report. It does
+not resolve the three findings, constitute an independent model assessment,
+complete the Security gate, authorize a release or establish autonomous operation.
+
+The completed bounded step is one independently signed static-observation report from
 the existing Security Lambda role and enrolled KMS key. The report pins the exact
 fingerprint candidate and accepted historical QA gate. It does not execute the
 candidate or call a model. This is a reproducible source inspection with explicit
@@ -16,7 +33,7 @@ host timeouts and output handling. No finding is silently waived or presented
 as proof of a filesystem sandbox. A later gate needs a separate reviewed scope,
 fresh lease and controller evidence; this attestation cannot advance the task.
 
-## Requested approval
+## Scope approved and executed
 
 1. Deploy the reviewed immutable package to `tims-factory-review-security`,
    disabled with reserved concurrency zero. Preserve the existing Security role,
