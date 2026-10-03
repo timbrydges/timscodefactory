@@ -1,8 +1,24 @@
-# Proposed bounded Security validation 001
+# Verified bounded Security validation 001
 
-Status: implementation and local verification only. Live deployment, execution
-and signing require a new owner approval. The static attestation authorization
-is consumed and must never be replayed.
+Status: owner approved and completed at 2026-10-03 14:02:49 UTC. Security version 5
+passed all five synthetic cases and signed once. There was one invocation, no
+retry, no model call and no task write. Shutdown was verified at 14:02:48 UTC:
+all Security execution flags false and reserved concurrency zero. Task state
+remains SECURITY_REVIEW version 14; other functions, permissions, previous
+versions and aliases were preserved. This authorization is consumed; never
+rerun the invocation.
+
+Source: `50e5473f9dcc9139901a6effa0cced7a459fec46` (PR #322).
+Package SHA256: `508559681ece2a1f7d4db1ef84b1c0a5fb3da25c6d16d7945efd14d6bcd32cee`.
+Disabled version 4 and bounded version 5 are retained.
+Public proof: `factory/evidence/security-bounded-validation-live-proof-2026-10-03.json`.
+Proof SHA256: `bdde5f70dc045363558edf4b4024abf1568a76c0b0bb5d75cb1dc0551fa24c41`.
+Signed payload digest: `sha256:ad1de733c6a17293b245dd7c98b80d2255321ca36416009aed6e58cb33a4752f`.
+
+The proof was hash-checked on export and independently verified locally using
+the exact historical public signer registry. Run
+`python scripts/verify_security_validation_proof.py` to reproduce verification.
+This check preserves the owner scope-decision boundary and grants no gate rights.
 
 The existing fingerprint contract requires successful output to contain the
 input text. This proposal preserves the exact inspected candidate and all three
@@ -16,7 +32,7 @@ This is not an operating-system sandbox, an independent model review, a waiver
 of the findings, or proof that unrestricted CLI use is safe. No Security gate
 is completed and no production release or autonomous operation is authorized.
 
-## Proposed live scope
+## Scope approved and executed
 
 1. Deploy the exact reviewed immutable package disabled, preserving the existing
    Security role, key, aliases, old versions, other resources and stack parameters.
