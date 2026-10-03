@@ -30,7 +30,8 @@ Results are explicitly unauthenticated and contain no dollar cost. Converse
 does not echo the invoked model; transport must prove the exact profile used.
 Response model strings from other providers also do not authenticate a response.
 These codecs intentionally do not implement the workflow adapter interface.
-Reviewed one-shot transports, authenticated receipts, fresh full-request cost
+Disabled fixed-route transports are described in `pilot-002-transports.md`.
+Authenticated receipts, fresh full-request cost
 qualification, model/parameter availability, Google billing/data-use readiness,
 signed allowances and live activation remain required. Existing provider keys
 and historical approvals are untouched. Tests use local synthetic envelopes;
