@@ -1,0 +1,38 @@
+{
+  "status": "SECURITY_GATE_LEASE_REJECTED_NO_STATE_WRITE",
+  "verified_at": "2026-10-03T14:29:17.188162+00:00",
+  "source_commit": "f085c1b577e175d22e1cfcb93a90a635e08fd0a2",
+  "package_sha256": "18614187d93c088eb5a9998b6ad5597da647ccaa55afb6c6b5de55c35ae85c4f",
+  "versions": {
+    "security": "7",
+    "controller": "37"
+  },
+  "error": {
+    "errorMessage": "event id must be 1-36 safe idempotency characters",
+    "errorType": "StateError",
+    "requestId": "299ad831-09f7-4599-aef2-824c37f3cdec",
+    "stackTrace": [
+      "  File \"/var/task/factory_runtime/security_gate_runtime.py\", line 100, in controller_handler\n    return service.issue_lease()\n",
+      "  File \"/var/task/factory_runtime/security_gate.py\", line 142, in issue_lease\n    self._persist(state,machine,after)\n",
+      "  File \"/var/task/factory_runtime/security_gate.py\", line 125, in _persist\n    self.states.persist_transition(before,after,caller_identity=CONTROLLER_IDENTITY,\n",
+      "  File \"/var/task/factory_state/dynamodb.py\", line 54, in persist_transition\n    raise StateError(\"event id must be 1-36 safe idempotency characters\")\n"
+    ]
+  },
+  "signing_invocations": 0,
+  "task_state_writes": 0,
+  "state": "SECURITY_REVIEW",
+  "version": 14,
+  "baseline_unchanged": true,
+  "shutdown": {
+    "verified_at": "2026-10-03T14:26:34.158016+00:00",
+    "errors": [],
+    "disabled": true
+  },
+  "access_removed": {
+    "verified_at": "2026-10-03T14:27:04.082334+00:00",
+    "logging_only": true,
+    "functions_disabled": true
+  },
+  "model_calls": 0,
+  "production_release_authorized": false
+}

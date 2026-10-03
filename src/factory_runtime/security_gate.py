@@ -121,7 +121,7 @@ class SecurityGateController:
         return now, config, facts, before, lease, state
 
     def _persist(self, before, machine, after):
-        token = 'security-' + hashlib.sha256(canonical(machine.last_audit_event)).hexdigest()[:32]
+        token = 'sec-' + hashlib.sha256(canonical(machine.last_audit_event)).hexdigest()[:32]
         self.states.persist_transition(before,after,caller_identity=CONTROLLER_IDENTITY,
             event_id=token,audit_event=machine.last_audit_event)
 

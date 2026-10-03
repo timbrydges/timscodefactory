@@ -93,6 +93,25 @@ class SecurityGateTests(unittest.TestCase):
         with self.assertRaises(StateError): self.service().complete(self.result())
         self.assertEqual(self.states.writes,[])
 
+    def test_lease_and_completion_reach_real_dynamodb_transactions(self):
+        client=Mock()
+        client.get_item.return_value={'Item':DynamoDBStateStore._serialize_state(self.before)}
+        states=DynamoDBStateStore('tims-software-factory-state',client)
+        service=gate.SecurityGateController(self.root,states,json.dumps(self.config),
+            commit=self.commit,clock=lambda:self.now)
+        self.assertEqual(service.issue_lease()['status'],'LEASE_ISSUED')
+        client.transact_write_items.assert_called_once()
+        request=client.transact_write_items.call_args.kwargs
+        self.assertLessEqual(len(request['ClientRequestToken']),36)
+        serialized=request['TransactItems'][0]['Update']['ExpressionAttributeValues'][':payload']['S']
+        leased=DynamoDBStateStore._deserialize_payload(serialized)
+        client.get_item.return_value={'Item':DynamoDBStateStore._serialize_state(leased)}
+        self.assertEqual(service.complete(self.result())['status'],'ADVANCED')
+        self.assertEqual(client.transact_write_items.call_count,2)
+        completed=client.transact_write_items.call_args.kwargs
+        self.assertLessEqual(len(completed['ClientRequestToken']),36)
+        self.assertNotEqual(request['ClientRequestToken'],completed['ClientRequestToken'])
+
     def test_changed_task_or_history_cannot_be_reset(self):
         for changed in (replace(self.before,version=15),replace(self.before,state='QA'),
                         replace(self.before,leases=self.before.leases[:-1])):
