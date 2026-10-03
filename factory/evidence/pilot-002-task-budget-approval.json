@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "owner_identity": "tim_brydges",
+  "approved_on": "2026-10-03",
+  "user_reply": "I approve! Continue on to the next approval",
+  "reviewed_proposal_commit": "54344cdde842b1afd9167971c4be4af252320086",
+  "reviewed_proposal_path": "docs/autonomy-pilot-002-proposal.md",
+  "task_id": "safe-workspace-fingerprint-001",
+  "task_and_budget_approved": true,
+  "maximum_total_cost_usd": "0.75",
+  "maximum_cost_per_attempt_usd": "0.25",
+  "maximum_attempts": 3,
+  "maximum_retries": 0,
+  "provider_roles": ["openai-builder", "anthropic-inspector", "google-qa"],
+  "budget_reserved": false,
+  "permission_expansion_authorized": false,
+  "live_execution_authorized": false,
+  "production_release_authorized": false,
+  "prior_approvals_reusable": false
+}

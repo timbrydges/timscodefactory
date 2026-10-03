@@ -1,13 +1,14 @@
 # Proposed next task and budget: safe workspace fingerprint pilot
 
-Status: owner decision pending. This proposal is not a live authorization,
+Status: owner approved the task and budget on 2026-10-03, recorded in
+`factory/evidence/pilot-002-task-budget-approval.json`. This is not a live authorization,
 provider reservation, IAM grant, scheduler activation or change to the completed
 acceptance contract. Historical model budgets and one-call approvals are not
 reused. The existing contract stops at RELEASE_READY and prohibits production.
 
-## Owner decision requested
+## Approved task and budget
 
-Approve a new non-production task, `safe-workspace-fingerprint-001`, with a new
+The approved non-production task is `safe-workspace-fingerprint-001`, with a new
 maximum provider budget of USD 0.75 total, at most USD 0.25 reserved per attempt,
 and at most three attempted provider calls: one OpenAI Builder, one Anthropic
 Inspector and one Google QA assessment. These are spending ceilings, not price
@@ -57,3 +58,6 @@ The proposed active run lasts at most one hour and stops on any uncertain
 provider outcome, failed independent verdict, cap reached, missing evidence,
 source drift or completion. Then disable execution and remove temporary access.
 Approval of this proposal does not extend any existing signer enrollment.
+
+The exact task contract is `factory/autonomy/pilot-002-contract.json`.
+The next bounded initialization proposal is `docs/pilot-002-bootstrap.md`.
