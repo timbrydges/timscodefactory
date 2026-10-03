@@ -1,6 +1,45 @@
 # Proposed QA gate 001
 
-Status: prepared, not approved or deployed. QA remains version 12.
+Status: gate operation approved and code deployed; blocked before lease issuance.
+QA remains version 12. No gate signing invocation or state write occurred.
+
+## Verified permission blocker, 2026-10-03
+
+The controller invocation failed at its first DynamoDB GetItem because its role
+was logging-only. Inspector completion had temporarily granted state access and
+then removed it. The original proposal incorrectly assumed existing state access.
+That assumption is corrected here; the previous approval expressly excluded IAM
+expansion, so it does not authorize restoring these permissions.
+
+Both gate flags were restored to false and QA/controller reserved concurrency
+to zero. Existing versions, acceptance alias, IAM and Security resources were
+preserved. The single QA signing authorization remains unused; never rerun the
+original operator script or erase its activation/lease-failure journals.
+
+`prepare_qa_gate_access.py` prepares a separate, unapplied permission proposal:
+only GetItem, PutItem and UpdateItem on the exact fingerprint-task partition of
+the existing state table. IAM conditions require the exact leading key and limit
+access to at most one hour, ending before the existing QA enrollment expires.
+There is no delete, scan, secret, provider, KMS or Lambda invocation permission.
+The existing logging policy and all function/version/alias resources remain intact.
+
+After separate owner approval, compare actual inline/attached policies against
+the saved logging-only observation, prepare the exact live-template change set,
+and validate its actual template and resource changes with the helper. Do not
+change IAM before approval. Preserve the full original template for restoration.
+Use one common fresh window for IAM and gate configuration; a stale preview is
+not an extension of an old permission or lease. Verify effective permissions with
+read-only IAM simulation before invoking the controller. Since the first failed
+call performed only a denied read, require exact QA 12 and an absent signing
+journal before resuming the approved operation. Journal any controller continuation
+separately; never repeat or replace a signing request once its journal exists.
+
+After success or failure, block the functions, restore disabled environments and
+remove the temporary policy, verifying the role is logging-only again. The IAM
+deadline independently denies state access if cleanup is interrupted. Do not
+extend key enrollment, reset task history or start Security execution.
+
+## Original approved gate scope (permission prerequisite was missing)
 
 The proposal binds the reviewed fingerprint candidate, the immutable QA executor
 attestation from version 4, the recorded Google assessment and an exact live QA
@@ -21,8 +60,8 @@ Authorize the existing controller and QA roles to perform only:
 4. Disable the gate entrypoints and block further QA signing afterward.
 
 The activation window and lease are at most one hour and cannot outlast the
-existing QA enrollment. No model requests, Google replay, new key, IAM expansion,
-Security execution, scheduler activation or release are included. Any missing or
+existing QA enrollment. The original approval included no model requests, Google replay, new key, IAM expansion,
+Security execution, scheduler activation or release. Any missing or
 changed evidence, rejected assessment, invalid signature, expired permission or
 unexpected task state stops progression. A stopped run does not reset history.
 

@@ -1,0 +1,25 @@
+{
+  "status": "BLOCKED_BEFORE_LEASE_AND_SIGNING",
+  "source_commit": "1941061f79bd703232801d3d71c1ff329792da35",
+  "observation_source": "CloudShell lease-response.json, shutdown.json, permission-baseline.json and consistent live task read",
+  "task_state": "QA",
+  "task_version": 12,
+  "controller_invocations": 1,
+  "qa_signing_invocations": 0,
+  "model_calls": 0,
+  "failure": {
+    "code": "AccessDeniedException",
+    "operation": "dynamodb:GetItem",
+    "request_id": "8a5b1f53-142d-4f40-bb47-c8a5a62de0bb",
+    "reason": "Controller role has only canary-logs-only inline policy and no attached policies"
+  },
+  "shutdown": {
+    "verified_at": "2026-10-03T13:09:51.122734+00:00",
+    "errors": [],
+    "disabled": true
+  },
+  "iam_grant_applied": false,
+  "journals": "~/factory-evidence/qa-gate-001/",
+  "sign_started_journal_present": false,
+  "limitation": "Subsequent full evidence export was interrupted by AWS console sign-out; this record transcribes the already observed results, not a later verification."
+}
