@@ -31,6 +31,15 @@ def _window(value, now, maximum_seconds):
         value['issued_at'] <= now.timestamp() < value['expires_at'] <= value['issued_at']+maximum_seconds)
 
 
+def validate_readiness(readiness, *, bindings, now):
+    expected = {'kind':'pilot002_provider_readiness', **bindings,
+        'credential_route_verified':True, 'model_access_verified':True,
+        'repository_binding_verified':True}
+    if (not _exact(readiness, expected, {'issued_at','expires_at','evidence_digest'}) or
+            not _hash(readiness.get('evidence_digest')) or not _window(readiness, now, 3600)):
+        raise StateError('Pilot 002 provider or repository readiness is missing, changed or expired')
+
+
 def verify(envelope, *, root, role, request_bytes, source_commit, pricing, readiness,
            trusted_keys, now, builder_response=None, candidate_commit=None):
     """Return claim arguments only after all bindings and the owner signature pass.
@@ -65,12 +74,7 @@ cost qualification. A packet byte count alone is never treated as a token bound.
                 0 < pricing['maximum_cost_micro_usd'] <= CAP_MICRO_USD) or
             not _hash(pricing.get('evidence_digest')) or not _window(pricing, now, 300 if free else 86400)):
         raise StateError('Pilot 002 cost bound is unqualified, changed, expired or over cap')
-    ready_expected = {'kind':'pilot002_provider_readiness', **bindings,
-        'credential_route_verified':True, 'model_access_verified':True,
-        'repository_binding_verified':True}
-    if (not _exact(readiness, ready_expected, {'issued_at','expires_at','evidence_digest'}) or
-            not _hash(readiness.get('evidence_digest')) or not _window(readiness, now, 3600)):
-        raise StateError('Pilot 002 provider or repository readiness is missing, changed or expired')
+    validate_readiness(readiness, bindings=bindings, now=now)
     expected = {'kind':'pilot002_exact_request_allowance', 'owner_identity':OWNER_IDENTITY,
         **bindings, 'pricing_digest':digest(pricing), 'readiness_digest':digest(readiness),
         'reserved_micro_usd':CAP_MICRO_USD, 'approved_cap_micro_usd':CAP_MICRO_USD,

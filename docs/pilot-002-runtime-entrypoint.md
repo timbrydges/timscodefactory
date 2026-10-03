@@ -42,9 +42,10 @@ Results remain unsigned and cannot change Factory task state or authorize releas
 
 ## Remaining activation work
 
-No activation file, live allowance or new enrollment is included. The current
-builder does not yet assemble activation material; a reviewed immutable bundle
-and matching digest must be prepared separately. Actual credential ownership,
+No activation file, live allowance or new enrollment is included. The package
+builder accepts an optional `--activation` file, validates it offline, and includes
+its exact bytes and digest in the immutable package. A real reviewed activation
+file must still be prepared separately. Actual credential ownership,
 model access, full-request cost bounds and repository/candidate binding need fresh
 external evidence. The readiness document records those observations; the handler
 does not itself establish their truth or fetch GitHub. A deployment review must

@@ -34,3 +34,28 @@ Tests cover all roles, altered/missing files, unsafe paths, event/flag substitut
 deterministic archives, clean-source checks and overwrite protection. The Linux
 Python 3.12 suite additionally builds actual locked wheels and invokes the probe
 in an isolated extracted package. The Windows run skips that Linux-only check.
+
+## Optional deployment activation material
+
+`--activation <path>` includes an already-reviewed public configuration file as
+`PILOT002_ACTIVATION.json`. The builder reads at most 128 KiB once, rejects duplicate
+JSON keys, checks role/source/owner enrollment/immutable credential route, derives
+the exact provider request and validates its fresh cost qualification and readiness
+bindings. Readiness uses the same validator as runtime authorization. No SDK
+client, provider request, credential fetch, signing operation or attempt claim is
+performed. Keys in this file are public verification keys; secret values, private
+keys and signed invocation allowances are not accepted fields.
+
+Validation occurs before the output archive is created. Exact configuration bytes
+are added to the per-file index, so the final ZIP digest binds code and settings.
+The result reports the activation digest, fixed role, request digest and earliest
+material expiry. The same inputs produce identical bytes. The default invocation
+without `--activation` still creates a package without activation material.
+
+Even with configuration present, the reported handler remains the package probe,
+execution remains disabled, and `activation_authorized` is false. A package is not
+an owner allowance. Runtime validates freshness and the owner signature again;
+expired material cannot be revived by a previously successful build. External
+credential/model/repository/price claims still require real evidence and owner
+review. No production activation configuration is added by this change, and no
+AWS resource, role permission, handler, concurrency or model budget is changed.
