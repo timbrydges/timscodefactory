@@ -1,6 +1,5 @@
 import base64
 import copy
-import hashlib
 import json
 import os
 import sys
@@ -16,7 +15,6 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from factory_runtime import qa_gate as gate, qa_gate_runtime as runtime
 from factory_state.dynamodb import DynamoDBStateStore
 from factory_state.model import StateError
-from factory_state.scope import canonical
 from factory_state.signers import public_key_der
 from scope_dispatch_canary import fixture_keys, sign
 from test_progression import MemoryStates
