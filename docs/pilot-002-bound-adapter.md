@@ -12,7 +12,9 @@ It requires externally qualified complete input and combined output bounds,
 standard text-only rates with no cache charges, a source-evidence digest and a
 window no longer than 24 hours. Rates are nonnegative integer micro-USD per
 million tokens. Output bound must match the request's 4096 tokens; input bound
-must be positive and at most 32768. A zero total quote remains unsupported.
+must be positive and at most 32768. Paid qualifications require a positive total.
+The Google-only exception in `pilot-002-google-free-tier.md` requires an unlinked
+free-tier billing observation and a signed window of at most five minutes.
 
 Both the maximum reservation quote and observed usage cost use integer arithmetic
 rounded up to a micro-dollar. The maximum must not exceed USD 0.25. The complete
