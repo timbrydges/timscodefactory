@@ -1,0 +1,12 @@
+{
+  "status": "READ_ONLY_BILLING_SNAPSHOT_NOT_LIVE_QUALIFICATION",
+  "observed_at": "2026-10-03T22:07:03.845Z",
+  "source": "gcloud billing projects describe gen-lang-client-0247455615 --format=json",
+  "billing": {
+    "billingAccountName": "",
+    "billingEnabled": false,
+    "name": "projects/gen-lang-client-0247455615/billingInfo",
+    "projectId": "gen-lang-client-0247455615"
+  },
+  "live_execution_authorized": false
+}
