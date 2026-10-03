@@ -95,10 +95,14 @@ unknown file paths and acceptance with high/critical findings. Every parsed resu
 remains `UNAUTHENTICATED_ASSESSMENT` with no gate authority. A valid response shape
 does not prove the review occurred or that findings are complete.
 
-Pending operational work: provider selection (QA currently Google; security
-Anthropic), a separate owner-approved review contract with fresh prices and
-expiry, scoped broker permissions, durable one-attempt claims, signed result
-publication, approved signer enrollment and controller verification. Security
-execution must follow QA acceptance. Existing model allowances and remaining
-headroom do not authorize either new review. No runtime deployment is needed for
-this offline preparation, and bootstrap functions remain identity-only.
+The later Google QA pilot completed one separately approved free-tier request
+with a zero-dollar allowance and no retries. Its ACCEPTED assessment and the
+18 passing independent execution cases form an unsigned bundle ready for
+independent publication review. See `google-qa-live-proof-2026-10-03.json` and
+`google-qa-combined-bundle-2026-10-03.json` under `factory/evidence/`.
+
+Pending operational work: trusted executor provenance, a fresh QA lease, approved
+operational signer enrollment, signed result publication and controller
+verification. Security execution must follow accepted signed QA evidence and
+requires its own approved scope. The consumed Google allowance cannot be reused.
+QA version 2 executes bounded tests without signing; Security remains identity-only.

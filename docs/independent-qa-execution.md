@@ -78,5 +78,11 @@ prove package contents, invoke QA, sign evidence or authorize a model call.
 The evidence in `factory/evidence/qa-execution-live-proof-2026-10-03.json`
 records one execution of immutable QA version 2: all 18 cases passed on Linux
 Python 3.12.14. Version 1 and the Security function were preserved and IAM was
-verified unchanged. The bundle remains PENDING_GOOGLE; this operator observation
-is not a signed executor attestation and cannot authorize a task transition.
+verified unchanged. The later approved free-tier Google pilot completed once,
+returned ACCEPTED with no findings, and consumed its fixed attempt. The combined
+bundle in `factory/evidence/google-qa-combined-bundle-2026-10-03.json` is now
+READY_FOR_INDEPENDENT_PUBLICATION_REVIEW. Google billing remains unlinked; the
+broker's latest flag is false and reserved concurrency is zero. The execution
+observation and combined bundle are not signed executor attestations and cannot
+authorize a task transition. Trusted provenance, a fresh QA lease, operational
+signer enrollment/publication and controller verification remain outstanding.

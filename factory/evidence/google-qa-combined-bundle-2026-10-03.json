@@ -1,0 +1,39 @@
+{
+  "status": "UNSIGNED_QA_EVIDENCE_BUNDLE",
+  "review_status": "READY_FOR_INDEPENDENT_PUBLICATION_REVIEW",
+  "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+  "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+  "packet_digest": "sha256:99f9c9b18352443348367ea7bcb03981e787e55209eac6050dadba2a0f7a291c",
+  "local_report_digest": "sha256:8e4352934cc4fb01c2b21315c599648e54e809855a2b10d2c29bed24d202fa4d",
+  "local_cases_passed": true,
+  "google_assessment": {
+    "assessment": {
+      "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+      "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+      "findings": [],
+      "packet_digest": "sha256:99f9c9b18352443348367ea7bcb03981e787e55209eac6050dadba2a0f7a291c",
+      "rationale": "The candidate implementation in fingerprint.py correctly enforces the 4096-byte input size limit, strictly validates UTF-8 decoding, computes the SHA-256 digest across raw bytes, and formats the output into deterministic, canonical, compact JSON with keys byte_count, sha256, and text terminated by a single newline. All error conditions (incorrect arguments, unreadable files, oversized inputs, and invalid UTF-8) cleanly write an error prefix to stderr without writing to stdout and exit with a non-zero status. The unit test suite comprehensively validates boundary conditions (0 bytes, 4096 bytes, 4097 bytes), unicode handling, idempotency, and error cases.",
+      "role": "qa",
+      "verdict": "ACCEPTED",
+      "status": "UNAUTHENTICATED_ASSESSMENT",
+      "gate_authority": false,
+      "production_release_authorized": false
+    },
+    "provider_family": "google",
+    "model_id": "gemini-3.8-flash",
+    "input_tokens": 2931,
+    "output_tokens_including_thinking": 367,
+    "status": "UNAUTHENTICATED_PROVIDER_RESPONSE",
+    "gate_authority": false
+  },
+  "google_response_digest": "sha256:6c35b3baf385e5104a42d4a88c690528ca9e35203d8080dd50842c208a985dcc",
+  "google_evidence_format": "RECORDED_UNSIGNED_PROVIDER_RESULT",
+  "gate_authority": false,
+  "production_release_authorized": false,
+  "requires": [
+    "Trusted executor provenance",
+    "Fresh QA lease",
+    "Independent signer publication",
+    "Controller verification"
+  ]
+}

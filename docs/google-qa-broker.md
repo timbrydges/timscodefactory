@@ -51,6 +51,24 @@ hash, then invoke the immutable boundary version once with no retries. The probe
 does not read the credential, contact Google or create a ledger item. Unknown
 invocation outcomes require inspection, not another probe.
 
+## Completed free-tier pilot, 2026-10-03
+
+The signed workflow later deployed at source
+`7daa49830e00cc88d3a865ab30ae683b5a6db6fc` completed one approved Google review
+through immutable version 3. It returned ACCEPTED with no findings, using 2931
+input tokens and 367 output tokens including thinking. The project had no linked
+billing account; its signed allowance had a zero-dollar cap and reservation.
+The ledger is COMPLETE with its hold retained, no retries occurred, the latest
+enable flag is false, and function reserved concurrency is zero. The separate
+owner signing workflow gate is also false. A preliminary workflow dependency
+failure occurred before AWS client creation or signing and was fixed in PR #309.
+See `factory/evidence/google-qa-live-proof-2026-10-03.json` for the reconciled
+observation. The saved assessment is evidence, not a signed QA gate or release.
+
+The original bootstrap description below remains historical. The completed pilot
+used `GoogleQaReservedAttemptStore`, the signed authorization verifier and gated
+runtime; it did not invoke the legacy unreserved primitive directly.
+
 ## At-most-once primitive
 
 `GoogleQaAttemptStore.begin` conditionally writes a single fixed key containing
