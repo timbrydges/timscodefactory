@@ -1,0 +1,21 @@
+{
+  "status": "QUOTA_REQUEST_PROPOSED_NOT_SUBMITTED",
+  "account_concurrency": 10,
+  "unreserved_before": 10,
+  "current_function_reservation": 0,
+  "desired_function_reservation": 1,
+  "minimum_unreserved": 10,
+  "unreserved_after": 9,
+  "minimum_account_limit_under_observed_floor": 11,
+  "requires_fresh_aws_verification": true,
+  "account": "666730517561",
+  "region": "ca-central-1",
+  "request": {
+    "ServiceCode": "lambda",
+    "QuotaCode": "L-B99A9384",
+    "DesiredValue": 11
+  },
+  "evidence_observed_at": "2026-10-03T23:09:49.614401+00:00",
+  "provider_calls": 0,
+  "live_activation_authorized": false
+}

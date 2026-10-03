@@ -42,6 +42,9 @@ observation plus one hour, as well as the pricing qualification expiry.
 
 1. Recheck merged source, exact plan/package/template hashes, AWS account/region,
    current disabled template, all three zero concurrencies and absent attempt rows.
+   Before any future signature, run `PYTHONPATH=src python scripts/check_pilot002_capacity.py --minimum-unreserved 10`
+   using the floor in the recorded AWS rejection. Require `CAPACITY_READY`; if AWS
+   changes the floor, obtain fresh evidence and review instead of reducing it.
    Require enough remaining time for signing, deployment and a 180-second run;
    stop before signing if fewer than ten minutes remain.
 2. Dispatch `factory-owner-signing.yml` on main once, with only

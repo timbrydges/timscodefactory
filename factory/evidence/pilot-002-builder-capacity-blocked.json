@@ -1,0 +1,95 @@
+{
+  "status": "ACTIVATION_REJECTED_CAPACITY_DISABLED_ROLLBACK_VERIFIED",
+  "observed_at": "2026-10-03T23:09:49.614401+00:00",
+  "stack_status": "UPDATE_ROLLBACK_COMPLETE",
+  "template_sha256": "fd9b1ad173327dd21ad0ce8baa4799f8dbcaa3eb54dd9cae9e0be55be65d9d2b",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-builder-once-20261003-001/0c690ed6-39cc-4808-86b6-d7c8b99d9dee",
+  "signing_workflow_run": 37160620999,
+  "owner_signatures_created": 1,
+  "lambda_requests": 0,
+  "provider_calls": 0,
+  "credential_reads": 0,
+  "attempt_rows": {
+    "builder": null,
+    "inspector": null,
+    "qa": null
+  },
+  "shutdown_verified": true,
+  "functions": {
+    "builder": {
+      "handler": "factory_runtime.pilot002_entrypoint.handler",
+      "code_sha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "update_status": "Successful"
+    },
+    "inspector": {
+      "handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "update_status": "Successful"
+    },
+    "qa": {
+      "handler": "factory_runtime.pilot002_runtime_probe.handler",
+      "code_sha256": "XwqsnvueLgQjvD5mvQtpM54+9HfVHSSpPYahGejpcyA=",
+      "execution_enabled": false,
+      "reserved_concurrency": 0,
+      "update_status": "Successful"
+    }
+  },
+  "account_limit": {
+    "TotalCodeSize": 322122547200,
+    "CodeSizeUnzipped": 262144000,
+    "CodeSizeZipped": 52428800,
+    "ConcurrentExecutions": 10,
+    "UnreservedConcurrentExecutions": 10
+  },
+  "quota": {
+    "ServiceCode": "lambda",
+    "ServiceName": "AWS Lambda",
+    "QuotaArn": "arn:aws:servicequotas:ca-central-1:666730517561:lambda/L-B99A9384",
+    "QuotaCode": "L-B99A9384",
+    "QuotaName": "Concurrent executions",
+    "Value": 10,
+    "Unit": "Count",
+    "Adjustable": true,
+    "GlobalQuota": false,
+    "UsageMetric": {
+      "MetricNamespace": "AWS/Lambda",
+      "MetricName": "ConcurrentExecutions",
+      "MetricDimensions": {},
+      "MetricStatisticRecommendation": "Maximum"
+    },
+    "QuotaAppliedAtLevel": "ACCOUNT",
+    "Description": "The maximum number of events that functions can process simultaneously in the current Region."
+  },
+  "quota_request_history": [],
+  "failure_events": [
+    {
+      "Timestamp": "2026-10-03 23:07:46.087000+00:00",
+      "LogicalResourceId": "BuilderFunction",
+      "ResourceStatus": "UPDATE_FAILED",
+      "ResourceStatusReason": "Resource handler returned message: \"Specified ReservedConcurrentExecutions for function decreases account's UnreservedConcurrentExecution below its minimum value of [10]. (Service: Lambda, Status Code: 400, Request ID: 8cc5b319-849d-4e61-8299-432b9dc54e19) (SDK Attempt Count: 1)\" (RequestToken: 2449d846-b9a5-0674-2089-e1f316bb18e5, HandlerErrorCode: InvalidRequest)"
+    }
+  ],
+  "original_runner_report": {
+    "status": "STOPPED_NO_RETRY",
+    "started_at": "2026-10-03T23:07:26.732443+00:00",
+    "signing_workflow_run": 37160620999,
+    "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-builder-once-20261003-001/0c690ed6-39cc-4808-86b6-d7c8b99d9dee",
+    "plan_digest": "sha256:406fd5212d779375d1232d43dd05b7aa3e10ef76a40fba2f74cb58933194ea91",
+    "lambda_requests": 0,
+    "shutdown_verified": false,
+    "error_type": "WaiterError",
+    "shutdown_errors": [
+      "rollback_verification:AssertionError"
+    ],
+    "attempt_rows": {
+      "builder": null,
+      "inspector": null,
+      "qa": null
+    },
+    "finished_at": "2026-10-03T23:08:07.313873+00:00"
+  }
+}
