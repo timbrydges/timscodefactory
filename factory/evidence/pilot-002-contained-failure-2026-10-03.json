@@ -1,0 +1,46 @@
+{
+  "status": "BOOTSTRAP_ACTIVATION_REJECTED_BEFORE_INVOCATION",
+  "source_commit": "0813cf8ce6106dcf0815fd8cd80fd2ca19267873",
+  "observed_at": "2026-10-03T15:16:07.980312+00:00",
+  "cause": "Reserved concurrency 1 would leave fewer than AWS minimum 10 unreserved executions",
+  "account_limit": {
+    "TotalCodeSize": 322122547200,
+    "CodeSizeUnzipped": 262144000,
+    "CodeSizeZipped": 52428800,
+    "ConcurrentExecutions": 10,
+    "UnreservedConcurrentExecutions": 10
+  },
+  "quotas": [],
+  "bootstrap_invocations": 0,
+  "invocation_journal_exists": false,
+  "model_calls": 0,
+  "budget_reserved": false,
+  "controller_disabled": true,
+  "controller_concurrency": 0,
+  "stack_status": "UPDATE_ROLLBACK_COMPLETE",
+  "temporary_policy_removed": true,
+  "new_task_exists": false,
+  "final_verification_at": "2026-10-03T15:17:55.542048+00:00",
+  "controller_environment": {
+    "FACTORY_AUTONOMY_CONTROLLER_ENABLED": "false",
+    "FACTORY_PILOT002_BOOTSTRAP_CONFIG": "{\"approved\": true, \"contract_sha256\": \"eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf\", \"expires_at\": 1791043284, \"nonce\": \"fb00daebaa0f4532ad7b57b13fdebf38\", \"not_before\": 1791039684, \"operation\": \"pilot-002-bootstrap\", \"owner_identity\": \"tim_brydges\", \"source_commit\": \"0813cf8ce6106dcf0815fd8cd80fd2ca19267873\", \"task_id\": \"safe-workspace-fingerprint-001\"}",
+    "FACTORY_PILOT002_BOOTSTRAP_ENABLED": "false",
+    "FACTORY_QA_GATE_ENABLED": "false",
+    "FACTORY_SECURITY_GATE_ENABLED": "false"
+  },
+  "inline_policy_names": [
+    "canary-logs-only"
+  ],
+  "deterministic-text-fingerprint": {
+    "state": "RELEASE_READY",
+    "version": 16
+  },
+  "safe-workspace-fingerprint-001": null,
+  "failed_resource_events": [
+    {
+      "LogicalResourceId": "ControllerFunction",
+      "ResourceStatus": "UPDATE_FAILED",
+      "ResourceStatusReason": "Resource handler returned message: \"Specified ReservedConcurrentExecutions for function decreases account's UnreservedConcurrentExecution below its minimum value of [10]. (Service: Lambda, Status Code: 400, Request ID: 33add5f5-9ab5-4328-aa8e-e16508c982b3) (SDK Attempt Count: 1)\" (RequestToken: acfd30cb-d28c-917b-81d5-c1a8e2a46ef3, HandlerErrorCode: InvalidRequest)"
+    }
+  ]
+}

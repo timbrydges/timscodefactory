@@ -1,5 +1,43 @@
 # Pilot 002: one paused task initialization
 
+Status on 2026-10-03: the owner approved the reserved-one bootstrap, but AWS
+rolled back activation before any Lambda invocation. The account limit is 10
+and AWS's error requires at least 10 unreserved executions, so reserving one
+is unavailable. The original deployment is restored, concurrency is zero,
+the enable flag is false and only the logging policy remains. The new task is
+still absent and the old task remains RELEASE_READY v16. No model call or
+budget reservation occurred. Evidence:
+`factory/evidence/pilot-002-contained-failure-2026-10-03.json`.
+
+## Revised capacity decision requested
+
+Approve using the existing shared account pool for this same one-time
+initialization, without increasing AWS quotas. The regional pool currently
+permits at most 10 concurrent executions; the function would temporarily have
+no dedicated per-function reservation. Verify that both total and unreserved
+account concurrency still equal 10 before activation. This changes the capacity
+control, so the earlier reserved-one approval is not treated as permission for it.
+
+Keep the same task-only GetItem/PutItem policy, one operator invocation, no
+automatic retries and a fresh window of at most one hour starting after this
+revised approval. Atomically conditioned state, permanent marker and audit
+creation still admit only one successful initialization, including concurrent
+duplicate requests. Existing or partial state cannot be overwritten. A racing
+transaction regression test exercises this protection. No model, secret,
+signing, scheduling, release, existing-task or budget-ledger access is added.
+
+After the attempt, restore reserved concurrency zero and remove the temporary
+policy. Preserve operation-001's failed-deployment journal; no initialization
+invocation was made there. Use a new operation journal and new grant/restore
+change sets for the revised mode, not the consumed failed change set. Do not
+extend the new access window during execution. The bootstrap runtime package
+from source `0813cf8ce6106dcf0815fd8cd80fd2ca19267873` is unchanged.
+
+The preparation helper's default remains `reserved-one`. The explicit
+`capacity_mode="shared-account-pool"` emits only a pending proposal, never live
+approval. It accepts the already-disabled bootstrap controller as a safe
+baseline so a fresh approval window can be prepared without resetting history.
+
 Task and provider budget are approved. Live execution and permission expansion
 are not. The existing task remains RELEASE_READY version 16; it must never be
 reset for this pilot. AWS read-only inspection on 2026-10-03 found the new task
@@ -7,7 +45,7 @@ absent and the controller disabled with logging-only access. The captured
 controller template SHA-256 is
 `9f8733a8f0b4644461ac8aba2399805b72fc2d6d6ccc5fba2eb32769ff91becf`.
 
-## Next requested approval
+## Original reserved-one operation scope
 
 Deploy the reviewed bootstrap package on the existing disabled controller, then
 grant that role temporary GetItem and PutItem access to only
