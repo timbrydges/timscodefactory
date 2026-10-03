@@ -1,0 +1,106 @@
+{
+  "status": "SHARED_POOL_PREVIEW_NOT_EXECUTED",
+  "reserved_lambda_limit": null,
+  "maximum_provider_calls": 1,
+  "reserved_model_micro_usd": 250000,
+  "retries": 0,
+  "new_signature_required": false,
+  "quota_change_required": false,
+  "observed_at": "2026-10-03T23:19:49.371482+00:00",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-builder-shared-20261003-001/21b12159-e0b6-4cb6-8eca-d3715b7b74b6",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
+  "changes": [
+    {
+      "Type": "Resource",
+      "ResourceChange": {
+        "Action": "Modify",
+        "LogicalResourceId": "BuilderFunction",
+        "PhysicalResourceId": "tims-factory-pilot-002-builder",
+        "ResourceType": "AWS::Lambda::Function",
+        "Replacement": "False",
+        "Scope": [
+          "Properties"
+        ],
+        "Details": [
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Code",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "ReservedConcurrentExecutions",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Environment",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Description",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          }
+        ]
+      }
+    }
+  ],
+  "template_sha256": "89fadfbb475673de2c3e510765fe76ec2f33a758022f4b0c102530e496d22492",
+  "rollback_template_sha256": "fd9b1ad173327dd21ad0ce8baa4799f8dbcaa3eb54dd9cae9e0be55be65d9d2b",
+  "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+  "package": {
+    "source_commit": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4",
+    "sha256": "85063553e5c5e9fcb046b15be866a98040b2e29c676e9b202906b6722599c884",
+    "code_sha256": "hQY1U+XF6fywRrFb6GapgECy4pxnbpsgKQa2ciWZyIQ=",
+    "zip_bytes": 4779679,
+    "handler": "factory_runtime.pilot002_runtime_probe.handler",
+    "execution_enabled": false,
+    "model_calls": 0,
+    "activation_sha256": "ba34487e5726356ecde8fd07212ed6aaf7a32292b591ed4018455881d9a4cf7e",
+    "role": "builder",
+    "request_digest": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c",
+    "material_expires_at": 1791071128,
+    "signed_allowance_included": false,
+    "activation_authorized": false
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "pilot-002/runtime/535233c6e7e7655ef79e885b9c1a164fd7bee1d4/85063553e5c5e9fcb046b15be866a98040b2e29c676e9b202906b6722599c884.zip",
+    "S3ObjectVersion": "zZPW1nDwvw4B44VxvB_MCLcYqm5pYuE_"
+  },
+  "audit": {
+    "observed_at": "2026-10-03T23:19:14.416267+00:00",
+    "account_concurrency": 10,
+    "unreserved_concurrency": 10,
+    "resource_policy_present": false,
+    "function_url_present": false,
+    "event_source_mappings": 0,
+    "eventbridge_targets": 0,
+    "attempt_rows_present": 0,
+    "existing_owner_signature_verified": true,
+    "new_signatures": 0,
+    "provider_calls": 0,
+    "all_roles_disabled": true
+  },
+  "allowance_expires_at": "2026-10-03T23:45:28Z",
+  "prior_activation_lambda_requests": 0,
+  "original_signing_workflow_run": 37160620999,
+  "execution_status": "AVAILABLE"
+}
