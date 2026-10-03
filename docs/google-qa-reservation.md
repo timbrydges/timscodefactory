@@ -46,6 +46,26 @@ production allowance, pricing qualification, signing permission or live caller.
 The production broker continues to reject every generation event even when its
 enable flag is changed. Test signatures use disposable fixture keys only.
 
+## Gated runtime integration
+
+`google_qa_broker_runtime.handler` is the prepared runtime adapter; the deployed
+handler remains `google_qa_boundary.handler`. With the flag false, the adapter
+delegates to the existing disabled probe. Its enabled branch requires a source-
+pinned activation manifest, qualified pricing, a hash-pinned enrolled signer
+registry, and an exact source-bound signed allowance before creating AWS clients.
+The pricing window cannot outlive the owner's enrollment. No production manifest
+or pin exists: `ACTIVE_MANIFEST_SHA256` is intentionally None. Events and environment
+variables cannot override it. A reviewed activation change is still required.
+
+After authorization, the adapter requires the exact isolated broker role in the
+expected AWS account, uses clients with retries disabled, reserves the fixed
+ledger key, and only then reads the exact approved secret ARN/version/AWSCURRENT.
+It checks the returned secret identity before transport. Root sessions and other
+roles cannot execute it. It contains no signing or task-state-writing client.
+Errors are sanitized; uncertain attempts keep their reservations. Tests exercise
+the complete adapter with fixture signatures, fake AWS clients and simulated
+provider responses, including missing pins, altered files and credential mismatch.
+
 ## Verified preflight and billing distinction
 
 The approved preflight completed at 2026-10-03T00:53:57Z using source
