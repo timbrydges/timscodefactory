@@ -12,7 +12,7 @@ sys.path.insert(0,str(ROOT/'src'))
 from factory_runtime import qa_enrollment as enrollment
 from factory_runtime.review_preparation import PACKET, REVIEW, BOOTSTRAP
 from factory_state.model import StateError
-from factory_state.signers import public_key_der
+from factory_state.signers import public_key_der, validate_trusted_signers
 
 
 class QaEnrollmentTests(unittest.TestCase):
@@ -22,6 +22,11 @@ class QaEnrollmentTests(unittest.TestCase):
         for name in (PACKET,REVIEW,BOOTSTRAP,enrollment.BUNDLE,enrollment.PROOF,enrollment.REGISTRY):
             path=self.root/name; path.parent.mkdir(parents=True,exist_ok=True)
             path.write_bytes((ROOT/name).read_bytes())
+        # Model the pre-enrollment registry even after the approved QA addition.
+        registry_path=self.root/enrollment.REGISTRY
+        registry=json.loads(registry_path.read_bytes())
+        registry['signers']=[e for e in registry['signers'] if e['identity']!=enrollment.IDENTITY]
+        registry_path.write_text(json.dumps(registry))
         self.now=datetime(2026,10,3,3,10,tzinfo=timezone.utc)
         identity=json.loads((ROOT/BOOTSTRAP).read_bytes())['identities'][0]
         self.observation={'observed_at':self.now.isoformat(),'account':'666730517561',
@@ -69,6 +74,19 @@ class QaEnrollmentTests(unittest.TestCase):
         with self.assertRaises(StateError): self.propose()
         old=json.loads(original); old['enabled']=False; p.write_text(json.dumps(old))
         with self.assertRaises(StateError): self.propose()
+
+    def test_approved_live_qa_entry_expires_without_expiring_other_signers(self):
+        registry=json.loads((ROOT/enrollment.REGISTRY).read_bytes())
+        entry=next(e for e in registry['signers'] if e['identity']==enrollment.IDENTITY)
+        self.assertEqual(entry['expires_at']-entry['not_before'],86400)
+        start=datetime.fromtimestamp(entry['not_before'],timezone.utc)
+        end=datetime.fromtimestamp(entry['expires_at'],timezone.utc)
+        active=validate_trusted_signers(registry,now=start)
+        expired=validate_trusted_signers(registry,now=end)
+        self.assertIn(enrollment.IDENTITY,active)
+        self.assertNotIn(enrollment.IDENTITY,expired)
+        self.assertEqual(set(expired),set(active)-{enrollment.IDENTITY})
+        self.assertNotIn('deep_security_reviewer_service',active)
 
 
 if __name__=='__main__': unittest.main()

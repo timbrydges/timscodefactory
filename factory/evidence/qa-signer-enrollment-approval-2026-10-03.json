@@ -1,0 +1,48 @@
+{
+  "status": "OWNER_APPROVED_QA_ENROLLMENT_PENDING_DEPLOYMENT",
+  "approval_text": "I approve",
+  "approved_scope": "Trust the existing QA signing key for at most 24 hours; no model calls, task advancement or release",
+  "reviewed_proposal_commit": "a5d81a3127930418600065476f5f5414881cbdf5",
+  "key_observation": {
+    "observed_at": "2026-10-03T03:11:56.666249+00:00",
+    "account": "666730517561",
+    "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+    "key_state": "Enabled",
+    "key_usage": "SIGN_VERIFY",
+    "key_spec": "ECC_NIST_EDWARDS25519",
+    "algorithms": [
+      "ED25519_PH_SHA_512",
+      "ED25519_SHA_512"
+    ],
+    "public_key_der_base64": "MCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=",
+    "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+    "role_arn": "arn:aws:iam::666730517561:role/tims-factory-review-qa",
+    "role_trust": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "lambda.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  },
+  "prior_registry_sha256": "44ba7126ad21e2f7162ceb2fa213907c7a65fdc9cfdcaec948448c32edf22077",
+  "added_entry": {
+    "identity": "qa_engineer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+    "enrollment_commit": "a5d81a3127930418600065476f5f5414881cbdf5",
+    "not_before": 1790997153,
+    "expires_at": 1791083553,
+    "revoked": false
+  },
+  "iam_changes": 0,
+  "new_keys": 0,
+  "model_calls": 0,
+  "task_state_writes": 0,
+  "production_release_authorized": false
+}
