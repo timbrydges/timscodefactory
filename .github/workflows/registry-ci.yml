@@ -19,7 +19,8 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: python -m pip install --require-hashes -r requirements-ci.txt -r requirements-role-lambda.txt
+      - run: python -m pip install --require-hashes -r requirements-ci.txt -r requirements-role-lambda.txt -r requirements-aws-signing.txt
+      - run: python -c "import boto3; from botocore.session import get_session; assert 'ED25519_SHA_512' in get_session().get_service_model('kms').shape_for('SigningAlgorithmSpec').enum"
       - run: python scripts/build_manifest.py --check
       - run: python scripts/validate_registry.py
       - run: python scripts/validate_workflows.py
