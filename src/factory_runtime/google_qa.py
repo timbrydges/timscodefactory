@@ -5,6 +5,7 @@ this transport. Its one-use latch only prevents reuse of one transport object;
 it is not a replacement for durable duplicate protection.
 """
 import base64
+import hashlib
 import json
 import ssl
 import urllib.error
@@ -110,8 +111,11 @@ class GoogleQATransport:
             urllib.request.ProxyHandler({}),
             urllib.request.HTTPSHandler(context=ssl.create_default_context()), NoRedirect())
 
-    def send_once(self, packet, *, root, api_key):
+    def send_once(self, packet, *, root, api_key, expected_request_digest=None):
         body = request_body(packet, root=root)
+        if (expected_request_digest is not None and
+                expected_request_digest != 'sha256:'+hashlib.sha256(body).hexdigest()):
+            raise StateError('Google transport request differs from reserved bytes')
         if (not isinstance(api_key, str) or not 16 <= len(api_key) <= 256 or
                 any(ord(ch) < 33 or ord(ch) > 126 for ch in api_key)):
             raise StateError('Google credential unavailable or invalid')

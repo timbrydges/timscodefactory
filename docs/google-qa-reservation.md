@@ -18,6 +18,34 @@ the amount from a verified pricing/output envelope before using this primitive.
 Passing a digest or cap is not proof of consent. The original attempt-only path
 must not be wired to generation. No runtime path is changed by this preparation.
 
+## Signed allowance and ordered workflow
+
+`google_qa_authorization.verify` now verifies an Ed25519 owner allowance against
+deployment-trusted public keys and a deployment-trusted, qualified pricing
+envelope. It binds the fixed activation, exact source, candidate, contract,
+packet, serialized request, endpoint, model, pricing digest, spending cap,
+reservation, lifetime, one provider call and zero retries. Integer arithmetic
+rounds the worst-case input plus combined thought/output cost up to micro-USD.
+Pricing must be positive and qualified; an observed free tier is not a budget.
+The signed receipt cannot outlive its pricing evidence.
+
+`google_qa_workflow.run_once` composes verification, atomic hold/claim, credential
+loading, a fresh expiry check, one exact-request transport call, strict response
+parsing and completion recording. The transport checks the reserved request
+digest before sending. Failures preserve the hold and sanitize diagnostics; they
+never reread the ledger to infer permission, refund, retry or switch activation.
+Concurrent callers still compete for the same durable key. Completion remains
+unsigned evidence with no task-state or release authority.
+
+These functions are not wired to the Lambda handler or a CLI. All dependencies
+are supplied by trusted runtime code, never invocation fields. Future runtime
+integration must load active enrolled owner keys from its reviewed registry,
+pin independently qualified pricing/evidence, use clients with retries disabled,
+and provide broker-only credential access after the claim. This change adds no
+production allowance, pricing qualification, signing permission or live caller.
+The production broker continues to reject every generation event even when its
+enable flag is changed. Test signatures use disposable fixture keys only.
+
 ## Verified preflight and billing distinction
 
 The approved preflight completed at 2026-10-03T00:53:57Z using source
@@ -66,5 +94,6 @@ that the provider ran. Reconciliation never retries generation or recycles a key
 
 References checked 2026-10-03 UTC:
 - https://ai.google.dev/gemini-api/docs/thinking
+- https://ai.google.dev/gemini-api/docs/generate-content/thinking
 - https://ai.google.dev/api/generate-content
 - https://ai.google.dev/gemini-api/docs/pricing
