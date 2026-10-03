@@ -17,12 +17,16 @@ def propose(root, commit):
         'baseline_sha256':BASELINE_SHA,'from_state':'QA','from_version':12,
         'lease_id':LEASE_ID,'lease_version':13,'target_state':'SECURITY_REVIEW','target_version':14,
         'maximum_lease_seconds':3600,'maximum_signing_invocations':1,'signing_retries':0,
-        'model_calls':0,'new_iam_permissions':0,'new_keys':0,'schedule_enabled':False,
+        'model_calls':0,'new_keys':0,'schedule_enabled':False,
+        'temporary_controller_state_access_required':True,
+        'temporary_state_actions':['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],
+        'permission_approval_status':'PENDING_SEPARATE_APPROVAL',
         'security_execution_authorized':False,'production_release_authorized':False,
         'evidence':facts,'required_owner_decision':
             'Accept the pinned recorded unsigned Google assessment with verified signed tests; '
             'authorize one fresh QA lease, one QA gate signature and controller advancement to Security Review.',
         'requires':['Unchanged live QA version 12 and active enrolled QA key',
+            'Separate approval for bounded controller task-partition state access',
             'Explicit owner approval before enabling either entrypoint',
             'Exact reviewed package and matching bounded deployment configuration',
             'Durable exclusive signing invocation journal and shutdown after the attempt']}
