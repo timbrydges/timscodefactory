@@ -1,8 +1,19 @@
 # Proposed synthetic-only Security gate 001
 
-Status: prepared, not authorized for live execution. The owner accepted the
-three findings solely for the exact synthetic demonstration in scope decision
-001. That decision does not authorize state changes, IAM grants or signing.
+Status: owner authorized the bounded operation, but the first lease request
+was rejected before any state write or Security signature. The generated audit
+identifier was 41 characters; DynamoDB's adapter permits at most 36. The fix
+uses a four-character prefix plus the same 32 hexadecimal hash characters.
+Regression coverage now exercises both lease and completion through the real
+storage adapter, including its transaction-token validation.
+
+Containment was verified at 2026-10-03 14:27 UTC: task SECURITY_REVIEW version 14
+unchanged, zero signing invocations, both functions disabled, and temporary
+access removed. The failure proof is
+`factory/evidence/security-gate-001-contained-failure-2026-10-03.json`.
+Any continuation must preserve the original single-signature limit, durable
+journals and maximum one-hour access window; no invocation may be blindly
+repeated. The original scope acceptance remains synthetic-only.
 
 The proposed gate verifies the pinned successful Security validation and its
 historical public-key enrollment, the exact candidate/contract, the accepted
