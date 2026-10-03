@@ -33,3 +33,14 @@ authenticity. A future publisher must establish trusted executor provenance and
 a fresh QA lease, then sign and submit through controller verification. No signer,
 state transition, provider request, spending reservation or production release is
 authorized by this runner, validator or bundle builder.
+
+## Isolated runtime preparation
+
+`factory_runtime.qa_execution_runtime.handler` accepts only an exact source-bound
+`qa_execute_unsigned` event for the fixed candidate, QA role and literal false
+operational flag. It has no cloud client, credential, model or KMS signing path.
+The Linux package builder includes the three pinned review-evidence files.
+Deployments should change only QaFunction and QaVersion in the existing review
+bootstrap stack, preserving every IAM/KMS/security resource and old immutable
+versions. Pin the package S3 version and code hash; verify the deployed version
+before one synchronous execution without retries. Results remain unsigned.
