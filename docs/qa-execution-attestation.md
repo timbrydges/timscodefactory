@@ -1,4 +1,31 @@
-# QA executor provenance: prepared, not authorized
+# QA executor provenance
+
+## Approved and verified, 2026-10-03
+
+The owner approved one deployment and QA signing invocation, with no retries,
+followed by disabling execution. Reviewed source
+`3d70cefa78a7b5525e6abcd268639e1a2d4786e0` was deployed as disabled version 3;
+the bounded activation was published as immutable version 4. All 18 cases passed.
+One invocation and one KMS signature completed; independent signature and report
+verification passed. No model calls or task state writes occurred. QA remains
+version 12, the schedule remains disabled, and QA and Google broker reserved
+concurrency are both zero. The latest QA signing flag is false.
+
+AWS rejected a reservation of one execution slot before invocation because this
+account has a concurrency limit of ten. The first setup restored the disabled
+configuration. After confirming no invocation journal or response existed, the
+operator used existing shared capacity for the same immutable version and same
+five-minute window. The exclusive invocation journal was created before the
+single request; concurrency was restored to zero afterward. No invocation retry
+or quota increase occurred.
+
+Evidence: `factory/evidence/qa-executor-attestation-live-proof-2026-10-03.json`.
+Its signed payload binds the full report digest. The surrounding deployment and
+shutdown observations are operator evidence. This proves historical execution;
+it grants no QA gate, lease, task transition, or release authority. The procedure
+below is retained for audit, not authorization for another attempt.
+
+## Original bounded proposal and procedure
 
 QA trust was approved and deployed in controller version 32. That approval did
 not authorize signing calls. The next proposal is one invocation of the fixed
@@ -41,4 +68,4 @@ and `production_release_authorized=false`. The report is returned alongside its
 signed digest. This does not attest to the Google response or create a QA lease.
 Historical signature verification proves issuance, not present authorization.
 Fresh QA lease, independent gate publication and controller verification remain
-separate work. No cloud deployment or signing invocation is performed by this PR.
+separate work. The original preparation PR performed no deployment or invocation.

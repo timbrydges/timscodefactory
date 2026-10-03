@@ -1,0 +1,193 @@
+{
+  "status": "QA_EXECUTOR_ATTESTATION_VERIFIED",
+  "verified_at": "2026-10-03T07:55:58.319378+00:00",
+  "source_commit": "3d70cefa78a7b5525e6abcd268639e1a2d4786e0",
+  "version": "4",
+  "code_sha256": "+HsLY0/kJJZp+5o4Iuvndu+N9K7bwXCEJE6OVn4MTqw=",
+  "package_sha256": "f87b0b634fe4249669fb9a3822ebe776ef8df4aedbc17084244e8e567e0c4eac",
+  "signed_payload_digest": "sha256:d25793738da5bc4db102198ad6ca6a726eaa00b63458eec004a44a51f7efb049",
+  "report_digest": "sha256:c9b57f20505c5400ae602c42dd5618a8d4d1cdc88cb0f4ea3f1211097502f4e0",
+  "cases_passed": true,
+  "case_count": 18,
+  "invocation_attempts": 1,
+  "retries": 0,
+  "signing_calls": 1,
+  "model_calls": 0,
+  "task_state_writes": 0,
+  "task_item_unchanged": true,
+  "schedule": "DISABLED",
+  "qa_reserved_concurrency": 0,
+  "google_broker_concurrency": 0,
+  "old_versions_preserved": true,
+  "gate_authority": false,
+  "production_release_authorized": false,
+  "result": {
+    "payload": {
+      "kind": "qa_execution_attestation",
+      "purpose": "executor-provenance-only",
+      "identity": "qa_engineer_service",
+      "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+      "executor_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-review-qa/tims-factory-review-qa",
+      "source_commit": "3d70cefa78a7b5525e6abcd268639e1a2d4786e0",
+      "nonce": "090ce4be59f34bbb8f2fc54202dd85cd",
+      "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+      "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+      "packet_digest": "sha256:99f9c9b18352443348367ea7bcb03981e787e55209eac6050dadba2a0f7a291c",
+      "report_digest": "sha256:c9b57f20505c5400ae602c42dd5618a8d4d1cdc88cb0f4ea3f1211097502f4e0",
+      "registry_sha256": "8475713e51d128b9351c47ced212813240d1faa3c84b22007df2ad256e4ab6c7",
+      "cases_passed": true,
+      "case_count": 18,
+      "issued_at": 1791014157,
+      "expires_at": 1791014378,
+      "gate_authority": false,
+      "production_release_authorized": false
+    },
+    "signature_base64": "fCRrNgq7o6Y4dkzYyjDKJBQl/2Pn5JiMUWWeyoLOG/ia+IcNUlZ6fyS7eWsO1Oi5kjbIyuKesLx12RiuaC+9AA==",
+    "report": {
+      "status": "LOCAL_QA_PASSED_UNSIGNED",
+      "candidate_commit": "09a758184c890eda200326a18fb166641194e32e",
+      "contract_digest": "sha256:7ca5363f88bc43e31436e1c8640bb9516a705aa07dda82519a690a9301a9b9fa",
+      "packet_digest": "sha256:99f9c9b18352443348367ea7bcb03981e787e55209eac6050dadba2a0f7a291c",
+      "executed_source_sha256": "6db5d19de4ce05dd96a2f2f8de0cf45cf4345e291b7c775a7c789ec68917df31",
+      "runner_sha256": "d2a9d604a0e3dc77d4ac11b9ca33289c9ea38c72b4c516f285854ddd83b02f4a",
+      "runtime": "3.12.14 (main, Sep  3 2026, 02:51:04) [GCC 11.5.0 20240719 (Red Hat 11.5.0-5)]",
+      "platform": "linux",
+      "observed_at": "2026-10-03T07:55:57.637885+00:00",
+      "cases": [
+        {
+          "case": "empty",
+          "passed": true,
+          "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "input_bytes": 0,
+          "expected_success": true
+        },
+        {
+          "case": "nul-and-controls",
+          "passed": true,
+          "input_sha256": "01982de4615c8c73ac8d421708f4a1734ab92878280581078eb20f77326cd3ae",
+          "input_bytes": 4,
+          "expected_success": true
+        },
+        {
+          "case": "json-escaping",
+          "passed": true,
+          "input_sha256": "4ee0e31d2188811bfdbbe067c5717845c6cbea5068acf44978f7f928845a8881",
+          "input_bytes": 14,
+          "expected_success": true
+        },
+        {
+          "case": "utf8-bom",
+          "passed": true,
+          "input_sha256": "7489ebbcc2a00056ddaaaac190bce473e5c03696ea1bd8ed83cf59a174283862",
+          "input_bytes": 8,
+          "expected_success": true
+        },
+        {
+          "case": "combining-characters",
+          "passed": true,
+          "input_sha256": "0c5b21a565ec7695b30d697175518945bbf147a3ef0ec173d40d00c93103ad38",
+          "input_bytes": 5,
+          "expected_success": true
+        },
+        {
+          "case": "non-bmp-boundary",
+          "passed": true,
+          "input_sha256": "02123ba654b4a9108768d05de9950aed18b24299e6f0713ebee87ae0ae98c748",
+          "input_bytes": 4096,
+          "expected_success": true
+        },
+        {
+          "case": "ascii-boundary",
+          "passed": true,
+          "input_sha256": "a2e659dacb4691e887ac0139f8893d04764ee197d70fb73d3190d56113d18e3e",
+          "input_bytes": 4096,
+          "expected_success": true
+        },
+        {
+          "case": "multibyte-crosses-boundary",
+          "passed": true,
+          "input_sha256": "3f9c72273cd1efcfc204030db6aeac6a45191d707de47bc6ddd0e0f136cc164e",
+          "input_bytes": 4097,
+          "expected_success": false
+        },
+        {
+          "case": "ascii-over-boundary",
+          "passed": true,
+          "input_sha256": "3e97197f4b8d46a893067c94ab15e195e3d97fb5f24eede5ef047b571240d92b",
+          "input_bytes": 4097,
+          "expected_success": false
+        },
+        {
+          "case": "invalid-continuation",
+          "passed": true,
+          "input_sha256": "76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71",
+          "input_bytes": 1,
+          "expected_success": false
+        },
+        {
+          "case": "overlong-utf8",
+          "passed": true,
+          "input_sha256": "caf573f0daa6960ecb26f8eddbc4e2059277ad5afc6f72ffd59a0ecead602a22",
+          "input_bytes": 2,
+          "expected_success": false
+        },
+        {
+          "case": "encoded-surrogate",
+          "passed": true,
+          "input_sha256": "91a681b998555fb475479817b126c94e57e52011fa1842c5d188795a4a05226b",
+          "input_bytes": 3,
+          "expected_success": false
+        },
+        {
+          "case": "above-unicode-maximum",
+          "passed": true,
+          "input_sha256": "fb16995ef3b5d7c2c81b153f945979f1db35ebc62b17616cdc896f8e7836d371",
+          "input_bytes": 4,
+          "expected_success": false
+        },
+        {
+          "case": "truncated-utf8",
+          "passed": true,
+          "input_sha256": "eed0eb1f664e53388c1f00a4a9ba9b8da60fe792af9eb5f6f4b5ee852a91f03f",
+          "input_bytes": 2,
+          "expected_success": false
+        },
+        {
+          "case": "no-argument",
+          "passed": true,
+          "expected_success": false
+        },
+        {
+          "case": "extra-argument",
+          "passed": true,
+          "expected_success": false
+        },
+        {
+          "case": "missing-file",
+          "passed": true,
+          "expected_success": false
+        },
+        {
+          "case": "directory-input",
+          "passed": true,
+          "expected_success": false
+        }
+      ],
+      "case_count": 18,
+      "model_calls": 0,
+      "gate_authority": false,
+      "production_release_authorized": false,
+      "limitations": [
+        "Local inspected-code execution, not an OS sandbox",
+        "Does not establish a QA lease, signature or controller acceptance",
+        "Does not replace the required Builder test command"
+      ],
+      "report_digest": "sha256:c9b57f20505c5400ae602c42dd5618a8d4d1cdc88cb0f4ea3f1211097502f4e0"
+    },
+    "signing_calls": 1,
+    "model_calls": 0,
+    "task_state_writes": 0,
+    "gate_authority": false,
+    "production_release_authorized": false
+  }
+}
