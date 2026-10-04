@@ -1,0 +1,1013 @@
+{
+  "status": "PREVIEW_VERIFIED_NOT_EXECUTED",
+  "package": {
+    "source_commit": "d9c75eb8b59c3c6bda508557224fd92354f8d34c",
+    "sha256": "75bed64c6cc4fb6669534eb863c26de033fcf720cbfadcd4ff85341383ac00ee",
+    "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+    "zip_bytes": 4778429,
+    "handler": "factory_runtime.pilot002_runtime_probe.handler",
+    "execution_enabled": false,
+    "model_calls": 0
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/75bed64c6cc4fb6669534eb863c26de033fcf720cbfadcd4ff85341383ac00ee.zip",
+    "S3ObjectVersion": "y2Fqxeu2En4f_aksFHkn3tivy1M0dCkK"
+  },
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Pilot 002 disabled runtime with scoped provider and permanent-attempt policies; no activation.",
+    "Resources": {
+      "BuilderAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#builder"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "secretsmanager:GetSecretValue",
+                "Effect": "Allow",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+                "Sid": "ExactExistingProviderSecret"
+              },
+              {
+                "Action": "kms:Decrypt",
+                "Condition": {
+                  "StringEquals": {
+                    "kms:EncryptionContext:SecretARN": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+                    "kms:EncryptionContext:SecretVersionId": "ebb6cc21-2df9-4b06-8f55-2b0661f27f69",
+                    "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:kms:ca-central-1:666730517561:key/134908eb-251f-443a-bfa0-f83d8f04c36c",
+                "Sid": "DecryptExactBuilderVersionThroughSecretsManager"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-builder-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "BuilderFunction": {
+        "DependsOn": "BuilderLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/535233c6e7e7655ef79e885b9c1a164fd7bee1d4/6dfc5adfd53e0ab9d2d39193313e03807202f0a29654703129bbe0adc3f7ecce.zip",
+            "S3ObjectVersion": "LhL.IdMgN_6JbaxPGdnJ3XhkSoHnnRQI"
+          },
+          "Description": "Pilot 002 Builder staged entrypoint; disabled, no activation material",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "builder"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-builder",
+          "Handler": "factory_runtime.pilot002_entrypoint.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "BuilderRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-builder-entrypoint"
+            }
+          ],
+          "Timeout": 180
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "BuilderLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-builder",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "BuilderRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-builder:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-builder-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      },
+      "InspectorAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "ExactInspectorProfile"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "RegionalModelViaProfile"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "unspecified",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "GlobalModelViaProfile"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-inspector-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "InspectorFunction": {
+        "DependsOn": "InspectorLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/75bed64c6cc4fb6669534eb863c26de033fcf720cbfadcd4ff85341383ac00ee.zip",
+            "S3ObjectVersion": "y2Fqxeu2En4f_aksFHkn3tivy1M0dCkK"
+          },
+          "Description": "Pilot 002 reviewer staged entrypoint; disabled, no activation material",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "inspector"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-inspector",
+          "Handler": "factory_runtime.pilot002_entrypoint.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "InspectorRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "d9c75eb8b59c3c6bda508557224fd92354f8d34c"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-reviewer-entrypoint"
+            }
+          ],
+          "Timeout": 180
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "InspectorLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-inspector",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "InspectorRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-inspector:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-inspector-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      },
+      "QaAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "secretsmanager:GetSecretValue",
+                "Effect": "Allow",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+                "Sid": "ExactExistingProviderSecret"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-qa-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "QaFunction": {
+        "DependsOn": "QaLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/75bed64c6cc4fb6669534eb863c26de033fcf720cbfadcd4ff85341383ac00ee.zip",
+            "S3ObjectVersion": "y2Fqxeu2En4f_aksFHkn3tivy1M0dCkK"
+          },
+          "Description": "Pilot 002 reviewer staged entrypoint; disabled, no activation material",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "qa"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-qa",
+          "Handler": "factory_runtime.pilot002_entrypoint.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "QaRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "d9c75eb8b59c3c6bda508557224fd92354f8d34c"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-reviewer-entrypoint"
+            }
+          ],
+          "Timeout": 180
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "QaLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-qa",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "QaRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-qa:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-qa-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      }
+    }
+  },
+  "rollback_template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Pilot 002 disabled runtime with scoped provider and permanent-attempt policies; no activation.",
+    "Resources": {
+      "BuilderAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#builder"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "secretsmanager:GetSecretValue",
+                "Effect": "Allow",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+                "Sid": "ExactExistingProviderSecret"
+              },
+              {
+                "Action": "kms:Decrypt",
+                "Condition": {
+                  "StringEquals": {
+                    "kms:EncryptionContext:SecretARN": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/openai/acceptance-WE57Tw",
+                    "kms:EncryptionContext:SecretVersionId": "ebb6cc21-2df9-4b06-8f55-2b0661f27f69",
+                    "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:kms:ca-central-1:666730517561:key/134908eb-251f-443a-bfa0-f83d8f04c36c",
+                "Sid": "DecryptExactBuilderVersionThroughSecretsManager"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-builder-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "BuilderFunction": {
+        "DependsOn": "BuilderLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/535233c6e7e7655ef79e885b9c1a164fd7bee1d4/6dfc5adfd53e0ab9d2d39193313e03807202f0a29654703129bbe0adc3f7ecce.zip",
+            "S3ObjectVersion": "LhL.IdMgN_6JbaxPGdnJ3XhkSoHnnRQI"
+          },
+          "Description": "Pilot 002 Builder staged entrypoint; disabled, no activation material",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "builder"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-builder",
+          "Handler": "factory_runtime.pilot002_entrypoint.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "BuilderRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-builder-entrypoint"
+            }
+          ],
+          "Timeout": 180
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "BuilderLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-builder",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "BuilderRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-builder:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-builder-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      },
+      "InspectorAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "ExactInspectorProfile"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "RegionalModelViaProfile"
+              },
+              {
+                "Action": "bedrock:InvokeModel",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "unspecified",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Sid": "GlobalModelViaProfile"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-inspector-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "InspectorFunction": {
+        "DependsOn": "InspectorLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/32abd21be68bb57f0112f27272ceb3a446b8f263/5f0aac9efb9e2e0423bc3e66bd0b69339e3ef477d51d24a93d86a119e8e97320.zip",
+            "S3ObjectVersion": "IXN0Ldeo.nd7jkBYl0InjRvUgLChclGf"
+          },
+          "Description": "Pilot 002 disabled package probe; no active dispatch",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "inspector"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-inspector",
+          "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "InspectorRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "32abd21be68bb57f0112f27272ceb3a446b8f263"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-package-probe"
+            }
+          ],
+          "Timeout": 30
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "InspectorLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-inspector",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "InspectorRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-inspector:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-inspector-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      },
+      "QaAccess": {
+        "Properties": {
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-pilot-002-attempts",
+                "Sid": "OwnPermanentAttemptOnly"
+              },
+              {
+                "Action": "secretsmanager:GetSecretValue",
+                "Effect": "Allow",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+                "Sid": "ExactExistingProviderSecret"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "PolicyName": "pilot002-own-attempt-and-provider",
+          "Roles": [
+            "tims-factory-pilot-002-qa-disabled"
+          ]
+        },
+        "Type": "AWS::IAM::Policy"
+      },
+      "QaFunction": {
+        "DependsOn": "QaLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "pilot-002/runtime/32abd21be68bb57f0112f27272ceb3a446b8f263/5f0aac9efb9e2e0423bc3e66bd0b69339e3ef477d51d24a93d86a119e8e97320.zip",
+            "S3ObjectVersion": "IXN0Ldeo.nd7jkBYl0InjRvUgLChclGf"
+          },
+          "Description": "Pilot 002 disabled package probe; no active dispatch",
+          "Environment": {
+            "Variables": {
+              "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+              "FACTORY_PILOT002_ROLE": "qa"
+            }
+          },
+          "FunctionName": "tims-factory-pilot-002-qa",
+          "Handler": "factory_runtime.pilot002_runtime_probe.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "QaRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Tags": [
+            {
+              "Key": "SourceCommit",
+              "Value": "32abd21be68bb57f0112f27272ceb3a446b8f263"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "disabled-package-probe"
+            }
+          ],
+          "Timeout": 30
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "QaLogs": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-pilot-002-qa",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "QaRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-pilot-002-qa:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "own-probe-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-pilot-002-qa-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      }
+    }
+  },
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-reviewers-disabled-20261004-001/53c91eb1-f8ce-4e0e-a79c-4564a3cbcaa8",
+  "audit": {
+    "status": "REVIEWER_STAGE_VALIDATED_NOT_EXECUTED",
+    "source_commit": "d9c75eb8b59c3c6bda508557224fd92354f8d34c",
+    "changed_functions": [
+      "inspector",
+      "qa"
+    ],
+    "execution_enabled": false,
+    "reserved_concurrency": 0,
+    "activation_material_present": false,
+    "provider_calls": 0,
+    "iam_changes": 0
+  },
+  "observed_at": "2026-10-04T03:07:36.606367+00:00",
+  "changes": [
+    {
+      "Type": "Resource",
+      "ResourceChange": {
+        "Action": "Modify",
+        "LogicalResourceId": "InspectorFunction",
+        "PhysicalResourceId": "tims-factory-pilot-002-inspector",
+        "ResourceType": "AWS::Lambda::Function",
+        "Replacement": "False",
+        "Scope": [
+          "Properties"
+        ],
+        "Details": [
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Code",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Handler",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Timeout",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Description",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Tags",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          }
+        ]
+      }
+    },
+    {
+      "Type": "Resource",
+      "ResourceChange": {
+        "Action": "Modify",
+        "LogicalResourceId": "QaFunction",
+        "PhysicalResourceId": "tims-factory-pilot-002-qa",
+        "ResourceType": "AWS::Lambda::Function",
+        "Replacement": "False",
+        "Scope": [
+          "Properties"
+        ],
+        "Details": [
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Code",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Handler",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Timeout",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Description",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Tags",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          }
+        ]
+      }
+    }
+  ],
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f"
+}
