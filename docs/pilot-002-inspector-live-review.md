@@ -1,6 +1,11 @@
 # Exact Inspector first-generation proposal
 
-Status: prepared, unsigned, not executed. PR #354 enabled the isolated reviewer
+Status: refreshed, unsigned, not executed. PR #355 was merged at
+`86e0d548d90c34c3789fd1cd71f52ed3ae23354e` after its live window expired; no
+signing or invocation followed. This proposal refreshes the evidence window and
+package references without changing candidate, request, rates, cap or retries.
+The October 4 price and token-count observations remain less than 24 hours old.
+PR #354 enabled the isolated reviewer
 signing path at `19ef4ee13e3d9f557a454c3bb390f7cffef94a20`; it did not authorize
 signing or model execution.
 
@@ -8,7 +13,7 @@ signing or model execution.
 
 1. Merge this reviewed change after CI passes, using the owner's override.
 2. Dispatch `factory-owner-signing` once on main, role `inspector`, with plan
-   digest `sha256:bcfa2b20a50fbea9cf6ffa04463246664f18e1977ee256aa89fef62923c60b3f`.
+   digest `sha256:dd8d6e4149871cc47d0247552db790b8d8d9b40b200d5702dc30f02af1baba8c`.
    Verify and retain the resulting exact allowance and workflow run ID.
 3. Run `scripts/run_pilot002_inspector_once.py` once with that allowance and the
    exact approved change set below. It rechecks signature, expiry, unused
@@ -21,11 +26,11 @@ signing or model execution.
    permanent attempt record even after failure.
 
 Change set:
-`arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-001/34612e22-f9a4-4b50-b911-1e48bc4ada7d`
+`arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-002/b12470a8-f62a-4497-abc0-6266d2c38567`
 
 Runtime source: `d9c75eb8b59c3c6bda508557224fd92354f8d34c`.
-Package SHA-256: `f752869af62165befe73c843f1fc1791e4d703d81f47bd62117c3cc2ff654975`.
-Activation SHA-256: `fac2bb12ea20cb23c8e3f16d3fb7223bc1c0ee7044bd68b9d627e96bc817252c`.
+Package SHA-256: `4e7e0031306427775111de05931be0c9cada43f3967ab41168133b84b0ce8128`.
+Activation SHA-256: `c19193c7fce6204f7f2e80746dc7a5e847b05bc426248e4b32478d2a6585c9d2`.
 Request digest: `sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a`.
 Candidate: `09c789a902377cb095c20abae89459c4cec3e89e`, acceptance draft PR #3.
 
@@ -61,8 +66,8 @@ enabled. The runner restores the disabled baseline in its failure/success path.
 
 ## Expiry and exclusions
 
-The exact allowance expires **2026-10-04 04:37:48 UTC** (October 3, 10:37:48 p.m.
-Edmonton). Start the runner before **04:27:48 UTC** to retain its ten-minute
+The exact allowance expires **2026-10-04 12:14:07 UTC** (October 4, 6:14:07 a.m.
+Edmonton). Start the runner before **12:04:07 UTC** to retain its ten-minute
 activation margin. It will refuse stale material. Do not silently renew the
 plan, change the candidate, reuse the Builder attempt, or retry Inspector.
 

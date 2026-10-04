@@ -1,25 +1,25 @@
 {
   "status": "PREVIEW_VERIFIED_NOT_EXECUTED",
-  "plan_digest": "sha256:bcfa2b20a50fbea9cf6ffa04463246664f18e1977ee256aa89fef62923c60b3f",
+  "plan_digest": "sha256:dd8d6e4149871cc47d0247552db790b8d8d9b40b200d5702dc30f02af1baba8c",
   "package": {
     "source_commit": "d9c75eb8b59c3c6bda508557224fd92354f8d34c",
-    "sha256": "f752869af62165befe73c843f1fc1791e4d703d81f47bd62117c3cc2ff654975",
-    "code_sha256": "91KGmvYhZb7+c8hD8fwXkeTXA9gfR71iEXw8wv9lSXU=",
-    "zip_bytes": 4784850,
+    "sha256": "4e7e0031306427775111de05931be0c9cada43f3967ab41168133b84b0ce8128",
+    "code_sha256": "Tn4AMTBkJ3dREd4FkxvgycraQ/OWerQRaBM7hLDOgSg=",
+    "zip_bytes": 4784854,
     "handler": "factory_runtime.pilot002_runtime_probe.handler",
     "execution_enabled": false,
     "model_calls": 0,
-    "activation_sha256": "fac2bb12ea20cb23c8e3f16d3fb7223bc1c0ee7044bd68b9d627e96bc817252c",
+    "activation_sha256": "c19193c7fce6204f7f2e80746dc7a5e847b05bc426248e4b32478d2a6585c9d2",
     "role": "inspector",
     "request_digest": "sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a",
-    "material_expires_at": 1791088668,
+    "material_expires_at": 1791116047,
     "signed_allowance_included": false,
     "activation_authorized": false
   },
   "code": {
     "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
-    "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/f752869af62165befe73c843f1fc1791e4d703d81f47bd62117c3cc2ff654975.zip",
-    "S3ObjectVersion": "z_FVHk5NUa2Ol3fKKtLx1KZ6q78f3.93"
+    "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/4e7e0031306427775111de05931be0c9cada43f3967ab41168133b84b0ce8128.zip",
+    "S3ObjectVersion": "5zWq.yTHGUkMXeEYAhKml.oIkSf.Ag8p"
   },
   "template": {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -241,15 +241,15 @@
           ],
           "Code": {
             "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
-            "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/f752869af62165befe73c843f1fc1791e4d703d81f47bd62117c3cc2ff654975.zip",
-            "S3ObjectVersion": "z_FVHk5NUa2Ol3fKKtLx1KZ6q78f3.93"
+            "S3Key": "pilot-002/runtime/d9c75eb8b59c3c6bda508557224fd92354f8d34c/4e7e0031306427775111de05931be0c9cada43f3967ab41168133b84b0ce8128.zip",
+            "S3ObjectVersion": "5zWq.yTHGUkMXeEYAhKml.oIkSf.Ag8p"
           },
           "Description": "Pilot 002 exact Inspector request; one permanent attempt, no retry",
           "Environment": {
             "Variables": {
               "FACTORY_PILOT002_EXECUTION_ENABLED": "true",
               "FACTORY_PILOT002_ROLE": "inspector",
-              "FACTORY_PILOT002_ACTIVATION_SHA256": "fac2bb12ea20cb23c8e3f16d3fb7223bc1c0ee7044bd68b9d627e96bc817252c"
+              "FACTORY_PILOT002_ACTIVATION_SHA256": "c19193c7fce6204f7f2e80746dc7a5e847b05bc426248e4b32478d2a6585c9d2"
             }
           },
           "FunctionName": "tims-factory-pilot-002-inspector",
@@ -880,7 +880,7 @@
     }
   },
   "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-runtime-disabled/62f6a321-bf6c-11f1-93d5-0ee0206d8b5f",
-  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-001/34612e22-f9a4-4b50-b911-1e48bc4ada7d",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-002/b12470a8-f62a-4497-abc0-6266d2c38567",
   "changes": [
     {
       "Type": "Resource",
