@@ -30,6 +30,9 @@ def properties(deadline,*,now,armed=False):
 
 def render(deadline,*,now,armed=False):
     schedule=properties(deadline,now=now,armed=armed)
+    # Scheduler API supports this field, but the CloudFormation resource does not.
+    # Omission preserves the default NONE; validate_armed still checks the API value.
+    schedule.pop('ActionAfterCompletion')
     return {'AWSTemplateFormatVersion':'2010-09-09','Description':'Recovery-only concurrency shutdown; never invokes a function.',
         'Resources':{
             'ShutdownGroup':{'Type':'AWS::Scheduler::ScheduleGroup','Properties':{'Name':GROUP}},

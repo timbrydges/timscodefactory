@@ -22,6 +22,8 @@ class RecoveryShutdownTests(unittest.TestCase):
             {'aws:SourceAccount':'666730517561','aws:SourceArn':p.GROUP_ARN})
         schedule=template['Resources']['ShutdownSchedule']['Properties']
         self.assertEqual(schedule['State'],'DISABLED')
+        self.assertNotIn('ActionAfterCompletion',schedule)
+        self.assertEqual(p.properties(self.deadline,now=self.now)['ActionAfterCompletion'],'NONE')
         self.assertEqual(json.loads(schedule['Target']['Input']),{'FunctionName':p.FUNCTION_ARN,'ReservedConcurrentExecutions':0})
         self.assertEqual(schedule['Target']['Arn'],p.TARGET)
 
