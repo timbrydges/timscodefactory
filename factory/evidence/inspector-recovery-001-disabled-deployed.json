@@ -1,0 +1,51 @@
+{
+  "status": "DEPLOYED_VERIFIED_DISABLED",
+  "observed_at": "2026-10-04T12:38:08.837193+00:00",
+  "source_commit": "067177bddbcb091f0c7e2ecf78f3e87816b82d3d",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/inspector-recovery001-disabled-20261004-001/27d06fd0-9e37-46fe-9948-93200bc086cf",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-inspector-recovery-001-disabled/940599c0-bfef-11f1-8245-06ffeb34c079",
+  "stack_status": "CREATE_COMPLETE",
+  "package": {
+    "source_commit": "067177bddbcb091f0c7e2ecf78f3e87816b82d3d",
+    "sha256": "38d333838b3b905285afe06a07803d792662ed09f5b3f5ba921a2e8076bfad7d",
+    "code_sha256": "ONMzg4s7kFKFr+BqB4A9eSZi7Qn1s/W6khougHa/rX0=",
+    "zip_bytes": 4788442,
+    "handler": "factory_runtime.inspector_recovery001_entrypoint.handler",
+    "execution_enabled": false,
+    "activation_included": false,
+    "signed_allowance_included": false,
+    "model_calls": 0
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "inspector-recovery-001/runtime/067177bddbcb091f0c7e2ecf78f3e87816b82d3d/38d333838b3b905285afe06a07803d792662ed09f5b3f5ba921a2e8076bfad7d.zip",
+    "S3ObjectVersion": "HdbqDCk8IMw4lQ1qvnV1EW_ckLolJwoF"
+  },
+  "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector-recovery-001",
+  "role_arn": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-disabled",
+  "execution_enabled": false,
+  "reserved_concurrency": 0,
+  "logs_only_permissions_verified": true,
+  "provider_permissions": 0,
+  "ledger_permissions": 0,
+  "recovery_attempt_absent": true,
+  "original_attempt_rows_unchanged": true,
+  "workers": {
+    "builder": {
+      "disabled": true,
+      "code_sha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+      "reserved_concurrency": 0
+    },
+    "inspector": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "reserved_concurrency": 0
+    },
+    "qa": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "reserved_concurrency": 0
+    }
+  },
+  "model_calls": 0
+}
