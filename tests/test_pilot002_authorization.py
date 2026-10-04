@@ -98,6 +98,45 @@ class AllowanceTests(unittest.TestCase):
             payload,args=self.first_generation(role)
             with self.assertRaises(StateError):verify(self.sign(payload),**args)
 
+    def reviewer_first_generation(self,role):
+        payload,args=self.context(role)
+        args['readiness'].update(kind='pilot002_reviewer_first_generation_readiness',model_access_verified=False,
+            model_metadata_verified=True,input_token_count_verified=True,first_generation_failure_risk_accepted=True)
+        payload['readiness_digest']=digest(args['readiness'])
+        return payload,args
+
+    def test_reviewer_first_attempt_requires_own_signed_readiness(self):
+        for role in ('inspector','qa'):
+            payload,args=self.reviewer_first_generation(role)
+            self.assertEqual(verify(self.sign(payload),**args)['role'],role)
+            old,_=self.context(role)
+            with self.assertRaises(StateError):verify(self.sign(old),**args)
+            with self.assertRaises(StateError):verify(self.sign(payload),**{**args,'candidate_commit':'f'*40})
+
+    def test_reviewer_exception_cannot_apply_to_builder(self):
+        payload,args=self.reviewer_first_generation('builder')
+        with self.assertRaises(StateError):verify(self.sign(payload),**args)
+
+    def test_reviewer_evidence_and_risk_acceptance_fail_closed(self):
+        for role in ('inspector','qa'):
+            for field,value in [('model_access_verified',True),('model_metadata_verified',False),
+                    ('input_token_count_verified',False),('input_token_count_verified',1),
+                    ('first_generation_failure_risk_accepted',False),('credential_route_verified',False),
+                    ('repository_binding_verified',False),('expires_at',self.epoch)]:
+                payload,args=self.reviewer_first_generation(role);args['readiness'][field]=value
+                payload['readiness_digest']=digest(args['readiness'])
+                with self.subTest(role=role,field=field),self.assertRaises(StateError):verify(self.sign(payload),**args)
+            payload,args=self.reviewer_first_generation(role);del args['readiness']['input_token_count_verified']
+            payload['readiness_digest']=digest(args['readiness'])
+            with self.assertRaises(StateError):verify(self.sign(payload),**args)
+
+    def test_reviewer_exception_preserves_caps_and_no_retry(self):
+        for role in ('inspector','qa'):
+            for field,value in [('maximum_provider_calls',2),('retries',1),('approved_cap_micro_usd',250001),
+                    ('reserved_micro_usd',0),('task_state_writes',1),('gate_authority',True)]:
+                payload,args=self.reviewer_first_generation(role);payload[field]=value
+                with self.subTest(role=role,field=field),self.assertRaises(StateError):verify(self.sign(payload),**args)
+
     def test_first_generation_still_rejects_staleness_and_expanded_allowance(self):
         payload,args=self.first_generation();args['readiness']['expires_at']=self.epoch
         payload['readiness_digest']=digest(args['readiness'])
