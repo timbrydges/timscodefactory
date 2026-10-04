@@ -106,14 +106,23 @@ try:
     report['lambda_requests']=1;report['status']='INVOCATION_SUBMITTED_NO_RETRY';save()
     print('SINGLE INSPECTOR INVOCATION SUBMITTED - NEVER RETRY',flush=True)
     response=lam.invoke(FunctionName=name,InvocationType='RequestResponse',LogType='None',Payload=event)
-    raw=response['Payload'].read(262145);assert len(raw)<=262144
+    # A bounded 256-KiB provider response may be base64-encoded in a failure
+    # envelope. This is a result limit, never a provider/request limit.
+    raw=response['Payload'].read(524289);assert len(raw)<=524288
     (args.output_directory/'inspector-result.json').write_bytes(raw)
     report.update(lambda_status=response['StatusCode'],function_error=response.get('FunctionError'),
         response_sha256=hashlib.sha256(raw).hexdigest(),response_bytes=len(raw),status='RESPONSE_RECEIVED')
     result=json.loads(raw)
     if not response.get('FunctionError'):
-        assert result['status']=='PILOT002_COMPLETED_UNSIGNED'
-        report.update(result_status=result['status'],actual_micro_usd=result['actual_micro_usd'],transport_invocations=result['transport_invocations'])
+        if result['status']=='PILOT002_REVIEW_FAILED_NO_RETRY':
+            assert result['role']=='inspector' and result['accepted_review'] is False
+            assert result['attempt_reusable'] is False and result['gate_authority'] is False
+            assert result['production_release_authorized'] is False
+            assert result['failure_stage'] in ('response','completion')
+            report.update(status='STOPPED_NO_RETRY',result_status=result['status'],failure_stage=result['failure_stage'])
+        else:
+            assert result['status']=='PILOT002_COMPLETED_UNSIGNED'
+            report.update(result_status=result['status'],actual_micro_usd=result['actual_micro_usd'],transport_invocations=result['transport_invocations'])
     save();print('RESPONSE STORED; RESTORING DISABLED STATE',flush=True)
 except Exception as error:
     report.update(status='STOPPED_NO_RETRY',error_type=type(error).__name__);save()

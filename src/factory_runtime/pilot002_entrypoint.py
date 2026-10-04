@@ -129,6 +129,9 @@ def dispatch(event, context, *, root, env, clock):
         # Do not reflect event, provider errors, or credential material in logs.
         from .pilot002_workflow import Pilot002Stopped
         if type(error) is Pilot002Stopped:
+            failure = Pilot002Stopped.review_failure(error, role)
+            if failure is not None:
+                return failure
             raise StateError(Pilot002Stopped.safe_message(error)) from None
         raise StateError('Pilot 002 entry point stopped; reconcile without retry') from None
 

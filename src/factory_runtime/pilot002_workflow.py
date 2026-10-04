@@ -6,6 +6,7 @@ and validate provider model identity, completion, usage and actual cost.
 This module neither creates credentials nor implements those provider adapters.
 """
 import copy
+import base64
 import hashlib
 from datetime import datetime
 
@@ -22,13 +23,27 @@ class Pilot002Stopped(StateError):
         'expiry_before_credential', 'credential', 'expiry_before_provider',
         'provider', 'response', 'completion'))
 
-    def __init__(self, stage):
+    def __init__(self, stage, response=None):
         self.stage = stage
+        # Only bytes returned by the successful transport path qualify. Never
+        # take exception text, HTTP error bodies, headers or credentials here.
+        self.response = response if stage in ('response', 'completion') and type(response) is bytes and 0 < len(response) <= 262144 else None
         super().__init__(self.safe_message())
 
     def safe_message(self):
         stage = self.stage if type(self.stage) is str and self.stage in self.STAGES else 'unknown'
         return 'Pilot 002 stopped at '+stage+'; reconcile without retry'
+
+    def review_failure(self, role):
+        if role not in ('inspector', 'qa') or self.response is None:
+            return None
+        return {'status':'PILOT002_REVIEW_FAILED_NO_RETRY', 'role':role,
+            'failure_stage':self.stage, 'provider_response_bytes':len(self.response),
+            'provider_response_digest':'sha256:'+hashlib.sha256(self.response).hexdigest(),
+            'provider_response_base64':base64.b64encode(self.response).decode('ascii'),
+            'response_is_untrusted':True, 'accepted_review':False,
+            'attempt_reusable':False, 'reservation_status':'HELD',
+            'gate_authority':False, 'production_release_authorized':False}
 
 
 def _fresh(now, previous, expiry):
@@ -50,7 +65,7 @@ Successful results are still untrusted and cannot advance a Factory state.
         raise StateError('Pilot 002 workflow disabled')
     if not isinstance(store, Pilot002AttemptStore):
         raise StateError('Pilot 002 requires the atomic fixed-role attempt store')
-    stage = 'preparation'; credential = None
+    stage = 'preparation'; credential = None; retained_response = None
     try:
         envelope, pricing, readiness = copy.deepcopy((envelope, pricing, readiness))
         trusted_keys = dict(trusted_keys)
@@ -80,6 +95,7 @@ Successful results are still untrusted and cannot advance a Factory state.
         stage = 'response'
         if not isinstance(raw, bytes) or not 0 < len(raw) <= 262144:
             raise StateError('Pilot 002 raw provider response exceeds bound')
+        retained_response = raw
         result = copy.deepcopy(adapter.parse_response(raw, copy.deepcopy(packet)))
         if (not isinstance(result, dict) or set(result) != {'model_id','output_bytes','actual_micro_usd'} or
                 result['model_id'] != packet['model_id'] or
@@ -103,6 +119,6 @@ Successful results are still untrusted and cannot advance a Factory state.
     except Exception:
         # Provider exceptions can contain credentials or raw request content.
         # Never expose them or use an uncertain result to permit another call.
-        raise Pilot002Stopped(stage) from None
+        raise Pilot002Stopped(stage, retained_response) from None
     finally:
         credential = None

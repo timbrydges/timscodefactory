@@ -7,7 +7,7 @@ from unittest.mock import Mock
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'tests')]
 import test_pilot002_authorization as fixtures
-from factory_runtime.pilot002_workflow import run_once
+from factory_runtime.pilot002_workflow import run_once, Pilot002Stopped
 from factory_runtime.pilot002_attempts import Pilot002AttemptStore
 from factory_runtime.pilot002_packets import builder_packet,review_packet,REVIEW_BINDINGS
 from factory_state.model import StateError
@@ -113,6 +113,31 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError,'completion'):self.run_workflow()
         self.adapter.send_once.assert_called_once();self.db.update_item.assert_called_once()
         self.assertEqual(len(self.rows),1)
+
+    def test_capture_requires_bounded_returned_response_and_review_role(self):
+        for stage,raw in (('credential',b'synthetic'),('provider',b'synthetic'),
+                          ('response',b''),('response',b'x'*262145),('response','not bytes')):
+            with self.subTest(stage=stage,size=len(raw)):
+                self.assertIsNone(Pilot002Stopped(stage,raw).review_failure('inspector'))
+        error=Pilot002Stopped('response',b'x'*262144)
+        self.assertIsNone(error.review_failure('builder'))
+        self.assertIsNone(error.review_failure('unknown'))
+        for role in ('inspector','qa'):
+            captured=error.review_failure(role)
+            self.assertEqual(captured['provider_response_bytes'],262144)
+            self.assertNotIn('x'*100,str(error))
+
+    def test_completion_failure_retains_evidence_without_claiming_completion(self):
+        self.configure('inspector')
+        self.db.update_item.side_effect=TimeoutError('private-test-credential')
+        with self.assertRaises(Pilot002Stopped) as caught:self.run_workflow()
+        record=caught.exception.review_failure('inspector')
+        self.assertEqual(record['failure_stage'],'completion')
+        self.assertFalse(record['accepted_review']);self.assertFalse(record['attempt_reusable'])
+        self.assertNotIn('private-test-credential',canonical(record).decode())
+        self.adapter.send_once.assert_called_once();self.db.update_item.assert_called_once()
+        with self.assertRaises(Pilot002Stopped):self.run_workflow()
+        self.adapter.send_once.assert_called_once()
 
     def test_both_review_roles_remain_unsigned_and_non_authoritative(self):
         for role in ('inspector','qa'):
