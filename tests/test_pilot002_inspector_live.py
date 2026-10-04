@@ -83,6 +83,13 @@ class InspectorLiveTests(unittest.TestCase):
         def invoke(**kw):
             state['attempted']=True
             if mode=='invoke_timeout':raise TimeoutError('uncertain invocation')
+            if mode=='review_failure':
+                raw=b'x'*262144
+                return {'StatusCode':200,'Payload':io.BytesIO(json.dumps({
+                    'status':'PILOT002_REVIEW_FAILED_NO_RETRY','role':'inspector',
+                    'accepted_review':False,'attempt_reusable':False,'gate_authority':False,
+                    'production_release_authorized':False,'failure_stage':'response',
+                    'provider_response_base64':base64.b64encode(raw).decode()}).encode())}
             return {'StatusCode':200,'Payload':io.BytesIO(json.dumps({'status':'PILOT002_COMPLETED_UNSIGNED','actual_micro_usd':10000,'transport_invocations':1}).encode())}
         lam.invoke.side_effect=invoke
         scheduler=Mock();scheduler.get_paginator.return_value.paginate.return_value=[{'Schedules':[]}]
@@ -116,6 +123,10 @@ class InspectorLiveTests(unittest.TestCase):
                 self.assertFalse(state['active']);self.assertTrue(state['forced_off'])
                 self.assertEqual(lam.invoke.call_count,0 if mode=='activation_timeout' else 1)
                 self.assertEqual(cf.execute_change_set.call_count,1)
+                if mode=='review_failure':
+                    self.assertEqual(report['status'],'STOPPED_NO_RETRY')
+                    self.assertNotIn('actual_micro_usd',report)
+                    self.assertGreater((out/'inspector-result.json').stat().st_size,262144)
                 with self.assertRaises(FileExistsError):runpy.run_path(str(script),run_name='__main__')
                 self.assertEqual(cf.execute_change_set.call_count,1)
 
@@ -123,6 +134,7 @@ class InspectorLiveTests(unittest.TestCase):
     def test_uncertain_invocation_is_not_retried_and_disables(self):self.run_fixture('invoke_timeout')
     def test_uncertain_activation_never_invokes_and_disables(self):self.run_fixture('activation_timeout')
     def test_used_attempt_never_activates(self):self.run_fixture('already_used')
+    def test_failed_review_is_preserved_and_disables_without_retry(self):self.run_fixture('review_failure')
 
 
 if __name__=='__main__':unittest.main()

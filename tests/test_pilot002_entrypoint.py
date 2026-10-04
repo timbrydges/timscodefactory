@@ -151,13 +151,21 @@ class EntrypointTests(unittest.TestCase):
             self.assertEqual(len(self.fixtures.rows),1)
             self.secret.get_secret_value.assert_called_once();connect.assert_not_called()
 
-    def test_response_failure_stage_survives_without_provider_content(self):
+    def test_failed_review_preserves_bounded_response_without_accepting_or_retrying(self):
         self.setup_role('inspector')
-        self.connection.response=transports.Response(b'{"private-provider-detail":"private-test-credential"}')
+        raw=b'{"invalid-review":"synthetic fixture"}'
+        self.connection.response=transports.Response(raw)
         with patch.object(p,'_read',side_effect=self.read),patch.object(p,'_aws_session',return_value=self.session),\
                 patch.object(p,'_client',return_value=self.db),\
                 patch.object(transports.p.http.client,'HTTPSConnection',return_value=self.connection):
-            with self.assertRaisesRegex(StateError,'^Pilot 002 stopped at response; reconcile without retry$'):self.run_event()
+            result=self.run_event()
+            self.assertEqual(result['status'],'PILOT002_REVIEW_FAILED_NO_RETRY')
+            self.assertEqual(result['failure_stage'],'response')
+            self.assertEqual(base64.b64decode(result['provider_response_base64']),raw)
+            self.assertEqual(result['provider_response_digest'],'sha256:'+hashlib.sha256(raw).hexdigest())
+            for field in ('accepted_review','attempt_reusable','gate_authority','production_release_authorized'):
+                self.assertFalse(result[field])
+            self.assertEqual(result['reservation_status'],'HELD')
             with self.assertRaisesRegex(StateError,'reservation'):self.run_event()
         self.assertEqual(len(self.connection.calls),1)
         self.assertEqual(len(self.fixtures.rows),1)
