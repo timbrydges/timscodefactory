@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "status": "BUDGET_AND_PREPARATION_SCOPE_APPROVED_NOT_LIVE_AUTHORIZATION",
+  "approval_basis": "Direct user approval following proposal 66514f7e; scope and additional budget only. Exact deployment and signed live allowance remain separate.",
+  "proposal_digest": "sha256:66514f7e01488384c8e943812488018751de434659aadf4fb0e9487493ceae8b",
+  "proposal": {
+    "schema_version": "1.0",
+    "proposal_id": "inspector-recovery-001",
+    "status": "PROPOSED_NOT_AUTHORIZED",
+    "purpose": "Obtain the missing independent Inspector review after the permanently consumed Pilot 002 attempt; this is an explicitly additional attempt, not a reset of its guard.",
+    "approval_requested": "Approve the additional budget and recovery scope so its isolated implementation and exact deployment/live plan can be prepared and tested. This proposal is not a signed execution allowance.",
+    "source_with_response_capture": "befdc97620b393421921a9d8fe762046381cd4d7",
+    "candidate": {
+      "repository": "timbrydges/tims-factory-autonomy-acceptance",
+      "pull_request": 3,
+      "commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+      "tree": "c6db0f65f486609eb9a6b9bb968e1b5d0a317838",
+      "changes_allowed": false
+    },
+    "provider": {
+      "role": "inspector",
+      "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "region": "ca-central-1",
+      "maximum_additional_calls": 1,
+      "automatic_retries": 0,
+      "builder_calls": 0,
+      "qa_calls": 0,
+      "data_scope": "public-synthetic-fixtures-only"
+    },
+    "budget": {
+      "currency": "USD",
+      "additional_allocation_micro_usd": 250000,
+      "maximum_model_cost_micro_usd": 250000,
+      "original_pilot_allocation_micro_usd": 750000,
+      "combined_allocation_ceiling_micro_usd": 1000000,
+      "existing_inspector_hold_micro_usd": 250000,
+      "existing_hold_refunded_or_reused": false,
+      "fresh_cost_bound_required": true,
+      "ordinary_aws_runtime_and_storage_costs_included": false
+    },
+    "attempt_accounting": {
+      "new_separate_permanent_recovery_record_required": true,
+      "claim_before_credentials_or_provider_call": true,
+      "existing_pilot002_rows_may_be_modified": false,
+      "existing_attempt_may_be_deleted_renamed_or_expired": false,
+      "failure_or_uncertainty_consumes_recovery_attempt": true
+    },
+    "response_retention": {
+      "maximum_provider_response_bytes": 262144,
+      "successful_transport_response_retained_on_review_failure": true,
+      "retained_on_existing_operator_evidence_path": true,
+      "provider_http_errors_or_credentials_retained": false,
+      "response_is_untrusted": true,
+      "retention_implies_acceptance": false
+    },
+    "required_before_execution": [
+      "Offline tests for isolated accounting, exact candidate binding, retained failed responses and no retry.",
+      "Reviewed source and exact AWS deployment preview with least-privilege recovery-only access.",
+      "Fresh pricing, readiness, invocation-surface and unused recovery-record checks.",
+      "Explicit approval of the exact deployment and live allowance; this proposal cannot substitute for that approval.",
+      "One-shot runner with automatic shutdown and verified disabled state on success, failure or uncertainty."
+    ],
+    "live_execution_authorized": false,
+    "iam_changes_authorized": false,
+    "gate_authority": false,
+    "candidate_merge_authorized": false,
+    "production_release_authorized": false,
+    "task_state_writes_authorized": false,
+    "autonomous_schedule_authorized": false
+  }
+}
