@@ -1,0 +1,33 @@
+{
+  "status": "DEPLOYED_VERIFIED_NO_EXECUTION_ACCESS",
+  "observed_at": "2026-10-04T12:05:06.264957+00:00",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/inspector-recovery001-ledger-20261004-001/6a183679-a8cf-4e97-9560-f2b525470374",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-inspector-recovery-001-attempts/a483ce70-bfea-11f1-b69c-0668f7a50fdf",
+  "stack_status": "CREATE_COMPLETE",
+  "table_arn": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-inspector-recovery-001-attempts",
+  "table_status": "ACTIVE",
+  "encrypted": true,
+  "deletion_protected": true,
+  "ttl_disabled": true,
+  "recovery_attempt_absent": true,
+  "original_attempt_rows_unchanged": true,
+  "workers": {
+    "builder": {
+      "disabled": true,
+      "code_sha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+      "reserved_concurrency": 0
+    },
+    "inspector": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "reserved_concurrency": 0
+    },
+    "qa": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "reserved_concurrency": 0
+    }
+  },
+  "iam_grants": 0,
+  "model_calls": 0
+}
