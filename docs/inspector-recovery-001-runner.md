@@ -30,9 +30,13 @@ original attempt records. Shutdown errors are recorded without retrying the
 invocation. An unverified shutdown produces a failing exit status and needs
 operator reconciliation; it must not be reported as complete.
 
-This is an operator-run command, not a durable external watchdog. Loss of the
-operator process or CloudShell can prevent its finally block from running; that
-remaining failure mode must be addressed or explicitly accepted in the exact
-live plan before execution. No signing or live invocation is authorized by
-merging this source. The additional recovery call remains capped at USD 0.25,
-and the original Inspector attempt remains permanently consumed.
+Loss of the operator process or CloudShell can prevent its finally block from
+running. The runner therefore also requires the exact independent concurrency
+shutdown schedule to be armed, checks it before activation and invocation, and
+binds its deadline in the approved preview. Schedule configuration alone does
+not prove successful execution; a separate AWS rehearsal remains required.
+The schedule stops new executions but does not restore code or remove temporary
+permissions, so operator reconciliation remains necessary after process loss.
+No signing or live invocation is authorized by merging this source. The
+additional recovery call remains capped at USD 0.25, and the original Inspector
+attempt remains permanently consumed.

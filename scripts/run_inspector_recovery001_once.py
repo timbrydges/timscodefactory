@@ -12,6 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 import prepare_inspector_recovery001_live as preview
 import sign_inspector_recovery001_allowance as signing
+import prepare_inspector_recovery001_shutdown as shutdown
 from factory_runtime.inspector_recovery001 import TABLE,PK,SCOPE_SHA256
 from factory_runtime.pilot002_attempts import TABLE as OLD_TABLE,key
 from factory_runtime.inspector_recovery001_authorization import verify
@@ -101,8 +102,14 @@ def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signi
     rules=session.client('events',config=config).list_rule_names_by_target(TargetArn=baseline['function_arn'])
     require(not rules['RuleNames'] and not rules.get('NextToken'),'Unexpected event rule')
     scheduler=session.client('scheduler',config=config)
+    def shutdown_armed():
+        require(proof['shutdown_deadline']<=envelope['payload']['expires_at'],'Shutdown exceeds signed window')
+        shutdown.validate_armed(scheduler.get_schedule(Name=shutdown.NAME,GroupName=shutdown.GROUP),
+            proof['shutdown_deadline'],now=clock())
+    shutdown_armed()
     for page in scheduler.get_paginator('list_schedules').paginate():
         for entry in page.get('Schedules',[]):
+            if entry['Name']==shutdown.NAME and entry['GroupName']==shutdown.GROUP:continue
             target=scheduler.get_schedule(Name=entry['Name'],GroupName=entry['GroupName'])['Target']
             require(NAME not in target['Arn'] and NAME not in target.get('Input',''),'Unexpected schedule')
     report={'status':'EXECUTION_STARTED','plan_digest':approved_plan_digest,'preview_digest':approved_preview_digest,
@@ -115,7 +122,7 @@ def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signi
         save()
         cf.execute_change_set(ChangeSetName=proof['change_set_arn'],ClientRequestToken='recovery001-'+token)
         cf.get_waiter('stack_update_complete').wait(StackName=preview.STACK,WaiterConfig={'Delay':3,'MaxAttempts':60})
-        require(template(StackName=preview.STACK)==proof['template'],'Active stack differs');runtime(True);workers();signature()
+        require(template(StackName=preview.STACK)==proof['template'],'Active stack differs');runtime(True);workers();signature();shutdown_armed()
         require(not recovery_row() and original_rows()==rows,'Attempt state changed before invocation')
         event=canonical({'kind':'inspector_recovery001_run_once','allowance':envelope})
         with (output/'recovery-invocation-marker.json').open('x') as marker:
