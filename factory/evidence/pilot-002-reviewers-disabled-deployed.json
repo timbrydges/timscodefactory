@@ -1,0 +1,53 @@
+{
+  "status": "DISABLED_REVIEWERS_DEPLOYED_VERIFIED",
+  "started_at": "2026-10-04T03:26:13.835939+00:00",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-reviewers-disabled-20261004-001/53c91eb1-f8ce-4e0e-a79c-4564a3cbcaa8",
+  "source_commit": "d9c75eb8b59c3c6bda508557224fd92354f8d34c",
+  "model_calls": 0,
+  "lambda_invocations": 0,
+  "disabled_verified": true,
+  "deployment_verified": true,
+  "functions": {
+    "builder": {
+      "code_sha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4=",
+      "handler": "factory_runtime.pilot002_entrypoint.handler",
+      "timeout": 180,
+      "environment": {
+        "Variables": {
+          "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+          "FACTORY_PILOT002_ROLE": "builder"
+        }
+      },
+      "reserved_concurrency": 0,
+      "last_update_status": "Successful"
+    },
+    "inspector": {
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "handler": "factory_runtime.pilot002_entrypoint.handler",
+      "timeout": 180,
+      "environment": {
+        "Variables": {
+          "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+          "FACTORY_PILOT002_ROLE": "inspector"
+        }
+      },
+      "reserved_concurrency": 0,
+      "last_update_status": "Successful"
+    },
+    "qa": {
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4=",
+      "handler": "factory_runtime.pilot002_entrypoint.handler",
+      "timeout": 180,
+      "environment": {
+        "Variables": {
+          "FACTORY_PILOT002_EXECUTION_ENABLED": "false",
+          "FACTORY_PILOT002_ROLE": "qa"
+        }
+      },
+      "reserved_concurrency": 0,
+      "last_update_status": "Successful"
+    }
+  },
+  "stack_status": "UPDATE_COMPLETE",
+  "finished_at": "2026-10-04T03:26:35.675635+00:00"
+}
