@@ -16,7 +16,7 @@ import test_inspector_recovery001_live as fixture
 class RecoveryRunnerTests(unittest.TestCase):
     def run_case(self,mode='success',reuse=False):
         fx=fixture.RecoveryLivePreviewTests();fx.setUp()
-        plan={'activation':json.loads(fx.raw),'pricing':{},'allowance_payload':{'fixture':True}}
+        plan={'activation':json.loads(fx.raw),'pricing':{},'allowance_payload':{'fixture':True,'expires_at':int(fx.now.timestamp())+1800}}
         # Keep actual activation/preview validation; substitute signature verification only.
         blob=b'synthetic package'
         fx.package['zip_bytes']=len(blob)
@@ -24,6 +24,7 @@ class RecoveryRunnerTests(unittest.TestCase):
             'stack_id':p.preview.STACK,'shared_capacity_approved':True,
             'change_set_arn':'arn:aws:cloudformation:ca-central-1:666730517561:changeSet/inspector-recovery001-live-fixture/id',
             'package':fx.package,'code':fx.code,'template':fx.template,'rollback_template':p.preview.baseline()}
+        proof['shutdown_deadline']=int(fx.now.timestamp())+1200
         base=json.loads((ROOT/'factory/evidence/inspector-recovery-001-disabled-deployed.json').read_bytes())
         state={'active':False,'off':False,'attempt':None};calls=[]
         cf=Mock();lam=Mock();db=Mock();iam=Mock();s3=Mock();sts=Mock();events=Mock();scheduler=Mock()
@@ -79,6 +80,7 @@ class RecoveryRunnerTests(unittest.TestCase):
         sts.get_caller_identity.return_value={'Account':'666730517561'}
         events.list_rule_names_by_target.return_value={'RuleNames':[]}
         scheduler.get_paginator.return_value.paginate.return_value=[]
+        scheduler.get_schedule.return_value=p.shutdown.properties(proof['shutdown_deadline'],now=fx.now,armed=mode!='shutdown_missing')
         def invoke(**kw):
             calls.append('invoke');state['attempt']={'status':{'S':'STARTED'}}
             if mode=='invoke_timeout':raise TimeoutError('private detail')
@@ -92,7 +94,7 @@ class RecoveryRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory,patch.object(p.signing,'validate_plan',return_value=plan['allowance_payload']),patch.object(p,'verify'):
             args={'approved_plan_digest':proof['plan_digest'],'approved_preview_digest':p.signing.digest(proof),
                 'signing_workflow_run':1,'output':Path(directory),'session':session,'clock':lambda:fx.now,'sleep':lambda _:None}
-            if mode=='already_used':
+            if mode in ('already_used','shutdown_missing'):
                 with self.assertRaises(p.StateError):p.run(plan,proof,{'payload':plan['allowance_payload']},**args)
                 cf.execute_change_set.assert_not_called();lam.invoke.assert_not_called();return
             report=p.run(plan,proof,{'payload':plan['allowance_payload']},**args)
@@ -121,6 +123,8 @@ class RecoveryRunnerTests(unittest.TestCase):
         self.assertEqual(calls.count('invoke'),1);self.assertEqual(report['status'],'STOPPED_NO_RETRY');self.assertTrue(report['shutdown_verified'])
 
     def test_already_consumed_recovery_never_activates(self):self.run_case('already_used')
+
+    def test_missing_independent_shutdown_never_activates(self):self.run_case('shutdown_missing')
 
     def test_wrong_active_code_never_invokes(self):
         report,calls,_=self.run_case('wrong_code')
