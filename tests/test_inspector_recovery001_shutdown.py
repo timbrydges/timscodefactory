@@ -23,6 +23,8 @@ class RecoveryShutdownTests(unittest.TestCase):
         schedule=template['Resources']['ShutdownSchedule']['Properties']
         self.assertEqual(schedule['State'],'DISABLED')
         self.assertNotIn('ActionAfterCompletion',schedule)
+        for field in ('StartDate','EndDate'):
+            self.assertRegex(schedule[field],r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$')
         self.assertEqual(p.properties(self.deadline,now=self.now)['ActionAfterCompletion'],'NONE')
         self.assertEqual(json.loads(schedule['Target']['Input']),{'FunctionName':p.FUNCTION_ARN,'ReservedConcurrentExecutions':0})
         self.assertEqual(schedule['Target']['Arn'],p.TARGET)

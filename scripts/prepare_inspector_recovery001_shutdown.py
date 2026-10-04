@@ -7,7 +7,7 @@ from prepare_inspector_recovery001_disabled import FUNCTION
 GROUP='tims-factory-inspector-recovery-001-shutdown'
 NAME='recovery001-concurrency-zero'
 ROLE=GROUP
-STACK=GROUP
+STACK=GROUP+'-v2'
 FUNCTION_ARN='arn:aws:lambda:ca-central-1:666730517561:function:'+FUNCTION
 GROUP_ARN='arn:aws:scheduler:ca-central-1:666730517561:schedule-group/'+GROUP
 ROLE_ARN='arn:aws:iam::666730517561:role/'+ROLE
@@ -33,6 +33,8 @@ def render(deadline,*,now,armed=False):
     # Scheduler API supports this field, but the CloudFormation resource does not.
     # Omission preserves the default NONE; validate_armed still checks the API value.
     schedule.pop('ActionAfterCompletion')
+    for field in ('StartDate','EndDate'):
+        schedule[field]=datetime.fromisoformat(schedule[field]).strftime('%Y-%m-%dT%H:%M:%S.000Z')
     return {'AWSTemplateFormatVersion':'2010-09-09','Description':'Recovery-only concurrency shutdown; never invokes a function.',
         'Resources':{
             'ShutdownGroup':{'Type':'AWS::Scheduler::ScheduleGroup','Properties':{'Name':GROUP}},
