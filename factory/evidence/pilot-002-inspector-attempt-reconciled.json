@@ -1,0 +1,220 @@
+{
+  "status": "INSPECTOR_ATTEMPT_CONSUMED_NO_ACCEPTED_REVIEW",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "merged_control_source": "bdbf3016c18683095221bf9566651454083dd8b1",
+  "execution": {
+    "inspector-execution-marker.json": {
+      "status": "EXECUTION_STARTED",
+      "started_at": "2026-10-04T11:20:43.948108+00:00",
+      "signing_workflow_run": 37198378725,
+      "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-002/b12470a8-f62a-4497-abc0-6266d2c38567",
+      "plan_digest": "sha256:dd8d6e4149871cc47d0247552db790b8d8d9b40b200d5702dc30f02af1baba8c",
+      "lambda_requests": 0,
+      "shutdown_verified": false
+    },
+    "inspector-invocation-marker.json": {
+      "event_sha256": "94d310393b7112d9df321d000a9a00b8d43105fdafacc5728513ef2b47260d89",
+      "submitted_at": "2026-10-04T11:21:09.975216+00:00",
+      "no_retry": true
+    },
+    "inspector-report.json": {
+      "status": "RESPONSE_RECEIVED",
+      "started_at": "2026-10-04T11:20:43.948108+00:00",
+      "signing_workflow_run": 37198378725,
+      "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-inspector-live-20261004-002/b12470a8-f62a-4497-abc0-6266d2c38567",
+      "plan_digest": "sha256:dd8d6e4149871cc47d0247552db790b8d8d9b40b200d5702dc30f02af1baba8c",
+      "lambda_requests": 1,
+      "shutdown_verified": true,
+      "lambda_status": 200,
+      "function_error": "Unhandled",
+      "response_sha256": "d8c7f2fd1d34c222f1dab9205d2f9f19debf751f6033bdb1efbfc15c2ef9977b",
+      "response_bytes": 529,
+      "shutdown_errors": [],
+      "attempt_rows": {
+        "builder": {
+          "PK": {
+            "S": "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#builder"
+          },
+          "actual_micro_usd": {
+            "N": "87664"
+          },
+          "approval_digest": {
+            "S": "sha256:68d4400d84f7a37207680eabe791b18a579855ae8fb2a47c1e6f750f2067cc04"
+          },
+          "approval_expires_at": {
+            "S": "2026-10-03T23:45:28+00:00"
+          },
+          "claimed_at": {
+            "S": "2026-10-03T23:25:27.169035+00:00"
+          },
+          "contract_digest": {
+            "S": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf"
+          },
+          "output_digest": {
+            "S": "sha256:261b695e890a26b6834490d676633633323f5439bf15ec21daa519111e5ee85c"
+          },
+          "pricing_digest": {
+            "S": "sha256:aa20c964e2df2248878be1b57557f6801cf3ed2613a33f45a09523c39aaed02f"
+          },
+          "pricing_expires_at": {
+            "S": "2026-10-04T22:28:48+00:00"
+          },
+          "request_digest": {
+            "S": "sha256:80405ec2824f493789ce16329b51c5c275ebf3a473b4fe88cf331a5a3436c81c"
+          },
+          "reservation_status": {
+            "S": "HELD"
+          },
+          "reserved_micro_usd": {
+            "N": "250000"
+          },
+          "role": {
+            "S": "builder"
+          },
+          "source_commit": {
+            "S": "535233c6e7e7655ef79e885b9c1a164fd7bee1d4"
+          },
+          "status": {
+            "S": "COMPLETE"
+          },
+          "task_id": {
+            "S": "safe-workspace-fingerprint-001"
+          }
+        },
+        "inspector": {
+          "pricing_expires_at": {
+            "S": "2026-10-04T12:14:07+00:00"
+          },
+          "reservation_status": {
+            "S": "HELD"
+          },
+          "status": {
+            "S": "STARTED"
+          },
+          "pricing_digest": {
+            "S": "sha256:d56138d47907a47c076ad69577f4e269e3bd70c903a43455fff5e19956049641"
+          },
+          "contract_digest": {
+            "S": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf"
+          },
+          "source_commit": {
+            "S": "d9c75eb8b59c3c6bda508557224fd92354f8d34c"
+          },
+          "claimed_at": {
+            "S": "2026-10-04T11:21:11.854302+00:00"
+          },
+          "approval_expires_at": {
+            "S": "2026-10-04T12:14:07+00:00"
+          },
+          "role": {
+            "S": "inspector"
+          },
+          "task_id": {
+            "S": "safe-workspace-fingerprint-001"
+          },
+          "approval_digest": {
+            "S": "sha256:5e7dccf6984a52a4376a58bb80556bae76b1b42fa7665863460c5faff11f1a1c"
+          },
+          "request_digest": {
+            "S": "sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a"
+          },
+          "reserved_micro_usd": {
+            "N": "250000"
+          },
+          "PK": {
+            "S": "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+          }
+        },
+        "qa": null
+      },
+      "finished_at": "2026-10-04T11:21:59.322104+00:00"
+    },
+    "inspector-result.json": {
+      "errorMessage": "Pilot 002 entry point stopped; reconcile without retry",
+      "errorType": "StateError",
+      "requestId": "4bbfa4af-3853-48c0-b67d-fcc2a926f58c",
+      "stackTrace": [
+        "  File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 134, in handler\n    return dispatch(event,context,root=Path(os.environ.get('LAMBDA_TASK_ROOT','/var/task')),\n",
+        "  File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 130, in dispatch\n    raise StateError('Pilot 002 entry point stopped; reconcile without retry') from None\n"
+      ]
+    }
+  },
+  "provider_audit": {
+    "eventTime": "2026-10-04T11:21:37Z",
+    "eventSource": "bedrock.amazonaws.com",
+    "eventName": "Converse",
+    "eventID": "8936db64-4880-430a-8669-fb34908ef029",
+    "requestID": "1f1b2fc2-f29d-4849-94cd-0c61d0c33b20",
+    "errorCode": null,
+    "errorMessage": null,
+    "awsRegion": "ca-central-1",
+    "resources": [
+      {
+        "accountId": "666730517561",
+        "type": "AWS::Bedrock::Model",
+        "ARN": "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
+      }
+    ],
+    "additionalEventData": {
+      "inferenceRegion": "eu-north-1",
+      "inputTokens": 5288,
+      "outputTokens": 1269
+    },
+    "identity_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-pilot-002-inspector-disabled/tims-factory-pilot-002-inspector",
+    "issuer_arn": "arn:aws:iam::666730517561:role/tims-factory-pilot-002-inspector-disabled",
+    "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "response_retained_in_trail": false,
+    "invocation_logging_config": {},
+    "usage_derived_micro_usd": 34899,
+    "cost_basis": "CloudTrail token usage times approved standard uncached model rates; not a billing invoice or completed ledger result"
+  },
+  "lambda_log_observations": {
+    "logs": [
+      {
+        "timestamp": 1791112870172,
+        "message": "INIT_START Runtime Version: python:3.12.mainlinev2.v43\tRuntime Version ARN: arn:aws:lambda:ca-central-1::runtime:36aeb19f3326e129d9f096dea0a3c6a9ca8dce2610e62d2b2060747602d863ae\n"
+      },
+      {
+        "timestamp": 1791112870432,
+        "message": "START RequestId: 4bbfa4af-3853-48c0-b67d-fcc2a926f58c Version: $LATEST\n"
+      },
+      {
+        "timestamp": 1791112897552,
+        "message": "[ERROR] StateError: Pilot 002 entry point stopped; reconcile without retry\nTraceback (most recent call last):\n\u00c2\u00a0\u00c2\u00a0File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 134, in handler\n\u00c2\u00a0\u00c2\u00a0\u00c2\u00a0\u00c2\u00a0return dispatch(event,context,root=Path(os.environ.get('LAMBDA_TASK_ROOT','/var/task')),\n\u00c2\u00a0\u00c2\u00a0File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 130, in dispatch\n\u00c2\u00a0\u00c2\u00a0\u00c2\u00a0\u00c2\u00a0raise StateError('Pilot 002 entry point stopped; reconcile without retry') from None"
+      },
+      {
+        "timestamp": 1791112897555,
+        "message": "END RequestId: 4bbfa4af-3853-48c0-b67d-fcc2a926f58c\n"
+      },
+      {
+        "timestamp": 1791112897555,
+        "message": "REPORT RequestId: 4bbfa4af-3853-48c0-b67d-fcc2a926f58c\tDuration: 27122.36 ms\tBilled Duration: 27379 ms\tMemory Size: 256 MB\tMax Memory Used: 96 MB\tInit Duration: 256.05 ms\t\n"
+      }
+    ],
+    "logs_more": true,
+    "bedrock_events": [
+      {
+        "eventTime": "2026-10-04T11:21:37Z",
+        "eventName": "Converse",
+        "eventID": "8936db64-4880-430a-8669-fb34908ef029",
+        "requestID": "1f1b2fc2-f29d-4849-94cd-0c61d0c33b20",
+        "errorCode": null,
+        "errorMessage": null,
+        "awsRegion": "ca-central-1"
+      }
+    ],
+    "trail_more": false
+  },
+  "conclusions": {
+    "provider_processed_request": true,
+    "accepted_review_available": false,
+    "precise_failure_stage_known": false,
+    "original_response_recoverable_from_checked_logs": false,
+    "inspector_attempt_reusable": false,
+    "ledger_mutated_during_reconciliation": false,
+    "qa_attempt_consumed": false,
+    "all_workers_disabled_verified": true,
+    "gate_authority": false,
+    "production_release_authorized": false
+  }
+}

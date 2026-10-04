@@ -16,6 +16,21 @@ from .pilot002_authorization import verify
 from .pilot002_packets import builder_packet, review_packet, parse_builder, parse_review
 
 
+class Pilot002Stopped(StateError):
+    """Only fixed workflow stages may cross the entry-point error boundary."""
+    STAGES = frozenset(('preparation', 'authorization', 'reservation',
+        'expiry_before_credential', 'credential', 'expiry_before_provider',
+        'provider', 'response', 'completion'))
+
+    def __init__(self, stage):
+        self.stage = stage
+        super().__init__(self.safe_message())
+
+    def safe_message(self):
+        stage = self.stage if type(self.stage) is str and self.stage in self.STAGES else 'unknown'
+        return 'Pilot 002 stopped at '+stage+'; reconcile without retry'
+
+
 def _fresh(now, previous, expiry):
     if (not isinstance(now, datetime) or now.tzinfo is None or now.utcoffset() is None or
             now < previous or now >= expiry):
@@ -88,6 +103,6 @@ Successful results are still untrusted and cannot advance a Factory state.
     except Exception:
         # Provider exceptions can contain credentials or raw request content.
         # Never expose them or use an uncertain result to permit another call.
-        raise StateError('Pilot 002 stopped at '+stage+'; reconcile without retry') from None
+        raise Pilot002Stopped(stage) from None
     finally:
         credential = None

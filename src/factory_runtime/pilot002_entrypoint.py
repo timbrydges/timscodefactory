@@ -125,8 +125,11 @@ def dispatch(event, context, *, root, env, clock):
         store=Pilot002AttemptStore(_client(session,'dynamodb'))
         return run_bound_once(event['allowance'],**bound,qualification=doc['qualification'],readiness=doc['readiness'],
             trusted_keys=keys,store=store,load_credential=lambda:_credential(session,doc['credential']),clock=clock,enabled=True)
-    except Exception:
+    except Exception as error:
         # Do not reflect event, provider errors, or credential material in logs.
+        from .pilot002_workflow import Pilot002Stopped
+        if type(error) is Pilot002Stopped:
+            raise StateError(Pilot002Stopped.safe_message(error)) from None
         raise StateError('Pilot 002 entry point stopped; reconcile without retry') from None
 
 
