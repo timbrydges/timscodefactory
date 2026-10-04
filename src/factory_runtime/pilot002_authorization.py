@@ -41,6 +41,10 @@ def validate_readiness(readiness, *, bindings, now):
         if bindings.get('role')!='builder':raise StateError('First-generation readiness is Builder-only')
         expected.update(kind='pilot002_builder_first_generation_readiness',model_access_verified=False,
             model_metadata_verified=True,first_generation_failure_risk_accepted=True)
+    if isinstance(readiness,dict) and readiness.get('kind')=='pilot002_reviewer_first_generation_readiness':
+        if bindings.get('role') not in ('inspector','qa'):raise StateError('Reviewer readiness is Inspector/QA-only')
+        expected.update(kind='pilot002_reviewer_first_generation_readiness',model_access_verified=False,
+            model_metadata_verified=True,input_token_count_verified=True,first_generation_failure_risk_accepted=True)
     if (not _exact(readiness, expected, {'issued_at','expires_at','evidence_digest'}) or
             not _hash(readiness.get('evidence_digest')) or not _window(readiness, now, 3600)):
         raise StateError('Pilot 002 provider or repository readiness is missing, changed or expired')

@@ -1,0 +1,39 @@
+{
+  "status": "INPUT_COUNTS_OBSERVED_NOT_GENERATION_AUTHORIZATION",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "source_commit": "888d2b69a7d607150e9cf4ec0d60e153c2e20c02",
+  "observations": {
+    "inspector": {
+      "role": "inspector",
+      "status": "INPUT_TOKEN_COUNT_OBSERVED",
+      "count_request_digest": "sha256:c0ac14bde03fde86f8936f2a15fec8d68b9980ed86098735e2557732f717d705",
+      "count_requests": 1,
+      "generation_requests": 0,
+      "attempt_claims": 0,
+      "observed_at": "2026-10-04T02:19:24.243910+00:00",
+      "generation_access_proven": false,
+      "cost_qualified": false,
+      "http_status": 200,
+      "input_tokens": 5305,
+      "finished_at": "2026-10-04T02:19:24.631535+00:00"
+    },
+    "qa": {
+      "role": "qa",
+      "status": "INPUT_TOKEN_COUNT_OBSERVED",
+      "count_request_digest": "sha256:448e783fe2f46572b393fbf6b4f90ca5d20588428be56282c8d58c256257c3c7",
+      "count_requests": 1,
+      "generation_requests": 0,
+      "attempt_claims": 0,
+      "observed_at": "2026-10-04T02:19:38.292038+00:00",
+      "generation_access_proven": false,
+      "cost_qualified": false,
+      "http_status": 200,
+      "input_tokens": 5169,
+      "finished_at": "2026-10-04T02:19:38.624086+00:00"
+    }
+  },
+  "inspector_count_identifier": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "inspector_generation_identifier": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "generation_requests": 0,
+  "attempt_claims": 0
+}
