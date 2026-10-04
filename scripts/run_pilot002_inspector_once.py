@@ -89,7 +89,7 @@ def save():report_path.write_text(json.dumps(report,indent=2)+'\n')
 with (args.output_directory/'inspector-execution-marker.json').open('x') as marker:json.dump(report,marker)
 save()
 try:
-    cf.execute_change_set(ChangeSetName=proof['change_set_arn'],ClientRequestToken='approved-inspector-shared-358-20261004')
+    cf.execute_change_set(ChangeSetName=proof['change_set_arn'],ClientRequestToken='approved-inspector-shared-359-20261004')
     print('APPROVED ACTIVATION SUBMITTED ONCE',flush=True)
     cf.get_waiter('stack_update_complete').wait(StackName=stack,WaiterConfig={'Delay':3,'MaxAttempts':60})
     assert template(StackName=stack)==proof['template']
@@ -133,7 +133,7 @@ finally:
     try:
         if template(StackName=stack)!=proof['rollback_template']:
             cf.update_stack(StackName=stack,TemplateBody=json.dumps(proof['rollback_template']),
-                Capabilities=['CAPABILITY_NAMED_IAM'],ClientRequestToken='restore-disabled-after-inspector-358')
+                Capabilities=['CAPABILITY_NAMED_IAM'],ClientRequestToken='restore-disabled-after-inspector-359')
             cf.get_waiter('stack_update_complete').wait(StackName=stack,WaiterConfig={'Delay':3,'MaxAttempts':60})
         assert template(StackName=stack)==proof['rollback_template']
         assert cf.describe_stacks(StackName=stack)['Stacks'][0]['StackStatus'] in ('UPDATE_COMPLETE','UPDATE_ROLLBACK_COMPLETE')
