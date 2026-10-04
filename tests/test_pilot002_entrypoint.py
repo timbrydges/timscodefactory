@@ -146,10 +146,32 @@ class EntrypointTests(unittest.TestCase):
         with patch.object(p,'_read',side_effect=self.read),patch.object(p,'_aws_session',return_value=self.session),\
                 patch.object(p,'_client',side_effect=lambda session,service:self.db if service=='dynamodb' else self.secret),\
                 patch.object(transports.p.http.client,'HTTPSConnection') as connect:
-            for _ in range(2):
-                with self.assertRaisesRegex(StateError,'^Pilot 002 entry point stopped; reconcile without retry$'):self.run_event()
+            for stage in ('credential','reservation'):
+                with self.assertRaisesRegex(StateError,'^Pilot 002 stopped at '+stage+'; reconcile without retry$'):self.run_event()
             self.assertEqual(len(self.fixtures.rows),1)
             self.secret.get_secret_value.assert_called_once();connect.assert_not_called()
+
+    def test_response_failure_stage_survives_without_provider_content(self):
+        self.setup_role('inspector')
+        self.connection.response=transports.Response(b'{"private-provider-detail":"private-test-credential"}')
+        with patch.object(p,'_read',side_effect=self.read),patch.object(p,'_aws_session',return_value=self.session),\
+                patch.object(p,'_client',return_value=self.db),\
+                patch.object(transports.p.http.client,'HTTPSConnection',return_value=self.connection):
+            with self.assertRaisesRegex(StateError,'^Pilot 002 stopped at response; reconcile without retry$'):self.run_event()
+            with self.assertRaisesRegex(StateError,'reservation'):self.run_event()
+        self.assertEqual(len(self.connection.calls),1)
+        self.assertEqual(len(self.fixtures.rows),1)
+        self.db.update_item.assert_not_called()
+
+    def test_arbitrary_error_text_cannot_cross_diagnostic_boundary(self):
+        from factory_runtime.pilot002_workflow import Pilot002Stopped
+        self.setup_role('inspector')
+        for error,expected in ((StateError('Pilot 002 stopped at private-test-credential'),'entry point stopped'),
+                               (Pilot002Stopped('private-test-credential'),'stopped at unknown')):
+            with patch.object(p,'_read',side_effect=self.read),patch.object(p,'_aws_session',return_value=self.session),\
+                    patch.object(p,'_client',return_value=self.db),patch.object(p,'run_bound_once',side_effect=error):
+                with self.assertRaisesRegex(StateError,expected) as caught:self.run_event()
+                self.assertNotIn('private-test-credential',str(caught.exception))
 
     def test_cloud_clients_use_fixed_endpoints_no_proxy_no_sdk_retries(self):
         session=Mock();p._client(session,'dynamodb');args=session.client.call_args.kwargs
