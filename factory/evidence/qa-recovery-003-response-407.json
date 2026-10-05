@@ -1,0 +1,258 @@
+{
+  "status": "QA003_CAPTURE_PARSED_OFFLINE_NO_GATE_AUTHORITY",
+  "runtime_source_commit": "2f4dd3253da617df9088b624938d7300e65f5e94",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "request_digest": "sha256:f92747ae546698e664537981cf9d19ae8980d8fc9c56c0ac074755d3e81f11f4",
+  "owner_approval_proposal_digest": "sha256:4f4680eb60694cbda358dcf1da5e4f907772b1a959154352c28e7a75554692f2",
+  "signing_workflow_run": 37358676304,
+  "report": {
+    "finished_at": "2026-10-05T18:51:08.903789+00:00",
+    "lambda_requests": 1,
+    "plan_digest": "sha256:f83f4d41a8e72a6963fc349e50b01a3d6e154c88f61b8d985e580aaae9810929",
+    "preview_digest": "sha256:91306a879549dcc84e1baa4c5f1d300c7d130980d86c31fd65e73b493372c31d",
+    "recovery_attempt": {
+      "PK": {
+        "S": "RECOVERY#003#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+      },
+      "approval_digest": {
+        "S": "sha256:b46795f53bab4a35c4b4406fc6a10764ae96847ac8e818d4117e864c9b46d4f3"
+      },
+      "approval_expires_at": {
+        "S": "2026-10-05T18:52:22+00:00"
+      },
+      "candidate_commit": {
+        "S": "09c789a902377cb095c20abae89459c4cec3e89e"
+      },
+      "claimed_at": {
+        "S": "2026-10-05T18:49:55.673328+00:00"
+      },
+      "maximum_cost_micro_usd": {
+        "N": "0"
+      },
+      "pricing_digest": {
+        "S": "sha256:2f83656caa5d97a638550e285f8b7120b7160e7467893700fc2ce626be9b2cc1"
+      },
+      "pricing_expires_at": {
+        "S": "2026-10-05T18:52:22+00:00"
+      },
+      "request_digest": {
+        "S": "sha256:f92747ae546698e664537981cf9d19ae8980d8fc9c56c0ac074755d3e81f11f4"
+      },
+      "reservation_status": {
+        "S": "HELD"
+      },
+      "reserved_micro_usd": {
+        "N": "250000"
+      },
+      "scope_digest": {
+        "S": "sha256:9c145c0e86a6c214c875556f675b16129c941116f59536a97877ce4bda27bfd0"
+      },
+      "source_commit": {
+        "S": "2f4dd3253da617df9088b624938d7300e65f5e94"
+      },
+      "status": {
+        "S": "STARTED"
+      }
+    },
+    "response_bytes": 3046,
+    "response_sha256": "c610e4367f8044d015b95bb1cfe77aa77a6ccc2dadc8b6f60d6243f2088574a7",
+    "result_status": "QA_RECOVERY003_FAILED_NO_RETRY",
+    "schedule_disabled": true,
+    "shutdown_deadline": 1791226277,
+    "shutdown_errors": [],
+    "shutdown_verified": true,
+    "signing_workflow_run": 37358676304,
+    "status": "STOPPED_NO_RETRY"
+  },
+  "lambda_result": {
+    "accepted_review": false,
+    "attempt_reusable": false,
+    "failure_stage": "response",
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "provider_response_base64": "ewogICJjYW5kaWRhdGVzIjogWwogICAgewogICAgICAiY29udGVudCI6IHsKICAgICAgICAicGFydHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJ0ZXh0IjogIntcbiAgXCJyb2xlXCI6IFwicWFcIixcbiAgXCJ0YXNrX2lkXCI6IFwic2FmZS13b3Jrc3BhY2UtZmluZ2VycHJpbnQtMDAxXCIsXG4gIFwiY29udHJhY3RfZGlnZXN0XCI6IFwic2hhMjU2OjNkMTNlOTU1MTQ3NzZmNTM3ZjAzZWUyMjI1ZTEyZjI3ZmIwMDY1NTllNGZlNjRkMzcxNDkyY2U0NTkyMDExZmNcIixcbiAgXCJjYW5kaWRhdGVfY29tbWl0XCI6IFwiMDljNzg5YTkwMjM3N2NiMDk1YzIwYWJhZTg5NDU5YzRjZWMzZTg5ZVwiLFxuICBcImNhbmRpZGF0ZV9kaWdlc3RcIjogXCJzaGEyNTY6NzQxZDJjY2M1NjhlYThlYTE0MTBlYmQzYjNhM2EyMmZiZGE1NTUyZjQzZDA0Y2M4ODU2NTRiYjQ4ZGUzOGQ3ZlwiLFxuICBcInBhY2tldF9kaWdlc3RcIjogXCJzaGEyNTY6MDE3NTI3NDA1ZmI4Yzk4ZTRlN2NkNjQ0MWFkNzZiOGE0MmEyZDcwOTg2YWNlNjdjNTk0MjkwODhlNWVhNjgzYlwiLFxuICBcInZlcmRpY3RcIjogXCJBQ0NFUFRFRFwiLFxuICBcInJhdGlvbmFsZVwiOiBcIlRoZSBjYW5kaWRhdGUgaW1wbGVtZW50YXRpb24gc3RyaWN0bHkgbWVldHMgYWxsIGFjY2VwdGFuY2UgY3JpdGVyaWEuIEl0IHZhbGlkYXRlcyByZWxhdGl2ZSBwYXRocyBhZ2FpbnN0IGFic29sdXRlIHBhdGhzIGFuZCBjb21wb25lbnQgdHJhdmVyc2FsLCBzYWZlbHkgdHJhdmVyc2VzIGRpcmVjdG9yaWVzIHVzaW5nIHJhY2Utc2FmZSBmaWxlIGRlc2NyaXB0b3JzIHdpdGggT19OT0ZPTExPVyBhbmQgT19OT05CTE9DSywgdmVyaWZpZXMgdGhhdCB0aGUgZmluYWwgZGVzY3JpcHRvciBpcyBhIHJlZ3VsYXIgZmlsZSwgZW5mb3JjZXMgdGhlIDQwOTYgYnl0ZSBsaW1pdCAocmVhZGluZyBhdCBtb3N0IDQwOTcgYnl0ZXMpLCBoYW5kbGVzIFVURi04IHZhbGlkYXRpb24gYW5kIHN0cmljdCBjYW5vbmljYWwgY29tcGFjdCBKU09OIHNlcmlhbGl6YXRpb24sIHN1cHByZXNzZXMgc3RhbmRhcmQgb3V0cHV0IG9uIGZhaWx1cmUsIGFuZCBwcm92aWRlcyBjb21wcmVoZW5zaXZlIHVuaXQgdGVzdHMgY292ZXJpbmcgQVNDSUksIFVuaWNvZGUsIGJ5dGUgbGltaXRzLCB0cmF2ZXJzYWwsIHN5bWxpbmtzLCBkaXJlY3RvcmllcywgYW5kIEZJRk9zIHdpdGggc3VicHJvY2VzcyBleGVjdXRpb24gdGltZW91dHMuXCIsXG4gIFwiZmluZGluZ3NcIjogW11cbn0iLAogICAgICAgICAgICAidGhvdWdodFNpZ25hdHVyZSI6ICJFbThLYlFGcEZIMFRtSytmYTFScTBKR2p4VVgwV09MdW5zdm5zUlJXNElhUFlJSUswdC8wd2VCNmVIUFhqMDRkWlRhdXluR1dTaEhTaHplR29ucDNZOFZNQVhOZ2RUcXhkbWN1MzgzbGdFMEw3cm01bW84aGxXZXY3OGd3K3BSaGlEUnBaU2pBTTc0d1F1RER2eGYvRHBFPSIKICAgICAgICAgIH0KICAgICAgICBdLAogICAgICAgICJyb2xlIjogIm1vZGVsIgogICAgICB9LAogICAgICAiZmluaXNoUmVhc29uIjogIlNUT1AiLAogICAgICAiaW5kZXgiOiAwCiAgICB9CiAgXSwKICAidXNhZ2VNZXRhZGF0YSI6IHsKICAgICJwcm9tcHRUb2tlbkNvdW50IjogNTQ2OCwKICAgICJjYW5kaWRhdGVzVG9rZW5Db3VudCI6IDQyNCwKICAgICJ0b3RhbFRva2VuQ291bnQiOiA1ODkyLAogICAgInByb21wdFRva2Vuc0RldGFpbHMiOiBbCiAgICAgIHsKICAgICAgICAibW9kYWxpdHkiOiAiVEVYVCIsCiAgICAgICAgInRva2VuQ291bnQiOiA1NDY4CiAgICAgIH0KICAgIF0sCiAgICAic2VydmljZVRpZXIiOiAic3RhbmRhcmQiCiAgfSwKICAibW9kZWxWZXJzaW9uIjogImdlbWluaS0zLjctZmxhc2giLAogICJyZXNwb25zZUlkIjogIlZQSERhcC1rR0t1eDFNa1AtdUt1LVFNIgp9Cg==",
+    "provider_response_bytes": 1882,
+    "provider_response_digest": "sha256:367c56e4cc233321cfc2d417dd61e0d86ae76bd3ae25fd92fa97c44a245ec3fe",
+    "recovery_scope_digest": "sha256:9c145c0e86a6c214c875556f675b16129c941116f59536a97877ce4bda27bfd0",
+    "reservation_status": "HELD",
+    "response_is_untrusted": true,
+    "role": "qa",
+    "status": "QA_RECOVERY003_FAILED_NO_RETRY"
+  },
+  "reconciliation": {
+    "additional_model_calls": 0,
+    "attempt_unchanged_since_result": true,
+    "disabled_workers": [
+      "tims-factory-inspector-recovery-001",
+      "tims-factory-pilot-002-builder",
+      "tims-factory-pilot-002-inspector",
+      "tims-factory-pilot-002-qa",
+      "tims-factory-qa-recovery-001",
+      "tims-factory-qa-recovery-002",
+      "tims-factory-qa-recovery-003"
+    ],
+    "exact_disabled_baseline_restored": true,
+    "observed_at": "2026-10-05T18:51:37.298216+00:00",
+    "previous_attempts_unchanged": true,
+    "reservation_held_micro_usd": 250000,
+    "schedule_disabled": true,
+    "status": "CONSUMED_ONCE_DISABLED_RECONCILED"
+  },
+  "google_request_metrics": {
+    "http_status": 200,
+    "body": {
+      "timeSeries": [
+        {
+          "metric": {
+            "labels": {
+              "response_code": "200",
+              "grpc_status_code": "0",
+              "protocol": "https",
+              "response_code_class": "2xx"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "version": "v1beta",
+              "service": "generativelanguage.googleapis.com",
+              "method": "google.ai.generativelanguage.v1beta.GenerativeService.CountTokens",
+              "location": "us-central1",
+              "project_id": "gen-lang-client-0247455615"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T18:47:09.001Z",
+                "endTime": "2026-10-05T18:48:09Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        },
+        {
+          "metric": {
+            "labels": {
+              "response_code": "200",
+              "protocol": "https",
+              "response_code_class": "2xx",
+              "grpc_status_code": "0"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "version": "v1beta",
+              "project_id": "gen-lang-client-0247455615",
+              "location": "us-central1",
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "service": "generativelanguage.googleapis.com",
+              "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T18:50:15.001Z",
+                "endTime": "2026-10-05T18:51:15Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        },
+        {
+          "metric": {
+            "labels": {
+              "response_code": "200",
+              "protocol": "https",
+              "grpc_status_code": "0",
+              "response_code_class": "2xx"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "service": "generativelanguage.googleapis.com",
+              "method": "google.ai.generativelanguage.v1beta.ModelService.GetModel",
+              "project_id": "gen-lang-client-0247455615",
+              "location": "us-central1",
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "version": "v1beta"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T18:47:25.001Z",
+                "endTime": "2026-10-05T18:48:25Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "1"
+    },
+    "observed_at": "2026-10-05T18:53:15.814950+00:00"
+  },
+  "offline_parse": {
+    "status": "UNAUTHENTICATED_PROVIDER_RESPONSE",
+    "role": "qa",
+    "requested_model_id": "gemini-3.7-flash",
+    "provider_identity_verified": false,
+    "usage": {
+      "input_tokens": 5468,
+      "output_tokens_including_reasoning": 424,
+      "total_tokens": 5892
+    },
+    "parsed_output": {
+      "role": "qa",
+      "task_id": "safe-workspace-fingerprint-001",
+      "contract_digest": "sha256:3d13e95514776f537f03ee2225e12f27fb006559e4fe64d371492ce4592011fc",
+      "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+      "candidate_digest": "sha256:741d2ccc568ea8ea1410ebd3b3a3a22fbda5552f43d04cc885654bb48de38d7f",
+      "packet_digest": "sha256:017527405fb8c98e4e7cd6441ad76b8a42a2d70986ace67c59429088e5ea683b",
+      "verdict": "ACCEPTED",
+      "rationale": "The candidate implementation strictly meets all acceptance criteria. It validates relative paths against absolute paths and component traversal, safely traverses directories using race-safe file descriptors with O_NOFOLLOW and O_NONBLOCK, verifies that the final descriptor is a regular file, enforces the 4096 byte limit (reading at most 4097 bytes), handles UTF-8 validation and strict canonical compact JSON serialization, suppresses standard output on failure, and provides comprehensive unit tests covering ASCII, Unicode, byte limits, traversal, symlinks, directories, and FIFOs with subprocess execution timeouts.",
+      "findings": [],
+      "status": "UNAUTHENTICATED_ASSESSMENT",
+      "tests_executed": false,
+      "gate_authority": false,
+      "production_release_authorized": false
+    },
+    "gate_authority": false,
+    "production_release_authorized": false
+  },
+  "interpretation": {
+    "provider_http_status": 200,
+    "generation_requests": 1,
+    "additional_model_calls": 0,
+    "live_parser_rejected_field": "usageMetadata.serviceTier",
+    "observed_field_value": "standard",
+    "attempt_remains_consumed": true,
+    "reservation_remains_held_micro_usd": 250000,
+    "invoice_verified": false,
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "task_state_writes": 0,
+    "retry_authorized": false
+  },
+  "provider_schema_reference": "https://ai.google.dev/api/generate-content#UsageMetadata"
+}

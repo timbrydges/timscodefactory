@@ -147,7 +147,9 @@ def _google(response, model):
         raise ValueError('unfinished, tool or non-text result')
     usage=response['usageMetadata']
     _fields(usage,('promptTokenCount','candidatesTokenCount','thoughtsTokenCount','totalTokenCount',
-        'cachedContentTokenCount','toolUsePromptTokenCount','promptTokensDetails','candidatesTokensDetails'))
+        'cachedContentTokenCount','toolUsePromptTokenCount','promptTokensDetails','candidatesTokensDetails','serviceTier'))
+    if usage.get('serviceTier','standard')!='standard':
+        raise ValueError('unqualified Google service tier')
     for field in ('promptTokensDetails','candidatesTokensDetails'):
         if field in usage:
             if not isinstance(usage[field],list):raise ValueError('invalid modality usage')
