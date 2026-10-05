@@ -1,0 +1,63 @@
+{
+  "google": {
+    "status": "FINGERPRINT_OBSERVED_NOT_YET_COMPARED",
+    "side": "google",
+    "nonce": "525ceaab6994cb20d6b42cfe2c90365d96f4c6227f268879a603ba38b7506088",
+    "project": "gen-lang-client-0247455615",
+    "project_number": "775833138497",
+    "key_resource": "projects/775833138497/locations/global/keys/cb9311fc-42e2-4de4-bf83-80082e6282c1",
+    "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+    "secret_version": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+    "generation_requests": 0,
+    "binding_verified": false,
+    "fingerprint": "1ffb51dd7f93e7b2f67dfe193e12ed4671950eacc83a0462685ea872e4c85cdd",
+    "observed_at": "2026-10-05T02:07:04.492945+00:00"
+  },
+  "aws": {
+    "binding": {
+      "status": "FINGERPRINT_OBSERVED_NOT_YET_COMPARED",
+      "side": "aws",
+      "nonce": "525ceaab6994cb20d6b42cfe2c90365d96f4c6227f268879a603ba38b7506088",
+      "project": "gen-lang-client-0247455615",
+      "project_number": "775833138497",
+      "key_resource": "projects/775833138497/locations/global/keys/cb9311fc-42e2-4de4-bf83-80082e6282c1",
+      "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+      "secret_version": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+      "generation_requests": 0,
+      "binding_verified": false,
+      "fingerprint": "1ffb51dd7f93e7b2f67dfe193e12ed4671950eacc83a0462685ea872e4c85cdd",
+      "observed_at": "2026-10-05T02:07:12.732520+00:00"
+    },
+    "metadata": {
+      "role": "qa",
+      "model_id": "gemini-3.8-flash",
+      "status": "AUTHENTICATED_MODEL_METADATA_OBSERVED",
+      "http_requests": 1,
+      "generation_requests": 0,
+      "live_generation_readiness": false,
+      "project_binding_verified": false,
+      "credential_format": "raw",
+      "http_status": 200
+    },
+    "observed_at": "2026-10-05T02:07:12.940020+00:00"
+  },
+  "comparison": {
+    "status": "GOOGLE_CREDENTIAL_PROJECT_BOUND",
+    "project": "gen-lang-client-0247455615",
+    "key_resource": "projects/775833138497/locations/global/keys/cb9311fc-42e2-4de4-bf83-80082e6282c1",
+    "secret_version": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+    "observed_at": "2026-10-05T02:07:34.502733+00:00",
+    "billing_verified": false,
+    "live_execution_authorized": false
+  },
+  "status": "QA_METADATA_AND_KEY_BINDING_VERIFIED_NOT_GENERATION_AUTHORIZATION",
+  "billing": {
+    "project": "gen-lang-client-0247455615",
+    "billingEnabled": false,
+    "billingAccountName": "",
+    "source": "authenticated Google Cloud Shell billing projects describe",
+    "recorded_at": "2026-10-05T02:07:34.502733+00:00"
+  },
+  "current_live_qualification": false,
+  "note": "Historical readiness audit only. A fresh billing observation, signed exact-request allowance, verified shutdown and separately approved runner are required before generation."
+}

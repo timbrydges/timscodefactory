@@ -15,12 +15,21 @@ ROLE_ARN = 'arn:aws:iam::666730517561:role/' + ROLE
 
 
 def properties(deadline, *, now, armed=False):
-    result = recovery.properties(deadline, now=now, armed=armed)
-    result.update(Name=NAME, GroupName=GROUP)
-    result['Target']['RoleArn'] = ROLE_ARN
-    result['Target']['Input'] = json.dumps(
-        {'FunctionName': FUNCTION_ARN, 'ReservedConcurrentExecutions': 0}, separators=(',', ':'))
-    return result
+    # QA's free-tier allowance lasts at most five minutes. Runtime arming must
+    # support that window; the initial disabled deployment retains its longer lead.
+    if (type(deadline) is not int or not isinstance(now, datetime) or
+            now.tzinfo is None or now.utcoffset() is None or type(armed) is not bool or
+            not 60 <= deadline - now.timestamp() <= 1800):
+        raise StateError('QA shutdown deadline must be 1 to 30 minutes ahead')
+    return {'Name': NAME, 'GroupName': GROUP, 'State': 'ENABLED' if armed else 'DISABLED',
+        'ScheduleExpression': 'rate(1 minute)', 'ScheduleExpressionTimezone': 'UTC',
+        'StartDate': datetime.fromtimestamp(deadline, timezone.utc).isoformat(),
+        'EndDate': datetime.fromtimestamp(deadline + 900, timezone.utc).isoformat(),
+        'FlexibleTimeWindow': {'Mode': 'OFF'}, 'ActionAfterCompletion': 'NONE',
+        'Target': {'Arn': recovery.TARGET, 'RoleArn': ROLE_ARN,
+            'Input': json.dumps({'FunctionName': FUNCTION_ARN, 'ReservedConcurrentExecutions': 0},
+                separators=(',', ':')),
+            'RetryPolicy': {'MaximumEventAgeInSeconds': 60, 'MaximumRetryAttempts': 2}}}
 
 
 def render(deadline, *, now, armed=False):
@@ -50,6 +59,21 @@ def validate_armed(schedule, deadline, *, now):
     if actual != expected:
         raise StateError('Independent QA shutdown is missing, disarmed or changed')
     return {'status': 'ARMED_QA_CONFIGURATION_VERIFIED', 'deadline': deadline, 'model_invocations': 0}
+
+
+def validate_live_window(schedule, deadline, *, allowance_expires_at, now):
+    """Check timing after separate signature verification; never extend an allowance.
+
+    Leave one minute for Scheduler's execution precision. This is a configuration
+    check, not proof of timely delivery or termination of an in-flight invocation.
+    """
+    result = validate_armed(schedule, deadline, now=now)
+    if (type(allowance_expires_at) is not int or
+            not now.timestamp() < allowance_expires_at <= now.timestamp() + 300 or
+            deadline + 60 > allowance_expires_at):
+        raise StateError('QA shutdown must fit inside the unexpired five-minute allowance')
+    return {**result, 'allowance_expires_at': allowance_expires_at,
+        'latest_nominal_first_execution': deadline + 60, 'execution_authorized': False}
 
 
 def validate_preview(template, changes, deadline, *, now):
