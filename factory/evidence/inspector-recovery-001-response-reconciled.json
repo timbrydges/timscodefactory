@@ -1,0 +1,202 @@
+{
+  "status": "CONSUMED_RECOVERY_RESPONSE_RECONCILED_OFFLINE_NOT_ACCEPTED",
+  "execution": {
+    "status": "STOPPED_NO_RETRY",
+    "plan_digest": "sha256:2ff3ae12e1b937f32e4532b0c828ff9020841e6b57c2657ba4456f468b1e7631",
+    "preview_digest": "sha256:57c70a87ddbb97aafe29cb4da6bc436698acfdab3359c60bf4d4758166c71845",
+    "signing_workflow_run": 37249436503,
+    "lambda_requests": 1,
+    "shutdown_verified": true,
+    "response_sha256": "f940880e664411fffb9482dc12c9fc048eb193dcda89cda89590505f22f12011",
+    "response_bytes": 7080,
+    "result_status": "INSPECTOR_RECOVERY001_FAILED_NO_RETRY",
+    "recovery_attempt": {
+      "pricing_expires_at": {
+        "S": "2026-10-05T01:35:46+00:00"
+      },
+      "maximum_cost_micro_usd": {
+        "N": "159744"
+      },
+      "status": {
+        "S": "STARTED"
+      },
+      "reservation_status": {
+        "S": "HELD"
+      },
+      "pricing_digest": {
+        "S": "sha256:2197b1de4398e4af2a62c58f13767d3d1c34d24a730381606a2737e89bb7985b"
+      },
+      "candidate_commit": {
+        "S": "09c789a902377cb095c20abae89459c4cec3e89e"
+      },
+      "source_commit": {
+        "S": "9bcb8bda5d76ba24636820b6f75afd4169d182c2"
+      },
+      "claimed_at": {
+        "S": "2026-10-05T00:58:29.211962+00:00"
+      },
+      "approval_expires_at": {
+        "S": "2026-10-05T01:35:46+00:00"
+      },
+      "approval_digest": {
+        "S": "sha256:f0285ae96f6bad0d42910ee7ce1dff7590a131c5cacbfaba0eaf045b701cd198"
+      },
+      "reserved_micro_usd": {
+        "N": "250000"
+      },
+      "request_digest": {
+        "S": "sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a"
+      },
+      "PK": {
+        "S": "RECOVERY#001#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+      },
+      "scope_digest": {
+        "S": "sha256:a72f683a5c29555cdba4c9440de8646213a4112b8b07dcda759c896cf9090c91"
+      }
+    },
+    "shutdown_errors": [],
+    "finished_at": "2026-10-05T00:59:16.728160+00:00"
+  },
+  "runtime_shutdown_binding": {
+    "approved_base_preview_digest": "sha256:28d05f54745ed267d7834662315594dc85a6a0830360aef15f77a606460a7a6c",
+    "runtime_preview_digest": "sha256:57c70a87ddbb97aafe29cb4da6bc436698acfdab3359c60bf4d4758166c71845",
+    "shutdown_deadline": 1791163067,
+    "only_added_field": "shutdown_deadline",
+    "signing_workflow_run": 37249436503
+  },
+  "final_shutdown": {
+    "schedule_disabled": true,
+    "baseline_restored": true,
+    "observed_at": "2026-10-05T00:59:16.941126+00:00"
+  },
+  "original_failure": {
+    "status": "INSPECTOR_RECOVERY001_FAILED_NO_RETRY",
+    "role": "inspector",
+    "failure_stage": "response",
+    "provider_response_bytes": 4898,
+    "provider_response_digest": "sha256:2f60698e5ea7d59217bd60d78af39c97e329791bf7d8dc4d6c265234d4d3498d",
+    "response_is_untrusted": true,
+    "accepted_review": false,
+    "attempt_reusable": false,
+    "reservation_status": "HELD",
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "recovery_scope_digest": "sha256:a72f683a5c29555cdba4c9440de8646213a4112b8b07dcda759c896cf9090c91"
+  },
+  "raw_provider_response_fixture": "tests/inspector_recovery001_captured_response.json",
+  "diagnosis": [
+    "Additional zero-valued cache counters and empty serverToolUsage rejected by strict usage allowlist",
+    "Complete JSON review enclosed in a single Markdown json fence"
+  ],
+  "offline_validation": {
+    "usage": {
+      "input_tokens": 5288,
+      "output_tokens_including_reasoning": 1253,
+      "total_tokens": 6541
+    },
+    "assessment": {
+      "role": "inspector",
+      "task_id": "safe-workspace-fingerprint-001",
+      "contract_digest": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf",
+      "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+      "candidate_digest": "sha256:741d2ccc568ea8ea1410ebd3b3a3a22fbda5552f43d04cc885654bb48de38d7f",
+      "packet_digest": "sha256:1fa8bfc0271a88bf0936c69881e89cd091ddba0b15995173d0e78c241c22ec1c",
+      "verdict": "ACCEPTED",
+      "rationale": "The candidate implementation satisfies all six acceptance criteria. Path validation correctly rejects absolute paths, parent traversal (empty, '.', '..' components), and uses O_NOFOLLOW with descriptor-relative operations to prevent symlink races. Nonblocking opens with fstat verification ensure only regular files are processed. The 4097-byte read with subsequent length check enforces the 4096-byte limit. Deterministic compact JSON output with exact byte hashing is implemented correctly. All error paths exit without partial stdout. Tests comprehensively cover ASCII, Unicode, boundary conditions, traversal attacks, symlinks, directories, FIFOs with subprocess timeouts, and use only standard library within disposable fixtures.",
+      "findings": [
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "Path validation correctly splits on os.sep and rejects empty, '.', and '..' components, preventing parent traversal."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "O_NOFOLLOW flag applied to both directory and file opens prevents symlink following in all path components."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "Descriptor-relative traversal using dir_fd parameter with intermediate directory closes prevents TOCTOU races."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "O_NONBLOCK flag on file open prevents blocking on FIFOs and special files."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "fstat check with stat.S_ISREG ensures opened descriptor is a regular file before reading."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "Read loop enforces MAX_INPUT_BYTES + 1 (4097) to detect oversized files, with subsequent length check rejecting files exceeding 4096 bytes."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "SHA-256 hash computed on exact input bytes before UTF-8 decoding, ensuring byte-level integrity."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "JSON output uses ensure_ascii=False, sort_keys=True, and compact separators for deterministic formatting."
+        },
+        {
+          "severity": "info",
+          "path": "fingerprint.py",
+          "detail": "All error paths use fail() function that writes to stderr and returns nonzero without stdout emission."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "Test suite covers ASCII, Unicode (including multi-byte and emoji), empty input, exact 4096-byte limit, and deterministic output."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "Tests verify rejection of absolute paths, parent traversal (../ patterns), symlink final components, and symlink directory components."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "Tests verify rejection of directories, FIFOs (with skipUnless for platform availability), and unreadable files."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "All tests use subprocess.run with timeout=TIMEOUT_SECONDS (3 seconds) to prevent hangs on special files."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "Tests use tempfile.TemporaryDirectory for disposable private fixtures, no network or sensitive input."
+        },
+        {
+          "severity": "info",
+          "path": "tests/test_fingerprint.py",
+          "detail": "assert_failure helper verifies nonzero exit, empty stdout, and error message on stderr for all failure cases."
+        }
+      ],
+      "status": "UNAUTHENTICATED_ASSESSMENT",
+      "tests_executed": false,
+      "gate_authority": false,
+      "production_release_authorized": false
+    },
+    "provider_identity_verified": false,
+    "usage_derived_cost_micro_usd": 34659,
+    "invoice_verified": false,
+    "accepted_review": false,
+    "gate_authority": false
+  },
+  "attempt_reusable": false,
+  "ledger_writes_performed_during_reconciliation": 0,
+  "model_calls_during_reconciliation": 0,
+  "production_release_authorized": false,
+  "sources": [
+    "https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_TokenUsage.html",
+    "https://aws.amazon.com/blogs/aws/reduce-costs-and-latency-with-amazon-bedrock-intelligent-prompt-routing-and-prompt-caching-preview/"
+  ]
+}

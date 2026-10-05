@@ -28,11 +28,14 @@ def require(condition,message):
 
 
 def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signing_workflow_run,
-        output,session,clock=lambda:datetime.now(timezone.utc),sleep=time.sleep):
+        output,session,clock=lambda:datetime.now(timezone.utc),sleep=time.sleep,shutdown_deadline=None):
     output=Path(output)
     require(output.is_dir(),'Output directory required')
     require(type(signing_workflow_run) is int and signing_workflow_run>0,'Signing run required')
     require(signing.digest(proof)==approved_preview_digest,'Exact preview approval required')
+    if shutdown_deadline is None:shutdown_deadline=proof.get('shutdown_deadline')
+    require(type(shutdown_deadline) is int,'Runtime shutdown deadline required')
+    require(proof.get('shutdown_deadline',shutdown_deadline)==shutdown_deadline,'Shutdown deadline differs')
     require(proof['plan_digest']==approved_plan_digest and proof['stack_id']==preview.STACK and
         proof['shared_capacity_approved'] is True and proof['status']=='PREPARED_VALIDATED_NOT_EXECUTED','Preview binding differs')
     require(proof['change_set_arn'].startswith('arn:aws:cloudformation:ca-central-1:666730517561:changeSet/inspector-recovery001-live-'),'Recovery change set required')
@@ -103,9 +106,9 @@ def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signi
     require(not rules['RuleNames'] and not rules.get('NextToken'),'Unexpected event rule')
     scheduler=session.client('scheduler',config=config)
     def shutdown_armed():
-        require(proof['shutdown_deadline']<=envelope['payload']['expires_at'],'Shutdown exceeds signed window')
+        require(shutdown_deadline<=envelope['payload']['expires_at'],'Shutdown exceeds signed window')
         shutdown.validate_armed(scheduler.get_schedule(Name=shutdown.NAME,GroupName=shutdown.GROUP),
-            proof['shutdown_deadline'],now=clock())
+            shutdown_deadline,now=clock())
     shutdown_armed()
     for page in scheduler.get_paginator('list_schedules').paginate():
         for entry in page.get('Schedules',[]):
@@ -113,7 +116,7 @@ def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signi
             target=scheduler.get_schedule(Name=entry['Name'],GroupName=entry['GroupName'])['Target']
             require(NAME not in target['Arn'] and NAME not in target.get('Input',''),'Unexpected schedule')
     report={'status':'EXECUTION_STARTED','plan_digest':approved_plan_digest,'preview_digest':approved_preview_digest,
-        'signing_workflow_run':signing_workflow_run,'lambda_requests':0,'shutdown_verified':False}
+        'signing_workflow_run':signing_workflow_run,'shutdown_deadline':shutdown_deadline,'lambda_requests':0,'shutdown_verified':False}
     def save(): (output/'recovery-report.json').write_text(json.dumps(report,indent=2)+'\n')
     with (output/'recovery-execution-marker.json').open('x') as marker:
         json.dump(report,marker);marker.flush();os.fsync(marker.fileno())
@@ -171,11 +174,13 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('allowance',type=Path);parser.add_argument('output',type=Path)
     parser.add_argument('--approved-plan-digest',required=True);parser.add_argument('--approved-preview-digest',required=True)
-    parser.add_argument('--signing-workflow-run',required=True,type=int);args=parser.parse_args()
+    parser.add_argument('--signing-workflow-run',required=True,type=int)
+    parser.add_argument('--shutdown-deadline',required=True,type=int);args=parser.parse_args()
     import boto3
     result=run(signing.read_plan(ROOT/'factory/evidence/inspector-recovery-001-signing-candidate.json'),
         signing.read_plan(ROOT/'factory/evidence/inspector-recovery-001-live-preview.json'),signing.read_plan(args.allowance),
         approved_plan_digest=args.approved_plan_digest,approved_preview_digest=args.approved_preview_digest,
-        signing_workflow_run=args.signing_workflow_run,output=args.output,session=boto3.Session(region_name='ca-central-1'))
+        signing_workflow_run=args.signing_workflow_run,shutdown_deadline=args.shutdown_deadline,
+        output=args.output,session=boto3.Session(region_name='ca-central-1'))
     print(json.dumps({k:v for k,v in result.items() if k!='recovery_attempt'},indent=2))
     sys.exit(0 if result['shutdown_verified'] and result['status']=='RESPONSE_STORED_UNTRUSTED_NO_RETRY' else 1)

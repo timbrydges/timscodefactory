@@ -129,6 +129,41 @@ class ProtocolTests(unittest.TestCase):
         response=self.response('inspector');response['output']['message']['role']='user'
         with self.assertRaises(StateError):self.parse('inspector',response)
 
+    def test_bedrock_observed_zero_usage_extensions_only(self):
+        response=self.response('inspector')
+        response['usage'].update(cacheReadInputTokenCount=0,cacheWriteInputTokenCount=0,serverToolUsage={})
+        self.parse('inspector',response)
+        for field in ('cacheReadInputTokenCount','cacheWriteInputTokenCount'):
+            for value in (1,True,None,'0',0.0,-1):
+                changed=copy.deepcopy(response);changed['usage'][field]=value
+                with self.subTest(field=field,value=value),self.assertRaises(StateError):self.parse('inspector',changed)
+        for value in ({'webSearch':0},{'webSearch':1},[],None,False):
+            changed=copy.deepcopy(response);changed['usage']['serverToolUsage']=value
+            with self.subTest(value=value),self.assertRaises(StateError):self.parse('inspector',changed)
+
+    def test_bedrock_single_json_fence_preserves_strict_output_checks(self):
+        response=self.response('inspector');part=response['output']['message']['content'][0];text=part['text']
+        part['text']='```json\n'+text+'\n```'
+        self.assertEqual(self.parse('inspector',response)['output_bytes'],text.encode())
+        for invalid in ('prefix\n```json\n'+text+'\n```','```json\n'+text+'\n```\nsuffix',
+                        '```json\n'+text+text+'\n```','```json\n{"task_id":"x","task_id":"y"}\n```',
+                        '```json\n'+text.replace(self.commit,'b'*40)+'\n```'):
+            part['text']=invalid
+            with self.subTest(invalid=invalid[:50]),self.assertRaises(StateError):self.parse('inspector',response)
+
+    def test_captured_recovery_response_validates_offline_without_gate_authority(self):
+        import hashlib
+        raw=(ROOT/'tests/inspector_recovery001_captured_response.json').read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'2f60698e5ea7d59217bd60d78af39c97e329791bf7d8dc4d6c265234d4d3498d')
+        result=p.parse_response(raw,ROOT,role='inspector',
+            builder_response=(ROOT/'tests/pilot002_reviewer_builder_context.json').read_bytes(),
+            candidate_commit='09c789a902377cb095c20abae89459c4cec3e89e')
+        self.assertEqual(result['usage'],{'input_tokens':5288,'output_tokens_including_reasoning':1253,'total_tokens':6541})
+        self.assertEqual(result['parsed_output']['verdict'],'ACCEPTED')
+        self.assertEqual(result['parsed_output']['status'],'UNAUTHENTICATED_ASSESSMENT')
+        self.assertFalse(result['provider_identity_verified']);self.assertFalse(result['gate_authority'])
+        self.assertFalse(result['production_release_authorized'])
+
     def test_google_safety_model_tools_and_ambiguous_output_rejected(self):
         base=self.response('qa')
         variations=[]
