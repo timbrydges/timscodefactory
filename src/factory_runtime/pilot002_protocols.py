@@ -115,15 +115,23 @@ def _bedrock(response):
             not isinstance(content[0],dict) or set(content[0])!={'text'}):
         raise ValueError('non-text response')
     usage=response['usage']
-    _fields(usage,('inputTokens','outputTokens','totalTokens','cacheReadInputTokens','cacheWriteInputTokens'))
+    cache_fields=('cacheReadInputTokens','cacheWriteInputTokens','cacheReadInputTokenCount','cacheWriteInputTokenCount')
+    _fields(usage,('inputTokens','outputTokens','totalTokens',*cache_fields,'serverToolUsage'))
     result=_usage(usage['inputTokens'],usage['outputTokens'],usage['totalTokens'])
-    for field in ('cacheReadInputTokens','cacheWriteInputTokens'):
+    for field in cache_fields:
         if _count(usage.get(field,0),MAX_INPUT_TOKENS)!=0:raise ValueError('unqualified cache billing')
+    if type(usage.get('serverToolUsage',{})) is not dict or usage.get('serverToolUsage',{}):
+        raise ValueError('unqualified server tool usage')
     if response.get('performanceConfig',{}).get('latency','standard')!='standard':
         raise ValueError('unqualified performance tier')
     if response.get('serviceTier',{}).get('type','default')!='default':
         raise ValueError('unqualified service tier')
-    return content[0]['text'],result
+    text=content[0]['text']
+    # Only unwrap one complete JSON fence; the strict task parser still validates
+    # the entire enclosed object, duplicate keys and every candidate binding.
+    if isinstance(text,str) and text.startswith('```json\n') and text.endswith('\n```'):
+        text=text[8:-4]
+    return text,result
 
 
 def _google(response, model):

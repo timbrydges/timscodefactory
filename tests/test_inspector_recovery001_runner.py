@@ -91,10 +91,14 @@ class RecoveryRunnerTests(unittest.TestCase):
         lam.invoke.side_effect=invoke
         clients={'cloudformation':cf,'lambda':lam,'dynamodb':db,'iam':iam,'s3':s3,'sts':sts,'events':events,'scheduler':scheduler}
         session=Mock();session.client.side_effect=lambda service,**kw:clients[service]
+        runtime_args={}
+        if mode=='runtime_deadline':runtime_args['shutdown_deadline']=proof.pop('shutdown_deadline')
+        if mode=='no_deadline':proof.pop('shutdown_deadline')
+        if mode=='conflicting_deadline':runtime_args['shutdown_deadline']=proof['shutdown_deadline']+1
         with tempfile.TemporaryDirectory() as directory,patch.object(p.signing,'validate_plan',return_value=plan['allowance_payload']),patch.object(p,'verify'):
             args={'approved_plan_digest':proof['plan_digest'],'approved_preview_digest':p.signing.digest(proof),
-                'signing_workflow_run':1,'output':Path(directory),'session':session,'clock':lambda:fx.now,'sleep':lambda _:None}
-            if mode in ('already_used','shutdown_missing'):
+                'signing_workflow_run':1,'output':Path(directory),'session':session,'clock':lambda:fx.now,'sleep':lambda _:None,**runtime_args}
+            if mode in ('already_used','shutdown_missing','no_deadline','conflicting_deadline'):
                 with self.assertRaises(p.StateError):p.run(plan,proof,{'payload':plan['allowance_payload']},**args)
                 cf.execute_change_set.assert_not_called();lam.invoke.assert_not_called();return
             report=p.run(plan,proof,{'payload':plan['allowance_payload']},**args)
@@ -125,6 +129,13 @@ class RecoveryRunnerTests(unittest.TestCase):
     def test_already_consumed_recovery_never_activates(self):self.run_case('already_used')
 
     def test_missing_independent_shutdown_never_activates(self):self.run_case('shutdown_missing')
+
+    def test_runtime_deadline_does_not_change_approved_preview(self):
+        report,calls,state=self.run_case('runtime_deadline')
+        self.assertTrue(report['shutdown_verified']);self.assertEqual(calls.count('invoke'),1)
+
+    def test_missing_or_conflicting_deadline_never_activates(self):
+        for mode in ('no_deadline','conflicting_deadline'):self.run_case(mode)
 
     def test_wrong_active_code_never_invokes(self):
         report,calls,_=self.run_case('wrong_code')
