@@ -1,0 +1,325 @@
+{
+  "status": "PREPARED_VALIDATED_NOT_EXECUTED",
+  "plan_digest": "sha256:2ff3ae12e1b937f32e4532b0c828ff9020841e6b57c2657ba4456f468b1e7631",
+  "shared_capacity_approved": true,
+  "package": {
+    "source_commit": "9bcb8bda5d76ba24636820b6f75afd4169d182c2",
+    "sha256": "432b37b622c9553d0e5bdb461297fe1722dafe774a7a494ed8a1ab3087364365",
+    "code_sha256": "Qys3tiLJVT0OW9tGEpf+FyLa/ndKeklO2KGrMIc2Q2U=",
+    "zip_bytes": 4794888,
+    "handler": "factory_runtime.inspector_recovery001_entrypoint.handler",
+    "execution_enabled": false,
+    "activation_included": true,
+    "signed_allowance_included": false,
+    "model_calls": 0,
+    "activation_sha256": "b6f423e510cab63d55be6910f0965ebe6f3317bad616e3c5a4ada032fe487fc7",
+    "request_digest": "sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a",
+    "material_expires_at": 1791164146,
+    "maximum_cost_micro_usd": 159744,
+    "activation_authorized": false
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "inspector-recovery-001/runtime/9bcb8bda5d76ba24636820b6f75afd4169d182c2/432b37b622c9553d0e5bdb461297fe1722dafe774a7a494ed8a1ab3087364365.zip",
+    "S3ObjectVersion": "8rHE2C.bjJ9Si3GQGrG2p6luW8MBWb0g"
+  },
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Isolated disabled Inspector recovery function; logs-only role.",
+    "Resources": {
+      "RecoveryLogs": {
+        "Type": "AWS::Logs::LogGroup",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-inspector-recovery-001",
+          "RetentionInDays": 7
+        }
+      },
+      "RecoveryRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": "tims-factory-inspector-recovery-001-disabled",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "recovery001-logs-only",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-inspector-recovery-001:*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "RecoveryFunction": {
+        "Type": "AWS::Lambda::Function",
+        "DependsOn": [
+          "RecoveryLogs",
+          "RecoveryAccess"
+        ],
+        "Properties": {
+          "FunctionName": "tims-factory-inspector-recovery-001",
+          "Runtime": "python3.12",
+          "Architectures": [
+            "x86_64"
+          ],
+          "Handler": "factory_runtime.inspector_recovery001_entrypoint.handler",
+          "Role": {
+            "Fn::GetAtt": [
+              "RecoveryRole",
+              "Arn"
+            ]
+          },
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "inspector-recovery-001/runtime/9bcb8bda5d76ba24636820b6f75afd4169d182c2/432b37b622c9553d0e5bdb461297fe1722dafe774a7a494ed8a1ab3087364365.zip",
+            "S3ObjectVersion": "8rHE2C.bjJ9Si3GQGrG2p6luW8MBWb0g"
+          },
+          "Timeout": 180,
+          "MemorySize": 256,
+          "Environment": {
+            "Variables": {
+              "FACTORY_INSPECTOR_RECOVERY001_ENABLED": "true",
+              "FACTORY_INSPECTOR_RECOVERY001_ACTIVATION_SHA256": "b6f423e510cab63d55be6910f0965ebe6f3317bad616e3c5a4ada032fe487fc7"
+            }
+          }
+        }
+      },
+      "RecoveryAccess": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": "recovery001-own-attempt-and-inspector",
+          "Roles": [
+            "tims-factory-inspector-recovery-001-disabled"
+          ],
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "OwnRecoveryAttemptOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem"
+                ],
+                "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-inspector-recovery-001-attempts",
+                "Condition": {
+                  "ForAllValues:StringEquals": {
+                    "dynamodb:LeadingKeys": [
+                      "RECOVERY#001#TASK#safe-workspace-fingerprint-001#ROLE#inspector"
+                    ]
+                  },
+                  "Null": {
+                    "dynamodb:LeadingKeys": "false"
+                  }
+                }
+              },
+              {
+                "Sid": "ExactInspectorProfile",
+                "Effect": "Allow",
+                "Action": "bedrock:InvokeModel",
+                "Resource": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                }
+              },
+              {
+                "Sid": "RegionalModelViaProfile",
+                "Effect": "Allow",
+                "Action": "bedrock:InvokeModel",
+                "Resource": "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                }
+              },
+              {
+                "Sid": "GlobalModelViaProfile",
+                "Effect": "Allow",
+                "Action": "bedrock:InvokeModel",
+                "Resource": "arn:aws:bedrock:::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "unspecified",
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ca-central-1:666730517561:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "rollback_template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Isolated disabled Inspector recovery function; logs-only role.",
+    "Resources": {
+      "RecoveryLogs": {
+        "Type": "AWS::Logs::LogGroup",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-inspector-recovery-001",
+          "RetentionInDays": 7
+        }
+      },
+      "RecoveryRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": "tims-factory-inspector-recovery-001-disabled",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "recovery001-logs-only",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-inspector-recovery-001:*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "RecoveryFunction": {
+        "Type": "AWS::Lambda::Function",
+        "DependsOn": "RecoveryLogs",
+        "Properties": {
+          "FunctionName": "tims-factory-inspector-recovery-001",
+          "Runtime": "python3.12",
+          "Architectures": [
+            "x86_64"
+          ],
+          "Handler": "factory_runtime.inspector_recovery001_entrypoint.handler",
+          "Role": {
+            "Fn::GetAtt": [
+              "RecoveryRole",
+              "Arn"
+            ]
+          },
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "inspector-recovery-001/runtime/067177bddbcb091f0c7e2ecf78f3e87816b82d3d/38d333838b3b905285afe06a07803d792662ed09f5b3f5ba921a2e8076bfad7d.zip",
+            "S3ObjectVersion": "HdbqDCk8IMw4lQ1qvnV1EW_ckLolJwoF"
+          },
+          "Timeout": 180,
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Environment": {
+            "Variables": {
+              "FACTORY_INSPECTOR_RECOVERY001_ENABLED": "false"
+            }
+          }
+        }
+      }
+    }
+  },
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-inspector-recovery-001-disabled/940599c0-bfef-11f1-8245-06ffeb34c079",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/inspector-recovery001-live-20261005-001/3dc85cd1-c9ac-47bb-be38-61c5bd122bca",
+  "changes": [
+    {
+      "Type": "Resource",
+      "ResourceChange": {
+        "Action": "Add",
+        "LogicalResourceId": "RecoveryAccess",
+        "ResourceType": "AWS::IAM::Policy",
+        "Scope": [],
+        "Details": []
+      }
+    },
+    {
+      "Type": "Resource",
+      "ResourceChange": {
+        "Action": "Modify",
+        "LogicalResourceId": "RecoveryFunction",
+        "PhysicalResourceId": "tims-factory-inspector-recovery-001",
+        "ResourceType": "AWS::Lambda::Function",
+        "Replacement": "False",
+        "Scope": [
+          "Properties"
+        ],
+        "Details": [
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Code",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "ReservedConcurrentExecutions",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          },
+          {
+            "Target": {
+              "Attribute": "Properties",
+              "Name": "Environment",
+              "RequiresRecreation": "Never"
+            },
+            "Evaluation": "Static",
+            "ChangeSource": "DirectModification"
+          }
+        ]
+      }
+    }
+  ],
+  "validation": {
+    "status": "RECOVERY_LIVE_PREVIEW_NOT_EXECUTED",
+    "maximum_provider_calls": 1,
+    "retries": 0,
+    "reserved_micro_usd": 250000,
+    "reserved_lambda_concurrency": null,
+    "recovery_access_policy_additions": 1,
+    "original_attempt_access": false,
+    "model_calls": 0
+  },
+  "model_calls": 0,
+  "signed_allowance_present": false
+}

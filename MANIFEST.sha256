@@ -294,6 +294,10 @@ c33e54513ed741931667347401347ad1e8f35f68d1100cfdbb72689b7ce5fb9f  factory/eviden
 23f8f990ac44612663dc056c8f318dbe412fcac3f1220367e02b79efc7d220c7  factory/evidence/inspector-014-signed-implementation-review-2026-10-02.json
 357cf80cb0f6d3dd241c9ea47a1a2ffda0f854f1ad24b7e88cc7975d8b26729d  factory/evidence/inspector-recovery-001-disabled-deployed.json
 79da97c0b9cbf6b8181259ba1844bbefbebbffc3d8232cfc3ee1bfc9b538f751  factory/evidence/inspector-recovery-001-ledger-deployed.json
+165311c9f67bd9aaeddf4202fcb19f9f9fda9ac46af4e1eef68e9a781fd625fe  factory/evidence/inspector-recovery-001-live-preview.json
+c44a812cb603946a933068ad4bb2dc70531c7f5277c46257fe80530a7fe76c18  factory/evidence/inspector-recovery-001-shutdown-deployed.json
+ddfa13d69a7ef6cc2c2a543123e9e166adb95442eb50c0b5d7f0c98bcbc5aab4  factory/evidence/inspector-recovery-001-shutdown-rehearsal.json
+b19126edf798e0be96a8d0a99981becea8f3196f408fc270e69495539b4110f0  factory/evidence/inspector-recovery-001-signing-candidate.json
 207fdaef0f6229fb373ecf9e2468951077858c51134a8c2dc8ba90edf056d8dc  factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-09-28.json
 4adacd23ddd019b253e501a0349d208dd697ac21a3ae59f43ea714fe10e1fe3d  factory/evidence/openai-gpt-5.6-sol-pricing-quote-2026-10-01.json
 edc1dfcaeb5821835d7e423eadba7c5f935c577a690f1a4ce52ec0c69709b2a6  factory/evidence/openai-gpt-5.6-sol-pricing-reference-2026-09-23.json

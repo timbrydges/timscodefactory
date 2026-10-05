@@ -1,0 +1,37 @@
+{
+  "status": "SHUTDOWN_DEPLOYED_VERIFIED_DISABLED",
+  "observed_at": "2026-10-04T23:56:48.938086+00:00",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/recovery001-shutdown-disabled-003/77e2be50-563e-4681-abf7-cc2d3dedd185",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-inspector-recovery-001-shutdown-v2/6fddc0c0-c04b-11f1-891d-06ffde30f30d",
+  "schedule_arn": "arn:aws:scheduler:ca-central-1:666730517561:schedule/tims-factory-inspector-recovery-001-shutdown/recovery001-concurrency-zero",
+  "role_arn": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-shutdown",
+  "schedule_properties": {
+    "Name": "recovery001-concurrency-zero",
+    "GroupName": "tims-factory-inspector-recovery-001-shutdown",
+    "State": "DISABLED",
+    "ScheduleExpression": "rate(1 minute)",
+    "ScheduleExpressionTimezone": "UTC",
+    "StartDate": "2026-10-04T23:49:25+00:00",
+    "EndDate": "2026-10-05T00:04:25+00:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "ActionAfterCompletion": "NONE",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:lambda:putFunctionConcurrency",
+      "Input": "{\"FunctionName\":\"arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector-recovery-001\",\"ReservedConcurrentExecutions\":0}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 60,
+        "MaximumRetryAttempts": 2
+      },
+      "RoleArn": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-shutdown"
+    }
+  },
+  "permissions_verified": true,
+  "recovery_disabled": true,
+  "recovery_attempt_absent": true,
+  "original_attempt_rows_unchanged": true,
+  "original_workers_unchanged": true,
+  "model_calls": 0,
+  "armed": false
+}
