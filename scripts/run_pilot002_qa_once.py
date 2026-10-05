@@ -196,7 +196,7 @@ def run(plan,proof,envelope,*,approved_plan_digest,approved_preview_digest,signi
         if report['shutdown_verified']:
             def disarm():
                 expected={**armed_properties,'State':'DISABLED'}
-                scheduler.update_schedule(**expected,ClientToken='pilot002-qa-disarm-'+token)
+                scheduler.update_schedule(**expected,ClientToken=hashlib.sha256(('pilot002-qa-disarm-'+token).encode()).hexdigest())
                 actual=scheduler.get_schedule(Name=shutdown.NAME,GroupName=shutdown.GROUP)
                 for field,value in expected.items():
                     observed=actual.get(field)

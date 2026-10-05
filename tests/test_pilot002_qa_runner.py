@@ -96,6 +96,8 @@ class QaRunnerTests(unittest.TestCase):
         schedule=p.shutdown.properties(proof['shutdown_deadline'],now=fx.now,armed=mode!='shutdown_missing')
         scheduler.get_schedule.side_effect=lambda **kw:dict(schedule)
         def update_schedule(**kw):
+            if not 1<=len(kw['ClientToken'])<=64:
+                raise ValueError('Scheduler ClientToken must be at most 64 characters')
             if mode=='disarm_failure':raise RuntimeError('private detail')
             schedule.update({k:v for k,v in kw.items() if k!='ClientToken'})
         scheduler.update_schedule.side_effect=update_schedule
