@@ -1,0 +1,41 @@
+{
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "qa-recovery-002/runtime/df67b3d52931a724af778210600831f4f1ed662f/3ff7b59531fcf1652bbc8c1108f108eb49259efe1ae1d2c8d876cad9c82d9a64.zip",
+    "S3ObjectVersion": "_RtyRe_oC1CP9cMfBhtiRsOZhy7FnS70"
+  },
+  "execution_enabled": false,
+  "model_calls": 0,
+  "package": {
+    "activation_included": false,
+    "code_sha256": "P/e1lTH88WUrvIwRCPEI60klnv4a4dLI2HbK2cgtmmQ=",
+    "execution_enabled": false,
+    "handler": "factory_runtime.qa_recovery002_entrypoint.handler",
+    "model_calls": 0,
+    "sha256": "3ff7b59531fcf1652bbc8c1108f108eb49259efe1ae1d2c8d876cad9c82d9a64",
+    "signed_allowance_included": false,
+    "source_commit": "df67b3d52931a724af778210600831f4f1ed662f",
+    "zip_bytes": 4789090
+  },
+  "previous_attempts_unchanged": true,
+  "provider_permissions": 0,
+  "qa_recovery002_unused": true,
+  "reserved_concurrency": 0,
+  "shutdown_disabled": true,
+  "source_commit": "df67b3d52931a724af778210600831f4f1ed662f",
+  "stacks": {
+    "ledger": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-002-attempts/1a52ee60-c0cc-11f1-93d9-0ea5201c0cbb",
+    "shutdown": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-002-shutdown-v2/1f830e60-c0cc-11f1-8f48-06d32f6f45a9",
+    "worker": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-002-disabled/1cebe8c0-c0cc-11f1-a330-0ea2e5d4ceeb"
+  },
+  "status": "DISABLED_DEPLOYMENT_VERIFIED",
+  "verified_at": "2026-10-05T17:20:22.004407+00:00",
+  "worker_ledger_permissions": 0,
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-002-disabled/1cebe8c0-c0cc-11f1-a330-0ea2e5d4ceeb",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery002-worker-398/a17c3ab8-79c1-4df9-aa3f-d45cdd6a9c97",
+  "function": "tims-factory-qa-recovery-002",
+  "code_sha256": "P/e1lTH88WUrvIwRCPEI60klnv4a4dLI2HbK2cgtmmQ=",
+  "logs_only_role": true,
+  "ledger_permissions": 0,
+  "recovery_attempt_unused": true
+}

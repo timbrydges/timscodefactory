@@ -1,0 +1,101 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery002-worker-398/a17c3ab8-79c1-4df9-aa3f-d45cdd6a9c97",
+  "package": {
+    "activation_included": false,
+    "code_sha256": "P/e1lTH88WUrvIwRCPEI60klnv4a4dLI2HbK2cgtmmQ=",
+    "execution_enabled": false,
+    "handler": "factory_runtime.qa_recovery002_entrypoint.handler",
+    "model_calls": 0,
+    "sha256": "3ff7b59531fcf1652bbc8c1108f108eb49259efe1ae1d2c8d876cad9c82d9a64",
+    "signed_allowance_included": false,
+    "source_commit": "df67b3d52931a724af778210600831f4f1ed662f",
+    "zip_bytes": 4789090
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "qa-recovery-002/runtime/df67b3d52931a724af778210600831f4f1ed662f/3ff7b59531fcf1652bbc8c1108f108eb49259efe1ae1d2c8d876cad9c82d9a64.zip",
+    "S3ObjectVersion": "_RtyRe_oC1CP9cMfBhtiRsOZhy7FnS70"
+  },
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Isolated disabled QA recovery function; logs-only role.",
+    "Resources": {
+      "RecoveryFunction": {
+        "DependsOn": "RecoveryLogs",
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "qa-recovery-002/runtime/df67b3d52931a724af778210600831f4f1ed662f/3ff7b59531fcf1652bbc8c1108f108eb49259efe1ae1d2c8d876cad9c82d9a64.zip",
+            "S3ObjectVersion": "_RtyRe_oC1CP9cMfBhtiRsOZhy7FnS70"
+          },
+          "Environment": {
+            "Variables": {
+              "FACTORY_QA_RECOVERY002_ENABLED": "false"
+            }
+          },
+          "FunctionName": "tims-factory-qa-recovery-002",
+          "Handler": "factory_runtime.qa_recovery002_entrypoint.handler",
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Role": {
+            "Fn::GetAtt": [
+              "RecoveryRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "python3.12",
+          "Timeout": 180
+        },
+        "Type": "AWS::Lambda::Function"
+      },
+      "RecoveryLogs": {
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-qa-recovery-002",
+          "RetentionInDays": 7
+        },
+        "Type": "AWS::Logs::LogGroup"
+      },
+      "RecoveryRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-qa-recovery-002:*"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "recovery002-logs-only"
+            }
+          ],
+          "RoleName": "tims-factory-qa-recovery-002-disabled"
+        },
+        "Type": "AWS::IAM::Role"
+      }
+    }
+  },
+  "approval_preview_sha256": "fb925c15a909b8792d86d0c276a9242261a59a719f107f22ad162ddbbbe892b5"
+}
