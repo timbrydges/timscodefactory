@@ -16,6 +16,9 @@ class RecoveryShutdownTests(unittest.TestCase):
     def test_only_concurrency_permission_and_disabled_by_default(self):
         self.assertEqual(p.FUNCTION_ARN,'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-001')
         self.assertEqual(p.GROUP,'tims-factory-qa-recovery-001-shutdown')
+        self.assertEqual(p.NAME,'qa-recovery001-concurrency-zero')
+        import prepare_inspector_recovery001_shutdown as inspector
+        self.assertNotEqual(p.NAME,inspector.NAME)
         template=p.render(self.deadline,now=self.now)
         role=template['Resources']['ShutdownRole']['Properties']
         statement=role['Policies'][0]['PolicyDocument']['Statement']

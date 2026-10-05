@@ -5,9 +5,9 @@ from factory_state.model import StateError
 from prepare_qa_recovery001_disabled import FUNCTION
 
 GROUP='tims-factory-qa-recovery-001-shutdown'
-NAME='recovery001-concurrency-zero'
+NAME='qa-recovery001-concurrency-zero'
 ROLE=GROUP
-STACK=GROUP
+STACK=GROUP+'-v2'
 FUNCTION_ARN='arn:aws:lambda:ca-central-1:666730517561:function:'+FUNCTION
 GROUP_ARN='arn:aws:scheduler:ca-central-1:666730517561:schedule-group/'+GROUP
 ROLE_ARN='arn:aws:iam::666730517561:role/'+ROLE
