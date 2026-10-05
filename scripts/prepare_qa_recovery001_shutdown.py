@@ -5,9 +5,9 @@ from factory_state.model import StateError
 from prepare_qa_recovery001_disabled import FUNCTION
 
 GROUP='tims-factory-qa-recovery-001-shutdown'
-NAME='recovery001-concurrency-zero'
+NAME='qa-recovery001-concurrency-zero'
 ROLE=GROUP
-STACK=GROUP
+STACK=GROUP+'-v2'
 FUNCTION_ARN='arn:aws:lambda:ca-central-1:666730517561:function:'+FUNCTION
 GROUP_ARN='arn:aws:scheduler:ca-central-1:666730517561:schedule-group/'+GROUP
 ROLE_ARN='arn:aws:iam::666730517561:role/'+ROLE
@@ -16,8 +16,8 @@ TARGET='arn:aws:scheduler:::aws-sdk:lambda:putFunctionConcurrency'
 
 def properties(deadline,*,now,armed=False):
     if (type(deadline) is not int or not isinstance(now,datetime) or now.tzinfo is None or now.utcoffset() is None or
-            not 600<=deadline-now.timestamp()<=1800 or type(armed) is not bool):
-        raise StateError('Shutdown deadline must be 10 to 30 minutes ahead')
+            not 60<=deadline-now.timestamp()<=1800 or type(armed) is not bool):
+        raise StateError('Shutdown deadline must be 1 to 30 minutes ahead')
     return {'Name':NAME,'GroupName':GROUP,'State':'ENABLED' if armed else 'DISABLED',
         'ScheduleExpression':'rate(1 minute)','ScheduleExpressionTimezone':'UTC',
         'StartDate':datetime.fromtimestamp(deadline,timezone.utc).isoformat(),
@@ -55,6 +55,21 @@ def validate_armed(schedule,deadline,*,now):
         if isinstance(actual[field],datetime):actual[field]=actual[field].astimezone(timezone.utc).isoformat()
     if actual!=expected:raise StateError('Independent recovery shutdown is missing, disarmed or changed')
     return {'status':'ARMED_CONFIGURATION_VERIFIED','deadline':deadline,'model_invocations':0}
+
+
+def validate_live_window(schedule, deadline, *, allowance_expires_at, now):
+    """Check timing after separate signature verification; never extend an allowance.
+
+    Leave one minute for Scheduler's execution precision. This is a configuration
+    check, not proof of timely delivery or termination of an in-flight invocation.
+    """
+    result = validate_armed(schedule, deadline, now=now)
+    if (type(allowance_expires_at) is not int or
+            not now.timestamp() < allowance_expires_at <= now.timestamp() + 300 or
+            deadline + 60 > allowance_expires_at):
+        raise StateError('QA shutdown must fit inside the unexpired five-minute allowance')
+    return {**result, 'allowance_expires_at': allowance_expires_at,
+        'latest_nominal_first_execution': deadline + 60, 'execution_authorized': False}
 
 
 def validate_preview(template,changes,deadline,*,now,armed=False):
