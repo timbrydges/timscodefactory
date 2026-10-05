@@ -359,6 +359,7 @@ d14e6f5476ce3e8087925dfe50d24cf925ce93a42b841677d33c26e61b936411  factory/eviden
 eac3eea1934914008f10be0546f9c4ae6140cd8ebaf609d25baa61d5c11c1313  factory/evidence/qa-gate-001-baseline.json
 0c82155a62a47279fad79f9d56c0815e85efd829500100dd76a2d1159a405048  factory/evidence/qa-gate-001-live-proof-2026-10-03.json
 bdfc418763210b29546bbdb1ac99e79d21ff6ac17fb0af3e7bb80195e7cd8db2  factory/evidence/qa-gate-001-pre-signing-blocker-2026-10-03.json
+18eaf680b6b8082b87636d809e705ecaaaf1f374a9dc904a2bc9eeb5a271a241  factory/evidence/qa-recovery-001-disabled-preview.json
 6fd008ab232bc2721da8df35125a784dbb7eb46dca87ec1218bc0eb5272d890e  factory/evidence/qa-recovery-001-ledger-deployed.json
 373d80c525391a394f7014c38dae55e779c3df921663b0e317fa73faead4cecd  factory/evidence/qa-recovery-001-ledger-preview.json
 f4f683ef5e5b44745c41856196f856493d0f1a1aa60b51a4164cf1e19a5fe8ab  factory/evidence/qa-recovery-001-proposal.json
