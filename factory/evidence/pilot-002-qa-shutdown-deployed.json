@@ -1,0 +1,14 @@
+{
+  "status": "DISABLED_QA_SHUTDOWN_DEPLOYED_VERIFIED",
+  "observed_at": "2026-10-05T01:23:37.218845+00:00",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-qa-shutdown/7d685d50-c059-11f1-8218-02920833add5",
+  "stack_status": "CREATE_COMPLETE",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/disabled-qa-shutdown-377/a5a22045-30c4-4aeb-93a4-328e869042ed",
+  "exact_template_verified": true,
+  "exact_iam_verified": true,
+  "schedule_state": "DISABLED",
+  "all_pilot_workers_disabled": true,
+  "recovery_concurrency": 0,
+  "qa_attempt_absent": true,
+  "model_calls": 0
+}

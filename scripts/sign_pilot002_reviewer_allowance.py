@@ -19,6 +19,7 @@ from factory_state.scope import canonical
 from factory_state.model import StateError
 
 SOURCE='d9c75eb8b59c3c6bda508557224fd92354f8d34c'
+QA_SOURCE='013a2141a6985055601a5eb8ff2ccf2ec041e15d'
 CANDIDATE='09c789a902377cb095c20abae89459c4cec3e89e'
 REQUESTS={
     'inspector':'sha256:28d292a891a23de0ce6786b758f4d9d1982f8cbf744549a6513514c76233ae0a',
@@ -39,13 +40,14 @@ def validate_plan(plan, *, root, role, approved_digest, now):
             plan.get('status')!='UNSIGNED_REVIEW_CANDIDATE_NOT_AUTHORIZATION'):
         raise StateError('Exact owner-reviewed reviewer plan required')
     doc=plan['activation'];payload=plan['allowance_payload']
-    if doc['role']!=role or doc['source_commit']!=SOURCE or doc['candidate_commit']!=CANDIDATE:
+    source=QA_SOURCE if role=='qa' else SOURCE
+    if doc['role']!=role or doc['source_commit']!=source or doc['candidate_commit']!=CANDIDATE:
         raise StateError('Reviewed reviewer source and candidate required')
     route={'kind':'lambda_execution_role'} if role=='inspector' else GOOGLE_ROUTE
     if canonical(doc['credential'])!=canonical(route):raise StateError('Credential route changed')
     from build_pilot002_runtime_package import _activation, MATERIAL
     files={name:(root/name).read_bytes() for name in MATERIAL}
-    files['BUILD.json']=canonical({'source_commit':SOURCE})
+    files['BUILD.json']=canonical({'source_commit':source})
     material=_activation(files,canonical(doc),now)
     if material['activation_sha256']!=plan['activation_sha256']:raise StateError('Activation changed')
     bound=context(doc)

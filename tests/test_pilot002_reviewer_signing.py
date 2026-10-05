@@ -28,7 +28,8 @@ class ReviewerSigningTests(unittest.TestCase):
         packet=review_packet(ROOT,**bound)
         request=p.request_bytes(ROOT,**bound)
         epoch=int(self.now.timestamp());expiry=epoch+(300 if role=='qa' else 1800)
-        bindings={'role':role,'source_commit':p.SOURCE,'model_id':packet['model_id'],
+        source=p.QA_SOURCE if role=='qa' else p.SOURCE
+        bindings={'role':role,'source_commit':source,'model_id':packet['model_id'],
             'task_id':packet['task_id'],'contract_digest':packet['contract_digest'],
             'packet_digest':packet['packet_digest'],'request_digest':'sha256:'+hashlib.sha256(request).hexdigest()}
         q={'kind':'pilot002_provider_rate_qualification',**bindings,'currency':'USD',
@@ -49,10 +50,10 @@ class ReviewerSigningTests(unittest.TestCase):
             'issued_at':epoch,'expires_at':expiry,'evidence_digest':p.digest(evidence)}
         registry=json.loads((ROOT/'factory/profiles/scope-signers.json').read_bytes())
         registry['signers']=[v for v in registry['signers'] if v['identity']=='tim_brydges']
-        doc={'schema_version':'1.0','role':role,'source_commit':p.SOURCE,'qualification':q,'readiness':readiness,
+        doc={'schema_version':'1.0','role':role,'source_commit':source,'qualification':q,'readiness':readiness,
             'signer_registry':registry,'credential':{'kind':'lambda_execution_role'} if role=='inspector' else copy.deepcopy(p.GOOGLE_ROUTE),
             'builder_response_base64':base64.b64encode(raw).decode(),'candidate_commit':p.CANDIDATE}
-        price=p.Pilot002Adapter(ROOT,**bound,source_commit=p.SOURCE,qualification=q,clock=lambda:self.now).pricing
+        price=p.Pilot002Adapter(ROOT,**bound,source_commit=source,qualification=q,clock=lambda:self.now).pricing
         payload={'kind':'pilot002_exact_request_allowance','owner_identity':'tim_brydges',**bindings,
             'pricing_digest':p.digest(price),'readiness_digest':p.digest(readiness),'reserved_micro_usd':250000,
             'approved_cap_micro_usd':250000,'maximum_provider_calls':1,'retries':0,'task_state_writes':0,

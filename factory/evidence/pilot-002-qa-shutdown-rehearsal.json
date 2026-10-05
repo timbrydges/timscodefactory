@@ -1,0 +1,27 @@
+{
+  "status": "EXECUTION_PROVEN",
+  "started_at": "2026-10-05T01:43:06.995308+00:00",
+  "deadline": 1791165246,
+  "end": 1791166146,
+  "model_calls": 0,
+  "events": [
+    {
+      "event_id": "255f91d5-a2a4-4759-8224-87831a720984",
+      "event_time": "2026-10-05T01:55:15Z",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-pilot-002-qa-shutdown",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-pilot-002-qa",
+      "reserved_concurrency": 0
+    },
+    {
+      "event_id": "2b2323a9-917a-4a87-8d41-ebfe55f116dc",
+      "event_time": "2026-10-05T01:54:15Z",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-pilot-002-qa-shutdown",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-pilot-002-qa",
+      "reserved_concurrency": 0
+    }
+  ],
+  "schedule_disabled": true,
+  "workers_disabled": true,
+  "attempts_unchanged": true,
+  "finished_at": "2026-10-05T01:56:38.153641+00:00"
+}
