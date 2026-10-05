@@ -1,0 +1,173 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-disabled-386/891f3f60-d51a-4a33-8afe-0742c7cf94b7",
+  "package": {
+    "source_commit": "3aa2ae79a75e8df0ffa568e9a002bbcea7f48e14",
+    "sha256": "69a92b8cfd4e372cc25032ed998887ed395829a5e2bc109ff66d949a57c39d1f",
+    "code_sha256": "aakrjP1ONyzCUDLtmYiH7TlYKaXivBCf9m2UmlfDnR8=",
+    "zip_bytes": 4788335,
+    "handler": "factory_runtime.qa_recovery001_entrypoint.handler",
+    "execution_enabled": false,
+    "activation_included": false,
+    "signed_allowance_included": false,
+    "model_calls": 0
+  },
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "qa-recovery-001/runtime/3aa2ae79a75e8df0ffa568e9a002bbcea7f48e14/69a92b8cfd4e372cc25032ed998887ed395829a5e2bc109ff66d949a57c39d1f.zip",
+    "S3ObjectVersion": "H_z_mQ15AMQljYGgYyljHFF1Hk2pYltI"
+  },
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Isolated disabled QA recovery function; logs-only role.",
+    "Resources": {
+      "RecoveryLogs": {
+        "Type": "AWS::Logs::LogGroup",
+        "Properties": {
+          "LogGroupName": "/aws/lambda/tims-factory-qa-recovery-001",
+          "RetentionInDays": 7
+        }
+      },
+      "RecoveryRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": "tims-factory-qa-recovery-001-disabled",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "recovery001-logs-only",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "arn:aws:logs:ca-central-1:666730517561:log-group:/aws/lambda/tims-factory-qa-recovery-001:*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "RecoveryFunction": {
+        "Type": "AWS::Lambda::Function",
+        "DependsOn": "RecoveryLogs",
+        "Properties": {
+          "FunctionName": "tims-factory-qa-recovery-001",
+          "Runtime": "python3.12",
+          "Architectures": [
+            "x86_64"
+          ],
+          "Handler": "factory_runtime.qa_recovery001_entrypoint.handler",
+          "Role": {
+            "Fn::GetAtt": [
+              "RecoveryRole",
+              "Arn"
+            ]
+          },
+          "Code": {
+            "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+            "S3Key": "qa-recovery-001/runtime/3aa2ae79a75e8df0ffa568e9a002bbcea7f48e14/69a92b8cfd4e372cc25032ed998887ed395829a5e2bc109ff66d949a57c39d1f.zip",
+            "S3ObjectVersion": "H_z_mQ15AMQljYGgYyljHFF1Hk2pYltI"
+          },
+          "Timeout": 180,
+          "MemorySize": 256,
+          "ReservedConcurrentExecutions": 0,
+          "Environment": {
+            "Variables": {
+              "FACTORY_QA_RECOVERY001_ENABLED": "false"
+            }
+          }
+        }
+      }
+    }
+  },
+  "changes": {
+    "ChangeSetName": "qa-recovery-disabled-386",
+    "ChangeSetId": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-disabled-386/891f3f60-d51a-4a33-8afe-0742c7cf94b7",
+    "StackId": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-001-disabled/4f8a45f0-c073-11f1-b7aa-0643422f479f",
+    "StackName": "tims-factory-qa-recovery-001-disabled",
+    "Description": "Disabled QA recovery function and own logs-only role; no provider or ledger access",
+    "CreationTime": "2026-10-05 04:14:51.381000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+      "CAPABILITY_NAMED_IAM"
+    ],
+    "Changes": [
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "RecoveryFunction",
+          "ResourceType": "AWS::Lambda::Function",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "RecoveryLogs",
+          "ResourceType": "AWS::Logs::LogGroup",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "RecoveryRole",
+          "ResourceType": "AWS::IAM::Role",
+          "Scope": [],
+          "Details": []
+        }
+      }
+    ],
+    "IncludeNestedStacks": false,
+    "DeploymentConfig": {
+      "Mode": "STANDARD",
+      "DisableRollback": false
+    },
+    "ResponseMetadata": {
+      "RequestId": "4813fd1f-eea4-498d-a73d-58bee1a68a8e",
+      "HTTPStatusCode": 200,
+      "HTTPHeaders": {
+        "x-amzn-requestid": "4813fd1f-eea4-498d-a73d-58bee1a68a8e",
+        "strict-transport-security": "max-age=47304000; includeSubDomains",
+        "cache-control": "no-store, no-cache",
+        "date": "Mon, 05 Oct 2026 04:14:55 GMT",
+        "content-type": "text/xml",
+        "content-length": "2222",
+        "connection": "keep-alive"
+      },
+      "RetryAttempts": 0
+    }
+  },
+  "validation": {
+    "status": "VALIDATED_NOT_EXECUTED",
+    "model_calls": 0,
+    "provider_permissions": 0,
+    "ledger_permissions": 0,
+    "execution_enabled": false
+  }
+}
