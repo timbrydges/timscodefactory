@@ -335,6 +335,7 @@ c1fd444a82d6db035f427d322adb217b99e27728539d70eed5fad1a4f16f4a0d  factory/eviden
 d4fb1d0d8928e5787d064c1326f3e6f6a174cdc16ed4258ec41ec281f815008e  factory/evidence/pilot-002-inspector-live-review-candidate.json
 3aec9817191530b9e0202d76f6033b894255978cbaa6da9481a342170f04d3b1  factory/evidence/pilot-002-provider-readiness-audit-2026-10-03.json
 3d32b2b514acb2f221e8b726ea61809091aa9707cc8581d93f2d1fb137db8558  factory/evidence/pilot-002-qa-execution-proposal.json
+867cda04c09755ef0b50b61993ea8a1e7d91b2983bfcda68a516e38e090218a9  factory/evidence/pilot-002-qa-provider-failure-384.json
 3c6b65229248b738ba16b372bbc7837c738674efa76f236d63f5f3eb899c4186  factory/evidence/pilot-002-qa-readiness-audit-380.json
 248880dadbd5b84f0cbca12a579794ec475a9875db3ad4b2db85c34015c693b2  factory/evidence/pilot-002-qa-schedule-rejected-383.json
 58702cdfec759b1ad292ee6e092edc7bb1c85be275104e36284e70d6bdbf8693  factory/evidence/pilot-002-qa-shutdown-deployed.json
@@ -357,6 +358,7 @@ d14e6f5476ce3e8087925dfe50d24cf925ce93a42b841677d33c26e61b936411  factory/eviden
 eac3eea1934914008f10be0546f9c4ae6140cd8ebaf609d25baa61d5c11c1313  factory/evidence/qa-gate-001-baseline.json
 0c82155a62a47279fad79f9d56c0815e85efd829500100dd76a2d1159a405048  factory/evidence/qa-gate-001-live-proof-2026-10-03.json
 bdfc418763210b29546bbdb1ac99e79d21ff6ac17fb0af3e7bb80195e7cd8db2  factory/evidence/qa-gate-001-pre-signing-blocker-2026-10-03.json
+f4f683ef5e5b44745c41856196f856493d0f1a1aa60b51a4164cf1e19a5fe8ab  factory/evidence/qa-recovery-001-proposal.json
 d3ccf8cd4fb845dad51373f921753a6b381628ccfb894043f61456a6153b03e8  factory/evidence/qa-security-bootstrap-live-proof-2026-10-02.json
 92027c2848f509de34fdf75ac2433498cc3aed8ca3b55ab2ad6e416a3d045dd2  factory/evidence/qa-signer-enrollment-approval-2026-10-03.json
 5bac629fd49f0dba116fe1eaaf653c39cad85ba18acb3b2a8da8166d62e877c3  factory/evidence/qa-signer-enrollment-live-proof-2026-10-03.json

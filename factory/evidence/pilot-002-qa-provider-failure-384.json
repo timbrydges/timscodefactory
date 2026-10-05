@@ -1,0 +1,168 @@
+{
+  "status": "QA_ATTEMPT_CONSUMED_PROVIDER_UNAVAILABLE_NO_RETRY",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "runtime_source_commit": "013a2141a6985055601a5eb8ff2ccf2ec041e15d",
+  "control_source_commit": "fbf07b3f70992115c73228d0f57d9585fba06c49",
+  "report": {
+    "status": "STOPPED_NO_RETRY",
+    "plan_digest": "sha256:54a573922a1e86ced391fa197837ea44a2640705df607331fab86f577aaea5a4",
+    "preview_digest": "sha256:743eef148b614b77a297b2971d3b10c9c7a1184fe786b86191e0ef3acd382cf9",
+    "signing_workflow_run": 37261344663,
+    "shutdown_deadline": 1791172734,
+    "lambda_requests": 1,
+    "shutdown_verified": true,
+    "response_sha256": "dc0a95befc429b68cb98294d415aa9e1817a5e6e023e5edbbe0c3ebcdd7d2907",
+    "response_bytes": 508,
+    "error_type": "StateError",
+    "schedule_disabled": true,
+    "qa_attempt": {
+      "pricing_expires_at": {
+        "S": "2026-10-05T03:59:59+00:00"
+      },
+      "reservation_status": {
+        "S": "HELD"
+      },
+      "status": {
+        "S": "STARTED"
+      },
+      "contract_digest": {
+        "S": "sha256:eb3bccd8ee7cdc29cd498b4cd93d11039dc55221d42c1115dba7a7c660f7ebbf"
+      },
+      "pricing_digest": {
+        "S": "sha256:0333ef970eea4f26fb15307c816dec9e044ec6bf90f55bf77423144577dd9fe3"
+      },
+      "source_commit": {
+        "S": "013a2141a6985055601a5eb8ff2ccf2ec041e15d"
+      },
+      "claimed_at": {
+        "S": "2026-10-05T03:56:51.321458+00:00"
+      },
+      "approval_expires_at": {
+        "S": "2026-10-05T03:59:59+00:00"
+      },
+      "role": {
+        "S": "qa"
+      },
+      "task_id": {
+        "S": "safe-workspace-fingerprint-001"
+      },
+      "approval_digest": {
+        "S": "sha256:05c610f1e26fefea4a23de5210f57ae1ae9e6bb9e7f06e8d6c16d21d0ee5f7c5"
+      },
+      "reserved_micro_usd": {
+        "N": "250000"
+      },
+      "request_digest": {
+        "S": "sha256:6891cd13c024807b3d02ff30e6f5872207deeeb38f4c7fd23b7ec825c6ef4ed7"
+      },
+      "PK": {
+        "S": "PILOT#002#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+      }
+    },
+    "shutdown_errors": [],
+    "finished_at": "2026-10-05T03:57:16.471492+00:00"
+  },
+  "lambda_result": {
+    "errorMessage": "Pilot 002 stopped at provider; reconcile without retry",
+    "errorType": "StateError",
+    "requestId": "37776c26-c6ce-4794-9d5e-fed72450b3ea",
+    "stackTrace": [
+      "  File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 140, in handler\n    return dispatch(event,context,root=Path(os.environ.get('LAMBDA_TASK_ROOT','/var/task')),\n",
+      "  File \"/var/task/factory_runtime/pilot002_entrypoint.py\", line 135, in dispatch\n    raise StateError(Pilot002Stopped.safe_message(error)) from None\n"
+    ]
+  },
+  "google_request_metrics": {
+    "http_status": 200,
+    "body": {
+      "timeSeries": [
+        {
+          "metric": {
+            "labels": {
+              "response_code": "503",
+              "grpc_status_code": "14",
+              "response_code_class": "5xx",
+              "protocol": "https"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "service": "generativelanguage.googleapis.com",
+              "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "project_id": "gen-lang-client-0247455615",
+              "location": "us-central1",
+              "version": "v1beta"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T03:56:16.001Z",
+                "endTime": "2026-10-05T03:57:16Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        },
+        {
+          "metric": {
+            "labels": {
+              "protocol": "https",
+              "response_code": "200",
+              "grpc_status_code": "0",
+              "response_code_class": "2xx"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "service": "generativelanguage.googleapis.com",
+              "project_id": "gen-lang-client-0247455615",
+              "version": "v1beta",
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "method": "google.ai.generativelanguage.v1beta.ModelService.GetModel",
+              "location": "us-central1"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T03:54:25.001Z",
+                "endTime": "2026-10-05T03:55:25Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "1"
+    },
+    "observed_at": "2026-10-05T03:58:29.948127+00:00"
+  },
+  "diagnosis": {
+    "correlated_http_status": 503,
+    "matching_generation_request_count": 1,
+    "correlation": "Exact Google project, API key, GenerateContent method and minute containing the permanent claim timestamp.",
+    "provider_error_body_retained": false,
+    "model_identity_authenticated": false,
+    "reference": "https://ai.google.dev/gemini-api/docs/troubleshooting"
+  },
+  "original_qa_attempt_reusable": false,
+  "retry_authorized": false,
+  "reservation_refunded": false,
+  "provider_billing_actual_known": false,
+  "qualified_provider_cost_micro_usd": 0,
+  "gate_authority": false,
+  "production_release_authorized": false
+}
