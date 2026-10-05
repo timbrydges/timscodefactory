@@ -1,0 +1,16 @@
+{
+  "status": "DISABLED_DEPLOYMENT_VERIFIED",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-001-disabled/4f8a45f0-c073-11f1-b7aa-0643422f479f",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-disabled-386/891f3f60-d51a-4a33-8afe-0742c7cf94b7",
+  "function": "tims-factory-qa-recovery-001",
+  "source_commit": "3aa2ae79a75e8df0ffa568e9a002bbcea7f48e14",
+  "code_sha256": "aakrjP1ONyzCUDLtmYiH7TlYKaXivBCf9m2UmlfDnR8=",
+  "execution_enabled": false,
+  "reserved_concurrency": 0,
+  "logs_only_role": true,
+  "provider_permissions": 0,
+  "ledger_permissions": 0,
+  "recovery_attempt_unused": true,
+  "original_qa_hold_preserved": true,
+  "model_calls": 0
+}

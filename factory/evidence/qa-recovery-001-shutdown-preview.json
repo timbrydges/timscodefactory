@@ -1,0 +1,158 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-shutdown-387/d17bfe5f-83c2-4ebe-9729-a2deb80f7e6b",
+  "prepared_at": "2026-10-05T04:20:55.108572+00:00",
+  "deadline": 1791175255,
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Recovery-only concurrency shutdown; never invokes a function.",
+    "Resources": {
+      "ShutdownGroup": {
+        "Type": "AWS::Scheduler::ScheduleGroup",
+        "Properties": {
+          "Name": "tims-factory-qa-recovery-001-shutdown"
+        }
+      },
+      "ShutdownRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": "tims-factory-qa-recovery-001-shutdown",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "scheduler.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:SourceAccount": "666730517561",
+                    "aws:SourceArn": "arn:aws:scheduler:ca-central-1:666730517561:schedule-group/tims-factory-qa-recovery-001-shutdown"
+                  }
+                }
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "recovery001-concurrency-only",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": "lambda:PutFunctionConcurrency",
+                    "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-001"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "ShutdownSchedule": {
+        "Type": "AWS::Scheduler::Schedule",
+        "DependsOn": [
+          "ShutdownGroup",
+          "ShutdownRole"
+        ],
+        "Properties": {
+          "Name": "recovery001-concurrency-zero",
+          "GroupName": "tims-factory-qa-recovery-001-shutdown",
+          "State": "DISABLED",
+          "ScheduleExpression": "rate(1 minute)",
+          "ScheduleExpressionTimezone": "UTC",
+          "StartDate": "2026-10-05T04:40:55.000Z",
+          "EndDate": "2026-10-05T04:55:55.000Z",
+          "FlexibleTimeWindow": {
+            "Mode": "OFF"
+          },
+          "Target": {
+            "Arn": "arn:aws:scheduler:::aws-sdk:lambda:putFunctionConcurrency",
+            "RoleArn": "arn:aws:iam::666730517561:role/tims-factory-qa-recovery-001-shutdown",
+            "Input": "{\"FunctionName\":\"arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-001\",\"ReservedConcurrentExecutions\":0}",
+            "RetryPolicy": {
+              "MaximumEventAgeInSeconds": 60,
+              "MaximumRetryAttempts": 2
+            }
+          }
+        }
+      }
+    }
+  },
+  "changes": {
+    "ChangeSetName": "qa-recovery-shutdown-387",
+    "ChangeSetId": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-shutdown-387/d17bfe5f-83c2-4ebe-9729-a2deb80f7e6b",
+    "StackId": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-001-shutdown/28876fe0-c074-11f1-bb70-0effd5a56a8f",
+    "StackName": "tims-factory-qa-recovery-001-shutdown",
+    "Description": "Disabled independent QA recovery shutdown schedule; exact worker concurrency control only",
+    "CreationTime": "2026-10-05 04:20:55.430000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+      "CAPABILITY_NAMED_IAM"
+    ],
+    "Changes": [
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownGroup",
+          "ResourceType": "AWS::Scheduler::ScheduleGroup",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownRole",
+          "ResourceType": "AWS::IAM::Role",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownSchedule",
+          "ResourceType": "AWS::Scheduler::Schedule",
+          "Scope": [],
+          "Details": []
+        }
+      }
+    ],
+    "IncludeNestedStacks": false,
+    "DeploymentConfig": {
+      "Mode": "STANDARD",
+      "DisableRollback": false
+    },
+    "ResponseMetadata": {
+      "RequestId": "e2c1cb9a-fe5a-485c-8e68-ca7e0857788d",
+      "HTTPStatusCode": 200,
+      "HTTPHeaders": {
+        "x-amzn-requestid": "e2c1cb9a-fe5a-485c-8e68-ca7e0857788d",
+        "strict-transport-security": "max-age=47304000; includeSubDomains",
+        "cache-control": "no-store, no-cache",
+        "date": "Mon, 05 Oct 2026 04:20:59 GMT",
+        "content-type": "text/xml",
+        "content-length": "2243",
+        "connection": "keep-alive"
+      },
+      "RetryAttempts": 0
+    }
+  },
+  "validation": {
+    "status": "SHUTDOWN_PREVIEW_NOT_EXECUTED",
+    "armed": false,
+    "model_invocations": 0
+  },
+  "model_calls": 0,
+  "worker_disabled": true
+}

@@ -14,6 +14,8 @@ class RecoveryShutdownTests(unittest.TestCase):
         self.now=datetime(2026,10,4,20,tzinfo=timezone.utc);self.deadline=int(self.now.timestamp())+1200
 
     def test_only_concurrency_permission_and_disabled_by_default(self):
+        self.assertEqual(p.FUNCTION_ARN,'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-001')
+        self.assertEqual(p.GROUP,'tims-factory-qa-recovery-001-shutdown')
         template=p.render(self.deadline,now=self.now)
         role=template['Resources']['ShutdownRole']['Properties']
         statement=role['Policies'][0]['PolicyDocument']['Statement']
