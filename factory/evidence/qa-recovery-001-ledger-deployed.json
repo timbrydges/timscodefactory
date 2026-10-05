@@ -1,0 +1,12 @@
+{
+  "status": "DEPLOYED_VERIFIED_NO_RUNTIME_ACCESS",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-001-attempts/1b0d0980-c072-11f1-8f15-02cdaaa60ec7",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-ledger-385/4debeace-0792-4b1c-9de7-0154d0ad8b30",
+  "table_name": "tims-factory-qa-recovery-001-attempts",
+  "deletion_protection": true,
+  "ttl_disabled": true,
+  "recovery_attempt_unused": true,
+  "original_qa_hold_unchanged": true,
+  "model_calls": 0,
+  "iam_grants": 0
+}
