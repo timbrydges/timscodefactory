@@ -1,0 +1,192 @@
+{
+  "status": "QA_RECOVERY002_CONSUMED_PROVIDER_UNAVAILABLE_NO_RETRY",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "runtime_source_commit": "f63ab25c1ce2f40fda47bf30a631f63a8c781234",
+  "owner_approval_proposal_digest": "sha256:39c1206ec51aa4ee0e08620b65135c2d2570e8a4a98cd4ef3d3ad63c5fce712e",
+  "report": {
+    "error_type": "StateError",
+    "finished_at": "2026-10-05T18:03:26.366509+00:00",
+    "lambda_requests": 1,
+    "plan_digest": "sha256:5a2a6856e2eebb7bdc8e122aa130da6fd89b87bdb4e29b00aa6527c53e5a029f",
+    "preview_digest": "sha256:fb3f5e113a7dff4f2db93cfbe04ac366d99d87888c19214b8cbf090e25185a78",
+    "recovery_attempt": {
+      "PK": {
+        "S": "RECOVERY#002#TASK#safe-workspace-fingerprint-001#ROLE#qa"
+      },
+      "approval_digest": {
+        "S": "sha256:b7a306b226ab3d39741226b2590c6b22c079e65a5c940995f841bc2c311b28ad"
+      },
+      "approval_expires_at": {
+        "S": "2026-10-05T18:05:37+00:00"
+      },
+      "candidate_commit": {
+        "S": "09c789a902377cb095c20abae89459c4cec3e89e"
+      },
+      "claimed_at": {
+        "S": "2026-10-05T18:02:57.942527+00:00"
+      },
+      "maximum_cost_micro_usd": {
+        "N": "0"
+      },
+      "pricing_digest": {
+        "S": "sha256:82999cf790fce7f3fb0d19e019cdf02a2cf94711d5089680d29c8d03de100543"
+      },
+      "pricing_expires_at": {
+        "S": "2026-10-05T18:05:37+00:00"
+      },
+      "request_digest": {
+        "S": "sha256:6891cd13c024807b3d02ff30e6f5872207deeeb38f4c7fd23b7ec825c6ef4ed7"
+      },
+      "reservation_status": {
+        "S": "HELD"
+      },
+      "reserved_micro_usd": {
+        "N": "250000"
+      },
+      "scope_digest": {
+        "S": "sha256:caabff116a3550ca4e2d8167fba9f94440dc5f195a767b5de7eb406f4fac30a7"
+      },
+      "source_commit": {
+        "S": "f63ab25c1ce2f40fda47bf30a631f63a8c781234"
+      },
+      "status": {
+        "S": "STARTED"
+      }
+    },
+    "response_bytes": 763,
+    "response_sha256": "f40f8ad2fe409026a8447e1233dc0360e41310898cf0271af9c570aafbe8c70e",
+    "schedule_disabled": true,
+    "shutdown_deadline": 1791223472,
+    "shutdown_errors": [],
+    "shutdown_verified": true,
+    "signing_workflow_run": 37352766515,
+    "status": "STOPPED_NO_RETRY"
+  },
+  "lambda_result": {
+    "errorMessage": "QA recovery stopped at provider (HTTP 503); reconcile without retry",
+    "errorType": "StateError",
+    "requestId": "3ad3996c-c3cf-4b30-8d97-a92702c0ed56",
+    "stackTrace": [
+      "  File \"/var/task/factory_runtime/qa_recovery002_entrypoint.py\", line 78, in handler\n    return dispatch(event,context,root=Path(os.environ.get('LAMBDA_TASK_ROOT','/var/task')),\n",
+      "  File \"/var/task/factory_runtime/qa_recovery002_entrypoint.py\", line 72, in dispatch\n    return run_once(event['allowance'],**bound,qualification=doc['qualification'],readiness=doc['readiness'],\n",
+      "  File \"/var/task/factory_runtime/qa_recovery002_runtime.py\", line 62, in run_once\n    raise StateError('QA recovery stopped at '+stage+detail+'; reconcile without retry') from None\n"
+    ]
+  },
+  "google_request_metrics": {
+    "http_status": 200,
+    "body": {
+      "timeSeries": [
+        {
+          "metric": {
+            "labels": {
+              "response_code": "503",
+              "protocol": "https",
+              "response_code_class": "5xx",
+              "grpc_status_code": "14"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1",
+              "project_id": "gen-lang-client-0247455615",
+              "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+              "version": "v1beta",
+              "service": "generativelanguage.googleapis.com",
+              "location": "us-central1"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T18:02:16.001Z",
+                "endTime": "2026-10-05T18:03:16Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        },
+        {
+          "metric": {
+            "labels": {
+              "response_code_class": "2xx",
+              "response_code": "200",
+              "grpc_status_code": "0",
+              "protocol": "https"
+            },
+            "type": "serviceruntime.googleapis.com/api/request_count"
+          },
+          "resource": {
+            "type": "consumed_api",
+            "labels": {
+              "location": "us-central1",
+              "version": "v1beta",
+              "method": "google.ai.generativelanguage.v1beta.ModelService.GetModel",
+              "service": "generativelanguage.googleapis.com",
+              "project_id": "gen-lang-client-0247455615",
+              "credential_id": "apikey:cb9311fc-42e2-4de4-bf83-80082e6282c1"
+            }
+          },
+          "metricKind": "DELTA",
+          "valueType": "INT64",
+          "points": [
+            {
+              "interval": {
+                "startTime": "2026-10-05T18:00:25.001Z",
+                "endTime": "2026-10-05T18:01:25Z"
+              },
+              "value": {
+                "int64Value": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "1"
+    },
+    "observed_at": "2026-10-05T18:04:37.609085+00:00"
+  },
+  "reconciliation": {
+    "status": "CONSUMED_ONCE_DISABLED_RECONCILED",
+    "observed_at": "2026-10-05T18:05:13.472134+00:00",
+    "previous_attempts_unchanged": true,
+    "disabled_workers": [
+      "tims-factory-inspector-recovery-001",
+      "tims-factory-pilot-002-builder",
+      "tims-factory-pilot-002-inspector",
+      "tims-factory-pilot-002-qa",
+      "tims-factory-qa-recovery-001",
+      "tims-factory-qa-recovery-002"
+    ],
+    "exact_disabled_baseline_restored": true,
+    "schedule_disabled": true,
+    "attempt_unchanged_since_result": true,
+    "reservation_held_micro_usd": 250000,
+    "additional_model_calls": 0
+  },
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery002-live-401/78873a9b-18b8-46c5-9990-7d159478dac9",
+  "interpretation": {
+    "correlated_generation_requests": 1,
+    "google_http_status": 503,
+    "google_grpc_status": 14,
+    "successful_generation": false,
+    "provider_error_body_available": false,
+    "invoice_verified": false,
+    "qualified_maximum_provider_cost_micro_usd": 0,
+    "reservation_held_micro_usd": 250000,
+    "retry_authorized": false,
+    "new_recovery_authorized": false,
+    "previous_attempts_unchanged": true,
+    "disabled_baseline_restored": true,
+    "temporary_permissions_removed": true,
+    "shutdown_schedule_disabled": true,
+    "gate_authority": false,
+    "production_release_authorized": false,
+    "blocker": "Google generation returned HTTP 503 again; no accepted QA review exists. Metadata access succeeded but does not establish generation availability."
+  }
+}
