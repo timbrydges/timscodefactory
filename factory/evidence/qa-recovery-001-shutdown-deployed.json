@@ -1,0 +1,22 @@
+{
+  "status": "SHUTDOWN_DEPLOYED_DISABLED_VERIFIED",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-001-shutdown-v2/ead430b0-c074-11f1-bec4-0675566ff4af",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery-shutdown-388/39a97cf1-babd-4d14-a801-eab5b2862332",
+  "schedule_group": "tims-factory-qa-recovery-001-shutdown",
+  "schedule_name": "qa-recovery001-concurrency-zero",
+  "state": "DISABLED",
+  "target": {
+    "Arn": "arn:aws:scheduler:::aws-sdk:lambda:putFunctionConcurrency",
+    "Input": "{\"FunctionName\":\"arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-001\",\"ReservedConcurrentExecutions\":0}",
+    "RetryPolicy": {
+      "MaximumEventAgeInSeconds": 60,
+      "MaximumRetryAttempts": 2
+    },
+    "RoleArn": "arn:aws:iam::666730517561:role/tims-factory-qa-recovery-001-shutdown"
+  },
+  "exact_trust_and_policy_verified": true,
+  "worker_disabled": true,
+  "reserved_concurrency": 0,
+  "model_calls": 0,
+  "rehearsal_performed": false
+}
