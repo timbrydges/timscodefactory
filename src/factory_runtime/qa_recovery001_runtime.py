@@ -6,6 +6,7 @@ from .qa_recovery001_authorization import verify
 from .pilot002_adapter import Pilot002Adapter
 from .pilot002_packets import review_packet
 from .pilot002_workflow import _fresh,Pilot002Stopped
+from .pilot002_transport import ProviderHTTPStatusError
 
 
 def run_once(envelope, *, root, source_commit, qualification, readiness,
@@ -51,11 +52,13 @@ def run_once(envelope, *, root, source_commit, qualification, readiness,
         store.complete(request_digest=digest(request),approval_digest=args['approval_digest'],
             output_bytes=canonical(record),actual_micro_usd=result['actual_micro_usd'])
         return record
-    except Exception:
+    except Exception as error:
         failure=Pilot002Stopped(stage,raw).review_failure('qa')
         if failure is not None:
             failure.update(status='QA_RECOVERY001_FAILED_NO_RETRY',recovery_scope_digest='sha256:'+SCOPE_SHA256)
             return failure
-        raise StateError('QA recovery stopped at '+stage+'; reconcile without retry') from None
+        status = error.http_status if type(error) is ProviderHTTPStatusError else None
+        detail = ' (HTTP '+str(status)+')' if stage=='provider' and type(status) is int and 300<=status<=599 else ''
+        raise StateError('QA recovery stopped at '+stage+detail+'; reconcile without retry') from None
     finally:
         credential=None

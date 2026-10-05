@@ -136,6 +136,19 @@ class TransportTests(unittest.TestCase):
                 self.assertEqual(connect.call_count,1)
                 if stage!='connect':self.assertTrue(connection.closed)
 
+    def test_http_status_is_bounded_and_error_body_is_never_read(self):
+        for status in (302,400,401,403,429,500,503,599,'503 private',True,600):
+            transport,kwargs=self.setup_role('qa');response=Response(b'private credential and provider message')
+            response.status=status;connection=Connection(response)
+            with self.subTest(status=status),patch.object(p.http.client,'HTTPSConnection',return_value=connection):
+                with self.assertRaises(p.ProviderHTTPStatusError) as caught:transport.send_once(**kwargs)
+                expected=status if type(status) is int and 300<=status<=599 else None
+                self.assertEqual(caught.exception.http_status,expected)
+                self.assertEqual(str(caught.exception),'Pilot 002 provider transport failed; reconcile without retry')
+                self.assertEqual(response.reads,[]);self.assertTrue(connection.closed)
+                with self.assertRaisesRegex(StateError,'already attempted'):transport.send_once(**kwargs)
+                self.assertEqual(len(connection.calls),1)
+
     def test_invalid_credentials_consume_local_latch_without_network(self):
         for role,value in (('builder',KEY+'\r\nX: injected'),('qa','short'),('inspector',KEY),
                            ('inspector',ReadOnlyCredentials(AWS.access_key,AWS.secret_key,None))):
