@@ -1,0 +1,41 @@
+{
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "qa-recovery-003/runtime/5ed08bee9798fbaf83455c86b27b68b339cf48bf/ee7558de60cb816ad354a55156c8436008e88eb085fe069a210cd7d7f10ab3dc.zip",
+    "S3ObjectVersion": "LjlRvfxEzV3ViZyvG9nUpHIjvYIlIcWb"
+  },
+  "execution_enabled": false,
+  "model_calls": 0,
+  "package": {
+    "activation_included": false,
+    "code_sha256": "7nVY3mDLgWrTVKVRVshDYAjojrCF/gaaIQzX1/EKs9w=",
+    "execution_enabled": false,
+    "handler": "factory_runtime.qa_recovery003_entrypoint.handler",
+    "model_calls": 0,
+    "sha256": "ee7558de60cb816ad354a55156c8436008e88eb085fe069a210cd7d7f10ab3dc",
+    "signed_allowance_included": false,
+    "source_commit": "5ed08bee9798fbaf83455c86b27b68b339cf48bf",
+    "zip_bytes": 4794960
+  },
+  "previous_attempts_unchanged": true,
+  "provider_permissions": 0,
+  "qa_recovery003_unused": true,
+  "reserved_concurrency": 0,
+  "shutdown_disabled": true,
+  "source_commit": "5ed08bee9798fbaf83455c86b27b68b339cf48bf",
+  "stacks": {
+    "ledger": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-003-attempts/46bd2570-c0e9-11f1-b785-02438dbfb8e9",
+    "shutdown": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-003-shutdown-v2/4bdccab0-c0e9-11f1-aae9-02a8988b0b23",
+    "worker": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-003-disabled/494fde40-c0e9-11f1-b0e8-0e9a510551a7"
+  },
+  "status": "DISABLED_DEPLOYMENT_VERIFIED",
+  "verified_at": "2026-10-05T18:32:59.712615+00:00",
+  "worker_ledger_permissions": 0,
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-qa-recovery-003-disabled/494fde40-c0e9-11f1-b0e8-0e9a510551a7",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/qa-recovery003-worker-404/2b727bf9-6b16-4fc5-8b5b-0614c4bcd76a",
+  "function": "tims-factory-qa-recovery-003",
+  "code_sha256": "7nVY3mDLgWrTVKVRVshDYAjojrCF/gaaIQzX1/EKs9w=",
+  "logs_only_role": true,
+  "ledger_permissions": 0,
+  "recovery_attempt_unused": true
+}
