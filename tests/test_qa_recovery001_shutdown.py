@@ -40,7 +40,7 @@ class RecoveryShutdownTests(unittest.TestCase):
             with self.assertRaises(Exception):p.validate_armed({**schedule,**change},self.deadline,now=self.now)
 
     def test_stale_far_future_and_naive_times_rejected(self):
-        for value in (True,int(self.now.timestamp())+599,int(self.now.timestamp())+1801):
+        for value in (True,int(self.now.timestamp())+59,int(self.now.timestamp())+1801):
             with self.assertRaises(Exception):p.render(value,now=self.now)
         with self.assertRaises(Exception):p.render(self.deadline,now=self.now.replace(tzinfo=None))
 
@@ -54,6 +54,23 @@ class RecoveryShutdownTests(unittest.TestCase):
         with self.assertRaises(Exception):p.validate_preview(bad,changes,self.deadline,now=self.now)
         changes['Changes'][0]['ResourceChange']['Action']='Modify'
         with self.assertRaises(Exception):p.validate_preview(template,changes,self.deadline,now=self.now)
+
+    def test_live_window_fits_free_tier_without_extending_expiry(self):
+        epoch = int(self.now.timestamp())
+        deadline = epoch + 180
+        schedule = p.properties(deadline, now=self.now, armed=True)
+        result = p.validate_live_window(schedule, deadline, allowance_expires_at=epoch + 300, now=self.now)
+        self.assertFalse(result['execution_authorized'])
+        self.assertEqual(result['latest_nominal_first_execution'], epoch + 240)
+        for expiry in (True, epoch, epoch + 239, epoch + 301):
+            with self.assertRaises(Exception):
+                p.validate_live_window(schedule, deadline, allowance_expires_at=expiry, now=self.now)
+        for delay in (59, 1801):
+            with self.assertRaises(Exception):
+                p.properties(epoch + delay, now=self.now, armed=True)
+        schedule['State'] = 'DISABLED'
+        with self.assertRaises(Exception):
+            p.validate_live_window(schedule, deadline, allowance_expires_at=epoch + 300, now=self.now)
 
 
 if __name__=='__main__':unittest.main()
