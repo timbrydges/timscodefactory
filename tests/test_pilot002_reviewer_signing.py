@@ -139,6 +139,28 @@ class ReviewerSigningTests(unittest.TestCase):
                 path.write_bytes(raw)
                 with self.assertRaises(Exception):p.read_plan(path)
 
+    def test_fresh_qa_input_preserves_exact_plan_and_expiry(self):
+        plan=self.plan('qa')
+        encoded=base64.b64encode(p.canonical(plan)).decode()
+        decoded=p.input_plan('qa',encoded)
+        self.assertEqual(decoded,plan)
+        self.validate(decoded,'qa')
+        with self.assertRaises(p.StateError):
+            self.validate(decoded,'qa',now=self.now+timedelta(seconds=300))
+        with self.assertRaises(p.StateError):
+            self.validate(decoded,'qa',digest='sha256:'+'0'*64)
+
+    def test_runtime_plan_cannot_reach_inspector_or_other_roles(self):
+        encoded=base64.b64encode(p.canonical(self.plan('qa'))).decode()
+        for role in ('inspector','builder','none'):
+            with self.assertRaises(p.StateError):p.input_plan(role,encoded)
+        self.assertEqual(p.input_plan('inspector','')['activation']['role'],'inspector')
+
+    def test_malformed_oversized_and_duplicate_runtime_data_rejected(self):
+        for encoded in ('','!', 'A'*65537,base64.b64encode(b'[]').decode(),
+                base64.b64encode(b'{"role":"qa","role":"qa"}').decode()):
+            with self.assertRaises(p.StateError):p.input_plan('qa',encoded)
+
     def test_workflow_is_owner_only_and_mutually_exclusive(self):
         import yaml
         workflow=yaml.safe_load((ROOT/'.github/workflows/factory-owner-signing.yml').read_text())
@@ -149,10 +171,14 @@ class ReviewerSigningTests(unittest.TestCase):
         self.assertEqual(job['environment'],'production')
         for name,value in jobs.items():
             if name!='sign_pilot002_reviewer_allowance':
+                self.assertIn("inputs.pilot002_qa_plan_base64 == ''",value['if'])
                 self.assertIn("inputs.pilot002_reviewer_plan_digest == ''",value['if'])
                 self.assertIn("inputs.pilot002_reviewer_role == 'none'",value['if'])
         commands='\n'.join(step.get('run','') for step in job['steps'])
         self.assertNotIn('${{',commands);self.assertNotIn('invoke',commands)
+        self.assertIn("inputs.pilot002_reviewer_role == 'qa' && inputs.pilot002_qa_plan_base64 != ''",job['if'])
+        self.assertIn("inputs.pilot002_reviewer_role == 'inspector' && inputs.pilot002_qa_plan_base64 == ''",job['if'])
+        self.assertEqual(job['env']['PILOT002_QA_PLAN_BASE64'],'${{ inputs.pilot002_qa_plan_base64 }}')
         credentials=[s for s in job['steps'] if s.get('uses','').startswith('aws-actions/')]
         self.assertEqual(credentials[0]['with']['role-to-assume'],'arn:aws:iam::666730517561:role/tims-factory-signing-owner')
 

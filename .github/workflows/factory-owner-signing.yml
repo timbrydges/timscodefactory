@@ -9,13 +9,18 @@ on:
         type: string
         default: ""
       pilot002_reviewer_role:
-        description: "Reviewer to sign; requires a separately approved committed plan"
+        description: "Reviewer to sign; requires an exact separately approved plan"
         required: false
         type: choice
         options: [none, inspector, qa]
         default: none
       pilot002_reviewer_plan_digest:
         description: "Exact owner-approved reviewer plan digest; signing only"
+        required: false
+        type: string
+        default: ""
+      pilot002_qa_plan_base64:
+        description: "Exact approved fresh QA plan; bounded data, no execution"
         required: false
         type: string
         default: ""
@@ -67,6 +72,7 @@ concurrency:
 jobs:
   sign_inspector_recovery001_allowance:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest != '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' && inputs.pilot002_builder_plan_digest == '' &&
@@ -107,6 +113,8 @@ jobs:
           retention-days: 1
   sign_pilot002_reviewer_allowance:
     if: >-
+      ((inputs.pilot002_reviewer_role == 'qa' && inputs.pilot002_qa_plan_base64 != '') ||
+       (inputs.pilot002_reviewer_role == 'inspector' && inputs.pilot002_qa_plan_base64 == '')) &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == 'inspector' || inputs.pilot002_reviewer_role == 'qa') &&
       inputs.pilot002_reviewer_plan_digest != '' && inputs.pilot002_builder_plan_digest == '' &&
@@ -122,6 +130,7 @@ jobs:
       AWS_MAX_ATTEMPTS: "1"
       PILOT002_PLAN_DIGEST: ${{ inputs.pilot002_reviewer_plan_digest }}
       PILOT002_REVIEWER_ROLE: ${{ inputs.pilot002_reviewer_role }}
+      PILOT002_QA_PLAN_BASE64: ${{ inputs.pilot002_qa_plan_base64 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -149,6 +158,7 @@ jobs:
           retention-days: 1
   sign_pilot002_builder_allowance:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' &&
@@ -191,6 +201,7 @@ jobs:
           retention-days: 1
   sign_google_free_allowance:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' &&
@@ -245,6 +256,7 @@ jobs:
           retention-days: 1
   publish_owner_receipt:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' &&
@@ -287,6 +299,7 @@ jobs:
           retention-days: 30
   receipt_iam_canary:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' &&
@@ -316,6 +329,7 @@ jobs:
           python scripts/receipt_writer_live_canary.py owner "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA"
   verify:
     if: >-
+      inputs.pilot002_qa_plan_base64 == '' &&
       inputs.inspector_recovery001_plan_digest == '' &&
       (inputs.pilot002_reviewer_role == '' || inputs.pilot002_reviewer_role == 'none') &&
       inputs.pilot002_reviewer_plan_digest == '' &&
