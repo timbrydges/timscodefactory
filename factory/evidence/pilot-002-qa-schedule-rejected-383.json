@@ -1,0 +1,37 @@
+{
+  "status": "SCHEDULE_REJECTED_BEFORE_ACTIVATION",
+  "observed_at": "2026-10-05T03:51:04.056474+00:00",
+  "signing_workflow_run": 37260870099,
+  "plan_digest": "sha256:e5e3d453c519cb51d57d61742d2c517d4410f4aeba36f9e7974a2e81d8a549c9",
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/pilot002-qa-live-383/02668ef0-c957-460c-ad90-89b4f76e0711",
+  "change_set_execution_status": "AVAILABLE",
+  "failure_operation": "scheduler.UpdateSchedule",
+  "failure_reason": "ClientToken exceeded AWS maximum length 64",
+  "workers": {
+    "builder": {
+      "disabled": true,
+      "code_sha256": "bfxa39U+CrnS05GTMT4DgHIC8KKWVHAxKbvgrcP37M4="
+    },
+    "inspector": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4="
+    },
+    "qa": {
+      "disabled": true,
+      "code_sha256": "db7WTGzE+2ZpU064Y8Jt4DP89yDL+tzU/4U0E4OsAO4="
+    },
+    "recovery": {
+      "disabled": true,
+      "code_sha256": "ONMzg4s7kFKFr+BqB4A9eSZi7Qn1s/W6khougHa/rX0="
+    }
+  },
+  "qa_attempt_unused": true,
+  "inspector_attempts_consumed": true,
+  "shutdown_disabled": true,
+  "baseline_verified": true,
+  "execution_marker_exists": false,
+  "invocation_marker_exists": false,
+  "model_calls": 0,
+  "retry_performed": false,
+  "arming_marker_preserved": true
+}
