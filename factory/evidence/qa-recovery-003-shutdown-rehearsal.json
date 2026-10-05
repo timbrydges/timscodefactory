@@ -1,0 +1,23 @@
+{
+  "attempts_unchanged": true,
+  "concurrency_raised": false,
+  "deadline": 1791225299,
+  "events": [
+    {
+      "event_id": "4c637897-2f87-4d16-9bd5-b9698f7cc390",
+      "event_time": "2026-10-05T18:35:49Z",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-003",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-qa-recovery-003-shutdown",
+      "reserved_concurrency": 0
+    }
+  ],
+  "finished_at": "2026-10-05T18:37:21.986011+00:00",
+  "model_calls": 0,
+  "schedule_disabled": true,
+  "schedule_group": "tims-factory-qa-recovery-003-shutdown",
+  "schedule_name": "qa-recovery003-concurrency-zero",
+  "started_at": "2026-10-05T18:32:59.712856+00:00",
+  "status": "EXECUTION_PROVEN",
+  "worker_invocations": 0,
+  "workers_disabled": true
+}
