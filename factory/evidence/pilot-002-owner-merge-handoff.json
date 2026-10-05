@@ -1,0 +1,41 @@
+{
+  "status": "OWNER_AUTHORIZED_CANDIDATE_MERGED_RUNTIME_DISABLED",
+  "task_id": "safe-workspace-fingerprint-001",
+  "repository": "timbrydges/tims-factory-autonomy-acceptance",
+  "pull_request": 3,
+  "baseline_commit": "1c876ac42305fb9295424759424a74263e4fc330",
+  "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+  "merge_commit": "994719a384b7ac96abeb67e4b2addcab2deb4763",
+  "merge_tree": "c6db0f65f486609eb9a6b9bb968e1b5d0a317838",
+  "merged_at": "2026-10-05T19:00:05Z",
+  "merge_authority": "Owner pre-approval 2, applied by the supervising agent; not a model verdict or automatic Factory gate",
+  "tested_candidate_tree_equals_merge_tree": true,
+  "candidate_ci": {
+    "run_id": 37165882438,
+    "runtime": "python3.12-linux",
+    "tests_passed": 17,
+    "tests_skipped": 0
+  },
+  "review_evidence_source_commit": "ab3950d99d15340faafe1be9a04c4d86d2d9eba5",
+  "inspector_evidence": "factory/evidence/inspector-recovery-001-response-reconciled.json",
+  "qa_evidence": "factory/evidence/qa-recovery-003-response-407.json",
+  "review_interpretation": {
+    "inspector_offline_verdict": "ACCEPTED",
+    "qa_offline_verdict": "ACCEPTED",
+    "provider_identity_verified": false,
+    "reviewers_executed_tests": false,
+    "gate_authority": false,
+    "qa_model_override": "Isolated Gemini 3.7 recovery contract; original Gemini 3.8 contract unchanged"
+  },
+  "operational_boundaries": {
+    "additional_model_calls": 0,
+    "factory_task_state_writes": 0,
+    "attempt_ledger_writes": 0,
+    "reservations_refunded": 0,
+    "attempts_reusable": false,
+    "workers_enabled": false,
+    "production_release_authorized": false,
+    "scheduling_authorized": false
+  },
+  "remaining_work": "A separately scoped future task and authoritative controller acceptance path are required for autonomous operation. This evidence is historical and cannot enable runtime execution or advance Factory state."
+}
