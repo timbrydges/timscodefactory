@@ -1,0 +1,40 @@
+{
+  "status": "EXECUTION_PROVEN",
+  "started_at": "2026-10-05T00:31:20.183267+00:00",
+  "deadline": 1791160940,
+  "end": 1791161840,
+  "model_calls": 0,
+  "events": [
+    {
+      "event_id": "51c3d8f3-4450-4d81-bcde-fba446ea830f",
+      "event_name": "PutFunctionConcurrency20171031",
+      "event_time": "2026-10-05T00:44:29Z",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-shutdown",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector-recovery-001",
+      "reserved_concurrency": 0
+    },
+    {
+      "event_id": "f2584a3b-df5d-4c51-b4db-d223d6e479ab",
+      "event_name": "PutFunctionConcurrency20171031",
+      "event_time": "2026-10-05T00:43:29Z",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-shutdown",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector-recovery-001",
+      "reserved_concurrency": 0
+    },
+    {
+      "event_id": "2aa1eff4-5b86-4d0f-bcc4-8ab443f3c91c",
+      "event_name": "PutFunctionConcurrency20171031",
+      "event_time": "2026-10-05T00:42:29Z",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-inspector-recovery-001-shutdown",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector-recovery-001",
+      "reserved_concurrency": 0
+    }
+  ],
+  "schedule_disabled": true,
+  "recovery_disabled": true,
+  "attempts_unchanged": true,
+  "finished_at": "2026-10-05T00:45:39.909939+00:00",
+  "verified_at": "2026-10-05T00:46:22.414334+00:00",
+  "verification_note": "Initial lookup omitted AWS event version suffix; separate versioned lookup proved execution. Test process interrupted only after proof, and finally verified disarming and unchanged attempts.",
+  "schedule_arn": "arn:aws:scheduler:ca-central-1:666730517561:schedule/tims-factory-inspector-recovery-001-shutdown/recovery001-concurrency-zero"
+}
