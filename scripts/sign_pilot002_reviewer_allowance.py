@@ -3,6 +3,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
@@ -110,11 +111,28 @@ def read_plan(path):
     return json.loads(raw,object_pairs_hook=_pairs)
 
 
+def input_plan(role, encoded, *, root=ROOT):
+    """Accept fresh QA material as data; Inspector remains committed-plan-only."""
+    if role=='inspector':
+        if encoded:raise StateError('Inspector cannot accept a runtime plan')
+        return read_plan(root/'factory/evidence/pilot-002-inspector-live-review-candidate.json')
+    if role!='qa' or not isinstance(encoded,str) or not 0<len(encoded)<=65536:
+        raise StateError('Bounded fresh QA plan required')
+    try:
+        raw=base64.b64decode(encoded,validate=True)
+        if not 0<len(raw)<=49152:raise ValueError('size')
+        plan=json.loads(raw,object_pairs_hook=_pairs)
+        if not isinstance(plan,dict):raise ValueError('object')
+        return plan
+    except (ValueError,TypeError):
+        raise StateError('Malformed fresh QA plan') from None
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('role',choices=tuple(REQUESTS));parser.add_argument('output',type=Path)
     parser.add_argument('--approved-plan-digest',required=True);args=parser.parse_args()
-    plan=read_plan(ROOT/f'factory/evidence/pilot-002-{args.role}-live-review-candidate.json')
+    plan=input_plan(args.role,os.environ.get('PILOT002_QA_PLAN_BASE64',''))
     now=datetime.now(timezone.utc)
     validate_plan(plan,root=ROOT,role=args.role,approved_digest=args.approved_plan_digest,now=now)
     import boto3
