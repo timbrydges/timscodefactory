@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "status": "MODEL_CHANGE_BUDGET_AND_PREPARATION_APPROVED_NOT_LIVE_AUTHORIZATION",
+  "approval_basis": "Direct owner approval of qa402 proposal: isolated Gemini 3.7 Flash recovery preparation and additional 250000 microUSD reservation. No live call approval.",
+  "proposal_digest": "sha256:1a2de05a77ecef0687c376533a1a02b8845bffa87a170d56a312cedb0b3dec72",
+  "approved_proposal": {
+    "approval_requested": {
+      "additional_reservation_micro_usd": 250000,
+      "change_qa_model_for_isolated_recovery": "gemini-3.7-flash",
+      "live_execution": false,
+      "maximum_eventual_provider_calls": 1,
+      "maximum_eventual_provider_cost_micro_usd": 0,
+      "prepare_isolated_recovery": true,
+      "retries": 0
+    },
+    "compatibility_evidence": {
+      "attempt_claims": 0,
+      "generation_requests": 0,
+      "http_status": 200,
+      "model": {
+        "inputTokenLimit": 1048576,
+        "name": "models/gemini-3.7-flash",
+        "outputTokenLimit": 65536,
+        "supportedGenerationMethods": [
+          "generateContent",
+          "countTokens",
+          "createCachedContent",
+          "batchGenerateContent"
+        ],
+        "version": "3.7-flash-08-2026"
+      },
+      "observed_at": "2026-10-05T18:09:25.149676+00:00",
+      "runtime_changed": false,
+      "status": "ALTERNATE_MODEL_METADATA_OBSERVED_NOT_GENERATION_PROOF"
+    },
+    "kind": "qa_recovery003_alternate_model_scope_and_budget_proposal",
+    "limitations": [
+      "Metadata success does not establish generation availability.",
+      "Changing models is an unproven availability workaround and may change review quality.",
+      "No additional signing, deployment, model request, billing link, refund or release is authorized by preparation."
+    ],
+    "model_calls_this_preparation": 0,
+    "proposal": {
+      "additional_reserved_micro_usd": 250000,
+      "billing_account_must_be_unlinked": true,
+      "billing_project": "gen-lang-client-0247455615",
+      "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+      "data_scope": "public-synthetic-fixtures-only",
+      "diagnostic_baseline_commit": "7831f83b1ab831affd89c212616b6d6d960a5a79",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+      "gate_authority": false,
+      "implementation_source_commit": null,
+      "live_execution_authorized": false,
+      "maximum_provider_calls": 1,
+      "maximum_provider_cost_micro_usd": 0,
+      "model_id": "gemini-3.7-flash",
+      "original_attempts_must_remain_unchanged": true,
+      "original_reservations_must_not_be_refunded": true,
+      "paid_fallback_authorized": false,
+      "previous_recovery_attempt_must_remain_unchanged": true,
+      "production_release_authorized": false,
+      "proposed_attempt_key": "RECOVERY#003#TASK#safe-workspace-fingerprint-001#ROLE#qa",
+      "proposed_attempt_table": "tims-factory-qa-recovery-003-attempts",
+      "provider": "google",
+      "reason": "The original QA attempt and recovery 001 and 002 each returned Google HTTP 503. Propose one explicitly different stable Google model, preserving three independent provider roles. No evidence yet proves this alternate will generate successfully.",
+      "recovery_id": "qa-recovery-003",
+      "repository": "timbrydges/tims-factory-autonomy-acceptance",
+      "request_digest": null,
+      "requirements_before_any_live_call": [
+        "Separately reviewed isolated implementation and new exact request digest",
+        "Preserve original contract and all consumed attempts; use an explicit model-change scope with new packet and allowance bindings",
+        "Fresh Google billing, credential binding, model metadata and token-count evidence for 3.7; no reuse of 3.8 token count as measured 3.7 usage",
+        "Owner approval of exact live request, deployment permissions, package and rollback",
+        "Permanent separate attempt record, one call, zero retries, zero qualified provider cost",
+        "Verified independent shutdown and restoration of disabled state"
+      ],
+      "retries": 0,
+      "role": "qa",
+      "secret_version_id": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+      "status": "PROPOSED_NOT_AUTHORIZED",
+      "task_id": "safe-workspace-fingerprint-001"
+    },
+    "references": [
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash",
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://ai.google.dev/gemini-api/docs/troubleshooting"
+    ],
+    "runtime_changes_this_preparation": 0,
+    "status": "PROPOSED_NOT_AUTHORIZED",
+    "three_provider_roles_preserved": [
+      "openai:builder",
+      "anthropic:inspector",
+      "google:qa"
+    ]
+  }
+}
