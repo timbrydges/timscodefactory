@@ -1,0 +1,148 @@
+{
+  "observed_at": "2026-10-05T01:09:44.302291+00:00",
+  "deadline": 1791163784,
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Pilot 002 QA-only concurrency shutdown; never invokes a function.",
+    "Resources": {
+      "ShutdownGroup": {
+        "Type": "AWS::Scheduler::ScheduleGroup",
+        "Properties": {
+          "Name": "tims-factory-pilot-002-qa-shutdown"
+        }
+      },
+      "ShutdownRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": "tims-factory-pilot-002-qa-shutdown",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "scheduler.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:SourceAccount": "666730517561",
+                    "aws:SourceArn": "arn:aws:scheduler:ca-central-1:666730517561:schedule-group/tims-factory-pilot-002-qa-shutdown"
+                  }
+                }
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "pilot002-qa-concurrency-only",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": "lambda:PutFunctionConcurrency",
+                    "Resource": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-pilot-002-qa"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "ShutdownSchedule": {
+        "Type": "AWS::Scheduler::Schedule",
+        "DependsOn": [
+          "ShutdownGroup",
+          "ShutdownRole"
+        ],
+        "Properties": {
+          "Name": "pilot002-qa-concurrency-zero",
+          "GroupName": "tims-factory-pilot-002-qa-shutdown",
+          "State": "DISABLED",
+          "ScheduleExpression": "rate(1 minute)",
+          "ScheduleExpressionTimezone": "UTC",
+          "StartDate": "2026-10-05T01:29:44.000Z",
+          "EndDate": "2026-10-05T01:44:44.000Z",
+          "FlexibleTimeWindow": {
+            "Mode": "OFF"
+          },
+          "Target": {
+            "Arn": "arn:aws:scheduler:::aws-sdk:lambda:putFunctionConcurrency",
+            "RoleArn": "arn:aws:iam::666730517561:role/tims-factory-pilot-002-qa-shutdown",
+            "Input": "{\"FunctionName\":\"arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-pilot-002-qa\",\"ReservedConcurrentExecutions\":0}",
+            "RetryPolicy": {
+              "MaximumEventAgeInSeconds": 60,
+              "MaximumRetryAttempts": 2
+            }
+          }
+        }
+      }
+    }
+  },
+  "stack_name": "tims-factory-pilot-002-qa-shutdown",
+  "status": "QA_SHUTDOWN_PREVIEW_VALIDATED_NOT_EXECUTED",
+  "model_calls": 0,
+  "change_set_arn": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/disabled-qa-shutdown-377/a5a22045-30c4-4aeb-93a4-328e869042ed",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-qa-shutdown/7d685d50-c059-11f1-8218-02920833add5",
+  "changes": {
+    "ChangeSetName": "disabled-qa-shutdown-377",
+    "ChangeSetId": "arn:aws:cloudformation:ca-central-1:666730517561:changeSet/disabled-qa-shutdown-377/a5a22045-30c4-4aeb-93a4-328e869042ed",
+    "StackId": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-pilot-002-qa-shutdown/7d685d50-c059-11f1-8218-02920833add5",
+    "StackName": "tims-factory-pilot-002-qa-shutdown",
+    "CreationTime": "2026-10-05 01:10:01.428000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+      "CAPABILITY_NAMED_IAM"
+    ],
+    "Changes": [
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownGroup",
+          "ResourceType": "AWS::Scheduler::ScheduleGroup",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownRole",
+          "ResourceType": "AWS::IAM::Role",
+          "Scope": [],
+          "Details": []
+        }
+      },
+      {
+        "Type": "Resource",
+        "ResourceChange": {
+          "Action": "Add",
+          "LogicalResourceId": "ShutdownSchedule",
+          "ResourceType": "AWS::Scheduler::Schedule",
+          "Scope": [],
+          "Details": []
+        }
+      }
+    ],
+    "IncludeNestedStacks": false,
+    "DeploymentConfig": {
+      "Mode": "STANDARD",
+      "DisableRollback": false
+    }
+  },
+  "validation": {
+    "status": "QA_SHUTDOWN_PREVIEW_NOT_EXECUTED",
+    "armed": false,
+    "model_invocations": 0
+  },
+  "qa_attempt_absent": true,
+  "qa_reserved_concurrency": 0,
+  "execution_authorized": false,
+  "scope_note": "Install disabled only; arming and provider generation require separately reviewed plans. IAM permits concurrency changes on QA only; zero is enforced by the exact schedule input, not an IAM value condition."
+}
