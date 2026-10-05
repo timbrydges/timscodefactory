@@ -372,6 +372,7 @@ b3cad1315413d02270218d06bf6d1f1c7594f8763c6ba3b066f9a701237879af  factory/eviden
 de5dee9d16e1a07ca0600c5e2038bbcd18dfe1cee92e482710668d0da8221488  factory/evidence/qa-recovery-001-shutdown-rehearsal.json
 f411b849f3c0b47718e5e372f29ad4ad9bdaa1279b88252bd6698a870fa47c1a  factory/evidence/qa-recovery-002-disabled-deployed.json
 a2e1f5c5465a803b80d87f111bac8c00bee5f41b5b160ada8f45c70786e08f47  factory/evidence/qa-recovery-002-disabled-preview.json
+17258e9010405fc943a81c0109f432be5d5d163565adba012ed9a45b3603e6e2  factory/evidence/qa-recovery-002-provider-failure-401.json
 103294d673049cba021ff625098e1988d88991a9497a1ac8dac93811b3189766  factory/evidence/qa-recovery-002-shutdown-rehearsal.json
 d3ccf8cd4fb845dad51373f921753a6b381628ccfb894043f61456a6153b03e8  factory/evidence/qa-security-bootstrap-live-proof-2026-10-02.json
 92027c2848f509de34fdf75ac2433498cc3aed8ca3b55ab2ad6e416a3d045dd2  factory/evidence/qa-signer-enrollment-approval-2026-10-03.json
