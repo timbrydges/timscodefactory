@@ -1,0 +1,30 @@
+{
+  "attempts_unchanged": true,
+  "concurrency_raised": false,
+  "deadline": 1791220942,
+  "events": [
+    {
+      "event_id": "2cd9d3b0-ddc2-4811-974c-d8bd3d61b89b",
+      "event_time": "2026-10-05T17:23:36Z",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-002",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-qa-recovery-002-shutdown",
+      "reserved_concurrency": 0
+    },
+    {
+      "event_id": "a2f2c7b2-1de7-48b2-995c-2afb8382a82e",
+      "event_time": "2026-10-05T17:22:36Z",
+      "function": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa-recovery-002",
+      "issuer": "arn:aws:iam::666730517561:role/tims-factory-qa-recovery-002-shutdown",
+      "reserved_concurrency": 0
+    }
+  ],
+  "finished_at": "2026-10-05T17:25:04.294436+00:00",
+  "model_calls": 0,
+  "schedule_disabled": true,
+  "schedule_group": "tims-factory-qa-recovery-002-shutdown",
+  "schedule_name": "qa-recovery002-concurrency-zero",
+  "started_at": "2026-10-05T17:20:22.004677+00:00",
+  "status": "EXECUTION_PROVEN",
+  "worker_invocations": 0,
+  "workers_disabled": true
+}
