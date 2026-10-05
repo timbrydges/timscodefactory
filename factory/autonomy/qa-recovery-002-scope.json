@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "status": "BUDGET_AND_PREPARATION_SCOPE_APPROVED_NOT_LIVE_AUTHORIZATION",
+  "approval_basis": "Direct owner approval of qa396 recovery 002 proposal after PR 387: additional 250000 microUSD reservation and isolated preparation only. Live execution requires separate approval.",
+  "proposal_digest": "sha256:431d841e78463eed524e6196e5b139277d1492e683229e3d54834925a68eda61",
+  "approved_proposal": {
+    "approval_requested": {
+      "additional_reservation_micro_usd": 250000,
+      "live_execution": false,
+      "maximum_eventual_provider_calls": 1,
+      "maximum_eventual_provider_cost_micro_usd": 0,
+      "prepare_isolated_recovery": true,
+      "retries": 0
+    },
+    "investigation": {
+      "another_503_possible": true,
+      "availability_recovery_proven": false,
+      "known_client_configuration_fix_identified": false,
+      "old_endpoint_supported": true,
+      "paid_billing_or_api_migration_not_shown_to_fix_failure": true,
+      "references": [
+        "https://ai.google.dev/gemini-api/docs/migrate-to-interactions",
+        "https://ai.google.dev/gemini-api/docs/troubleshooting"
+      ]
+    },
+    "kind": "qa_recovery002_scope_and_budget_proposal",
+    "model_calls_this_preparation": 0,
+    "proposal": {
+      "additional_reserved_micro_usd": 250000,
+      "billing_account_must_be_unlinked": true,
+      "billing_project": "gen-lang-client-0247455615",
+      "candidate_commit": "09c789a902377cb095c20abae89459c4cec3e89e",
+      "data_scope": "public-synthetic-fixtures-only",
+      "diagnostic_baseline_commit": "4a06c81acf7c436248c0d34be63eedde29fb3ae0",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      "gate_authority": false,
+      "implementation_source_commit": null,
+      "live_execution_authorized": false,
+      "maximum_provider_calls": 1,
+      "maximum_provider_cost_micro_usd": 0,
+      "model_id": "gemini-3.8-flash",
+      "original_attempts_must_remain_unchanged": true,
+      "original_reservations_must_not_be_refunded": true,
+      "paid_fallback_authorized": false,
+      "previous_recovery_attempt_must_remain_unchanged": true,
+      "production_release_authorized": false,
+      "proposed_attempt_key": "RECOVERY#002#TASK#safe-workspace-fingerprint-001#ROLE#qa",
+      "proposed_attempt_table": "tims-factory-qa-recovery-002-attempts",
+      "provider": "google",
+      "reason": "The original QA attempt and recovery 001 each received a correlated Google HTTP 503. Both remain permanently consumed and held. A new request is not authorized by the diagnostic merge.",
+      "recovery_id": "qa-recovery-002",
+      "repository": "timbrydges/tims-factory-autonomy-acceptance",
+      "request_digest": "sha256:6891cd13c024807b3d02ff30e6f5872207deeeb38f4c7fd23b7ec825c6ef4ed7",
+      "requirements_before_any_live_call": [
+        "Separate owner-approved recovery scope and budget",
+        "Reviewed recovery implementation with a separate permanent attempt record",
+        "Fresh exact signed allowance, immutable package and QA-only deployment preview",
+        "Fresh unlinked billing and exact credential-project checks",
+        "Verified independent shutdown, one-shot invocation and disabled-baseline restoration",
+        "Separately reviewed recovery 002 implementation and exact fresh owner approval; no reuse of recovery 001 signing or deployment artifacts"
+      ],
+      "retries": 0,
+      "role": "qa",
+      "secret_version_id": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282",
+      "status": "PROPOSED_NOT_AUTHORIZED",
+      "task_id": "safe-workspace-fingerprint-001"
+    }
+  }
+}
