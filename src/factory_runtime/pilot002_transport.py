@@ -24,6 +24,13 @@ ROUTES={
 }
 
 
+class ProviderHTTPStatusError(StateError):
+    """Numeric error status only; never retain provider text, headers or body."""
+    def __init__(self, status):
+        self.http_status = status if type(status) is int and 300 <= status <= 599 else None
+        super().__init__('Pilot 002 provider transport failed; reconcile without retry')
+
+
 class _QuietSigV4(SigV4Auth):
     def add_auth(self, request):
         # The SDK's ordinary add_auth logs the canonical request (including the
@@ -88,14 +95,17 @@ workflow's permanent role claim remains mandatory for cross-instance safety.
             # No proxy discovery, redirects, SDK invocation or retry loop.
             connection.request('POST',self._path,body=body,headers=headers)
             response=connection.getresponse()
-            if (response.status!=200 or
-                    response.getheader('Content-Type','').split(';',1)[0].strip().lower()!='application/json' or
+            if response.status!=200:
+                raise ProviderHTTPStatusError(response.status)
+            if (response.getheader('Content-Type','').split(';',1)[0].strip().lower()!='application/json' or
                     response.getheader('Content-Encoding','identity').lower()!='identity'):
                 raise ValueError('provider status or content type differs')
             raw=response.read(MAX_RESPONSE_BYTES+1)
             if not isinstance(raw,bytes) or not 0<len(raw)<=MAX_RESPONSE_BYTES:
                 raise ValueError('provider response exceeds bound')
             return raw
+        except ProviderHTTPStatusError:
+            raise
         except Exception:
             raise StateError('Pilot 002 provider transport failed; reconcile without retry') from None
         finally:

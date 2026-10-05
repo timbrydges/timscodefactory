@@ -53,6 +53,18 @@ class RecoveryRuntimeTests(unittest.TestCase):
         original=self.connection.request
         self.connection.request=Mock(side_effect=lambda *args,**kw:(self.events.append('send'),original(*args,**kw))[-1])
 
+    def test_provider_status_survives_boundary_without_body_or_retry(self):
+        self.connection.response.status=503
+        self.connection.response.raw=b'private provider message and credential'
+        with self.assertRaisesRegex(StateError,r'^QA recovery stopped at provider \(HTTP 503\); reconcile without retry$'):
+            self.run_event()
+        self.assertEqual(self.events,['claim','credential','send'])
+        self.assertEqual(self.connection.response.reads,[])
+        self.assertEqual(self.rows[PK]['reservation_status'],{'S':'HELD'})
+        self.assertTrue(self.connection.closed)
+        with self.assertRaisesRegex(StateError,'reservation'):self.run_event()
+        self.assertEqual(self.events.count('send'),1)
+
     def encode(self):
         self.raw_doc=canonical(self.doc);self.env[p.ACTIVATION_SHA]=hashlib.sha256(self.raw_doc).hexdigest()
 
