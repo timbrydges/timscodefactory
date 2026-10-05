@@ -1,4 +1,6 @@
 import copy
+import base64
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -69,3 +71,30 @@ class RecoveryModelIsolationTests(unittest.TestCase):
         fx=runtime.RecoveryRuntimeTests();fx.setUp()
         text=json.loads(fx.raw)['candidates'][0]['content']['parts'][0]['text'].encode()
         with self.assertRaises(StateError):old_packets.parse_review(text,root=ROOT,**self.args)
+
+    def captured_response(self):
+        evidence=json.loads((ROOT/'factory/evidence/qa-recovery-003-response-407.json').read_bytes())
+        raw=base64.b64decode(evidence['lambda_result']['provider_response_base64'],validate=True)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'367c56e4cc233321cfc2d417dd61e0d86ae76bd3ae25fd92fa97c44a245ec3fe')
+        return raw
+
+    def test_exact_captured_standard_response_parses_without_network_or_authority(self):
+        with patch('http.client.HTTPSConnection') as network:
+            parsed=protocols.parse_response(self.captured_response(),ROOT,**self.args)
+        network.assert_not_called()
+        self.assertEqual(parsed['usage'],{'input_tokens':5468,'output_tokens_including_reasoning':424,'total_tokens':5892})
+        self.assertEqual(parsed['parsed_output']['verdict'],'ACCEPTED')
+        self.assertFalse(parsed['gate_authority']);self.assertFalse(parsed['production_release_authorized'])
+
+    def test_standard_metadata_does_not_allow_other_tiers_or_unknown_usage(self):
+        original=json.loads(self.captured_response())
+        for tier in ('priority','flex','unspecified','',None,True,{},[]):
+            bad=copy.deepcopy(original);bad['usageMetadata']['serviceTier']=tier
+            with self.subTest(tier=tier),self.assertRaises(StateError):
+                protocols.parse_response(canonical(bad),ROOT,**self.args)
+        for change in ({'unknownField':0},{'cachedContentTokenCount':1},{'toolUsePromptTokenCount':1},
+                       {'totalTokenCount':5893}):
+            bad=copy.deepcopy(original);bad['usageMetadata'].update(change)
+            with self.assertRaises(StateError):protocols.parse_response(canonical(bad),ROOT,**self.args)
+        del original['usageMetadata']['serviceTier']
+        self.assertEqual(protocols.parse_response(canonical(original),ROOT,**self.args)['usage']['total_tokens'],5892)
