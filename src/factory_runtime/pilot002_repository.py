@@ -88,3 +88,36 @@ this observation; a future live runtime must bind and expire it explicitly.
         'builder_response_digest':candidate['builder_response_digest'],
         'github_observation_digest':digest({'commit':commit,'ref':ref}),
         'repository_binding_verified':True,'gate_authority':False,'production_release_authorized':False}
+
+
+def verify_merged_candidate(root, repository, *, builder_response, candidate_commit,
+                            merge_commit, pull_request, github_read):
+    """Observe an exact two-parent merge on main; never infer approval or write state."""
+    if (type(pull_request) is not int or pull_request <= 0 or
+            not isinstance(merge_commit,str) or not re.fullmatch('[0-9a-f]{40}',merge_commit)):
+        raise StateError('Pilot 002 merge identity invalid')
+    candidate=verify_published_candidate(root,repository,builder_response=builder_response,
+        candidate_commit=candidate_commit,github_read=github_read)
+    prefix='repos/'+candidate['repository']
+    pr=github_read(prefix+'/pulls/'+str(pull_request))
+    merge=github_read(prefix+'/git/commits/'+merge_commit)
+    main=github_read(prefix+'/git/ref/heads/main')
+    try:
+        valid=(pr['number']==pull_request and type(pr['number']) is int and
+            pr['merged'] is True and pr['state']=='closed' and
+            pr['merge_commit_sha']==merge_commit and
+            pr['head']['sha']==candidate_commit and pr['head']['ref']==candidate['branch'] and
+            pr['head']['repo']['full_name']==candidate['repository'] and
+            pr['base']['ref']=='main' and pr['base']['repo']['full_name']==candidate['repository'] and
+            merge['sha']==merge_commit and merge['tree']['sha']==candidate['candidate_tree'] and
+            [parent['sha'] for parent in merge['parents']]==[candidate['baseline_commit'],candidate_commit] and
+            main['ref']=='refs/heads/main' and main['object']['type']=='commit' and
+            main['object']['sha']==merge_commit)
+    except (KeyError,TypeError):
+        valid=False
+    if not valid:
+        raise StateError('Pilot 002 merged PR, tree, parents or main differs')
+    return {**candidate,'status':'MERGED_CANDIDATE_BINDING_OBSERVED',
+        'pull_request':pull_request,'merge_commit':merge_commit,
+        'merge_observation_digest':digest({'pr':pr,'merge':merge,'main':main}),
+        'owner_authorization_verified':False,'factory_state_advanced':False}
