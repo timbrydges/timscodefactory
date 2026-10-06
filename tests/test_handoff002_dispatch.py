@@ -36,6 +36,8 @@ class DispatchTests(unittest.TestCase):
         self.assertEqual(self.run_once()['status'],'SIGNED_RESULT_OBSERVED')
         self.assertEqual(self.run_once()['status'],'DISPATCH_CONSUMED_OR_UNCERTAIN')
         self.lam.invoke.assert_called_once();self.db.update_item.assert_called_once()
+        values=self.db.update_item.call_args.kwargs['ExpressionAttributeValues']
+        self.assertEqual(values[':receipt']['S'].encode(),canonical(self.envelope))
     def test_disabled_alias_changed_code_or_trust_never_claim(self):
         with self.assertRaises(StateError):self.run_once(enabled=False)
         with self.assertRaises(StateError):self.run_once(pin={**self.pin,'version_arn':self.pin['version_arn'].rsplit(':',1)[0]+':latest'})

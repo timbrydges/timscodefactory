@@ -78,12 +78,17 @@ def dispatch_once(*, context, pin, activation_root, db, lam, clock, enabled=Fals
         verify_context.update(request_digests={**context['request_digests'],role:request},now=clock())
         if role=='qa':verify_chain(envelopes,verify_executed_tests=context['verify_executed_tests'],**verify_context)
         else:verify_predecessors(envelopes,next_role=ROLES[ROLES.index(role)+1],**verify_context)
+        # Keep the signed result with the permanent claim. A lost caller response
+        # must not require another worker invocation to recover the evidence.
+        encoded=canonical(envelope)
+        if len(encoded)>350000:raise ValueError('Receipt exceeds durable evidence limit')
         db.update_item(TableName=TABLE,Key=claim,
-            UpdateExpression='SET #s = :complete, output_digest = :output',
+            UpdateExpression='SET #s = :complete, output_digest = :output, signed_receipt = :receipt',
             ConditionExpression='#s = :started AND request_digest = :request',
             ExpressionAttributeNames={'#s':'status'},ExpressionAttributeValues={
                 ':complete':{'S':'COMPLETE'},':started':{'S':'STARTED'},
-                ':request':{'S':request},':output':{'S':sha(canonical(envelope))}})
+                ':request':{'S':request},':output':{'S':sha(encoded)},
+                ':receipt':{'S':encoded.decode('utf-8')}})
         return {'status':'SIGNED_RESULT_OBSERVED','role':role,'envelope':envelope,
             'worker_invocations':1,'gate_authority':False,'execution_authorized':False}
     except Exception:
