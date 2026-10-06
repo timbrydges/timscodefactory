@@ -12,7 +12,7 @@ from factory_state.dynamodb import DynamoDBStateStore
 from factory_state.model import CONTROLLER_IDENTITY,TaskState,Lease,StateError
 from factory_state.scope import SignedScopeStore,canonical
 from factory_runtime import pilot002_transport as wire
-from factory_runtime.review_provider_protocol import job_input,prepare,parse_response
+from factory_runtime.review_provider_protocol import job_input,prepare,parse_response,ResponseValidationFailure
 from factory_runtime.review_provider_transport import ReviewProviderTransport
 from factory_runtime.review_provider_backend import ReviewProviderBackend, BoundedProviderFailure
 from factory_runtime.review_provider_claims import ReviewProviderClaims,TABLE
@@ -71,6 +71,26 @@ def response_for(prepared,output=None):
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_response_rejection_codes_do_not_expose_provider_values(self):
+        prepared,_=material();good=json.loads(response_for(prepared))
+        cases=[(b'secret','envelope-json'),
+            (canonical({**good,'model':'secret'}),'provider-model'),
+            (canonical({**good,'status':'incomplete','incomplete_details':{'reason':'secret'}}),'provider-completion'),
+            (canonical({**good,'service_tier':'secret'}),'provider-tier'),
+            (canonical({**good,'usage':{**good['usage'],'total_tokens':999}}),'provider-usage'),
+            (canonical({**good,'output':[]}),'provider-output'),
+            (response_for(prepared,{**output_for(prepared),'rationale':'','extra':'secret'}),'output-binding'),
+            (response_for(prepared,{**output_for(prepared),'files':{**FILES,'fingerprint.py':'secret'}}),'candidate-files')]
+        bad=json.loads(response_for(prepared));bad['output'][0]['content'][0]['text']='secret'
+        cases.append((canonical(bad),'output-json'))
+        for raw,code in cases:
+            with self.subTest(code=code),self.assertRaises(ResponseValidationFailure) as error:
+                parse_response(raw,prepared)
+            self.assertEqual(error.exception.code,code)
+            self.assertNotIn('secret',str(error.exception))
+        failure=ResponseValidationFailure('secret');failure.code='secret';failure.args=('secret',)
+        self.assertNotIn('secret',str(BoundedProviderFailure('response validation',failure)))
+
     def test_failure_metadata_rejects_untrusted_text_and_status(self):
         for status in ('secret', True, 200, 600, None):
             failure=BoundedProviderFailure('provider transport',wire.ProviderHTTPStatusError(status))
@@ -212,7 +232,7 @@ class BackendTests(unittest.TestCase):
         self.hold();bad={**output_for(self.prepared),'candidate_commit':'c'*40}
         connection=Connection(Response(response_for(self.prepared,bad)))
         with patch.object(wire.http.client,'HTTPSConnection',return_value=connection) as connect:
-            with self.assertRaisesRegex(StateError,'response validation'):self.execute()
+            with self.assertRaisesRegex(StateError,'response validation \\(output-binding\\)'):self.execute()
             self.now+=timedelta(minutes=11)
             with self.assertRaises(StateError):self.execute()
             self.assertEqual(connect.call_count,1)

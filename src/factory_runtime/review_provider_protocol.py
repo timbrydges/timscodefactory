@@ -10,6 +10,17 @@ from .review_provider_scope import FACTORY, TASK, PROVIDERS, ProviderScope
 from .worker import digest
 
 
+class ResponseValidationFailure(StateError):
+    """Fixed diagnostic codes only; never include provider text or values."""
+    CODES = frozenset(('envelope-json', 'provider-envelope', 'provider-model',
+        'provider-completion', 'provider-tier', 'provider-usage', 'provider-output',
+        'output-json', 'output-binding', 'candidate-files', 'review-verdict', 'review-findings'))
+
+    def __init__(self, code):
+        self.code = code if type(code) is str and code in self.CODES else 'provider-envelope'
+        super().__init__('provider response rejected: '+self.code)
+
+
 def job_input(*, role, source_commit, contract_digest, candidate_commit, files, test_evidence_digest):
     if (role not in PROVIDERS or any(type(v) is not str or not COMMIT_SHA.fullmatch(v)
             for v in (source_commit, candidate_commit)) or
@@ -73,13 +84,25 @@ def prepare(*, role, request, candidate_commit, files, test_evidence_digest, inp
 
 def parse_response(raw, prepared):
     prepared.validate(); role = prepared.scope.role
+    code = 'envelope-json'
     try:
         value = _decode(raw)
+        code = 'provider-envelope'
+        if role == 'builder':
+            if value.get('model') != PROVIDERS[role][1]:
+                raise ResponseValidationFailure('provider-model')
+            if (value.get('status') != 'completed' or value.get('error') is not None or
+                    value.get('incomplete_details') is not None):
+                raise ResponseValidationFailure('provider-completion')
+            if value.get('service_tier') != 'default':
+                raise ResponseValidationFailure('provider-tier')
         text, usage = (_openai(value, PROVIDERS[role][1]) if role == 'builder' else
                        _bedrock(value) if role == 'inspector' else _google(value, PROVIDERS[role][1]))
+        code = 'output-json'
         if type(text) is not str:
             raise ValueError('text required')
         output = text.encode('utf-8'); parsed = decode_output(output)
+        code = 'output-binding'
         expected = json.loads(prepared.expected_output)
         extra = {'files', 'rationale'} if role == 'builder' else {'verdict', 'rationale', 'findings'}
         if (set(parsed) != set(expected) | extra or any(parsed[k] != v for k,v in expected.items()) or
@@ -87,17 +110,33 @@ def parse_response(raw, prepared):
             raise ValueError('output differs from candidate binding')
         files = json.loads(prepared.candidate_files)
         if role == 'builder':
+            code = 'candidate-files'
             if _files(parsed['files']) != files:
                 raise ValueError('Builder changed the tested candidate')
         else:
+            code = 'review-verdict'
             if parsed['verdict'] not in ('ACCEPTED','REJECTED') or type(parsed['findings']) is not list or len(parsed['findings']) > 16:
                 raise ValueError('invalid review verdict')
+            code = 'review-findings'
             for finding in parsed['findings']:
                 if (type(finding) is not dict or set(finding) != {'severity','path','detail'} or
                         finding['severity'] not in ('info','low','medium','high','critical') or
                         finding['path'] not in files or type(finding['detail']) is not str or
                         not 1 <= len(finding['detail'].strip()) <= 1000):
                     raise ValueError('invalid review finding')
-    except (StateError, ValueError, TypeError, KeyError, AttributeError, UnicodeError, RecursionError):
-        raise StateError('provider envelope, usage or exact candidate output rejected') from None
+    except ResponseValidationFailure:
+        raise
+    except (StateError, ValueError, TypeError, KeyError, AttributeError, UnicodeError, RecursionError) as error:
+        # These strings are codec-owned constants. Never forward an exception's
+        # text, keys, model values, response body, rationale or candidate files.
+        if code == 'provider-envelope' and type(error) is ValueError:
+            if str(error) in ('invalid token count', 'inconsistent usage', 'unqualified usage fields',
+                    'unqualified cache billing', 'unqualified server tool usage', 'invalid modality usage',
+                    'unqualified modality', 'unqualified cache or tool usage'):
+                code = 'provider-usage'
+            elif str(error) in ('missing output', 'unexpected tool or output', 'ambiguous message',
+                    'non-text or unfinished output', 'non-text response', 'ambiguous candidates',
+                    'unfinished, tool or non-text result'):
+                code = 'provider-output'
+        raise ResponseValidationFailure(code) from None
     return output, usage
