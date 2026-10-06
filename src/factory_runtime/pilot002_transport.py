@@ -63,10 +63,14 @@ workflow's permanent role claim remains mandatory for cross-instance safety.
 """
     prepare = staticmethod(prepare_request)
     routes = ROUTES
+    timeout_seconds = 90
 
     def __init__(self, root, *, role, builder_response=None, candidate_commit=None, enabled=False):
         self._expected=self.prepare(root,role=role,builder_response=builder_response,candidate_commit=candidate_commit)
         self._role=role
+        if type(self.timeout_seconds) is not int or self.timeout_seconds not in (90,150) or (self.timeout_seconds==150 and role!='qa'):
+            raise StateError('Unsupported deployment-owned transport timeout')
+        self._timeout=self.timeout_seconds
         self._host,self._path=self.routes[role]
         self._enabled=enabled is True
         self._attempted=False
@@ -99,7 +103,7 @@ workflow's permanent role claim remains mandatory for cross-instance safety.
                 headers=dict(request.headers)
             context=ssl.create_default_context()
             context.set_alpn_protocols(['http/1.1'])
-            connection=http.client.HTTPSConnection(self._host,443,timeout=90,context=context)
+            connection=http.client.HTTPSConnection(self._host,443,timeout=self._timeout,context=context)
             connection.set_debuglevel(0)
             # No proxy discovery, redirects, SDK invocation or retry loop.
             connection.request('POST',self._path,body=body,headers=headers)

@@ -10,6 +10,7 @@ class Pilot002Transport(OriginalTransport):
         if role!='qa':raise StateError('Recovery 003 transport is QA only')
         self._expected=request_bytes(root,role=role,builder_response=builder_response,candidate_commit=candidate_commit)
         self._role='qa'
+        self._timeout=90
         self._host='generativelanguage.googleapis.com'
         self._path='/v1beta/models/gemini-3.7-flash:generateContent'
         self._enabled=enabled is True
