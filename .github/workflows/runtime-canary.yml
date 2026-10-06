@@ -7,6 +7,7 @@ on:
       - "src/factory_runtime/**"
       - "factory/canary/runtime-v1/**"
       - "scripts/runtime_canary.py"
+      - "scripts/candidate_test_proof_canary.py"
       - ".github/workflows/runtime-canary.yml"
 
 permissions:
@@ -45,3 +46,15 @@ jobs:
           --workspace factory/canary/runtime-v1
           --image-ref "$CANARY_IMAGE_REF"
           --source-commit "$SOURCE_COMMIT"
+      - name: Verify isolated candidate test evidence
+        run: >-
+          python scripts/candidate_test_proof_canary.py
+          --image-ref "$CANARY_IMAGE_REF"
+          --source-commit "$SOURCE_COMMIT"
+          --output "$RUNNER_TEMP/candidate-test-proof.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: isolated-candidate-test-proof
+          path: ${{ runner.temp }}/candidate-test-proof.json
+          if-no-files-found: error
+          retention-days: 7
