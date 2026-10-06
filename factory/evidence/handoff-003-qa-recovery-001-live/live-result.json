@@ -1,0 +1,8 @@
+{
+  "attempt_reusable": false,
+  "failure_code": "http_status_503",
+  "failure_stage": "provider",
+  "gate_authority": false,
+  "hold_release_authorized": false,
+  "status": "QA_RECOVERY_FAILED_NO_RETRY"
+}

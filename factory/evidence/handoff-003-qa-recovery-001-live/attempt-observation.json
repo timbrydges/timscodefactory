@@ -1,0 +1,44 @@
+{
+  "PK": {
+    "S": "HANDOFF#003#QA_RECOVERY#001"
+  },
+  "approval_digest": {
+    "S": "sha256:b90aab0d49715ad6dd3c4941d5cc4c391ff25ee0392e34ddb9c2208538994500"
+  },
+  "approval_expires_at": {
+    "S": "2026-10-06T06:27:40+00:00"
+  },
+  "claimed_at": {
+    "S": "2026-10-06T05:33:56.899060+00:00"
+  },
+  "contract_digest": {
+    "S": "sha256:c957c44053926435005b53b7a789beaf5486ae736fea28c4e3840a4ec0975cb8"
+  },
+  "pricing_digest": {
+    "S": "sha256:dae9862fcb9cd8b3b4ddfd97aef1c8d26ba782a49f463f72e86afefb14eafb7a"
+  },
+  "pricing_expires_at": {
+    "S": "2026-10-06T06:27:40+00:00"
+  },
+  "request_digest": {
+    "S": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc"
+  },
+  "reservation_status": {
+    "S": "HELD"
+  },
+  "reserved_micro_usd": {
+    "N": "250000"
+  },
+  "role": {
+    "S": "qa"
+  },
+  "source_commit": {
+    "S": "0b460df22c4abc02a038be0f0a8345c1779eb58b"
+  },
+  "status": {
+    "S": "STARTED"
+  },
+  "task_id": {
+    "S": "authenticated-handoff-003-qa-recovery-001"
+  }
+}

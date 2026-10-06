@@ -1,0 +1,12 @@
+{
+  "activation_sha256": "2d3989688d2f04942208b2b19c3acf7403cf25a54172505ae696cdacfb6cf313",
+  "code_sha256": "/ACL/We92fJMwLibJBbSTgxVZ4W3SLZhiEcqGaUBVGc=",
+  "execution_enabled": false,
+  "model_calls": 0,
+  "request_digest": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc",
+  "role": "qa",
+  "sha256": "fc008bfd67bdd9f24cc0b89b2416d24e0c556785b748b66188472a19a5015467",
+  "signed_allowance_included": true,
+  "source_commit": "0b460df22c4abc02a038be0f0a8345c1779eb58b",
+  "zip_bytes": 21883744
+}
