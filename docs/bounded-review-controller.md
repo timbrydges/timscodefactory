@@ -42,3 +42,20 @@ role. The controller receives neither signing nor provider credentials. This
 composition does not authenticate arbitrary proof files, expand IAM access, or
 provide a live Lambda entrypoint. Deployment must authenticate the exact final
 source/candidate and fresh 17-test Docker artifact before constructing it.
+
+Prepare that material with `scripts/prepare_bounded_review_material.py COMMIT
+RUN_ID OUTPUT`. The privileged deployment command authenticates the successful
+manual main-branch GitHub run and its exact artifact archive before writing
+canonical material. It refuses an existing output path. Record its returned
+digest in deployment-owned configuration, independently of any invocation event.
+Do not accept a file and a caller-provided matching hash as authentication.
+
+`PinnedReviewMaterial.load` checks this trusted digest, exact deployed source,
+the fixed fingerprint candidate, and fresh 17-test evidence. It derives the
+fixed contract and separate Builder/Inspector/QA job and lease bindings. Public
+candidate files are returned as copies; proof and contract are immutable bytes.
+The stored `AUTHENTICATED_MAIN_TEST_PROOF` label is descriptive, not a signature
+or an authorization: its provenance comes from the privileged importer and
+deployment pin. Owner allowance, independent scope approval, current pricing,
+live state/lease checks and permanent claims are still required. Never use a
+unit-test fixture or historical proof as the deployment import.
