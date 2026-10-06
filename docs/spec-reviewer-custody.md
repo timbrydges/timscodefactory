@@ -16,5 +16,12 @@ Inspector and QA keys. Other failures are not denial evidence.
 The artifact is a public enrollment candidate. It is not a scope review, model
 verdict, capability, or enrollment. No model calls, state transitions, worker
 activation or provider-budget writes occur. The existing scope signer registry
-is unchanged. Independent semantic review and reviewed enrollment remain
-necessary before using this identity for Inspector intake approval.
+is updated separately from custody verification. Independent semantic review
+remains necessary before using this identity for Inspector intake approval.
+
+Enrollment `spec-signer-enrollment-001.json` records the approved identity and
+successful main workflow 37496525372, bound to the independently observed AWS
+key fingerprint. The public registry accepts this identity for 24 hours from
+the recorded custody challenge. Expiry and revocation still fail closed. The
+historical KMS adapter and its four original role bindings remain unchanged;
+an exact scope-review signer integration is still required for live intake.

@@ -198,9 +198,16 @@ class KmsSignerTests(unittest.TestCase):
         security_approval = json.loads((ROOT / 'factory/evidence/security-enrollment-001.json').read_text())
         security = next(x for x in registry['signers'] if x['identity'] == 'deep_security_reviewer_service')
         self.assertEqual(security, security_approval['added_entry'])
+        spec_approval = json.loads((ROOT / 'factory/evidence/spec-signer-enrollment-001.json').read_text())
+        spec = next(x for x in registry['signers'] if x['identity'] == 'product_spec_reviewer_service')
+        self.assertEqual(spec, spec_approval['added_entry'])
+        self.assertEqual(spec['expires_at'] - spec['not_before'], 86400)
+        self.assertEqual(spec['public_key_pem'], spec_approval['proof']['public_key_pem'])
+        self.assertEqual(spec['fingerprint'], spec_approval['proof']['fingerprint'])
         self.assertEqual({x['identity'] for x in registry['signers']},
-                         {x['proof']['identity'] for x in evidence['signers']} | {'qa_engineer_service','deep_security_reviewer_service'})
-        self.assertEqual(len(registry['signers']), 6)
+                         {x['proof']['identity'] for x in evidence['signers']} |
+                         {'qa_engineer_service', 'deep_security_reviewer_service', 'product_spec_reviewer_service'})
+        self.assertEqual(len(registry['signers']), 7)
         self.assertEqual(len(bindings['signers']), 4)
         for record in evidence['signers']:
             proof = record['proof']

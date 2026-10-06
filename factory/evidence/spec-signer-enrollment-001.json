@@ -1,0 +1,47 @@
+{
+  "approval": "Direct user approval of factory-spec-signer-stack.json and independent Product Spec signer enrollment, following exact recurring-cost and isolated-role plan.",
+  "template_sha256": "7637af9e76467187d46f14b153e1f77a4e98502caf1dfeb7a14c35ef31187d22",
+  "custody_run": 37496525372,
+  "artifact_id": 11427004929,
+  "artifact_archive_digest": "sha256:cc4e1ebb7967699cf43644ae411a76235daa85db55563cb26081ee1a0b29e17a",
+  "added_entry": {
+    "identity": "product_spec_reviewer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+    "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+    "not_before": 1791304369,
+    "expires_at": 1791390769,
+    "revoked": false
+  },
+  "proof": {
+    "conclusion": "success",
+    "source_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+    "workflow_run": "37496525372-1",
+    "identity": "product_spec_reviewer_service",
+    "aws_caller_arn": "arn:aws:sts::666730517561:assumed-role/tims-factory-signing-spec-reviewer/spec-custody-37496525372",
+    "key_arn": "arn:aws:kms:ca-central-1:666730517561:key/76066708-e1ef-47c9-98fb-f38003c99d30",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+    "challenge": {
+      "kind": "identity_challenge",
+      "identity": "product_spec_reviewer_service",
+      "source_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+      "workflow_run": "37496525372-1",
+      "issued_at": 1791304369,
+      "expires_at": 1791304969,
+      "purpose": "key-custody-verification-only"
+    },
+    "signature_base64": "uRc6rEzecok3uUmYLnjH7isqsJSQGsXgJByzVe5ATHBt7S4oBcqSaRd/JfdT0D08cCd7FmgHAZpxJrF5ZCLqBA==",
+    "cross_role_signing_denied": [
+      "alias/tims-factory-signing-owner",
+      "alias/tims-factory-signing-planner",
+      "alias/tims-factory-signing-builder",
+      "alias/tims-factory-signing-inspector",
+      "alias/tims-factory-review-qa"
+    ],
+    "enrollment_status": "CANDIDATE_REQUIRES_REVIEW",
+    "model_calls": 0,
+    "approval_receipts_created": 0
+  },
+  "review_authority_note": "Custody proves identity only; this document is not a scope review or provider verdict."
+}
