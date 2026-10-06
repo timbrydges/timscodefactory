@@ -4,11 +4,31 @@ from factory_state.model import CONTROLLER_IDENTITY, FactoryStateMachine, StateE
 from factory_state.scope import SignedScopeStore
 from .cloud_roles import ROLE_IDS, ROLE_IDENTITIES
 from .pilot002_adapter import _cost
+from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
 from .review_provider_claims import ReviewProviderClaims
 from .review_provider_protocol import PreparedProviderRequest, parse_response
 from .review_provider_scope import FACTORY, TASK, verify
 from .review_provider_transport import ReviewProviderTransport
 from .review_verdict import PinnedPythonTestEvidence
+
+
+class BoundedProviderFailure(StateError):
+    """Only allowlisted phase/category and numeric status cross the log boundary."""
+    def __init__(self, phase, error=None):
+        self.phase = phase if phase in ('authorization', 'send claim', 'credential loading',
+            'provider transport', 'response validation', 'completion') else 'unknown'
+        self.http_status = None
+        self.category = 'unknown'
+        if self.phase == 'provider transport':
+            if type(error) is ProviderHTTPStatusError:
+                status = error.http_status
+                if type(status) is int and 300 <= status <= 599:
+                    self.http_status = status
+                    self.category = 'http '+str(status)
+            elif type(error) is ProviderTimeoutError:
+                self.category = 'timeout'
+        super().__init__('bounded provider stopped at '+self.phase+' ('+self.category+
+            '); retain hold and reconcile without retry')
 
 
 class ReviewProviderBackend:
@@ -97,7 +117,7 @@ class ReviewProviderBackend:
             now = self.clock(); self.check_activation(state,request,now=now)
             self.claims.complete(grant,dispatch_id,now=now,output=output,actual_micro_usd=actual)
             return output
-        except Exception:
-            raise StateError('bounded provider stopped at '+phase+'; retain hold and reconcile without retry') from None
+        except Exception as error:
+            raise BoundedProviderFailure(phase, error) from None
         finally:
             credential = None

@@ -107,6 +107,15 @@ class EntryTests(unittest.TestCase):
             self.assertEqual(backend.prepared.scope.role,'qa')
             self.assertEqual(backend.evidence.test_count,17)
             backend.load_credential();secret.assert_called_once_with(session,self.doc['credential'])
+            from factory_runtime.pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
+            for cause,expected in ((ProviderHTTPStatusError(429),'http 429'),
+                                   (ProviderTimeoutError(),'timeout'),(RuntimeError('secret'),'unknown')):
+                failure=entry.BoundedProviderFailure('provider transport',cause)
+                failure.args=('secret provider body',)
+                runtime.return_value.handle.side_effect=failure
+                with self.assertRaises(entry.BoundedProviderFailure) as error:self.dispatch()
+                self.assertIn(expected,str(error.exception))
+                self.assertNotIn('secret',str(error.exception))
 
     def test_wrong_execution_role_stops_before_backend_and_redacts_sdk_errors(self):
         sts=SimpleNamespace(get_caller_identity=lambda:{'Account':'666730517561',
