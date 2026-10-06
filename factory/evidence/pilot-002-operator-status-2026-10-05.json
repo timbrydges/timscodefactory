@@ -1,0 +1,116 @@
+{
+  "status": "OBSERVED",
+  "task_id": "safe-workspace-fingerprint-001",
+  "started_at": "2026-10-06T01:01:36.369617+00:00",
+  "finished_at": "2026-10-06T01:01:38.349790+00:00",
+  "task": {
+    "status": "OBSERVED",
+    "state": "PAUSED",
+    "version": 0,
+    "active_leases": 0
+  },
+  "workers": {
+    "builder": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "inspector": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "qa": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "inspector_recovery001": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "qa_recovery001": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "qa_recovery002": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    },
+    "qa_recovery003": {
+      "status": "OBSERVED",
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "disabled_observed": true
+    }
+  },
+  "attempts": {
+    "builder": {
+      "status": "COMPLETE",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": 87664,
+      "attempt_reusable": false
+    },
+    "inspector": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    },
+    "qa": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    },
+    "inspector_recovery001": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    },
+    "qa_recovery001": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    },
+    "qa_recovery002": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    },
+    "qa_recovery003": {
+      "status": "STARTED",
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "reported_actual_micro_usd": null,
+      "attempt_reusable": false
+    }
+  },
+  "unavailable": [],
+  "all_workers_disabled_observed": true,
+  "known_reserved_micro_usd": 1750000,
+  "reservation_total_complete": true,
+  "known_reported_actual_micro_usd": 87664,
+  "invoice_verified": false,
+  "gate_authority": false,
+  "execution_authorized": false,
+  "scope": "Pilot 002 workers and attempts only; not all Factory infrastructure or IAM permissions"
+}
