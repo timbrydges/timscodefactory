@@ -45,5 +45,20 @@ class RecoverySigningTests(unittest.TestCase):
             else:
                 self.assertIn("inputs.handoff003_qa_recovery001_plan_digest == ''",job['if'])
                 self.assertIn("inputs.handoff003_qa_recovery001_plan_base64 == ''",job['if'])
+    def test_direct_cli_entrypoint_can_resolve_historical_verifier_without_cwd_path(self):
+        import subprocess,sys,tempfile
+        from pathlib import Path
+        # -I excludes CWD/PYTHONPATH, matching a directly executed script's
+        # absence of the repository root. Keep installed cryptography available.
+        code="""import runpy,sys
+from pathlib import Path
+root=Path(sys.argv[1])
+sys.path.insert(0,str(root/'scripts'))
+runpy.run_path(str(root/'scripts/sign_handoff003_qa_recovery_allowance.py'),run_name='cli_import_proof')
+from factory_runtime.handoff003_qa_recovery_authorization import bindings
+assert bindings(root,'a'*40)['role']=='qa'
+"""
+        with tempfile.TemporaryDirectory() as outside:
+            subprocess.run([sys.executable,'-I','-c',code,str(s.ROOT)],cwd=outside,check=True,capture_output=True,timeout=30)
 
 if __name__=='__main__':unittest.main()
