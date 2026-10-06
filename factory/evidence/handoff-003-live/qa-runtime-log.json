@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1791262425590,
+    "message": "INIT_START Runtime Version: python:3.12.mainlinev2.v43\tRuntime Version ARN: arn:aws:lambda:ca-central-1::runtime:36aeb19f3326e129d9f096dea0a3c6a9ca8dce2610e62d2b2060747602d863ae\n"
+  },
+  {
+    "timestamp": 1791262426096,
+    "message": "START RequestId: 0a096347-703d-4a69-8b9e-c8d7a3ecb9ae Version: 2\n"
+  },
+  {
+    "timestamp": 1791262517272,
+    "message": "[ERROR] StateError: Handoff stopped at provider; retain hold and reconcile without retry\nTraceback (most recent call last):\n  File \"/var/task/factory_runtime/handoff003_entrypoint.py\", line 150, in handler\n    return dispatch(event, context, root=Path(os.environ.get('LAMBDA_TASK_ROOT', '/var/task')),\n  File \"/var/task/factory_runtime/handoff003_entrypoint.py\", line 144, in dispatch\n    raise StateError(str(error)) from None"
+  },
+  {
+    "timestamp": 1791262517275,
+    "message": "END RequestId: 0a096347-703d-4a69-8b9e-c8d7a3ecb9ae\n"
+  },
+  {
+    "timestamp": 1791262517275,
+    "message": "REPORT RequestId: 0a096347-703d-4a69-8b9e-c8d7a3ecb9ae\tDuration: 91178.49 ms\tBilled Duration: 91681 ms\tMemory Size: 256 MB\tMax Memory Used: 95 MB\tInit Duration: 502.23 ms\t\n"
+  }
+]

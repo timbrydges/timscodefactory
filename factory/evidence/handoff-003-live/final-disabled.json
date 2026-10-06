@@ -1,0 +1,36 @@
+{
+  "observed_at": "2026-10-06T04:57:58.080591+00:00",
+  "workers": {
+    "builder": {
+      "reserved_concurrency": 0,
+      "environment": {
+        "FACTORY_HANDOFF003_ENABLED": "false",
+        "FACTORY_HANDOFF003_ROLE": "builder"
+      },
+      "code_sha256": "LWrl7k4Q5i1jD4laIhv8NLZXDqm3+l52IoeAYeR3NHw="
+    },
+    "inspector": {
+      "reserved_concurrency": 0,
+      "environment": {
+        "FACTORY_HANDOFF003_ENABLED": "false",
+        "FACTORY_HANDOFF003_ROLE": "inspector"
+      },
+      "code_sha256": "LWrl7k4Q5i1jD4laIhv8NLZXDqm3+l52IoeAYeR3NHw="
+    },
+    "qa": {
+      "reserved_concurrency": 0,
+      "environment": {
+        "FACTORY_HANDOFF003_ENABLED": "false",
+        "FACTORY_HANDOFF003_ROLE": "qa"
+      },
+      "code_sha256": "LWrl7k4Q5i1jD4laIhv8NLZXDqm3+l52IoeAYeR3NHw="
+    },
+    "dispatcher": {
+      "reserved_concurrency": 0,
+      "environment": {
+        "FACTORY_HANDOFF003_DISPATCH_ENABLED": "false"
+      },
+      "code_sha256": "LWrl7k4Q5i1jD4laIhv8NLZXDqm3+l52IoeAYeR3NHw="
+    }
+  }
+}

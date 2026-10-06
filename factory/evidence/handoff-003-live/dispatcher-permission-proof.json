@@ -1,0 +1,9 @@
+{
+  "status": "DISPATCH_PERMISSION_CANARY_VERIFIED",
+  "own_claim_conditions": "REJECTED",
+  "other_claim": "ACCESS_DENIED",
+  "state_writes": 0,
+  "worker_invocations": 0,
+  "model_calls": 0,
+  "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88"
+}

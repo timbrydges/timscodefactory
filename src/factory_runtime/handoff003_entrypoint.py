@@ -135,6 +135,9 @@ def dispatch(event, context, *, root, env, clock):
             clock=clock, enabled=True, predecessors=doc['predecessors'],
             predecessor_request_digests=doc['predecessor_request_digests'], candidate_commit=doc['candidate_commit'])
     except HandoffStopped as error:
+        if error.failure is not None:
+            return {'status': 'HANDOFF_FAILED_NO_RETRY', 'role': role, 'failure_stage': 'provider',
+                **error.failure, 'attempt_reusable': False, 'reservation_status': 'HELD', 'gate_authority': False}
         if error.response is not None:
             return {'status': 'HANDOFF_FAILED_NO_RETRY', 'role': role, 'failure_stage': error.stage,
                 'provider_response_digest': sha(error.response),

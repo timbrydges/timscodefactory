@@ -108,3 +108,15 @@ class HandoffEntrypointTests(unittest.TestCase):
             self.assertEqual(result['status'], 'HANDOFF_FAILED_NO_RETRY')
             self.assertFalse(result['attempt_reusable'])
             self.assertFalse(result['gate_authority'])
+
+    def test_provider_failure_returns_only_safe_category_without_receipt(self):
+        aws=Mock()
+        aws.get_caller_identity.return_value={'Account':entry.ACCOUNT,
+            'Arn':'arn:aws:sts::666730517561:assumed-role/tims-factory-executor-builder/test'}
+        failure=HandoffStopped('provider',failure={'failure_category':'timeout','http_status':None})
+        with patch.object(entry,'_aws_session'),patch.object(entry,'_client',return_value=aws), \
+                patch.object(entry,'_signing_session'),patch.object(entry,'HandoffKmsSigner'), \
+                patch.object(entry,'run_once',side_effect=failure):
+            self.assertEqual(self.dispatch(),{'status':'HANDOFF_FAILED_NO_RETRY','role':'builder',
+                'failure_stage':'provider','failure_category':'timeout','http_status':None,
+                'attempt_reusable':False,'reservation_status':'HELD','gate_authority':False})

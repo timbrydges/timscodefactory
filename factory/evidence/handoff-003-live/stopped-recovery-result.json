@@ -1,0 +1,8 @@
+{
+  "gate_authority": false,
+  "execution_authorized": false,
+  "worker_invocations": 0,
+  "status": "STOPPED_NO_RETRY",
+  "reason": "Attempt consumed or outcome uncertain",
+  "next_role": null
+}

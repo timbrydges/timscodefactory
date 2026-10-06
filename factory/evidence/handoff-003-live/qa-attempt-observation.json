@@ -1,0 +1,44 @@
+{
+  "pricing_expires_at": {
+    "S": "2026-10-06T05:42:11+00:00"
+  },
+  "reservation_status": {
+    "S": "HELD"
+  },
+  "status": {
+    "S": "STARTED"
+  },
+  "pricing_digest": {
+    "S": "sha256:95ad8357bb9f38eceb1f194f2073a9b224bc6a251ad3ebf0b5a2a26ac4199bd6"
+  },
+  "contract_digest": {
+    "S": "sha256:5e46ba5f7cabaf0f98150d11e0075afc0c5f1c5b3b46e1c25e411feebb59a71e"
+  },
+  "source_commit": {
+    "S": "059f42ae087b0c6429e71e0cb5e0a24f978eed88"
+  },
+  "claimed_at": {
+    "S": "2026-10-06T04:53:49.686303+00:00"
+  },
+  "approval_expires_at": {
+    "S": "2026-10-06T05:42:11+00:00"
+  },
+  "role": {
+    "S": "qa"
+  },
+  "task_id": {
+    "S": "authenticated-handoff-003"
+  },
+  "approval_digest": {
+    "S": "sha256:f56e81a03768142a4d47d764706fc97cc0050660e3f32a5a8543cf8992da8228"
+  },
+  "request_digest": {
+    "S": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc"
+  },
+  "reserved_micro_usd": {
+    "N": "250000"
+  },
+  "PK": {
+    "S": "HANDOFF#003#TASK#authenticated-handoff-003#ROLE#qa"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88",
+  "candidate_commit": "994719a384b7ac96abeb67e4b2addcab2deb4763",
+  "verified_at": "2026-10-06T04:59:43.784311+00:00",
+  "reported_completed_micro_usd": 101892,
+  "qa_actual_cost_known": false,
+  "qa_held_micro_usd": 250000,
+  "reserved_micro_usd": 750000,
+  "test_proof_digest": "sha256:f0501fd736c6afa6f1a28593fb53572959016fa070f7f22b6c092913a113606e",
+  "provider_transport_attempts": 3,
+  "retry_count": 0,
+  "status": "STOPPED_NO_RETRY",
+  "gate_authority": false,
+  "execution_authorized": false,
+  "quota_preparation_failure_consumed_attempt": false,
+  "quota_strategy": "One reserved worker slot; dispatcher temporarily uses unreserved pool; both restored to zero",
+  "qa_failure": "Provider-stage failure after 91.17849 seconds; timeout is consistent with timing but exact category was not retained",
+  "signing_runs": [
+    37415094045,
+    37415476121,
+    37415722358
+  ]
+}

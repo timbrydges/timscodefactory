@@ -149,6 +149,16 @@ class TransportTests(unittest.TestCase):
                 with self.assertRaisesRegex(StateError,'already attempted'):transport.send_once(**kwargs)
                 self.assertEqual(len(connection.calls),1)
 
+    def test_timeout_category_retains_no_exception_text_and_cannot_retry(self):
+        transport,kwargs=self.setup_role('qa');connection=Connection()
+        connection.getresponse=lambda:(_ for _ in ()).throw(TimeoutError('private credential'))
+        with patch.object(p.http.client,'HTTPSConnection',return_value=connection):
+            with self.assertRaises(p.ProviderTimeoutError) as error:transport.send_once(**kwargs)
+            self.assertNotIn('private',str(error.exception))
+            self.assertTrue(connection.closed)
+            with self.assertRaisesRegex(StateError,'already attempted'):transport.send_once(**kwargs)
+            self.assertEqual(len(connection.calls),1)
+
     def test_invalid_credentials_consume_local_latch_without_network(self):
         for role,value in (('builder',KEY+'\r\nX: injected'),('qa','short'),('inspector',KEY),
                            ('inspector',ReadOnlyCredentials(AWS.access_key,AWS.secret_key,None))):

@@ -1,0 +1,17 @@
+{
+  "request_digest": {
+    "S": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc"
+  },
+  "PK": {
+    "S": "HANDOFF#003#CONTROLLER#authenticated-handoff-003#qa"
+  },
+  "version_arn": {
+    "S": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-handoff-003-qa:2"
+  },
+  "activation_sha256": {
+    "S": "dd8da145ecd68b4955672d6dc1c90e0e003ad8b889ff0d5bc3dcc1fbe21ae835"
+  },
+  "status": {
+    "S": "STARTED"
+  }
+}
