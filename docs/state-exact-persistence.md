@@ -20,3 +20,13 @@ Existing records or uncertain outcomes stop the canary without retry.
 There are no provider calls, permission changes, deletions, pilot task updates,
 worker invocations, schedule changes or budget mutations. The command requires
 the existing authenticated owner session and is never wired into a worker.
+
+Live canary evidence: `factory/evidence/state-cas-canary-2026-10-05.json`.
+Executed once from merged commit `c161eb08e968e7844e6682a101f0cace1261d28a`
+at 2026-10-06 01:09 UTC. All three invalid writes were rejected atomically;
+the exact prior-state transition succeeded. The synthetic task remains PAUSED v1.
+This verifies the library against DynamoDB, not a deployment to existing workers.
+
+State reads also require the requested task identity and stored PK, SK, state,
+version and timestamp to agree with the payload. Malformed records fail closed
+without including their contents in the error. No records are migrated or repaired.

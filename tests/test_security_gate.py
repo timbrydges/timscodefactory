@@ -95,7 +95,7 @@ class SecurityGateTests(unittest.TestCase):
 
     def test_lease_and_completion_reach_real_dynamodb_transactions(self):
         client=Mock()
-        client.get_item.return_value={'Item':DynamoDBStateStore._serialize_state(self.before)}
+        client.get_item.return_value={'Item':{**DynamoDBStateStore._serialize_state(self.before),'SK':{'S':'STATE'}}}
         states=DynamoDBStateStore('tims-software-factory-state',client)
         service=gate.SecurityGateController(self.root,states,json.dumps(self.config),
             commit=self.commit,clock=lambda:self.now)
@@ -105,7 +105,7 @@ class SecurityGateTests(unittest.TestCase):
         self.assertLessEqual(len(request['ClientRequestToken']),36)
         serialized=request['TransactItems'][0]['Update']['ExpressionAttributeValues'][':payload']['S']
         leased=DynamoDBStateStore._deserialize_payload(serialized)
-        client.get_item.return_value={'Item':DynamoDBStateStore._serialize_state(leased)}
+        client.get_item.return_value={'Item':{**DynamoDBStateStore._serialize_state(leased),'SK':{'S':'STATE'}}}
         self.assertEqual(service.complete(self.result())['status'],'ADVANCED')
         self.assertEqual(client.transact_write_items.call_count,2)
         completed=client.transact_write_items.call_args.kwargs
