@@ -1,0 +1,18 @@
+{
+  "task_id": "authenticated-handoff-002",
+  "owner_identity": "tim_brydges",
+  "approval_source": "Direct user approval of fresh USD0.75 handoff run and continuation, 2026-10-05 America/Edmonton",
+  "approved_total_micro_usd": 750000,
+  "approved_per_provider_micro_usd": 250000,
+  "providers": [
+    "OpenAI",
+    "Anthropic",
+    "Google"
+  ],
+  "maximum_attempts_per_provider": 1,
+  "maximum_retries": 0,
+  "preapproval_number": 1,
+  "prior_allowances_reusable": false,
+  "production_release_authorized": false,
+  "note": "Records the approved spending ceiling. Exact source, request, pricing, deployment and signer bindings remain required before execution."
+}
