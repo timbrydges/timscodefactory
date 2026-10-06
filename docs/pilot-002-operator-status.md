@@ -93,3 +93,18 @@ This source addition does not create its controller table or grant IAM access,
 install a running controller, create new provider budget, or enable a schedule.
 The already-completed run cannot be replayed through it. The saved live
 `controller-observation.json` proves only the no-dispatch terminal decision.
+
+The separate controller ledger was subsequently deployed from source
+`3d04a2395538f3fb359a09d8c71bcbb72248cf2f`. It is encrypted, retained,
+deletion-protected and has no TTL. A retained synthetic probe proved that
+duplicate claims fail both before and after completion and that evidence can
+be read back. The two `handoff002-controller-ledger-*.json` observations in the
+live evidence folder record this check. No role claim, worker, IAM grant or
+provider was changed by the probe. A completed controller claim now retains
+the verified signed receipt as well as its digest; a failed completion remains
+uncertain and cannot be retried.
+
+The controller integration test traverses Builder, Inspector and QA with real
+synthetic signatures and mocked external I/O, then checks that the terminal
+decision invokes nothing. This validates composition in tests, not a deployed
+autonomous service. The ledger deployment alone grants no execution access.

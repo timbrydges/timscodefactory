@@ -1,0 +1,12 @@
+{
+  "duplicate_after_completion": "REJECTED",
+  "duplicate_before_completion": "REJECTED",
+  "durable_evidence_readback": true,
+  "lambda_invocations": 0,
+  "model_calls": 0,
+  "observed_at": "2026-10-06T03:08:55.438134+00:00",
+  "probe_key": "PROBE#handoff002-controller-ledger#3d04a23",
+  "probe_retained": true,
+  "real_role_rows_modified": 0,
+  "status": "PERMANENT_CLAIM_AND_EVIDENCE_VERIFIED"
+}
