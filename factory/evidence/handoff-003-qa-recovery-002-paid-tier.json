@@ -1,0 +1,12 @@
+{
+  "kind": "factory_google_paid_tier_observation",
+  "project_id": "gen-lang-client-0247455615",
+  "tier": "Tier 1",
+  "billing_mode": "Prepay",
+  "observed_at": "2026-10-06T05:44:12.339828+00:00",
+  "source": "https://aistudio.google.com/projects",
+  "method": "authenticated browser onboarding success followed by refreshed Projects table",
+  "new_credit_purchase": false,
+  "reload_settings_changed": false,
+  "execution_authorized": false
+}
