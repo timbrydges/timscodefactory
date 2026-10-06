@@ -11,7 +11,7 @@ from factory_state.model import OWNER_IDENTITY, StateError
 from factory_state.scope import canonical
 from factory_state.signers import validate_trusted_signers
 from .handoff001_attempts import Handoff001AttemptStore
-from .handoff001_authorization import verify
+from .handoff001_authorization import verify, validate_unsigned
 from .handoff001_packets import facts
 from .handoff001_protocols import packet, request_bytes
 from .handoff001_receipts import IDENTITIES, sha, verify_predecessors
@@ -29,7 +29,7 @@ SECRETS = {
     'qa': 'arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE'}
 
 
-def load_activation(root, env, now):
+def load_activation(root, env, now, *, allow_unsigned=False):
     facts(root)
     raw = _read(root, ACTIVATION, 262144)
     expected = env.get('FACTORY_HANDOFF001_ACTIVATION_SHA256', '')
@@ -71,9 +71,15 @@ def load_activation(root, env, now):
     request = request_bytes(root, **context)
     pricing = prepare_pricing(root, source_commit=source, qualification=doc['qualification'],
         predecessor_receipt_digest=previous, **context)
-    verify(doc['allowance'], root=root, source_commit=source, request_bytes=request, pricing=pricing,
-        readiness=doc['readiness'], trusted_keys=keys, now=now,
-        predecessor_receipt_digest=previous, **context)
+    bound = dict(root=root, source_commit=source, request_bytes=request, pricing=pricing,
+        readiness=doc['readiness'], now=now, predecessor_receipt_digest=previous, **context)
+    if allow_unsigned is True:
+        envelope = doc['allowance']
+        if not isinstance(envelope, dict) or set(envelope) != {'payload', 'signature'} or envelope['signature'] != '':
+            raise StateError('Unsigned preparation requires an empty signature')
+        validate_unsigned(envelope['payload'], **bound)
+    else:
+        verify(doc['allowance'], trusted_keys=keys, **bound)
     return doc, keys, packet(root, **context), sha(request), previous
 
 

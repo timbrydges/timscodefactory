@@ -11,8 +11,8 @@ from .pilot002_authorization import _exact, _window, _hash
 from .handoff001_receipts import sha
 
 
-def verify(envelope, *, root, role, request_bytes, source_commit, pricing, readiness,
-           trusted_keys, now, predecessor_receipt_digest=None,
+def validate_unsigned(payload, *, root, role, request_bytes, source_commit, pricing, readiness,
+           now, predecessor_receipt_digest=None,
            builder_response=None, candidate_commit=None):
     """Pricing/readiness and predecessor bindings must be deployment-owned.
 
@@ -52,22 +52,27 @@ def verify(envelope, *, root, role, request_bytes, source_commit, pricing, readi
         'reserved_micro_usd': 250000, 'approved_cap_micro_usd': 250000,
         'maximum_provider_calls': 1, 'retries': 0, 'task_state_writes': 0,
         'gate_authority': False, 'production_release_authorized': False}
-    if not isinstance(envelope, dict) or set(envelope) != {'payload', 'signature'}:
-        raise StateError('Handoff requires a signed owner allowance')
-    payload = envelope['payload']
     if (not _exact(payload, expected, {'issued_at', 'expires_at'}) or
             not _window(payload, now, 3600) or
             payload['expires_at'] > min(pricing['expires_at'], readiness['expires_at'])):
         raise StateError('Handoff signed scope, cap or window differs')
+    return {'role': role, 'request_bytes': request_bytes, 'source_commit': source_commit,
+        'pricing_digest': digest(pricing), 'now': now,
+        'approval_expires_at': datetime.fromtimestamp(payload['expires_at'], timezone.utc),
+        'pricing_expires_at': datetime.fromtimestamp(pricing['expires_at'], timezone.utc)}
+
+
+def verify(envelope, *, trusted_keys, **context):
+    if not isinstance(envelope, dict) or set(envelope) != {'payload', 'signature'}:
+        raise StateError('Handoff requires a signed owner allowance')
+    payload = envelope['payload']
+    result = validate_unsigned(payload, **context)
     try:
         encoded = envelope['signature']
         if not isinstance(encoded, str) or len(encoded) != 88: raise ValueError('signature')
         signature = base64.b64decode(encoded, validate=True)
         approval_digest = SignedScopeStore('unused', None, trusted_keys)._verify(
-            payload, signature, OWNER_IDENTITY, now)
+            payload, signature, OWNER_IDENTITY, context['now'])
     except Exception:
         raise StateError('Handoff owner signature rejected') from None
-    return {'role': role, 'request_bytes': request_bytes, 'source_commit': source_commit,
-        'approval_digest': approval_digest, 'pricing_digest': digest(pricing), 'now': now,
-        'approval_expires_at': datetime.fromtimestamp(payload['expires_at'], timezone.utc),
-        'pricing_expires_at': datetime.fromtimestamp(pricing['expires_at'], timezone.utc)}
+    return {**result, 'approval_digest': approval_digest}
