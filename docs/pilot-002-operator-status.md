@@ -62,3 +62,19 @@ This uses the hash-pinned historical signer registry and the recorded audit time
 it never reauthorizes expired receipts, reruns providers or claims to rerun tests.
 The main controller state and schedule remain unchanged. Handoff001 remains
 consumed with its original holds and unsigned Inspector failure preserved.
+
+## Controller decisions
+
+`handoff002_controller.decide` validates the ordered completed prefix against
+permanent attempt records and current valid signatures. It stops on uncertain
+claims, missing observations, out-of-order attempts, mismatched receipts,
+expired signatures or failed independent test evidence. An absent row can yield
+only an advisory next role requiring a separate signed allowance. It never
+invokes a worker, resets a hold or advances authoritative state. Runtime claims
+remain the concurrency authority because observations are not atomic.
+
+`python scripts/observe_handoff002_controller.py NEW_REPORT.json` compares the
+saved verified handoff with current AWS attempt rows. A successful terminal
+decision is `COMPLETED_NO_DISPATCH`; expired live receipts stop the decision even
+though the separate historical audit remains verifiable. This is the controller
+decision boundary, not an unattended dispatch service or an enabled schedule.
