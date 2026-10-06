@@ -11,7 +11,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT/'src'))
+sys.path[:0] = [str(ROOT), str(ROOT/'src')]
 from factory_runtime.handoff003_packets import PINNED
 from factory_runtime.handoff003_qa_recovery_entrypoint import load_activation, ACTIVATION, HASH, REGISTRY
 from prepare_handoff003_qa_recovery import SCOPE
