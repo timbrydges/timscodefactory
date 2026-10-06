@@ -13,7 +13,7 @@ class HandoffAccessTests(unittest.TestCase):
         self.change = {'Status': 'CREATE_COMPLETE', 'ExecutionStatus': 'AVAILABLE',
             'StackId': 'arn:aws:cloudformation:ca-central-1:666730517561:stack/'+STACK+'/fixture',
             'Changes': [{'Type': 'Resource', 'ResourceChange': {'LogicalResourceId': role+'Access',
-                'Action': 'Add', 'ResourceType': 'AWS::IAM::Policy'}} for role in ('Builder', 'Inspector', 'Qa')]}
+                'Action': 'Add', 'ResourceType': 'AWS::IAM::ManagedPolicy'}} for role in ('Builder', 'Inspector', 'Qa')]}
 
     def test_only_three_policies_added_without_function_activation(self):
         self.assertEqual({k:v for k,v in self.template['Resources'].items() if k in self.current['Resources']}, self.current['Resources'])
@@ -45,3 +45,14 @@ class HandoffAccessTests(unittest.TestCase):
         changed = copy.deepcopy(self.current)
         changed['Resources']['BuilderFunction']['Properties']['ReservedConcurrentExecutions'] = 1
         with self.assertRaises(StateError): render(changed, **self.args)
+
+    def test_managed_documents_preserve_scope_and_fit_managed_policy_limit(self):
+        import json
+        from prepare_handoff003_access import policy as old_policy
+        from factory_runtime.handoff004_entrypoint import EXECUTION_ROLES
+        for role in ('builder','inspector','qa'):
+            props=self.template['Resources'][role.title()+'Access']['Properties']
+            self.assertEqual(props['Roles'],[EXECUTION_ROLES[role]])
+            old=json.dumps(old_policy(role)).replace('handoff-003','handoff-004').replace('HANDOFF#003','HANDOFF#004')
+            self.assertEqual(props['PolicyDocument'],json.loads(old))
+            self.assertLessEqual(len(json.dumps(props['PolicyDocument'],separators=(',',':'))),6144)
