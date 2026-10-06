@@ -35,15 +35,15 @@ class OperatorStatusTests(unittest.TestCase):
         with patch.object(p.DynamoDBStateStore,'load_state',return_value=SimpleNamespace(state='PAUSED',version=0,leases=[])):
             return p.observe(sts=self.sts,lam=self.lam,db=self.db,clock=lambda:self.now)
 
-    def test_eighteen_consumed_holds_without_secrets_or_write_clients(self):
+    def test_twenty_one_consumed_holds_without_secrets_or_write_clients(self):
         report=self.observe()
         self.assertEqual(report['status'],'OBSERVED')
-        self.assertEqual(report['known_reserved_micro_usd'],4500000)
+        self.assertEqual(report['known_reserved_micro_usd'],5250000)
         self.assertTrue(report['reservation_total_complete'])
         self.assertTrue(report['all_workers_disabled_observed'])
         self.assertNotIn('never-print-this',json.dumps(report))
         self.assertFalse(report['gate_authority']);self.assertFalse(report['execution_authorized'])
-        self.assertEqual(self.db.get_item.call_count,18)
+        self.assertEqual(self.db.get_item.call_count,21)
         self.assertTrue(all(c.kwargs['ConsistentRead'] for c in self.db.get_item.call_args_list))
 
     def test_missing_and_failed_reads_never_mean_authorized_or_disabled(self):
@@ -92,10 +92,10 @@ class OperatorStatusTests(unittest.TestCase):
         self.configs[function]['Environment']['Variables'][flag]='true'
         report=self.observe()
         self.assertFalse(report['all_workers_disabled_observed'])
-        self.assertEqual(len(report['attempts']),18)
+        self.assertEqual(len(report['attempts']),21)
 
     def test_handoff_attempts_use_separate_fixed_tables_and_keys(self):
-        for number in ('001', '002', '003'):
+        for number in ('001', '002', '003', '004'):
             for role in ('builder', 'inspector', 'qa'):
                 name = 'handoff'+number+'_'+role
                 table, key = p.ATTEMPTS[name]
@@ -105,7 +105,7 @@ class OperatorStatusTests(unittest.TestCase):
         del self.rows[table+key['PK']['S']]
         report = self.observe()
         self.assertEqual(report['attempts']['handoff001_qa']['status'], 'ABSENT')
-        self.assertEqual(report['known_reserved_micro_usd'], 4250000)
+        self.assertEqual(report['known_reserved_micro_usd'], 5000000)
         self.assertFalse(report['attempts']['handoff001_qa']['attempt_reusable'])
         self.assertIn('authoritative task is Pilot 002 only', report['scope'])
 
@@ -114,7 +114,7 @@ class OperatorStatusTests(unittest.TestCase):
         function,flag=p.WORKERS['handoff003_dispatcher']
         self.configs[function]['Environment']['Variables'][flag]='true'
         report=self.observe()
-        self.assertEqual(len(report['workers']),20)
+        self.assertEqual(len(report['workers']),24)
         self.assertFalse(report['all_workers_disabled_observed'])
         qa=report['attempts']['handoff003_qa']
         self.assertEqual(qa['status'],'STARTED')
@@ -129,3 +129,15 @@ class OperatorStatusTests(unittest.TestCase):
         for name in ('handoff003_qa','handoff003_qa_recovery001'):
             self.assertEqual(report['attempts'][name]['reserved_micro_usd'],250000)
             self.assertIsNone(report['attempts'][name]['reported_actual_micro_usd'])
+
+    def test_handoff004_dispatcher_cannot_be_hidden_by_completed_provider_claims(self):
+        self.assertNotIn('handoff004_dispatcher',p.ATTEMPTS)
+        for role in ('builder','inspector','qa'):
+            table,key=p.ATTEMPTS['handoff004_'+role]
+            self.rows[table+key['PK']['S']].update(status={'S':'COMPLETE'},actual_micro_usd={'N':'1000'})
+        function,flag=p.WORKERS['handoff004_dispatcher']
+        self.configs[function]['Environment']['Variables'][flag]='true'
+        report=self.observe()
+        self.assertFalse(report['all_workers_disabled_observed'])
+        self.assertFalse(report['execution_authorized'])
+        self.assertFalse(report['attempts']['handoff004_qa']['attempt_reusable'])
