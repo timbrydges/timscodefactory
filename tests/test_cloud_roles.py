@@ -52,7 +52,8 @@ class CloudRoleTests(unittest.TestCase):
         self.role = role; identity = ROLE_IDENTITIES[role]
         role_id, state_name = {'builder': ('engineering_agent', 'IMPLEMENTATION'),
             'planner': ('software_architect', 'ARCHITECTURE'),
-            'inspector': ('independent_inspector', 'INSPECTION')}[role]
+            'inspector': ('independent_inspector', 'INSPECTION'),
+            'qa': ('qa_engineer', 'QA')}[role]
         base = snapshot()
         self.state = replace(base, task_id='task-' + role, state=state_name,
             leases=(replace(base.leases[0], authoritative_identity=identity, role_id=role_id),))
@@ -119,8 +120,8 @@ class CloudRoleTests(unittest.TestCase):
         return self.worker.run(self.state.factory_id, self.state.task_id, self.request,
             input_bytes=self.input, contract_bytes=self.contract)
 
-    def test_all_three_roles_return_signed_results_and_replay_without_work(self):
-        for role in ('builder', 'planner', 'inspector'):
+    def test_all_four_roles_return_signed_results_and_replay_without_work(self):
+        for role in ('builder', 'planner', 'inspector', 'qa'):
             if role != 'builder': self.setup_role(role)
             with self.subTest(role=role):
                 before = self.calls
@@ -131,6 +132,41 @@ class CloudRoleTests(unittest.TestCase):
                 self.assertEqual(self.calls, before + 1)
                 self.assertEqual(self.last_invocation['InvocationType'], 'RequestResponse')
                 self.assertNotIn('credentials', self.last_event)
+
+    def test_qa_uncertain_attempt_cannot_repeat(self):
+        self.setup_role('qa')
+        self.mode = 'crash'
+        with self.assertRaises(TimeoutError): self.run_worker()
+        self.assertEqual(self.run_worker()['status'], 'NEEDS_RECONCILIATION')
+        with self.assertRaises(StateError): self.service.handle(self.last_event)
+        self.assertEqual(self.calls, 1)
+        self.assertEqual(self.invocations, 1)
+
+    def test_qa_wrong_signature_cannot_be_persisted(self):
+        self.setup_role('qa')
+        self.mode = 'wrong-signer'
+        with self.assertRaises(StateError): self.run_worker()
+        with self.assertRaises(StateError): self.service.handle(self.last_event)
+        self.assertEqual(self.calls, 1)
+
+    def test_qa_misrouting_rejected_before_guard_or_invocation(self):
+        from unittest.mock import Mock
+        self.setup_role('qa')
+        guard = Mock()
+        self.executor.guard = guard
+        lease = self.state.leases[0]
+        for leases in ((),
+                (replace(lease, role_id='independent_inspector',
+                         authoritative_identity=ROLE_IDENTITIES['inspector']),)):
+            state = replace(self.state, leases=leases)
+            with self.assertRaises(StateError):
+                self.executor.check_activation(state, self.request, now=NOW)
+            with self.assertRaises(StateError):
+                self.executor.reserve(state, self.request, dispatch_id=self.dispatch, now=NOW)
+            with self.assertRaises(StateError):
+                self.executor.execute(state, self.request, dispatch_id=self.dispatch, input_bytes=self.input)
+        self.assertEqual(guard.mock_calls, [])
+        self.assertEqual(self.invocations, 0)
 
     def test_lost_response_leaves_started_and_recovers_evidence_without_execution(self):
         self.mode = 'lost-response'

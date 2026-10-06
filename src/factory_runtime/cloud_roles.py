@@ -20,8 +20,11 @@ ROLE_IDENTITIES = {
     'planner': 'software_architect_service',
     'builder': 'engineering_agent_service',
     'inspector': 'independent_inspector_service',
+    'qa': 'qa_engineer_service',
 }
-FUNCTION = re.compile(r'^arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-(planner|builder|inspector):([1-9][0-9]*)$')
+ROLE_IDS = {'planner': 'software_architect', 'builder': 'engineering_agent',
+            'inspector': 'independent_inspector', 'qa': 'qa_engineer'}
+FUNCTION = re.compile(r'^arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-(planner|builder|inspector|qa):([1-9][0-9]*)$')
 MAX_INPUT = 65536
 MAX_WIRE = 128 * 1024
 
@@ -79,13 +82,22 @@ class LambdaRoleExecutor:
         self.role, self.version = match.groups()
         self.identity = ROLE_IDENTITIES[self.role]
 
+    def _assert_role(self, state, request):
+        leases = [lease for lease in state.leases if lease.lease_id == request.lease_id]
+        if (len(leases) != 1 or leases[0].role_id != ROLE_IDS[self.role] or
+                leases[0].authoritative_identity != self.identity):
+            raise StateError('role transport does not match dispatch lease')
+
     def check_activation(self, state, request, *, now):
+        self._assert_role(state, request)
         return self.guard.check_activation(state, request, now=now)
 
     def reserve(self, state, request, *, dispatch_id, now):
+        self._assert_role(state, request)
         return self.guard.reserve(state, request, dispatch_id=dispatch_id, now=now)
 
     def execute(self, state, request, *, dispatch_id, input_bytes):
+        self._assert_role(state, request)
         if not isinstance(input_bytes, bytes) or len(input_bytes) > MAX_INPUT or digest(input_bytes) != request.input_digest:
             raise StateError('role input differs from approved dispatch')
         event = {'schema_version': '1.0', 'factory_id': state.factory_id, 'task_id': state.task_id,
