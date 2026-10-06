@@ -12,9 +12,11 @@ class DispatcherCanaryTests(unittest.TestCase):
             code='AccessDeniedException' if kw['Item']['PK']['S']=='UNAUTHORIZED_DISPATCH_PROBE' else 'ConditionalCheckFailedException'
             raise ClientError({'Error':{'Code':code}},'PutItem')
         self.db.put_item.side_effect=reject
+        self.db.update_item.side_effect=ClientError({'Error':{'Code':'ConditionalCheckFailedException'}},'UpdateItem')
     def test_impossible_conditions_and_cross_scope_denial(self):
         self.assertEqual(probe(self.db)['state_writes'],0)
         self.assertEqual(self.db.put_item.call_count,4)
+        self.assertEqual(self.db.update_item.call_count,3)
         for call in self.db.put_item.call_args_list:
             self.assertEqual(call.kwargs['ConditionExpression'],'attribute_exists(PK) AND attribute_not_exists(PK)')
     def test_freshness_and_wrong_permission_fail_closed(self):

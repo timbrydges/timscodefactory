@@ -24,6 +24,13 @@ def probe(db):
         except ClientError as error:
             if error.response['Error']['Code']!='ConditionalCheckFailedException':raise StateError('Own claim permission unverified') from None
         else:raise StateError('Impossible condition unexpectedly succeeded')
+        try:
+            db.update_item(TableName=TABLE,Key=claim,UpdateExpression='SET #s=:s',
+                ExpressionAttributeNames={'#s':'status'},ExpressionAttributeValues={':s':{'S':'INERT_PROBE'}},
+                ConditionExpression='attribute_exists(PK) AND attribute_not_exists(PK)')
+        except ClientError as error:
+            if error.response['Error']['Code']!='ConditionalCheckFailedException':raise StateError('Own completion permission unverified') from None
+        else:raise StateError('Impossible update unexpectedly succeeded')
     try:
         db.put_item(TableName=TABLE,Item={'PK':{'S':'UNAUTHORIZED_DISPATCH_PROBE'}},
             ConditionExpression='attribute_exists(PK) AND attribute_not_exists(PK)')
