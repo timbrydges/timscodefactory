@@ -1,0 +1,18 @@
+{
+  "task_id": "authenticated-handoff-003",
+  "owner_identity": "tim_brydges",
+  "approval_source": "Direct user authorization for 50 actions with USD2 additional cost ceiling, 2026-10-05 America/Edmonton; allocate USD0.75 to dispatcher commissioning",
+  "approved_total_micro_usd": 750000,
+  "approved_per_provider_micro_usd": 250000,
+  "providers": [
+    "OpenAI",
+    "Anthropic",
+    "Google"
+  ],
+  "maximum_attempts_per_provider": 1,
+  "maximum_retries": 0,
+  "preapproval_number": 1,
+  "prior_allowances_reusable": false,
+  "production_release_authorized": false,
+  "note": "Fresh USD0.75 allocation within this batch USD2 ceiling. Exact signed source, request, pricing and deployment bindings remain mandatory. No prior allowance or consumed claim is reusable."
+}
