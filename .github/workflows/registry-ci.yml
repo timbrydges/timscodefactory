@@ -27,3 +27,9 @@ jobs:
       - run: python scripts/pilot_gate.py --mode validate
       - run: python scripts/pilot_gate.py --mode simulate
       - run: python -m unittest discover -s tests -v
+      - name: Verify isolated handoff Lambda package on Python 3.12
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_handoff001_package.py "$RUNNER_TEMP/handoff001.zip"
+          python scripts/verify_handoff001_package.py "$RUNNER_TEMP/handoff001.zip"
