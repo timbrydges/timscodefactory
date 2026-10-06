@@ -16,7 +16,7 @@ def prepare_intake(*, material, role, states, clock):
     service=AuthenticatedIntakeService(states,DynamoDBDispatchStore('unused',None),
         key_loader=lambda now:{},clock=clock)
     plan=service.prepare(FACTORY,TASK,role_id=ROLE_IDS[role],source_commit=material.source_commit,
-        objective_id=TASK,capability_id='bounded-review',contract_bytes=material.contract_bytes,
+        objective_id=TASK,capability_id='bounded-review-'+role,contract_bytes=material.contract_bytes,
         input_bytes=prepared.input_bytes,reviewer_identity=IDENTITY,required_evidence=EVIDENCE,
         stop_condition=STOP,rationale=RATIONALE,lease_seconds=900,receipt_seconds=600)
     # The bounded deployment fixes one permanent request per role. Keep that

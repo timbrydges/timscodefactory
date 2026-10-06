@@ -45,8 +45,8 @@ class ProbeTests(unittest.TestCase):
             self.assertFalse(result['gate_authority']);self.assertEqual(result['writes'],0)
             self.assertEqual(result['provider_calls'],0);self.assertEqual(result['signatures'],0)
             claims=[x['Key']['PK']['S'] for x in self.calls if x['TableName']==probe.TABLE]
-            expected=[f'BOUNDED_REVIEW#001#ROLE#{r}' for r in (probe.EXECUTION_ROLES if role=='controller' else (role,))]
-            self.assertEqual(claims,expected+['BOUNDED_REVIEW#001#ROLE#unapproved'])
+            expected=[f'BOUNDED_REVIEW#002#ROLE#{r}' for r in (probe.EXECUTION_ROLES if role=='controller' else (role,))]
+            self.assertEqual(claims,expected+['BOUNDED_REVIEW#002#ROLE#unapproved'])
             self.assertTrue(all(x['ConsistentRead'] for x in self.calls))
 
     def test_disabled_has_no_file_or_client_io(self):

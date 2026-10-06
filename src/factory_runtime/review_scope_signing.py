@@ -25,7 +25,7 @@ def check_plan(material, role, plan, now):
             not now<plan.lease.expires_at<=now+timedelta(minutes=15)):
         raise StateError('scope plan differs from bounded deployment')
     cap=plan.capability_payload
-    expected={'kind':'capability','factory_id':FACTORY,'objective_id':TASK,'capability_id':'bounded-review',
+    expected={'kind':'capability','factory_id':FACTORY,'objective_id':TASK,'capability_id':'bounded-review-'+role,
         'contract_digest':plan.request.contract_digest,'owner_identity':'tim_brydges',
         'required_evidence':EVIDENCE,'stop_condition':STOP}
     if (type(cap)is not dict or set(cap)!=set(expected)|{'issued_at','expires_at'} or

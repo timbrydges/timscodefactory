@@ -46,17 +46,17 @@ def dispatch(event, context, *, root, env):
                  ('tims-software-factory-state',{'PK':{'S':f'FACTORY#{FACTORY}#TASK#SCOPE#OBJECTIVE#{TASK}'},
                                                 'SK':{'S':'CAPABILITY#bounded-review'}})]
         providers=tuple(EXECUTION_ROLES) if role=='controller' else (role,)
-        targets.extend((TABLE,{'PK':{'S':'BOUNDED_REVIEW#001#ROLE#'+r}}) for r in providers)
+        targets.extend((TABLE,{'PK':{'S':'BOUNDED_REVIEW#002#ROLE#'+r}}) for r in providers)
         if role!='controller':
             targets.append(('tims-factory-role-executions',
-                {'PK':{'S':f'ROLE#{ROLE_IDENTITIES[role]}#{task}'},'SK':{'S':f'EXECUTION#bounded-review-001-{role}'}}))
+                {'PK':{'S':f'ROLE#{ROLE_IDENTITIES[role]}#{task}'},'SK':{'S':f'EXECUTION#bounded-review-002-{role}'}}))
         for table,key in targets:
             response=db.get_item(TableName=table,Key=key,ConsistentRead=True)
             if response.get('Item'):raise StateError('fresh task/scope/claim already exists; reconcile')
             reads.append({'table':table,'key':key,'absent':True})
         # No existing task contents are returned, even if the denial unexpectedly fails.
         try:
-            db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#001#ROLE#unapproved'}},ConsistentRead=True)
+            db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#002#ROLE#unapproved'}},ConsistentRead=True)
         except Exception as error:
             if getattr(error,'response',{}).get('Error',{}).get('Code')!='AccessDeniedException':raise
         else:raise StateError('probe read outside approved claims was not denied')
