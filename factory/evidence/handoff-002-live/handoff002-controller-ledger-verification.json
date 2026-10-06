@@ -1,0 +1,10 @@
+{
+  "deletion_protection": true,
+  "execution_grants": 0,
+  "model_calls": 0,
+  "observed_at": "2026-10-06T03:08:43.330401+00:00",
+  "source_commit": "3d04a2395538f3fb359a09d8c71bcbb72248cf2f",
+  "status": "CONTROLLER_LEDGER_VERIFIED",
+  "table": "tims-factory-handoff-002-controller-dispatch",
+  "ttl": "DISABLED"
+}

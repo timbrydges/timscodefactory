@@ -1,9 +1,13 @@
 import base64
 import io
+import copy
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 from factory_runtime.handoff002_dispatch import dispatch_once
+from factory_runtime.handoff002_attempts import key
+from factory_runtime.handoff002_packets import TASK
+from factory_runtime.handoff002_receipts import sha
 from factory_state.model import StateError
 from factory_state.scope import canonical
 import test_handoff002_entrypoint as fixtures
@@ -68,3 +72,41 @@ class DispatchTests(unittest.TestCase):
         self.db.update_item.assert_not_called()
         self.assertEqual(self.run_once()['status'],'DISPATCH_CONSUMED_OR_UNCERTAIN')
         self.lam.invoke.assert_called_once()
+
+    def test_three_role_dispatch_chain_then_terminal_no_invoke(self):
+        # Real synthetic signatures and owner scopes; only AWS/provider I/O is mocked.
+        claims=set()
+        def claim(**kw):
+            identity=kw['Item']['PK']['S']
+            if identity in claims:raise RuntimeError('Consumed')
+            claims.add(identity)
+        self.db.put_item.side_effect=claim
+        for role in ('builder','inspector','qa'):
+            if role!='builder':
+                allowance,args,_=self.f.fixture.setup_role(role)
+                self.f.doc.update(role=role,allowance=allowance,qualification=args['qualification'],
+                    readiness=args['readiness'],predecessors=copy.deepcopy(self.context['envelopes']),
+                    predecessor_request_digests=dict(self.context['request_digests']),candidate_commit='b'*40,
+                    credential=({'kind':'lambda_execution_role'} if role=='inspector' else {
+                        'kind':'secretsmanager','secret_arn':fixtures.entry.SECRETS['qa'],
+                        'version_id':'b'*32,'json_key':'api_key'}))
+                self.f.env['FACTORY_HANDOFF002_ROLE']=role;self.f.save()
+                self.f.fixture.execute(role);self.envelope=self.f.fixture.chain[role]
+                self.pin.update(role=role,activation_sha256=self.f.env['FACTORY_HANDOFF002_ACTIVATION_SHA256'],
+                    version_arn='arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-handoff-002-'+role+':1')
+                self.lam.get_function_configuration.return_value.update(
+                    FunctionName='tims-factory-handoff-002-'+role,
+                    Environment={'Variables':{k:v for k,v in self.f.env.items() if k.startswith('FACTORY_')}})
+            result=self.run_once()
+            self.assertEqual(result['status'],'SIGNED_RESULT_OBSERVED')
+            self.assertFalse(result['gate_authority'])
+            envelope=result['envelope'];request=envelope['payload']['request_digest']
+            self.context['envelopes'][role]=envelope;self.context['request_digests'][role]=request
+            self.context['attempts'][role]={**key(role),'task_id':{'S':TASK},'role':{'S':role},
+                'source_commit':{'S':'a'*40},'status':{'S':'COMPLETE'},'reservation_status':{'S':'HELD'},
+                'reserved_micro_usd':{'N':'250000'},'actual_micro_usd':{'N':str(envelope['payload']['actual_micro_usd'])},
+                'request_digest':{'S':request},'output_digest':{'S':sha(canonical(envelope))}}
+        self.assertEqual(self.run_once()['status'],'COMPLETED_NO_DISPATCH')
+        self.assertEqual(self.lam.invoke.call_count,3)
+        self.assertEqual(self.db.update_item.call_count,3)
+        self.assertEqual(len(claims),3)
