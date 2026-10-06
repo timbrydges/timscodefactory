@@ -59,3 +59,11 @@ jobs:
           python scripts/verify_handoff003_package.py "$RUNNER_TEMP/handoff003.zip"
           python scripts/build_handoff003_qa_recovery_package.py "$RUNNER_TEMP/handoff003-qa-recovery.zip"
           python scripts/verify_handoff003_qa_recovery_package.py "$RUNNER_TEMP/handoff003-qa-recovery.zip"
+      - name: Publish verified main-source bounded runtime package
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: bounded-review-runtime
+          path: ${{ runner.temp }}/bounded-review.zip
+          if-no-files-found: error
+          retention-days: 1
