@@ -1,0 +1,44 @@
+{
+  "account": "666730517561",
+  "keys": {
+    "builder": {
+      "algorithms": [
+        "ED25519_PH_SHA_512",
+        "ED25519_SHA_512"
+      ],
+      "arn": "arn:aws:kms:ca-central-1:666730517561:key/9c24941f-563b-4dc9-bcc3-394384c655eb",
+      "fingerprint": "sha256:ecea01029d27d5f3512f25b5614143b0e7d8c65824944a58cbe43b2521ad1d10",
+      "public_key_der_base64": "MCowBQYDK2VwAyEA0xhuSYZkwBb57KyFPBZ1ZaaC1JoqGB0TonLoFNUbBjM=",
+      "spec": "ECC_NIST_EDWARDS25519",
+      "state": "Enabled",
+      "usage": "SIGN_VERIFY"
+    },
+    "inspector": {
+      "algorithms": [
+        "ED25519_PH_SHA_512",
+        "ED25519_SHA_512"
+      ],
+      "arn": "arn:aws:kms:ca-central-1:666730517561:key/7885556b-627c-4d95-a635-8849477fc00e",
+      "fingerprint": "sha256:0076b42c6428bb659deae3a6fd74283682d16a0d9040b4935ec3ae7c98d81cd9",
+      "public_key_der_base64": "MCowBQYDK2VwAyEAjz/vf6Pd3Jl51E9ZyBop70ple5jqMbgg6vz0NHF6ynY=",
+      "spec": "ECC_NIST_EDWARDS25519",
+      "state": "Enabled",
+      "usage": "SIGN_VERIFY"
+    },
+    "qa": {
+      "algorithms": [
+        "ED25519_PH_SHA_512",
+        "ED25519_SHA_512"
+      ],
+      "arn": "arn:aws:kms:ca-central-1:666730517561:key/71cb555e-37e8-44ec-b638-86072e3231c6",
+      "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+      "public_key_der_base64": "MCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=",
+      "spec": "ECC_NIST_EDWARDS25519",
+      "state": "Enabled",
+      "usage": "SIGN_VERIFY"
+    }
+  },
+  "observed_at": "2026-10-06T01:38:29.901471+00:00",
+  "read_only": true,
+  "region": "ca-central-1"
+}

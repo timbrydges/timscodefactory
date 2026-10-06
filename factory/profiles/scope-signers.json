@@ -43,8 +43,8 @@
       "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=\n-----END PUBLIC KEY-----\n",
       "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
       "enrollment_commit": "a5d81a3127930418600065476f5f5414881cbdf5",
-      "not_before": 1790997153,
-      "expires_at": 1791083553,
+      "not_before": 1791250709,
+      "expires_at": 1791337109,
       "revoked": false
     },
     {

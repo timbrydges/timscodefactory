@@ -16,6 +16,16 @@ by these library changes. Exact-request pricing, isolated role publication,
 fresh signer trust and controller integration remain prerequisites to the
 new paid run. Do not use historical unsigned responses as new signed results.
 
+The disabled handoff workflow now verifies signed predecessors before claiming
+the next permanent attempt, binds complete-request rate qualifications to owner
+allowances, sends once through fixed HTTPS routes and signs only the observed
+provider output. Signing/completion failures retain the bounded response for
+reconciliation and cannot release the hold or repeat the call. Its signed result
+still requires controller verification and real test evidence. No deployed
+entrypoint invokes this workflow yet. The QA trust renewal preserves its existing
+identity/key and expires 24 hours after the recorded public-key observation;
+it neither reopens old allowances nor authorizes standalone signing.
+
 Pilot 002's owner-merged acceptance artifact is a completed fixture, not proof
 of unattended Factory operation. PR397/398 added a read-only worker/attempt
 observer and offline operator page. The retained observation is
