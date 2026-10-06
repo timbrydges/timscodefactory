@@ -100,6 +100,11 @@ blobs; ignored files are excluded. Hash-locked Linux Python 3.12 SDK and crypto
 wheels are included, with a per-file manifest and deterministic archive metadata.
 `scripts/verify_bounded_review_package.py OUTPUT` verifies the archive and imports
 both disabled entrypoints without host site-packages. CI runs this verification.
+After all registry checks pass on a main-branch push, CI retains the verified
+`bounded-review-runtime` ZIP artifact for one day. It contains no activation
+material. Deployment must authenticate the successful run's repository, workflow,
+main branch, exact source commit and artifact digest before using the package;
+an artifact name alone is not provenance or authorization.
 
 For deployment, additionally supply `--role controller|builder|inspector|qa`,
 `--material FILE --material-digest DIGEST --config FILE --config-digest DIGEST`.
