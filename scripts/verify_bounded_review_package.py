@@ -55,6 +55,14 @@ except StateError as error:
 else:
     raise AssertionError('Controller disabled boundary did not reject')
 print('ISOLATED_BOUNDED_CONTROLLER_DISABLED_BOUNDARY_VERIFIED')
+from factory_runtime.review_permissions_probe import dispatch as probe
+try:
+    probe(None, None, root=Path('/does-not-exist'), env={})
+except StateError as error:
+    assert str(error) == 'bounded permission probe disabled'
+else:
+    raise AssertionError('Permission probe disabled boundary did not reject')
+print('ISOLATED_READ_ONLY_PERMISSION_PROBE_DISABLED_VERIFIED')
 '''
         subprocess.run([sys.executable, '-I', '-S', '-c', code, str(root)], check=True, timeout=30)
     return {'status': 'ISOLATED_PACKAGE_VERIFIED', 'source_commit': index['source_commit'], 'model_calls': 0}

@@ -108,3 +108,20 @@ process. The builder checks the fresh proof, source binding and signed allowance
 offline before installing dependencies. It never obtains signatures or creates
 claims, and packaging does not enable execution. Existing output paths are
 refused. Keep all generated files outside the checkout.
+
+`factory_runtime.review_permissions_probe.handler` is a separate read-only
+pre-deployment handler. It requires `FACTORY_REVIEW_PERMISSION_PROBE_ENABLED=true`,
+an exact `FACTORY_REVIEW_PERMISSION_PROBE_ROLE`, and both bounded paid-execution
+flags explicitly false. Invoke only a numeric function version with the fixed
+event kind `bounded_review_data_read_probe`, exact `source_commit`, and a
+64-character lowercase hex nonce. It verifies the execution identity, reads
+the fresh task/scope and each permitted permanent claim, and requires them to
+be absent. Provider roles also read their own exact execution key. An unapproved
+claim read must return AccessDenied; throttling or other errors cannot count as
+a denial. Existing record contents are never returned.
+
+The result proves only the observed read access and denied probe key. It does
+not prove write permission, authenticate review material, authorize a model
+call or advance a gate. It performs no data writes, signing, secret reads or
+provider calls. IAM simulation is not a substitute for this live source-context
+check. Deploying or invoking this probe does not enable the paid entrypoints.
