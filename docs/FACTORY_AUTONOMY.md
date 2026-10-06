@@ -1,6 +1,20 @@
 # Completing Tim's Software Factory
 
-## Current continuation boundary — 2026-10-05
+## Current continuation boundary — 2026-10-06
+
+Handoff 004 completed the bounded OpenAI Builder, Anthropic Inspector and
+Google QA chain with accepted reviews and 17 independently executed Linux
+tests. The retained audit is documented in `docs/handoff-004-completed-evidence.md`.
+That run grants no authoritative state progression or unattended release authority.
+All consumed attempts remain non-reusable. The interruption shutdown command
+blocks new invocations without claiming to cancel work already running.
+
+The deployment-owned Inspector/QA adapter now validates exact review semantics
+and independently pinned test artifacts; see `docs/bound-review-verdicts.md`.
+It is not yet wired into a live controller. Fresh task scope, immutable pins,
+trusted test execution and a bounded integrated deployment remain necessary.
+
+### Historical preparation boundary — 2026-10-05
 
 The owner has confirmed a separate US$0.75 ceiling for
 `authenticated-handoff-001`: one US$0.25 attempt each for OpenAI Builder,
