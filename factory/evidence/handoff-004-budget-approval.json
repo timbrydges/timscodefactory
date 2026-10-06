@@ -1,0 +1,21 @@
+{
+  "task_id": "authenticated-handoff-004",
+  "owner_identity": "tim_brydges",
+  "approval_source": "Direct user authorization for 50 actions with USD2 additional ceiling; allocate remaining USD0.75 to fresh paid-tier controller proof.",
+  "approved_total_micro_usd": 750000,
+  "approved_per_provider_micro_usd": 250000,
+  "providers": [
+    "OpenAI",
+    "Anthropic",
+    "Google"
+  ],
+  "maximum_attempts_per_provider": 1,
+  "maximum_retries": 0,
+  "preapproval_number": 33,
+  "prior_allowances_reusable": false,
+  "production_release_authorized": false,
+  "note": "Earlier attempts and holds remain untouched. Google Factory project is Tier1 Prepay. Exactly one attempt per provider, no retries; no production release or schedule.",
+  "batch_reserved_before_micro_usd": 1250000,
+  "batch_reserved_after_micro_usd": 2000000,
+  "batch_ceiling_micro_usd": 2000000
+}
