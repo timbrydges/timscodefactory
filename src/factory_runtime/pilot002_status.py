@@ -19,6 +19,15 @@ for role,number in (('inspector','001'),('qa','001'),('qa','002'),('qa','003')):
                    {'PK':{'S':f'RECOVERY#{number}#TASK#{TASK}#ROLE#{role}'}})
 
 
+# Fixed inventory only: callers cannot expand observation to arbitrary resources.
+for number in ('001', '002'):
+    for role in ('builder', 'inspector', 'qa'):
+        name = 'handoff'+number+'_'+role
+        WORKERS[name] = (f'tims-factory-handoff-{number}-{role}', f'FACTORY_HANDOFF{number}_ENABLED')
+        ATTEMPTS[name] = (f'tims-factory-handoff-{number}-attempts',
+            {'PK': {'S': f'HANDOFF#{number}#TASK#authenticated-handoff-{number}#ROLE#{role}'}})
+
+
 def _amount(item,field):
     value=item.get(field,{}).get('N')
     if type(value) is not str or not re.fullmatch(r'0|[1-9][0-9]{0,11}',value):
@@ -83,4 +92,4 @@ def observe(*,sts,lam,db,clock=lambda:datetime.now(timezone.utc)):
         'reservation_total_complete':all(a['status']!='UNKNOWN' for a in attempts.values()),
         'known_reported_actual_micro_usd':sum(a.get('reported_actual_micro_usd') or 0 for a in attempts.values()),
         'invoice_verified':False,'gate_authority':False,'execution_authorized':False,
-        'scope':'Pilot 002 workers and attempts only; not all Factory infrastructure or IAM permissions'}
+        'scope':'Pilot 002 and handoff 001/002 workers and attempts; authoritative task is Pilot 002 only; not all Factory infrastructure or IAM permissions'}

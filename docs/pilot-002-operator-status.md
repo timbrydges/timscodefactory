@@ -5,8 +5,9 @@ checkout in the existing authenticated AWS operator environment. It fixes the
 account and region, uses one SDK attempt per read, and creates a new report
 without overwriting a previous observation. It grants no IAM access.
 
-The report covers seven Pilot 002 workers and seven fixed attempt rows, plus
-the authoritative task state. A worker is observed disabled only when its exact
+The report covers seven Pilot 002 workers plus six handoff 001/002 workers,
+and thirteen fixed attempt rows. The authoritative task state remains Pilot 002;
+handoff completion does not imply a controller transition. A worker is observed disabled only when its exact
 ARN matches, its execution flag is false and reserved concurrency is zero.
 Missing fields and failed reads appear as UNKNOWN, never as a successful check.
 An absent attempt does not grant permission to call a provider.
@@ -44,3 +45,20 @@ Render any saved report with
 The standalone page requires no server or external assets, escapes report text,
 blocks scripts and network resources through its content policy, and exposes
 no mutation controls. It prominently labels the report as a historical snapshot.
+
+## Authenticated handoff 002
+
+The fresh run at source `29098df20e95cecda4ce044b4b4cf58b417ec0bb` completed
+one OpenAI Builder, one Anthropic Inspector and one Google QA call. Both reviews
+accepted the exact unchanged candidate at `994719a384b7ac96abeb67e4b2addcab2deb4763`.
+The candidate passed 17 independently executed Linux Python3.12 tests without skips.
+Reported provider costs total USD0.108387; retained reservations total USD0.75.
+Neither figure proves invoice totals. All three runtimes were restored disabled.
+
+The public evidence bundle is `factory/evidence/handoff-002-live/`. Run
+`python scripts/verify_handoff002_saved_evidence.py` to recheck signatures,
+predecessor/source/request/candidate bindings and the saved test observation.
+This uses the hash-pinned historical signer registry and the recorded audit time;
+it never reauthorizes expired receipts, reruns providers or claims to rerun tests.
+The main controller state and schedule remain unchanged. Handoff001 remains
+consumed with its original holds and unsigned Inspector failure preserved.

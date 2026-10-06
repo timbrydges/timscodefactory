@@ -1,0 +1,15 @@
+{
+  "candidate_commit": "994719a384b7ac96abeb67e4b2addcab2deb4763",
+  "credentials_in_environment": false,
+  "exit_code": 0,
+  "files": {
+    "fingerprint.py": "e51e2877181612298c9da0812a56767300e63b995b4762ac504221fef30a2c31",
+    "tests/test_fingerprint.py": "3cab30ff81208f5ed29dea7b69e9d5d0b3d4894b86280ad5be19a31bdc89a8aa"
+  },
+  "observed_at": "2026-10-06T02:47:59.196507+00:00",
+  "python_version": "3.12.11",
+  "runtime": "python3.12-linux",
+  "source_commit": "29098df20e95cecda4ce044b4b4cf58b417ec0bb",
+  "stderr": "test_absolute_input_path_is_rejected (test_fingerprint.FingerprintTests.test_absolute_input_path_is_rejected) ... ok\ntest_ascii_input_has_exact_canonical_output_and_digest (test_fingerprint.FingerprintTests.test_ascii_input_has_exact_canonical_output_and_digest) ... ok\ntest_directory_is_rejected (test_fingerprint.FingerprintTests.test_directory_is_rejected) ... ok\ntest_empty_input_is_valid (test_fingerprint.FingerprintTests.test_empty_input_is_valid) ... ok\ntest_exact_size_limit_is_valid (test_fingerprint.FingerprintTests.test_exact_size_limit_is_valid) ... ok\ntest_fifo_is_rejected_without_blocking (test_fingerprint.FingerprintTests.test_fifo_is_rejected_without_blocking) ... ok\ntest_invalid_utf8_fails_without_stdout (test_fingerprint.FingerprintTests.test_invalid_utf8_fails_without_stdout) ... ok\ntest_missing_and_extra_arguments_fail_without_stdout (test_fingerprint.FingerprintTests.test_missing_and_extra_arguments_fail_without_stdout) ... ok\ntest_missing_file_fails_without_stdout (test_fingerprint.FingerprintTests.test_missing_file_fails_without_stdout) ... ok\ntest_nested_regular_file_is_valid (test_fingerprint.FingerprintTests.test_nested_regular_file_is_valid) ... ok\ntest_oversized_input_fails_without_stdout (test_fingerprint.FingerprintTests.test_oversized_input_fails_without_stdout) ... ok\ntest_parent_traversal_is_rejected (test_fingerprint.FingerprintTests.test_parent_traversal_is_rejected) ... ok\ntest_repeated_runs_are_byte_for_byte_identical (test_fingerprint.FingerprintTests.test_repeated_runs_are_byte_for_byte_identical) ... ok\ntest_symlink_directory_component_is_rejected (test_fingerprint.FingerprintTests.test_symlink_directory_component_is_rejected) ... ok\ntest_symlink_final_component_is_rejected (test_fingerprint.FingerprintTests.test_symlink_final_component_is_rejected) ... ok\ntest_unicode_input_has_exact_canonical_output_and_byte_digest (test_fingerprint.FingerprintTests.test_unicode_input_has_exact_canonical_output_and_byte_digest) ... ok\ntest_unreadable_regular_file_is_rejected_when_permissions_apply (test_fingerprint.FingerprintTests.test_unreadable_regular_file_is_rejected_when_permissions_apply) ... ok\n\n----------------------------------------------------------------------\nRan 17 tests in 0.462s\n\nOK\n",
+  "stdout": ""
+}

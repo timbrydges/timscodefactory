@@ -1,0 +1,50 @@
+{
+  "PK": {
+    "S": "HANDOFF#002#TASK#authenticated-handoff-002#ROLE#builder"
+  },
+  "actual_micro_usd": {
+    "N": "81900"
+  },
+  "approval_digest": {
+    "S": "sha256:593b201a9c5e2b3dbc6b3c12e3c2d4e298bc2481aeea9276227761738684a8e8"
+  },
+  "approval_expires_at": {
+    "S": "2026-10-06T03:43:43+00:00"
+  },
+  "claimed_at": {
+    "S": "2026-10-06T02:46:46.835670+00:00"
+  },
+  "contract_digest": {
+    "S": "sha256:ecbf4c1de475f9bd3d983eb4eb30444bee52e8aa7f4a74cc541c27b5c2f98f86"
+  },
+  "output_digest": {
+    "S": "sha256:e727c0322be4c914094260f4c9cac772ed48864f6a27ace8ea0cc9329e7d5642"
+  },
+  "pricing_digest": {
+    "S": "sha256:c83a5e2432abdc3ee068a28ba2355a76d5162240a1fc76a83426b892181478fb"
+  },
+  "pricing_expires_at": {
+    "S": "2026-10-06T03:43:43+00:00"
+  },
+  "request_digest": {
+    "S": "sha256:f365ecd49fabe4888b63c1d57fb9febabe01f18abb57b33e1506ced2f51121cd"
+  },
+  "reservation_status": {
+    "S": "HELD"
+  },
+  "reserved_micro_usd": {
+    "N": "250000"
+  },
+  "role": {
+    "S": "builder"
+  },
+  "source_commit": {
+    "S": "29098df20e95cecda4ce044b4b4cf58b417ec0bb"
+  },
+  "status": {
+    "S": "COMPLETE"
+  },
+  "task_id": {
+    "S": "authenticated-handoff-002"
+  }
+}
