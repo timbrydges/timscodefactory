@@ -35,15 +35,15 @@ class OperatorStatusTests(unittest.TestCase):
         with patch.object(p.DynamoDBStateStore,'load_state',return_value=SimpleNamespace(state='PAUSED',version=0,leases=[])):
             return p.observe(sts=self.sts,lam=self.lam,db=self.db,clock=lambda:self.now)
 
-    def test_seventeen_consumed_holds_without_secrets_or_write_clients(self):
+    def test_eighteen_consumed_holds_without_secrets_or_write_clients(self):
         report=self.observe()
         self.assertEqual(report['status'],'OBSERVED')
-        self.assertEqual(report['known_reserved_micro_usd'],4250000)
+        self.assertEqual(report['known_reserved_micro_usd'],4500000)
         self.assertTrue(report['reservation_total_complete'])
         self.assertTrue(report['all_workers_disabled_observed'])
         self.assertNotIn('never-print-this',json.dumps(report))
         self.assertFalse(report['gate_authority']);self.assertFalse(report['execution_authorized'])
-        self.assertEqual(self.db.get_item.call_count,17)
+        self.assertEqual(self.db.get_item.call_count,18)
         self.assertTrue(all(c.kwargs['ConsistentRead'] for c in self.db.get_item.call_args_list))
 
     def test_missing_and_failed_reads_never_mean_authorized_or_disabled(self):
@@ -92,7 +92,7 @@ class OperatorStatusTests(unittest.TestCase):
         self.configs[function]['Environment']['Variables'][flag]='true'
         report=self.observe()
         self.assertFalse(report['all_workers_disabled_observed'])
-        self.assertEqual(len(report['attempts']),17)
+        self.assertEqual(len(report['attempts']),18)
 
     def test_handoff_attempts_use_separate_fixed_tables_and_keys(self):
         for number in ('001', '002', '003'):
@@ -105,7 +105,7 @@ class OperatorStatusTests(unittest.TestCase):
         del self.rows[table+key['PK']['S']]
         report = self.observe()
         self.assertEqual(report['attempts']['handoff001_qa']['status'], 'ABSENT')
-        self.assertEqual(report['known_reserved_micro_usd'], 4000000)
+        self.assertEqual(report['known_reserved_micro_usd'], 4250000)
         self.assertFalse(report['attempts']['handoff001_qa']['attempt_reusable'])
         self.assertIn('authoritative task is Pilot 002 only', report['scope'])
 
@@ -114,9 +114,18 @@ class OperatorStatusTests(unittest.TestCase):
         function,flag=p.WORKERS['handoff003_dispatcher']
         self.configs[function]['Environment']['Variables'][flag]='true'
         report=self.observe()
-        self.assertEqual(len(report['workers']),19)
+        self.assertEqual(len(report['workers']),20)
         self.assertFalse(report['all_workers_disabled_observed'])
         qa=report['attempts']['handoff003_qa']
         self.assertEqual(qa['status'],'STARTED')
         self.assertIsNone(qa['reported_actual_micro_usd'])
         self.assertFalse(qa['attempt_reusable'])
+
+    def test_paid_completion_keeps_both_prior_unknown_holds_visible(self):
+        table,key=p.ATTEMPTS['handoff003_qa_paid_recovery002']
+        self.rows[table+key['PK']['S']].update(status={'S':'COMPLETE'},actual_micro_usd={'N':'4979'})
+        report=self.observe()
+        self.assertEqual(report['attempts']['handoff003_qa_paid_recovery002']['reported_actual_micro_usd'],4979)
+        for name in ('handoff003_qa','handoff003_qa_recovery001'):
+            self.assertEqual(report['attempts'][name]['reserved_micro_usd'],250000)
+            self.assertIsNone(report['attempts'][name]['reported_actual_micro_usd'])

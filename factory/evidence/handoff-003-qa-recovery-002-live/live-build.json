@@ -1,0 +1,12 @@
+{
+  "activation_sha256": "d384a18f0c64149d834344958b34bc075485bd88437586b04c6e930683c00635",
+  "code_sha256": "m3aW0SQpFSPpXqnXmrik3iDr58EmZe4VUcF5GRs+NPg=",
+  "execution_enabled": false,
+  "model_calls": 0,
+  "request_digest": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc",
+  "role": "qa",
+  "sha256": "9b7696d124291523e95ea9d79ab8a4de20ebe7c12665ee1551c179191b3e34f8",
+  "signed_allowance_included": true,
+  "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+  "zip_bytes": 21901357
+}

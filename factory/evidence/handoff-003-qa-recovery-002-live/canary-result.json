@@ -1,0 +1,35 @@
+{
+  "attempt_row_checks": [
+    {
+      "decision": "ConditionalCheckFailedException",
+      "key": "HANDOFF#003#QA_RECOVERY#002",
+      "table": "tims-factory-handoff-003-qa-recovery-002-attempts"
+    },
+    {
+      "decision": "AccessDeniedException",
+      "key": "HANDOFF#003#QA_RECOVERY#002#other",
+      "table": "tims-factory-handoff-003-qa-recovery-002-attempts"
+    },
+    {
+      "decision": "AccessDeniedException",
+      "key": "HANDOFF#003#QA_RECOVERY#001",
+      "table": "tims-factory-handoff-003-qa-recovery-001-attempts"
+    },
+    {
+      "decision": "AccessDeniedException",
+      "key": "HANDOFF#003#TASK#authenticated-handoff-003#ROLE#qa",
+      "table": "tims-factory-handoff-003-attempts"
+    }
+  ],
+  "dependencies": {
+    "credential_route_verified": true,
+    "key_fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+    "signing_key_readable": true
+  },
+  "execution_authorized": false,
+  "model_calls": 0,
+  "signing_calls": 0,
+  "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+  "state_writes": 0,
+  "status": "RECOVERY_PERMISSION_CANARY_VERIFIED"
+}

@@ -1,0 +1,268 @@
+{
+  "all_workers_disabled_observed": true,
+  "attempts": {
+    "builder": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 87664,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff001_builder": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 84660,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff001_inspector": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "handoff001_qa": {
+      "attempt_reusable": false,
+      "status": "ABSENT"
+    },
+    "handoff002_builder": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 81900,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff002_inspector": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 21318,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff002_qa": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 5169,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff003_builder": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 80160,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff003_inspector": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 21732,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff003_qa": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "handoff003_qa_paid_recovery002": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": 4979,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "COMPLETE"
+    },
+    "handoff003_qa_recovery001": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "inspector": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "inspector_recovery001": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "qa": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "qa_recovery001": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "qa_recovery002": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    },
+    "qa_recovery003": {
+      "attempt_reusable": false,
+      "reported_actual_micro_usd": null,
+      "reservation_status": "HELD",
+      "reserved_micro_usd": 250000,
+      "status": "STARTED"
+    }
+  },
+  "execution_authorized": false,
+  "finished_at": "2026-10-06T05:57:54.457920+00:00",
+  "gate_authority": false,
+  "invoice_verified": false,
+  "known_reported_actual_micro_usd": 387582,
+  "known_reserved_micro_usd": 4250000,
+  "reservation_total_complete": true,
+  "scope": "Pilot 002 and handoff 001/002/003 workers, separate handoff003 QA recovery001, observer, dispatcher and provider attempts; authoritative task is Pilot 002 only; not all Factory infrastructure or IAM permissions; includes separate handoff003 QA recovery001 worker and attempt",
+  "started_at": "2026-10-06T05:57:49.027475+00:00",
+  "status": "OBSERVED",
+  "task": {
+    "active_leases": 0,
+    "state": "PAUSED",
+    "status": "OBSERVED",
+    "version": 0
+  },
+  "task_id": "safe-workspace-fingerprint-001",
+  "unavailable": [],
+  "workers": {
+    "builder": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff001_builder": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff001_inspector": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff001_qa": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff002_builder": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff002_inspector": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff002_observer": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff002_qa": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_builder": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_dispatcher": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_inspector": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_qa": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_qa_paid_recovery002": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "handoff003_qa_recovery001": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "inspector": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "inspector_recovery001": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "qa": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "qa_recovery001": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "qa_recovery002": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    },
+    "qa_recovery003": {
+      "disabled_observed": true,
+      "execution_flag": false,
+      "reserved_concurrency": 0,
+      "status": "OBSERVED"
+    }
+  }
+}

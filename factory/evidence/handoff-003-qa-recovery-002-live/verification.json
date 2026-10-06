@@ -1,0 +1,10 @@
+{
+  "actual_micro_usd": 4979,
+  "autonomous_gate_authority": false,
+  "original_qa_hold_unchanged": true,
+  "production_release_authorized": false,
+  "recovery_hold_retained": true,
+  "reserved_concurrency": 0,
+  "status": "SEPARATE_QA_RECOVERY_SIGNED_RESULT_VERIFIED",
+  "verdict": "ACCEPTED"
+}
