@@ -2,6 +2,12 @@ name: factory-spec-reviewer-signing
 
 on:
   workflow_dispatch:
+    inputs:
+      state_read_only:
+        description: 'Verify approved single-task read access without signing'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,7 +21,7 @@ jobs:
   custody:
     if: >-
       github.ref == 'refs/heads/main' && github.actor_id == '214414801' &&
-      github.run_attempt == 1
+      github.run_attempt == 1 && inputs.state_read_only != true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: production
@@ -46,5 +52,38 @@ jobs:
         with:
           name: factory-spec-custody-${{ github.run_id }}
           path: ${{ runner.temp }}/spec-custody.json
+          if-no-files-found: error
+          retention-days: 30
+  state_read:
+    if: >-
+      github.ref == 'refs/heads/main' && github.actor_id == '214414801' &&
+      github.run_attempt == 1 && inputs.state_read_only == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      AWS_MAX_ATTEMPTS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+        with:
+          role-to-assume: arn:aws:iam::666730517561:role/tims-factory-signing-spec-reviewer
+          aws-region: ca-central-1
+          allowed-account-ids: '666730517561'
+          role-duration-seconds: 900
+          role-session-name: spec-read-${{ github.run_id }}
+          disable-retry: true
+      - name: Verify actual single-task read and cross-task denial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/spec_state_read_probe.py "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/spec-state-read.json"
+          cat "$RUNNER_TEMP/spec-state-read.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: factory-spec-state-read-${{ github.run_id }}
+          path: ${{ runner.temp }}/spec-state-read.json
           if-no-files-found: error
           retention-days: 30

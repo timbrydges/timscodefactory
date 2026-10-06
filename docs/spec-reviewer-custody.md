@@ -25,3 +25,17 @@ key fingerprint. The public registry accepts this identity for 24 hours from
 the recorded custody challenge. Expiry and revocation still fail closed. The
 historical KMS adapter and its four original role bindings remain unchanged;
 an exact scope-review signer integration is still required for live intake.
+
+The separately approved `ReadBoundedReviewState` inline policy is retained at
+`infra/signing/spec-reviewer-state-read-policy.json`. It adds only DynamoDB
+GetItem on the bounded-review-001 task partition, with the leading key required.
+It was applied directly to the existing role after explicit action-time approval;
+it is not part of the original key stack template. Preserve it when reconciling
+that stack. It adds no provider-secret access or state mutation permission.
+
+Manual input `state_read_only=true` selects a separate workflow job that proves
+an actual consistent read of the allowed task and AccessDeniedException for
+another task. The custody/signing job is skipped in that mode. A missing task
+is a valid read result, not an instruction to create it. Only existence and
+permission metadata are exported; task payloads remain private. Both modes
+remain first-attempt-only and have SDK retries disabled.
