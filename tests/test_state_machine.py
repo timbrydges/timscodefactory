@@ -53,6 +53,37 @@ def initial(state: str = "INTAKE") -> TaskState:
 
 
 class StateTransitionContractTests(unittest.TestCase):
+    def test_load_requires_matching_record_identity_and_metadata(self):
+        client = FakeDynamoDB()
+        store = DynamoDBStateStore('factory-state', client)
+        self.assertIsNone(store.load_state('factory', 'task-1'))
+        state = initial()
+        valid = {**store._serialize_state(state), 'SK': {'S': 'STATE'}}
+        client.item = valid
+        self.assertEqual(store.load_state('factory', 'task-1'), state)
+        for key, value in (('PK', {'S': 'other'}), ('SK', {'S': 'EVENT#other'}),
+                           ('state', {'S': 'PAUSED'}), ('version', {'N': '1'}),
+                           ('updated_at', {'S': (NOW + timedelta(seconds=1)).isoformat()})):
+            with self.subTest(key=key):
+                client.item = {**valid, key: value}
+                with self.assertRaises(StateError):
+                    store.load_state('factory', 'task-1')
+                client.item = {k: v for k, v in valid.items() if k != key}
+                with self.assertRaises(StateError):
+                    store.load_state('factory', 'task-1')
+        client.item = valid
+        for factory, task in (('other', 'task-1'), ('factory', 'other')):
+            with self.assertRaises(StateError):
+                store.load_state(factory, task)
+
+    def test_load_redacts_malformed_payload_errors(self):
+        client = FakeDynamoDB()
+        store = DynamoDBStateStore('factory-state', client)
+        for payload in ('secret-invalid-json', 'null', '{}'):
+            client.item = {'payload': {'S': payload}}
+            with self.assertRaisesRegex(StateError, '^persisted state record is malformed$'):
+                store.load_state('factory', 'task-1')
+
     def test_persist_requires_existing_exact_prior_record(self):
         before = initial('IMPLEMENTATION')
         machine = FactoryStateMachine(before)

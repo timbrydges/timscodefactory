@@ -164,7 +164,18 @@ class DynamoDBStateStore:
         item = response.get("Item")
         if not item:
             return None
-        return self._deserialize_payload(item["payload"]["S"])
+        try:
+            state = self._deserialize_payload(item["payload"]["S"])
+            expected = self._serialize_state(state)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise StateError("persisted state record is malformed") from None
+        if state.factory_id != factory_id or state.task_id != task_id:
+            raise StateError("persisted state identity does not match the requested task")
+        if item.get("SK") != {"S": "STATE"} or any(
+            item.get(key) != expected[key] for key in ("PK", "state", "version", "updated_at")
+        ):
+            raise StateError("persisted state metadata does not match its payload")
+        return state
 
     @staticmethod
     def _serialize_state(state: TaskState) -> dict[str, dict[str, str]]:

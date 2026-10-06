@@ -1,0 +1,16 @@
+{
+  "status": "STATE_CAS_CANARY_VERIFIED",
+  "task_id": "state-cas-canary-001",
+  "state": "PAUSED",
+  "version": 1,
+  "missing_record_rejected": true,
+  "changed_payload_rejected": true,
+  "changed_state_rejected": true,
+  "rejected_transactions_atomic": true,
+  "exact_state_transition_verified": true,
+  "pilot_state_modified": false,
+  "model_calls": 0,
+  "budget_writes": 0,
+  "records_deleted": 0,
+  "finished_at": "2026-10-06T01:09:00.542218+00:00"
+}
