@@ -15,6 +15,18 @@ from .review_signing import ReviewRoleResultSigner
 
 
 class BoundedReviewRoleRuntime:
+    @staticmethod
+    def validate_event(prepared, event):
+        expected = {'schema_version': '1.0', 'factory_id': FACTORY, 'task_id': TASK,
+                    'worker_id': 'bounded-review-controller',
+                    'request': asdict(prepared.scope.request),
+                    'input_base64': base64.b64encode(prepared.input_bytes).decode()}
+        if (type(event) is not dict or set(event) != set(expected) | {'dispatch_id'} or
+                any(type(event[k]) is not type(v) or event[k] != v for k, v in expected.items()) or
+                type(event['dispatch_id']) is not str or
+                not re.fullmatch('[0-9a-f]{64}', event['dispatch_id'])):
+            raise StateError('role event differs from deployment-owned exact job')
+
     def __init__(self, *, backend, kms, sts, execution_table, enabled=False):
         if (type(backend) is not ReviewProviderBackend or type(enabled) is not bool or
                 (enabled and (not backend.enabled or backend.load_credential is None))):
@@ -32,15 +44,7 @@ class BoundedReviewRoleRuntime:
         if not self.enabled:
             raise StateError('bounded role runtime disabled')
         prepared = self.backend.prepared
-        expected = {'schema_version': '1.0', 'factory_id': FACTORY, 'task_id': TASK,
-                    'worker_id': 'bounded-review-controller',
-                    'request': asdict(prepared.scope.request),
-                    'input_base64': base64.b64encode(prepared.input_bytes).decode()}
-        if (type(event) is not dict or set(event) != set(expected) | {'dispatch_id'} or
-                any(type(event[k]) is not type(v) or event[k] != v for k, v in expected.items()) or
-                type(event['dispatch_id']) is not str or
-                not re.fullmatch('[0-9a-f]{64}', event['dispatch_id'])):
-            raise StateError('role event differs from deployment-owned exact job')
+        self.validate_event(prepared, event)
         state = self.backend.states.load_state(FACTORY, TASK)
         if state is None:
             raise StateError('bounded role task missing')

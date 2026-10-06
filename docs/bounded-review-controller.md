@@ -39,8 +39,8 @@ An uncertain provider result still consumes its permanent claim.
 Deployment supplies regional no-retry KMS/STS clients. Builder and Inspector
 use their existing isolated assumed signing roles; QA uses its existing review
 role. The controller receives neither signing nor provider credentials. This
-composition does not authenticate arbitrary proof files, expand IAM access, or
-provide a live Lambda entrypoint. Deployment must authenticate the exact final
+composition does not authenticate arbitrary proof files or expand IAM access.
+Deployment must authenticate the exact final
 source/candidate and fresh 17-test Docker artifact before constructing it.
 
 Prepare that material with `scripts/prepare_bounded_review_material.py COMMIT
@@ -59,3 +59,16 @@ or an authorization: its provenance comes from the privileged importer and
 deployment pin. Owner allowance, independent scope approval, current pricing,
 live state/lease checks and permanent claims are still required. Never use a
 unit-test fixture or historical proof as the deployment import.
+
+`factory_runtime.review_role_lambda.handler` provides a disabled-by-default role
+entrypoint. Enabling requires a numeric function version, the exact execution
+role, regional no-retry clients, and deployment-owned `BUILD.json`,
+`REVIEW_MATERIAL.json` and `REVIEW_ROLE.json`. Configuration pins both review
+files with `FACTORY_BOUNDED_REVIEW_MATERIAL_DIGEST` and
+`FACTORY_BOUNDED_REVIEW_ROLE_DIGEST`; `FACTORY_BOUNDED_REVIEW_ROLE` selects the
+fixed role and `FACTORY_BOUNDED_REVIEW_ENABLED=true` explicitly enables it.
+The role file contains the fresh signed allowance, pricing, readiness and fixed
+credential route. Builder/QA secrets require immutable versions; Inspector uses
+its execution-role credentials. Credential reads remain behind permanent send
+claims. Errors are redacted and require claim reconciliation, never retries.
+This source addition does not deploy functions or grant runtime IAM access.
