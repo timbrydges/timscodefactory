@@ -56,6 +56,7 @@ class DynamoDBStateStore:
         self._validate_state_delta(before, after, caller_identity, audit_event)
 
         state_item = self._serialize_state(after)
+        before_item = self._serialize_state(before)
         event_type = audit_event["event_type"]
         event_item = {
             "PK": {"S": f"FACTORY#{after.factory_id}#TASK#{after.task_id}"},
@@ -79,12 +80,15 @@ class DynamoDBStateStore:
                         "SK": {"S": "STATE"},
                     },
                     "UpdateExpression": "SET #s=:state, #v=:next, payload=:payload, updated_at=:updated",
-                    "ConditionExpression": "attribute_not_exists(#v) OR #v=:expected",
+                    "ConditionExpression": "#v=:expected AND #s=:before_state AND payload=:before_payload AND updated_at=:before_updated",
                     "ExpressionAttributeNames": {"#s": "state", "#v": "version"},
                     "ExpressionAttributeValues": {
                         ":state": state_item["state"],
                         ":next": state_item["version"],
                         ":expected": {"N": str(before.version)},
+                        ":before_state": before_item["state"],
+                        ":before_payload": before_item["payload"],
+                        ":before_updated": before_item["updated_at"],
                         ":payload": state_item["payload"],
                         ":updated": state_item["updated_at"],
                     },

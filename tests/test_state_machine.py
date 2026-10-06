@@ -53,6 +53,25 @@ def initial(state: str = "INTAKE") -> TaskState:
 
 
 class StateTransitionContractTests(unittest.TestCase):
+    def test_persist_requires_existing_exact_prior_record(self):
+        before = initial('IMPLEMENTATION')
+        machine = FactoryStateMachine(before)
+        after = machine.owner_override(OWNER, 'PAUSED', expected_version=0, reason='Owner stop')
+        client = FakeDynamoDB()
+        DynamoDBStateStore('factory-state', client).persist_transition(
+            before, after, caller_identity=OWNER, event_id='exact-prior-state',
+            audit_event=machine.last_audit_event)
+        update = client.calls[0]['TransactItems'][0]['Update']
+        condition = update['ConditionExpression']
+        self.assertNotIn('attribute_not_exists', condition)
+        self.assertNotIn(' OR ', condition)
+        expected = DynamoDBStateStore._serialize_state(before)
+        for attribute, token in (('state', ':before_state'), ('payload', ':before_payload'),
+                                 ('updated_at', ':before_updated')):
+            self.assertIn(token, condition)
+            self.assertEqual(update['ExpressionAttributeValues'][token], expected[attribute])
+        self.assertEqual(update['ExpressionAttributeValues'][':expected'], expected['version'])
+
     def test_lease_and_transition_commit_the_validation_time(self):
         machine = FactoryStateMachine(initial("IMPLEMENTATION"))
         lease = Lease("clock-lease", "engineering_agent", "engineering_agent_service",
