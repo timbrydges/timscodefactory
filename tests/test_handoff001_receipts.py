@@ -7,7 +7,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from factory_runtime import handoff001_packets as packets
-from factory_runtime.handoff001_receipts import IDENTITIES, sha, verify_chain
+from factory_runtime.handoff001_receipts import IDENTITIES, sha, verify_chain, verify_predecessors
 from factory_state.model import StateError
 from factory_state.scope import canonical
 
@@ -61,6 +61,18 @@ class HandoffReceiptTests(unittest.TestCase):
         self.assertEqual(result['status'], 'AUTHENTICATED_HANDOFF_VERIFIED')
         self.assertEqual(result['reported_actual_micro_usd'], 300000)
         self.assertFalse(result['gate_authority'])
+
+    def test_prefix_authentication_before_next_attempt(self):
+        for next_role, roles in (('inspector', ('builder',)), ('qa', ('builder', 'inspector'))):
+            context = dict(next_role=next_role, root=ROOT, trusted_keys=self.keys,
+                source_commit='a'*40, candidate_commit='b'*40, now=self.now,
+                request_digests={role: self.requests[role] for role in roles})
+            prefix = {role: self.chain[role] for role in roles}
+            verified = verify_predecessors(prefix, **context)
+            self.assertEqual(verified['builder_response'], self.builder)
+            self.assertEqual(verified['predecessor_receipt_digest'], sha(canonical(self.chain[roles[-1]]['payload'])))
+            with self.assertRaises(StateError): verify_predecessors({}, **context)
+            with self.assertRaises(StateError): verify_predecessors(self.chain, **context)
 
     def test_signed_but_wrong_bindings_or_cost_rejected(self):
         original = copy.deepcopy(self.chain)

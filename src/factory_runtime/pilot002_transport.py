@@ -55,10 +55,13 @@ enabled, repository root, role and candidate context are deployment-owned.
 The latch survives errors on this instance only, not process restarts. The
 workflow's permanent role claim remains mandatory for cross-instance safety.
 """
+    prepare = staticmethod(prepare_request)
+    routes = ROUTES
+
     def __init__(self, root, *, role, builder_response=None, candidate_commit=None, enabled=False):
-        self._expected=prepare_request(root,role=role,builder_response=builder_response,candidate_commit=candidate_commit)
+        self._expected=self.prepare(root,role=role,builder_response=builder_response,candidate_commit=candidate_commit)
         self._role=role
-        self._host,self._path=ROUTES[role]
+        self._host,self._path=self.routes[role]
         self._enabled=enabled is True
         self._attempted=False
         self._lock=threading.Lock()
