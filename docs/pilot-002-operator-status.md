@@ -78,3 +78,18 @@ saved verified handoff with current AWS attempt rows. A successful terminal
 decision is `COMPLETED_NO_DISPATCH`; expired live receipts stop the decision even
 though the separate historical audit remains verifiable. This is the controller
 decision boundary, not an unattended dispatch service or an enabled schedule.
+
+## Prepared one-shot dispatch boundary
+
+`handoff002_dispatch.dispatch_once` is disabled by default. When explicitly
+composed with trusted context, it requires an exact immutable role version,
+package hash and valid source/request-bound owner allowance. It rechecks the
+allowance after AWS preflight, makes a permanent conditional controller claim,
+invokes once, verifies the returned role signature and only then marks its
+controller claim complete. Any uncertain claim, invoke or completion stops;
+it never retries, refunds or resets either ledger. SDK retries must be disabled.
+
+This source addition does not create its controller table or grant IAM access,
+install a running controller, create new provider budget, or enable a schedule.
+The already-completed run cannot be replayed through it. The saved live
+`controller-observation.json` proves only the no-dispatch terminal decision.

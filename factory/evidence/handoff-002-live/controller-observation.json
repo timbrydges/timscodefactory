@@ -1,0 +1,18 @@
+{
+  "authoritative_task_state_written": false,
+  "execution_authorized": false,
+  "gate_authority": false,
+  "model_calls": 0,
+  "next_role": null,
+  "non_atomic_snapshot": true,
+  "observed_at": "2026-10-06T03:00:26.416550+00:00",
+  "receipt_digests": {
+    "builder": "sha256:7713e68ceb7cdab705d7103acb326e8acddb92d99ca13761d19761f4f7fdd63d",
+    "inspector": "sha256:1165a097f44aa27ca52a43175b87a1c9d5ef95ac40e5fbd1190192dac3e31cb3",
+    "qa": "sha256:90bf5b17e6ba62203a42dda8fbd42747293021db4c8b355c388ea47acfa8e5af"
+  },
+  "reported_actual_micro_usd": 108387,
+  "status": "COMPLETED_NO_DISPATCH",
+  "task_id": "authenticated-handoff-002",
+  "worker_invocations": 0
+}
