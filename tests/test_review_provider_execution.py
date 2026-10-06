@@ -14,7 +14,7 @@ from factory_state.scope import SignedScopeStore,canonical
 from factory_runtime import pilot002_transport as wire
 from factory_runtime.review_provider_protocol import job_input,prepare,parse_response
 from factory_runtime.review_provider_transport import ReviewProviderTransport
-from factory_runtime.review_provider_backend import ReviewProviderBackend
+from factory_runtime.review_provider_backend import ReviewProviderBackend, BoundedProviderFailure
 from factory_runtime.review_provider_claims import ReviewProviderClaims,TABLE
 from factory_runtime.review_provider_scope import FACTORY,TASK
 from factory_runtime.review_verdict import ReviewBinding,PinnedPythonTestEvidence
@@ -71,6 +71,15 @@ def response_for(prepared,output=None):
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_failure_metadata_rejects_untrusted_text_and_status(self):
+        for status in ('secret', True, 200, 600, None):
+            failure=BoundedProviderFailure('provider transport',wire.ProviderHTTPStatusError(status))
+            self.assertIsNone(failure.http_status)
+            self.assertNotIn('secret',str(failure))
+        failure=BoundedProviderFailure('secret',RuntimeError('secret'))
+        self.assertEqual(failure.phase,'unknown')
+        self.assertNotIn('secret',str(failure))
+
     def test_all_fixed_routes_and_parsed_outputs(self):
         hosts=set()
         for role in ('builder','inspector','qa'):
@@ -175,6 +184,17 @@ class BackendTests(unittest.TestCase):
             with self.assertRaisesRegex(StateError,'send claim'):self.execute()
             self.assertEqual(connect.call_count,1);self.loader.assert_called_once()
         self.assertEqual(self.row()['status'],{'S':'STARTED'})
+
+    def test_http_failure_keeps_safe_status_and_permanent_hold(self):
+        self.hold()
+        with patch.object(ReviewProviderTransport,'send_once',side_effect=wire.ProviderHTTPStatusError(429)) as send:
+            with self.assertRaises(BoundedProviderFailure) as error:self.execute()
+            self.assertEqual(error.exception.http_status,429)
+            self.assertIn('provider transport (http 429)',str(error.exception))
+            with self.assertRaisesRegex(BoundedProviderFailure,'send claim'):self.execute()
+            send.assert_called_once()
+        self.assertEqual(self.row()['status'],{'S':'STARTED'})
+        self.assertEqual(self.row()['reservation_status'],{'S':'HELD'})
 
     def test_pause_during_credential_load_burns_claim_without_connection(self):
         self.hold()

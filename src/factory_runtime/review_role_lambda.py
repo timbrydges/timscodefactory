@@ -11,6 +11,7 @@ from .pilot002_entrypoint import _read, _pairs, _aws_session, _credential
 from .review_material import PinnedReviewMaterial
 from .review_provider_scope import verify, PROVIDERS
 from .review_role_runtime import BoundedReviewRoleRuntime
+from .review_provider_backend import BoundedProviderFailure
 from .worker import digest
 
 REGION='ca-central-1'
@@ -100,6 +101,12 @@ def dispatch(event, context, *, root, env, clock):
             load_credential=lambda:_credential(session,doc['credential']),enabled=True)
         return BoundedReviewRoleRuntime(backend=backend,kms=client(signing,'kms'),sts=client(signing,'sts'),
             execution_table='tims-factory-role-executions',enabled=True).handle(event)
+    except BoundedProviderFailure as error:
+        # Reconstruct rather than forwarding mutable exception text or arguments.
+        from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
+        cause = ProviderHTTPStatusError(error.http_status) if error.http_status is not None else (
+            ProviderTimeoutError() if error.category == 'timeout' else None)
+        raise BoundedProviderFailure(error.phase, cause) from None
     except Exception:
         raise StateError('bounded role stopped; reconcile permanent claims before any further action') from None
 
