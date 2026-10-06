@@ -27,3 +27,18 @@ acceptance controller and its historical allowances are unchanged.
 Tests exercise both review stages through real Ed25519 result verification and
 Moto DynamoDB persistence, including once-only progression. No test calls a
 provider or grants live review authority.
+
+`BoundedReviewRoleRuntime` composes the provider backend, fresh result signer and
+durable role execution service for an exact deployment-owned job. It defaults
+to disabled. It rejects altered events before signing IO, verifies current
+scope and dispatch, then checks isolated signing custody and enrollment before
+any role execution claim or provider credential read. Signing rechecks current
+enrollment after execution; preflight cannot guarantee later KMS availability.
+An uncertain provider result still consumes its permanent claim.
+
+Deployment supplies regional no-retry KMS/STS clients. Builder and Inspector
+use their existing isolated assumed signing roles; QA uses its existing review
+role. The controller receives neither signing nor provider credentials. This
+composition does not authenticate arbitrary proof files, expand IAM access, or
+provide a live Lambda entrypoint. Deployment must authenticate the exact final
+source/candidate and fresh 17-test Docker artifact before constructing it.
