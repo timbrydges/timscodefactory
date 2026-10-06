@@ -28,7 +28,7 @@ def render(report):
         '</td></tr>' for name,row in report['attempts'].items())
     total=money(report['known_reserved_micro_usd'])
     if report.get('reservation_total_complete') is not True:total+=' (incomplete)'
-    task_text=escape(task.get('state','UNKNOWN'))+' · version '+escape(task.get('version','unknown'))
+    task_text=escape(task.get('state','UNKNOWN'))+' Â· version '+escape(task.get('version','unknown'))
     return '''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
@@ -41,15 +41,15 @@ section,.card{background:white;border:1px solid #d8dfe9;border-radius:10px;paddi
 .card strong{display:block;font-size:23px}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e7ee}th{font-weight:600}
 small{color:#47566b}h2{font-size:21px}footer{margin:24px 0;color:#47566b}
-</style><main><small>TIM'S SOFTWARE FACTORY · OPERATOR VIEW</small>
+</style><main><small>TIM'S SOFTWARE FACTORY Â· OPERATOR VIEW</small>
 <h1>Factory status</h1><p>Saved observation: '''+escape(report['finished_at'])+'''</p>
-<div class="notice"><strong>Snapshot only — not a live control panel.</strong>
+<div class="notice"><strong>Snapshot only â€” not a live control panel.</strong>
 This page cannot start workers, spend money, approve a release or advance a task.
 Refresh by collecting a new report; do not use this saved page as activation evidence.</div>
 <div class="cards"><div class="card">Authoritative task<strong>'''+task_text+'''</strong></div>
 <div class="card">Known reservations<strong>'''+escape(total)+'''</strong><small>Held budget, not an invoice.</small></div>
 <div class="card">Read completeness<strong>'''+escape(report['status'])+'''</strong></div></div>
-<section><h2>Pilot workers</h2><div class="scroll"><table><thead><tr><th>Worker</th><th>Execution</th><th>Read</th></tr></thead><tbody>'''+workers+'''</tbody></table></div></section>
+<section><h2>Observed workers</h2><div class="scroll"><table><thead><tr><th>Worker</th><th>Execution</th><th>Read</th></tr></thead><tbody>'''+workers+'''</tbody></table></div></section>
 <section><h2>Consumed attempts and reservations</h2><p>STARTED means a consumed attempt with an unresolved or incomplete runtime record; it is not permission to retry. Offline review acceptance does not change that record.</p>
 <div class="scroll"><table><thead><tr><th>Attempt</th><th>Ledger status</th><th>Reserved</th><th>Reported cost</th></tr></thead><tbody>'''+attempts+'''</tbody></table></div>
 <p>Missing reported costs are unknown, not zero. Provider invoices are not verified.</p></section>
