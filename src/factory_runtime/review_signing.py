@@ -52,7 +52,7 @@ class _EnrolledSigner:
         if self.identity not in keys:
             raise StateError('signing enrollment expired or revoked')
         SignedScopeStore('unused', None, keys)  # Reject shared identity keys before KMS.
-        return keys
+        return dict(keys)
 
     def sign(self, payload, *, now):
         with self._lock:
@@ -127,6 +127,20 @@ class ReviewRoleResultSigner(_EnrolledSigner):
             'binding': DynamoDBDispatchStore._binding(request), 'dispatch_id': dispatch_id,
             'producer_identity': ROLE_IDENTITIES[role]}
         super().__init__(role=role, **kwargs)
+
+    def preflight(self):
+        """Read-only custody check before provider work; grants no signing authority."""
+        with self._lock:
+            if not self.enabled or self.attempted:
+                raise StateError('fresh signer disabled or attempt already consumed')
+            keys = self._keys(self.clock())
+            session = self._session()
+            pem = public_pem(self.kms.get_public_key(KeyId=self.key_bindings[self.role]),
+                             expected_arn=self.key_bindings[self.role])
+            if (pem != keys[self.identity] or self._session() != session or
+                    self._keys(self.clock()).get(self.identity) != pem):
+                raise StateError('signing custody or enrollment changed during preflight')
+            return self.identity
 
     def _check(self, payload, now):
         if (type(now) is not datetime or now.tzinfo is None or now.utcoffset() is None or

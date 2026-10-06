@@ -60,6 +60,11 @@ class ReviewSigningTests(unittest.TestCase):
     def test_owner_and_three_distinct_result_signatures(self):
         for role in KEYS:
             adapter,payload=self.signer(role)
+            if role != 'owner':
+                before = len(self.sign_calls)
+                self.assertEqual(adapter.preflight(), ROLE_IDENTITIES[role])
+                self.assertEqual(len(self.sign_calls), before)
+                self.assertFalse(adapter.attempted)
             self.assertEqual(len(adapter.sign(payload,now=NOW)),64)
             self.assertEqual(self.sign_calls[-1]['KeyId'],KEYS[role])
             self.assertEqual(self.sign_calls[-1]['MessageType'],'RAW')
