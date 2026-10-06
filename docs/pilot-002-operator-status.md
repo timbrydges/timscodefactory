@@ -125,3 +125,19 @@ inventory includes this observer as a fourteenth component, without inventing
 a provider attempt or reservation for it. These proofs establish observation
 and stop behavior; a future autonomous task still needs fresh signed scopes,
 candidate test evidence and a separately reviewed dispatch deployment.
+
+The final operator snapshot from source
+`36a839511c133f7de64cf5639831bf4c71ab64a8`, completed at
+`2026-10-06T03:17:33.883100+00:00`, is preserved as
+`factory/evidence/handoff-002-live/final-operator-observation.json`.
+All fourteen observed components were disabled. The authoritative Pilot002 task
+remained PAUSED at version 0 with zero active leases. The thirteen provider
+attempt observations retain USD3.00 in historical reservations and USD0.280711
+in known completed-attempt reported costs across the observed runs. These are
+not new charges or invoice totals; incomplete attempts can have unrecorded
+provider cost. Handoff002 alone reported USD0.108387 against its USD0.75 hold.
+
+Completed evidence does not authorize replay. The next functional milestone is
+a fresh bounded task through a deployed dispatcher, with exact owner scopes,
+candidate execution evidence and permanent claims. The read-only observer and
+its successful terminal decision do not establish unattended Factory operation.
