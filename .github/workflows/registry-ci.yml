@@ -33,3 +33,9 @@ jobs:
           set -euo pipefail
           python scripts/build_handoff001_package.py "$RUNNER_TEMP/handoff001.zip"
           python scripts/verify_handoff001_package.py "$RUNNER_TEMP/handoff001.zip"
+      - name: Verify isolated handoff 002 Lambda package on Python 3.12
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_handoff002_package.py "$RUNNER_TEMP/handoff002.zip"
+          python scripts/verify_handoff002_package.py "$RUNNER_TEMP/handoff002.zip"
