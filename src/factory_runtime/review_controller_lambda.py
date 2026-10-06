@@ -48,7 +48,7 @@ def load_deployment(root, env, *, clock):
             activation.expires_at-activation.starts_at>timedelta(hours=1)):
         raise StateError('controller activation differs from bounded deployment')
     if (set(doc['function_arns'])!=set(PROVIDERS) or set(doc['providers'])!=set(PROVIDERS) or
-            set(doc['job_versions'])!=set(ROLES)):
+            not doc['job_versions'] or not set(doc['job_versions'])<=set(ROLES)):
         raise StateError('exact three role routes and job versions required')
     keys=lambda at:load_trusted_signers(root/'factory/profiles/scope-signers.json',now=at)
     for role in PROVIDERS:

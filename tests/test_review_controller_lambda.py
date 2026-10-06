@@ -63,6 +63,14 @@ class ControllerEntryTests(unittest.TestCase):
             with self.assertRaises(StateError):self.dispatch()
             read.assert_not_called();aws.assert_not_called()
 
+    def test_deployment_can_pin_only_current_signed_stage(self):
+        pin=self.doc['job_versions']['IMPLEMENTATION']
+        self.doc['job_versions']={'IMPLEMENTATION':pin};self.save()
+        self.assertEqual(set(self.load()[3]),{'IMPLEMENTATION'})
+        for pins in ({},{'SECURITY_REVIEW':pin}):
+            self.doc['job_versions']=pins;self.save()
+            with self.assertRaises(StateError):self.load()
+
     def test_wrong_event_mutable_version_and_bad_pin_reject_before_clients(self):
         with patch.object(entry,'_aws_session') as aws:
             with self.assertRaises(StateError):self.dispatch({**entry.EVENT,'provider':'openai'})
