@@ -22,6 +22,9 @@ def read(service, operation, params):
     if result.returncode:
         code = re.search(rb'An error occurred \(([^)]+)\)', result.stderr)
         raise ReadError(code.group(1).decode() if code else 'unclassified-read-error')
+    # AWS CLI emits no JSON for a successful GetItem when the item is absent.
+    if (service, operation) == ('dynamodb', 'get-item') and not result.stdout.strip():
+        return {}
     return json.loads(result.stdout)
 
 
