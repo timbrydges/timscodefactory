@@ -72,3 +72,23 @@ credential route. Builder/QA secrets require immutable versions; Inspector uses
 its execution-role credentials. Credential reads remain behind permanent send
 claims. Errors are redacted and require claim reconciliation, never retries.
 This source addition does not deploy functions or grant runtime IAM access.
+
+`factory_runtime.review_controller_lambda.handler` is the separate controller
+entrypoint, disabled unless `FACTORY_BOUNDED_CONTROLLER_ENABLED=true`. It accepts
+only the fixed factory/task and `mode=bounded-review`, on a numeric version of
+the existing autonomy-controller function under its exact execution role.
+`REVIEW_CONTROLLER.json` is pinned by
+`FACTORY_BOUNDED_REVIEW_CONTROLLER_DIGEST`. It contains the exact activation,
+three numeric role function ARNs, stage-specific S3 job versions/digests, and
+three fresh signed allowances with pricing/readiness. It contains no provider
+credential routes. The activation lasts at most one hour and cannot outlive
+any provider allowance. Authenticated material uses the same independent pin
+as the role entrypoint.
+
+The controller creates three credential-free provider guards, verifies the
+fresh 17-test proof and separate Inspector/QA bindings, then runs one bounded
+tick. Signed owner and independent-review intake receipts remain required at
+runtime. A configuration hash does not replace those signatures. No KMS or
+Secrets Manager client is created by this entrypoint. Deployment, packaging and
+exact task/claim permissions remain separate prerequisites; historical claims
+and controller activations are not reused.
