@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "authenticated-handoff-001",
+  "factory_id": "tims-software-factory",
+  "task_id": "authenticated-handoff-001",
+  "repository": "timbrydges/tims-factory-autonomy-acceptance",
+  "baseline_commit": "994719a384b7ac96abeb67e4b2addcab2deb4763",
+  "branch": "factory/authenticated-handoff-001",
+  "initial_state": "PAUSED",
+  "runtime": "python3.12-linux",
+  "allowed_write_paths": [
+    "fingerprint.py",
+    "tests/test_fingerprint.py"
+  ],
+  "invocation": [
+    "python",
+    "fingerprint.py",
+    "--workspace",
+    "PRIVATE_FIXTURE_DIRECTORY",
+    "RELATIVE_INPUT_PATH"
+  ],
+  "acceptance": [
+    "Reject absolute input paths, parent traversal and every symlink component, including race-safe descriptor traversal.",
+    "Open nonblocking, verify the opened descriptor is a regular file, read at most 4097 bytes and reject over 4096 bytes.",
+    "For valid UTF-8 return deterministic compact JSON with byte_count, sha256 and text; hash exact input bytes.",
+    "Reject missing arguments, unreadable, invalid UTF-8 and invalid input without partial stdout.",
+    "Test ASCII, Unicode, exact byte limits, traversal, symlinks, directories and FIFOs with child-process timeouts.",
+    "Use only Python standard library; no network, sensitive input, general OS sandbox claim or execution outside disposable private fixtures."
+  ],
+  "providers": [
+    {
+      "role": "builder",
+      "family": "openai",
+      "model_id": "gpt-5.6-sol",
+      "maximum_attempts": 1
+    },
+    {
+      "role": "inspector",
+      "family": "anthropic",
+      "model_id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "maximum_attempts": 1
+    },
+    {
+      "role": "qa",
+      "family": "google",
+      "model_id": "gemini-3.7-flash",
+      "maximum_attempts": 1
+    }
+  ],
+  "maximum_total_cost_usd": "0.75",
+  "maximum_cost_per_attempt_usd": "0.25",
+  "maximum_attempts": 3,
+  "maximum_retries": 0,
+  "maximum_remediation_cycles": 0,
+  "maximum_active_seconds": 3600,
+  "data_scope": "public-synthetic-fixtures-only",
+  "output": "reviewable-pull-request",
+  "automatic_merge_authorized": false,
+  "production_release_authorized": false,
+  "schedule_authorized": false,
+  "live_execution_authorized": false,
+  "capability": "Authenticated three-provider handoff with exact candidate and semantic review binding",
+  "fixture_limit": "Existing fingerprint requirements only. Preserve source if it already satisfies them; do not add product features."
+}
