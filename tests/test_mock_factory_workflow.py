@@ -60,7 +60,8 @@ class MockWorkflowTests(unittest.TestCase):
         self.intake = AuthenticatedIntakeService(self.states, self.ledger,
             key_loader=lambda now: self.keys, clock=lambda: NOW)
         self.progressor = SignedResultProgressor(self.states, self.ledger,
-            key_loader=lambda now: self.keys, clock=lambda: NOW)
+            key_loader=lambda now: self.keys, clock=lambda: NOW,
+            review_validator=lambda state, request, output: output == b'{"mock_verdict":"ACCEPTED"}')
         self.calls = []
 
     def step(self, *, failure=None):
@@ -86,7 +87,8 @@ class MockWorkflowTests(unittest.TestCase):
             def execute(self, current, request, *, dispatch_id, input_bytes):
                 fixture.calls.append(role)
                 if failure == 'timeout': raise TimeoutError('unknown mock provider outcome')
-                output = b'deterministic mock role output'
+                output = (b'{"mock_verdict":"REJECTED"}' if failure == 'rejection'
+                          else b'{"mock_verdict":"ACCEPTED"}')
                 payload = {'kind': 'role_result', 'factory_id': current.factory_id,
                     'task_id': current.task_id, 'binding': fixture.ledger._binding(request),
                     'dispatch_id': dispatch_id, 'producer_identity': self.identity,
@@ -134,6 +136,18 @@ class MockWorkflowTests(unittest.TestCase):
                 self.assertEqual(run()['status'], 'NEEDS_RECONCILIATION')
                 self.assertEqual(len(self.calls), before + 1)
                 self.assertEqual(self.states.state.state, 'IMPLEMENTATION')
+
+    def test_signed_rejection_retains_receipt_without_advancing_or_repeating_provider(self):
+        self.states.state = TaskState('mock-factory', 'mock-rejection',
+                                     'INSPECTION', 0, NOW, CONTROLLER_IDENTITY)
+        run = self.step(failure='rejection')
+        for _ in range(2):
+            with self.assertRaisesRegex(StateError, 'does not authorize advancement'):
+                run()
+        self.assertEqual(self.calls, ['independent_inspector'])
+        self.assertEqual(self.states.state.state, 'INSPECTION')
+        self.assertEqual(len(self.states.state.consumed_evidence_ids), 0)
+        self.assertEqual(next(iter(self.ledger.rows.values()))['status'], {'S':'RECEIPT_RECORDED'})
 
 
 if __name__ == '__main__': unittest.main()
