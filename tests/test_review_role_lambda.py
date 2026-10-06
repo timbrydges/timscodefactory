@@ -116,6 +116,14 @@ class EntryTests(unittest.TestCase):
                 with self.assertRaises(entry.BoundedProviderFailure) as error:self.dispatch()
                 self.assertIn(expected,str(error.exception))
                 self.assertNotIn('secret',str(error.exception))
+            from factory_runtime.review_provider_protocol import ResponseValidationFailure
+            for code,expected in (('output-binding','output-binding'),('secret','provider-envelope')):
+                failure=entry.BoundedProviderFailure('response validation',ResponseValidationFailure('output-binding'))
+                failure.category=code;failure.args=('secret response',)
+                runtime.return_value.handle.side_effect=failure
+                with self.assertRaises(entry.BoundedProviderFailure) as error:self.dispatch()
+                self.assertIn(expected,str(error.exception))
+                self.assertNotIn('secret',str(error.exception))
 
     def test_wrong_execution_role_stops_before_backend_and_redacts_sdk_errors(self):
         sts=SimpleNamespace(get_caller_identity=lambda:{'Account':'666730517561',

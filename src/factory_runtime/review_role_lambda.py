@@ -104,8 +104,11 @@ def dispatch(event, context, *, root, env, clock):
     except BoundedProviderFailure as error:
         # Reconstruct rather than forwarding mutable exception text or arguments.
         from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
+        from .review_provider_protocol import ResponseValidationFailure
         cause = ProviderHTTPStatusError(error.http_status) if error.http_status is not None else (
             ProviderTimeoutError() if error.category == 'timeout' else None)
+        if error.phase == 'response validation':
+            cause = ResponseValidationFailure(error.category)
         raise BoundedProviderFailure(error.phase, cause) from None
     except Exception:
         raise StateError('bounded role stopped; reconcile permanent claims before any further action') from None

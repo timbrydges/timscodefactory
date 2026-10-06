@@ -6,7 +6,7 @@ from .cloud_roles import ROLE_IDS, ROLE_IDENTITIES
 from .pilot002_adapter import _cost
 from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
 from .review_provider_claims import ReviewProviderClaims
-from .review_provider_protocol import PreparedProviderRequest, parse_response
+from .review_provider_protocol import PreparedProviderRequest, ResponseValidationFailure, parse_response
 from .review_provider_scope import FACTORY, TASK, verify
 from .review_provider_transport import ReviewProviderTransport
 from .review_verdict import PinnedPythonTestEvidence
@@ -19,6 +19,8 @@ class BoundedProviderFailure(StateError):
             'provider transport', 'response validation', 'completion') else 'unknown'
         self.http_status = None
         self.category = 'unknown'
+        if self.phase == 'response validation' and type(error) is ResponseValidationFailure:
+            self.category = ResponseValidationFailure(error.code).code
         if self.phase == 'provider transport':
             if type(error) is ProviderHTTPStatusError:
                 status = error.http_status
