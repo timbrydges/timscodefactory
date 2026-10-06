@@ -1,0 +1,57 @@
+name: factory-owner-signing
+run-name: Fresh bounded review owner scope
+on:
+  workflow_dispatch:
+    inputs:
+      approved_plan_digest:
+        description: Exact reviewed fresh owner plan digest
+        required: true
+        type: string
+      plan_base64:
+        description: Exact public current-stage plan and owner signature for independent review
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: factory-owner-signing
+  cancel-in-progress: false
+jobs:
+  sign:
+    if: >-
+      github.ref == 'refs/heads/main' && github.actor_id == '214414801' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      AWS_MAX_ATTEMPTS: '1'
+      BOUNDED_SCOPE_PLAN_BASE64: ${{ inputs.plan_base64 }}
+      APPROVED_PLAN_DIGEST: ${{ inputs.approved_plan_digest }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --require-hashes -r requirements-ci.txt -r requirements-role-lambda.txt -r requirements-aws-signing.txt
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+        with:
+          role-to-assume: arn:aws:iam::666730517561:role/tims-factory-signing-owner
+          aws-region: ca-central-1
+          allowed-account-ids: '666730517561'
+          role-duration-seconds: 900
+          role-session-name: bounded-owner-scope-${{ github.run_id }}
+          disable-retry: true
+      - name: Authenticate Docker proof and sign exact owner scope once
+        run: python scripts/sign_bounded_review_scope.py "$RUNNER_TEMP/bounded-scope.json" --mode owner --approved-plan-digest "$APPROVED_PLAN_DIGEST"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: bounded-owner-scope-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bounded-scope.json
+          if-no-files-found: ignore
+          retention-days: 1
