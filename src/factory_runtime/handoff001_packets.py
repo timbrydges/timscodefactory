@@ -10,8 +10,8 @@ CONTRACT = 'factory/autonomy/handoff-001-contract.json'
 BASELINE = 'factory/evidence/handoff-001-baseline.json'
 APPROVAL = 'factory/evidence/handoff-001-budget-approval.json'
 PINNED = {
-    CONTRACT: 'd2bae07aa74d92e4ea2ca98580bfaea66cfc9ff5073dcc46b3280f3bbf9fcaad',
-    BASELINE: 'f52d45214b48af4ab656fc35e7899be1930a3b69f1407df698b88f5a7c3ef48c',
+    CONTRACT: '6488335dcbaebbe504a9d17de79e112702cf32e6274abbae7803f5fee4e46db0',
+    BASELINE: 'ceaed93cf091044273ae25d04b0536ad43caed6e2c5c672e58d10e9d3e2461c7',
     APPROVAL: '4d33ddba9c6e5af07803a41fbc1c3f5b3c0b620559fa79e165a28a823f49a4da',
 }
 
