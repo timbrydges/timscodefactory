@@ -78,7 +78,7 @@ class BoundedReviewController:
                 len({id(guard) for guard in guards.values()}) != 3 or
                 any(not callable(getattr(guard, method, None)) for guard in guards.values()
                     for method in ('check_activation', 'reserve')) or
-                type(job_versions) is not dict or set(job_versions) != set(ROLES) or
+                type(job_versions) is not dict or not job_versions or not set(job_versions)<=set(ROLES) or
                 type(builder_input_digest) is not str or not SHA256_DIGEST.fullmatch(builder_input_digest)):
             raise StateError('exact three-role routes, guards and job pins required')
         self.evidence = PinnedPythonTestEvidence(inspector_binding, proof_bytes, candidate_files,
@@ -107,6 +107,7 @@ class BoundedReviewController:
         cycle = AutonomousCycle(intake, worker, progressor, VersionedS3ReceiptTransport(s3), enabled=enabled)
         self.scheduler = AutonomousScheduler(cycle, states, jobs, activation, clock=clock, enabled=enabled)
         self.activation, self.clock, self.enabled, self.states = activation, clock, enabled, states
+        self.pinned_stages = frozenset(job_versions)
 
     def verify_tests(self):
         b = self.binding
@@ -128,6 +129,9 @@ class BoundedReviewController:
             raise StateError('bounded controller task missing')
         if state.state not in ROLES:
             return {'status': 'STOPPED', 'state': state.state, 'worker_invocations': 0,
+                    'release_dispatched': False, 'activation_id': self.activation.activation_id}
+        if state.state not in self.pinned_stages:
+            return {'status': 'AWAITING_SIGNED_STAGE', 'state': state.state, 'worker_invocations': 0,
                     'release_dispatched': False, 'activation_id': self.activation.activation_id}
         self.verify_tests()
         return self.scheduler.tick(factory_id, task_id)

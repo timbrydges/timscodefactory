@@ -69,13 +69,26 @@ class CompositionTests(unittest.TestCase):
             config['qa_binding'] = replace(binding, **{change:value})
             with self.subTest(change=change), self.assertRaises(StateError):
                 BoundedReviewController(**config)
-        for field in ('guards', 'function_arns', 'job_versions'):
+        for field in ('guards', 'function_arns'):
             config = configuration(); config[field].pop(next(iter(config[field])))
             with self.assertRaises(StateError): BoundedReviewController(**config)
         config = configuration(); config['function_arns']['qa'] = config['function_arns']['inspector']
         with self.assertRaises(StateError): BoundedReviewController(**config)
         config = configuration(); config['guards']['qa'] = config['guards']['inspector']
         with self.assertRaises(StateError): BoundedReviewController(**config)
+
+    def test_unpinned_stage_waits_without_jobs_claims_or_invocation(self):
+        config=configuration(); config['job_versions']={'IMPLEMENTATION':config['job_versions']['IMPLEMENTATION']}
+        config['states']=States(task_state('INSPECTION'))
+        service=BoundedReviewController(**config,enabled=True)
+        service.scheduler=Mock()
+        result=service.tick('factory','task-1')
+        self.assertEqual(result['status'],'AWAITING_SIGNED_STAGE')
+        self.assertEqual(result['worker_invocations'],0)
+        self.assertEqual(service.scheduler.mock_calls,[])
+        self.assertTrue(all(not g.mock_calls for g in config['guards'].values()))
+        for pins in ({},{'SECURITY_REVIEW':config['job_versions']['IMPLEMENTATION']}):
+            with self.assertRaises(StateError):BoundedReviewController(**{**config,'job_versions':pins})
 
     def test_stops_before_security_or_release_without_loading_jobs(self):
         for stage in ('SECURITY_REVIEW', 'RELEASE_READY', 'PAUSED'):
