@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import hashlib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 EXCLUDED_PARTS = {".git", ".pytest_cache", "__pycache__", ".venv", ".terraform"}
@@ -14,7 +14,7 @@ EXCLUDED_FILES = {"MANIFEST.sha256"}
 
 
 def iter_manifest_files(root: Path):
-    for path in sorted(root.rglob("*")):
+    for path in sorted(root.rglob("*"), key=lambda p: PurePosixPath(p.relative_to(root).as_posix())):
         if not path.is_file():
             continue
         relative = path.relative_to(root)
