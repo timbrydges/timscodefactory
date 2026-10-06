@@ -32,6 +32,8 @@ WORKERS['handoff002_observer']=('tims-factory-handoff-002-observer','FACTORY_HAN
 WORKERS['handoff003_dispatcher']=('tims-factory-handoff-003-dispatcher','FACTORY_HANDOFF003_DISPATCH_ENABLED')
 WORKERS['handoff003_qa_recovery001']=('tims-factory-handoff-003-qa-recovery-001','FACTORY_HANDOFF003_QA_RECOVERY001_ENABLED')
 ATTEMPTS['handoff003_qa_recovery001']=('tims-factory-handoff-003-qa-recovery-001-attempts',{'PK':{'S':'HANDOFF#003#QA_RECOVERY#001'}})
+WORKERS['handoff003_qa_paid_recovery002']=('tims-factory-handoff-003-qa-recovery-002','FACTORY_HANDOFF003_QA_PAID_RECOVERY002_ENABLED')
+ATTEMPTS['handoff003_qa_paid_recovery002']=('tims-factory-handoff-003-qa-recovery-002-attempts',{'PK':{'S':'HANDOFF#003#QA_RECOVERY#002'}})
 
 
 def _amount(item,field):

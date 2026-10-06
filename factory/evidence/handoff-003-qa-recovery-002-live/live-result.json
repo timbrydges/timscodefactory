@@ -1,0 +1,20 @@
+{
+  "output_base64": "ewogICJyb2xlIjogInFhIiwKICAidGFza19pZCI6ICJhdXRoZW50aWNhdGVkLWhhbmRvZmYtMDAzIiwKICAiY29udHJhY3RfZGlnZXN0IjogInNoYTI1Njo1ZTQ2YmE1ZjdjYWJhZjBmOTgxNTBkMTFlMDA3NWFmYzBjNWYxYzViM2I0NmUxYzI1ZTQxMWZlZWJiNTlhNzFlIiwKICAiY2FuZGlkYXRlX2NvbW1pdCI6ICI5OTQ3MTlhMzg0YjdhYzk2YWJlYjY3ZTRiMmFkZGNhYjJkZWI0NzYzIiwKICAiY2FuZGlkYXRlX2RpZ2VzdCI6ICJzaGEyNTY6NzQxZDJjY2M1NjhlYThlYTE0MTBlYmQzYjNhM2EyMmZiZGE1NTUyZjQzZDA0Y2M4ODU2NTRiYjQ4ZGUzOGQ3ZiIsCiAgInBhY2tldF9kaWdlc3QiOiAic2hhMjU2OmUxYWE3YmU4NmJjZDM0YjMwMjY5NGU4ZjIxMDM1NjkwOGFhZmI4YzI1NzVlNmJiZWQ4MmI1NTAxNzNmZjNmZGEiLAogICJ2ZXJkaWN0IjogIkFDQ0VQVEVEIiwKICAicmF0aW9uYWxlIjogIlRoZSBjYW5kaWRhdGUgZnVsbHkgc2F0aXNmaWVzIGFsbCBjcml0ZXJpYTogcGF0aCB0cmF2ZXJzYWwgYW5kIHN5bWxpbmtzIGFyZSBzYWZlbHkgcmVqZWN0ZWQgdXNpbmcgZGVzY3JpcHRvciB0cmF2ZXJzYWwgd2l0aCBPX05PRk9MTE9XOyBub25ibG9ja2luZyBmaWxlIG9wZW5pbmcgY2hlY2tzIGZvciByZWd1bGFyIGZpbGVzIGFuZCBlbmZvcmNlcyB0aGUgNDA5Ni1ieXRlIGxpbWl0OyBkZXRlcm1pbmlzdGljIGNhbm9uaWNhbCBKU09OIGNvbnRhaW5pbmcgYnl0ZV9jb3VudCwgc2hhMjU2LCBhbmQgdGV4dCBpcyBwcm9kdWNlZDsgZmFpbHVyZSBjb25kaXRpb25zIHByb2R1Y2Ugbm8gc3Rkb3V0OyBhbmQgdGVzdHMgdGhvcm91Z2hseSBjb3ZlciBBU0NJSSwgVW5pY29kZSwgc2l6ZSBib3VuZHMsIHRyYXZlcnNhbCwgc3ltbGlua3MsIGRpcmVjdG9yaWVzLCBGSUZPcywgYW5kIGNoaWxkIHByb2Nlc3MgdGltZW91dHMgdXNpbmcgb25seSBzdGFuZGFyZCBsaWJyYXJ5IG1vZHVsZXMuIiwKICAiZmluZGluZ3MiOiBbXQp9",
+  "payload": {
+    "actual_micro_usd": 4979,
+    "expires_at": 1791269463,
+    "issued_at": 1791266248,
+    "kind": "handoff003_qa_paid_recovery002_result",
+    "model_id": "gemini-3.7-flash",
+    "output_digest": "sha256:55d73d7391111ac54c847544d6b2ebb381ad60529f1e4b9b6d741a0c291437e9",
+    "producer_identity": "qa_engineer_service",
+    "provider_response_digest": "sha256:77b4658cde6d15183cad9d83386b1fc5cfd2d5513d75751ba6b5170cde6d8c58",
+    "request_digest": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc",
+    "role": "qa",
+    "scope_digest": "sha256:aefdd429b0c6b6492369e3afa3d08e04d3df5edd4e3f1532ce43a68a9c98afeb",
+    "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+    "task_id": "authenticated-handoff-003-qa-recovery-002",
+    "transport_invocations": 1
+  },
+  "signature_base64": "9ILMru81dYT8/3bBYthKhAPpVpNU2CHxrcX8IPuzpqzbzRkrbDQ56JCBFa+1h2jIvofXZlEer6pf4VSMyqQOCQ=="
+}

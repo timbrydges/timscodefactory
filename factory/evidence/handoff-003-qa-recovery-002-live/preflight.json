@@ -1,0 +1,70 @@
+{
+  "credential_route": {
+    "json_key": null,
+    "kind": "secretsmanager",
+    "secret_arn": "arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE",
+    "version_id": "db69f4bf-38c0-43d5-8bbf-ce20d8e07282"
+  },
+  "generation_requests": 0,
+  "google_project_id": "gen-lang-client-0247455615",
+  "input_tokens": 4673,
+  "metadata": {
+    "description": "Gemini 3.7 Flash",
+    "displayName": "Gemini 3.7 Flash",
+    "inputTokenLimit": 1048576,
+    "maxTemperature": 2,
+    "name": "models/gemini-3.7-flash",
+    "outputTokenLimit": 65536,
+    "supportedGenerationMethods": [
+      "generateContent",
+      "countTokens",
+      "createCachedContent",
+      "batchGenerateContent"
+    ],
+    "temperature": 1,
+    "thinking": true,
+    "topK": 64,
+    "topP": 0.95,
+    "version": "3.7-flash-08-2026"
+  },
+  "observed_at": "2026-10-06T05:55:40.205469+00:00",
+  "paid_tier_verified": true,
+  "permission_proof": {
+    "attempt_row_checks": [
+      {
+        "decision": "ConditionalCheckFailedException",
+        "key": "HANDOFF#003#QA_RECOVERY#002",
+        "table": "tims-factory-handoff-003-qa-recovery-002-attempts"
+      },
+      {
+        "decision": "AccessDeniedException",
+        "key": "HANDOFF#003#QA_RECOVERY#002#other",
+        "table": "tims-factory-handoff-003-qa-recovery-002-attempts"
+      },
+      {
+        "decision": "AccessDeniedException",
+        "key": "HANDOFF#003#QA_RECOVERY#001",
+        "table": "tims-factory-handoff-003-qa-recovery-001-attempts"
+      },
+      {
+        "decision": "AccessDeniedException",
+        "key": "HANDOFF#003#TASK#authenticated-handoff-003#ROLE#qa",
+        "table": "tims-factory-handoff-003-attempts"
+      }
+    ],
+    "dependencies": {
+      "credential_route_verified": true,
+      "key_fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+      "signing_key_readable": true
+    },
+    "execution_authorized": false,
+    "model_calls": 0,
+    "signing_calls": 0,
+    "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+    "state_writes": 0,
+    "status": "RECOVERY_PERMISSION_CANARY_VERIFIED"
+  },
+  "request_digest": "sha256:333d6430e2cd5136509bf8420aa04ba116b1b41c104cc80cafbe6e19a488b8fc",
+  "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+  "status": "FRESH_RECOVERY_PREFLIGHT_VERIFIED"
+}

@@ -1,0 +1,25 @@
+[
+  {
+    "observed_at": "2026-10-06T05:57:10.773853+00:00",
+    "source_commit": "ccfd8860b2a665a295cd66db4ecdfb45ea36e97f",
+    "stage": "PREPARATION_STARTED"
+  },
+  {
+    "activation_sha256": "d384a18f0c64149d834344958b34bc075485bd88437586b04c6e930683c00635",
+    "observed_at": "2026-10-06T05:57:18.939168+00:00",
+    "stage": "LIVE_INVOKE_STARTED_NO_RETRY",
+    "version": "3"
+  },
+  {
+    "function_error": null,
+    "observed_at": "2026-10-06T05:57:28.590243+00:00",
+    "sha256": "d4d4d7006dc056b0b009d30687975e5c67226c7c53b69bc5f87354736d79ab07",
+    "stage": "LIVE_INVOKE_RETURNED"
+  },
+  {
+    "code_sha256": "qESShJ2hGU9fiMAtN0Z98Y742igMvm2pAbowRKfu+lA=",
+    "observed_at": "2026-10-06T05:57:36.582118+00:00",
+    "reserved_concurrency": 0,
+    "stage": "RESTORED_DISABLED"
+  }
+]
