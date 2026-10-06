@@ -1,4 +1,5 @@
-name: Factory paid QA recovery owner signing
+name: factory-owner-signing
+run-name: Paid QA recovery owner allowance
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +42,7 @@ jobs:
           role-to-assume: arn:aws:iam::666730517561:role/tims-factory-signing-owner
           aws-region: ca-central-1
           allowed-account-ids: '666730517561'
+          retry-max-attempts: 1
           role-duration-seconds: 900
           role-session-name: handoff003_qa_paid_recovery002-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once

@@ -36,6 +36,7 @@ class RecoverySigningTests(unittest.TestCase):
     def test_workflow_is_exclusive_owner_main_first_attempt(self):
         import yaml
         workflow=yaml.safe_load((s.ROOT/'.github/workflows/factory-paid-qa-owner-signing.yml').read_bytes())
+        self.assertEqual(workflow['name'],'factory-owner-signing') # Existing AWS OIDC trust binds this claim.
         self.assertLessEqual(len(workflow[True]['workflow_dispatch']['inputs']),25)
         for name,job in workflow['jobs'].items():
             if name=='sign_handoff003_qa_paid_recovery002_allowance':
