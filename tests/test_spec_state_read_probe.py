@@ -1,8 +1,32 @@
 import unittest
-from scripts.spec_state_read_probe import PK, ROLE, ReadError, run
+import json
+from subprocess import CompletedProcess
+from unittest.mock import patch
+from scripts.spec_state_read_probe import PK, ROLE, ReadError, read, run
 
 
 class ReadProbeTests(unittest.TestCase):
+    @patch('scripts.spec_state_read_probe.subprocess.run')
+    def test_absent_item_empty_cli_output_is_allowed_read(self, cli):
+        cli.side_effect = [
+            CompletedProcess([], 0, json.dumps({'Account':'666730517561','Arn':ROLE+'fixture'}).encode(), b''),
+            CompletedProcess([], 0, b'', b''),
+            CompletedProcess([], 254, b'', b'An error occurred (AccessDeniedException)'),
+        ]
+        result = run('123-1', 'a'*40)
+        self.assertTrue(result['exact_task_read_allowed'])
+        self.assertFalse(result['task_exists'])
+        self.assertTrue(result['other_task_read_denied'])
+
+    @patch('scripts.spec_state_read_probe.subprocess.run')
+    def test_empty_identity_or_malformed_json_remains_failure(self, cli):
+        cli.return_value = CompletedProcess([], 0, b'', b'')
+        with self.assertRaises(json.JSONDecodeError):
+            read('sts', 'get-caller-identity', {})
+        cli.return_value = CompletedProcess([], 0, b'invalid', b'')
+        with self.assertRaises(json.JSONDecodeError):
+            read('dynamodb', 'get-item', {})
+
     def setUp(self):
         self.calls=[];self.denial='AccessDeniedException';self.role=ROLE+'fixture'
 
