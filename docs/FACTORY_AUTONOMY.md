@@ -1,5 +1,41 @@
 # Completing Tim's Software Factory
 
+## Current continuation boundary — 2026-10-05
+
+Pilot 002's owner-merged acceptance artifact is a completed fixture, not proof
+of unattended Factory operation. PR397/398 added a read-only worker/attempt
+observer and offline operator page. The retained observation is
+`factory/evidence/pilot-002-operator-status-2026-10-05.json`: seven disabled
+workers, seven non-reusable attempts, PAUSED v0 with no active leases. Its
+US$1.75 reservation total is not an invoice or permission to spend again.
+
+PR399/400 hardened authoritative state persistence and reads. The synthetic
+DynamoDB canary proved exact-state persistence and atomic rejection of missing
+or changed prior records. See `docs/state-exact-persistence.md` and its evidence.
+The stricter reader was also exercised against the existing pilot and synthetic
+canary from merged source `a20d4ca6917a51103fdbdad444adf7d8bf1e3391`.
+
+An attempted preparation with the original disabled-controller deployment tool
+stopped before upload or change-set creation. The deployed stack has subsequent
+QA/security versions and the disabled `pilot002_bootstrap.handler`, so restoring
+the original template would overwrite later work. Existing runtime deployments
+have not received these library changes. Do not relax template equality merely
+to force that deployment through.
+
+Review progression now requires a deployment-owned `review_validator` returning
+the boolean `True`, in addition to authentic signatures and exact dispatch
+binding. A signature establishes origin and integrity; it does not establish an
+ACCEPTED verdict or passing tests. The default blocks specification review,
+Inspector, QA and security review progression. A future adapter must validate
+the role's exact output schema, acceptance semantics and required test evidence;
+agent/job input must never select or supply the validator. Validator errors stop
+without state writes, evidence consumption or another provider call.
+
+Remaining operation work requires a fresh bounded task/allowance, authenticated
+provider adapters with semantic validators, current immutable deployment and job
+pins, and an integrated run. Historical unsigned captures cannot be promoted
+into authoritative receipts. Previous provider allowances remain consumed.
+
 The priority is a reusable autonomous software delivery service. Bonus Library
 is the acceptance project; further product features should serve a named Factory
 milestone. AI-generated product descriptions are not Factory worker calls.

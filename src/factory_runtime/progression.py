@@ -26,6 +26,8 @@ ADVANCES = {
     ('SECURITY_REVIEW', 'deep_security_reviewer'): 'RELEASE_READY',
 }
 MAX_OUTPUT = 65536
+REVIEW_ROLES = frozenset(('product_spec_reviewer', 'independent_inspector',
+                         'qa_engineer', 'deep_security_reviewer'))
 
 
 def _strict_json(raw: str) -> dict:
@@ -60,10 +62,12 @@ def _decode(value: str, maximum: int) -> bytes:
 class SignedResultProgressor:
     """Persist exactly one evidence-backed transition from a completed dispatch."""
 
-    def __init__(self, state_store, ledger, *, key_loader, clock=None):
+    def __init__(self, state_store, ledger, *, key_loader, clock=None, review_validator=None):
         self.states, self.ledger = state_store, ledger
         self.key_loader = key_loader
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        # Deployment-owned semantic validation; never taken from job/model input.
+        self.review_validator = review_validator
 
     def advance(self, factory_id, task_id, request):
         now = self.clock()
@@ -112,6 +116,16 @@ class SignedResultProgressor:
         reviewer = approvals['review'].get('reviewer_identity')
         if not reviewer or reviewer == lease.authoritative_identity:
             raise StateError('accepted result lacks independent scope review')
+
+        if lease.role_id in REVIEW_ROLES:
+            if self.review_validator is None:
+                raise StateError('review progression requires a configured verdict validator')
+            try:
+                accepted = self.review_validator(state, request, output)
+            except Exception:
+                raise StateError('review verdict validation failed') from None
+            if accepted is not True:
+                raise StateError('review verdict does not authorize advancement')
 
         evidence = Evidence(evidence_id=evidence_id, producer_role=lease.role_id,
             producer_identity=lease.authoritative_identity, task_id=state.task_id,

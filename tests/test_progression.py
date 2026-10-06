@@ -43,7 +43,8 @@ class SignedResultProgressionTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(); self.addCleanup(self.directory.cleanup)
         self.keys, self.private = fixture_keys(self.directory.name,
-            ('tim_brydges', 'independent_inspector_service', 'engineering_agent_service'))
+            ('tim_brydges', 'independent_inspector_service', 'engineering_agent_service',
+             'product_spec_reviewer_service'))
         lease = Lease('lease-1', 'engineering_agent', 'engineering_agent_service', NOW + timedelta(minutes=10))
         self.state = TaskState('factory', 'task-1', 'IMPLEMENTATION', 3, NOW, CONTROLLER_IDENTITY, (lease,))
         self.contract = b'bounded contract'; self.input = b'bounded implementation task'
@@ -87,6 +88,51 @@ class SignedResultProgressionTests(unittest.TestCase):
         second = self.progressor.advance('factory','task-1',self.request)
         self.assertEqual(second['status'],'ALREADY_ADVANCED')
         self.assertEqual(second['evidence_id'],first['evidence_id']); self.assertEqual(len(self.states.writes),1)
+
+    def test_signed_review_requires_explicit_semantic_acceptance(self):
+        # Authentic origin is not an ACCEPTED verdict. Use actual signatures for
+        # both the independent scope review and the executing Inspector result.
+        lease = Lease('lease-1', 'independent_inspector', 'independent_inspector_service',
+                      NOW + timedelta(minutes=10))
+        self.states.state = TaskState('factory', 'task-1', 'INSPECTION', 3, NOW,
+                                     CONTROLLER_IDENTITY, (lease,))
+        scope = SignedScopeStore('state', self.client, self.keys)
+        review = {'kind':'scope_review','factory_id':'factory','task_id':'task-1',
+            'binding':self.ledger._binding(self.request),'verdict':'ACCEPTED',
+            'reviewer_identity':'product_spec_reviewer_service','rationale':'Independent scope review',
+            'issued_at':int(NOW.timestamp()),'expires_at':int(NOW.timestamp())+300}
+        # The memory fixture has no conditional writes; replace only its scope row.
+        scope.approve_task(self.states.state,self.request,review,
+            sign(review,self.private['product_spec_reviewer_service'],self.directory.name),now=NOW)
+        key = self.client.key(self.ledger._key(self.state,self.request))
+        row = self.client.items[key]
+        payload = json.loads(row['result_payload']['S'])
+        payload['producer_identity'] = lease.authoritative_identity
+        row['result_payload'] = {'S':canonical(payload).decode()}
+        row['receipt_digest'] = {'S':digest(canonical(payload))}
+        row['result_signature'] = {'S':base64.b64encode(sign(payload,
+            self.private[lease.authoritative_identity],self.directory.name)).decode()}
+        with self.assertRaisesRegex(StateError, 'configured verdict validator'):
+            self.progressor.advance('factory','task-1',self.request)
+        for value in (False, None, 1, 'ACCEPTED'):
+            self.progressor.review_validator = lambda *args: value
+            with self.assertRaisesRegex(StateError, 'does not authorize'):
+                self.progressor.advance('factory','task-1',self.request)
+        self.assertEqual(self.states.writes, [])
+        def broken(*args):
+            raise RuntimeError('private-provider-detail')
+        self.progressor.review_validator = broken
+        with self.assertRaisesRegex(StateError, '^review verdict validation failed$'):
+            self.progressor.advance('factory','task-1',self.request)
+        self.assertEqual(self.states.writes, [])
+        seen = []
+        def accept(state, request, output):
+            seen.append((state, request, output))
+            return True
+        self.progressor.review_validator = accept
+        self.assertEqual(self.progressor.advance('factory','task-1',self.request)['state'], 'QA')
+        self.assertEqual(seen[0][1], self.request)
+        self.assertEqual(seen[0][2], b'verified implementation artifact')
 
     def test_tampered_output_signature_and_unrecorded_result_fail_closed(self):
         key = self.client.key(self.ledger._key(self.state,self.request)); original = deepcopy(self.client.items[key])
