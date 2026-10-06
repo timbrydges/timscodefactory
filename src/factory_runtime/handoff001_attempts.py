@@ -1,7 +1,7 @@
 """Separate permanent claims for the new budget; never reset the pilot ledger."""
 from factory_state.model import StateError
 from .handoff001_packets import TASK, CONTRACT, PINNED
-from .pilot002_attempts import Pilot002AttemptStore
+from .pilot002_attempts import _PermanentAttemptStore
 
 TABLE = 'tims-factory-handoff-001-attempts'
 ROLES = ('builder', 'inspector', 'qa')
@@ -13,7 +13,7 @@ def key(role):
     return {'PK': {'S': f'HANDOFF#001#TASK#{TASK}#ROLE#{role}'}}
 
 
-class Handoff001AttemptStore(Pilot002AttemptStore):
+class Handoff001AttemptStore(_PermanentAttemptStore):
     table = TABLE
     task = TASK
     contract_digest = 'sha256:' + PINNED[CONTRACT]

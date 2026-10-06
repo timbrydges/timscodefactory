@@ -26,7 +26,7 @@ def _digest(value):
     return isinstance(value, str) and re.fullmatch(r'sha256:[0-9a-f]{64}', value)
 
 
-class Pilot002AttemptStore:
+class _PermanentAttemptStore:
     # Deployment-owned constants, never event fields. Subclasses can isolate a
     # separately approved task without resetting or granting access to this one.
     table = TABLE
@@ -86,3 +86,7 @@ class Pilot002AttemptStore:
                     ':actual': {'N': str(actual_micro_usd)}})
         except Exception:
             raise StateError('Pilot 002 completion uncertain; retain hold and do not repeat provider call') from None
+
+
+class Pilot002AttemptStore(_PermanentAttemptStore):
+    """The legacy workflow accepts only its own task store family."""

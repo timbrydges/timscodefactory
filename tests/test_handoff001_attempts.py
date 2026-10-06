@@ -51,3 +51,14 @@ class HandoffAttemptTests(unittest.TestCase):
         for patch in ({'approval_expires_at': self.args['now']}, {'role': 'security'}, {'role': []}):
             with self.assertRaises(StateError): self.store.begin(**{**self.args, **patch})
         self.db.put_item.assert_not_called()
+
+    def test_legacy_workflow_cannot_consume_fresh_rows(self):
+        from factory_runtime.pilot002_workflow import run_once
+        adapter, credential = Mock(), Mock()
+        with self.assertRaisesRegex(StateError, 'fixed-role attempt store'):
+            run_once({}, root=None, role='builder', source_commit='a'*40,
+                pricing={}, readiness={}, trusted_keys={}, store=self.store,
+                load_credential=credential, adapter=adapter, clock=Mock(), enabled=True)
+        self.db.put_item.assert_not_called()
+        adapter.build_request.assert_not_called()
+        credential.assert_not_called()
