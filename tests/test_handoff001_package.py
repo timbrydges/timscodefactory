@@ -17,7 +17,7 @@ class HandoffPackageTests(unittest.TestCase):
             target = self.root/name; target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((package.ROOT/name).read_bytes())
         for name, raw in {'.gitignore': b'.env.local\nsrc/ignored.py\n',
-            'src/factory_runtime/__init__.py': b'', 'src/factory_runtime/committed.py': b'VALUE = 1\n',
+            'src/factory_runtime/__init__.py': b'import development_only_dependency\n', 'src/factory_runtime/committed.py': b'VALUE = 1\n',
             'requirements-role-lambda.txt': b'# verification lock\n',
             'requirements-aws-signing.txt': b'# SDK lock\n'}.items():
             target = self.root/name; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(raw)
@@ -40,6 +40,8 @@ class HandoffPackageTests(unittest.TestCase):
             self.assertNotIn('ignored.py', names)
             self.assertNotIn('src/ignored.py', names)
             self.assertEqual(archive.read('factory_runtime/committed.py'), b'VALUE = 1\n')
+            self.assertEqual(archive.read('factory_runtime/__init__.py'), b'')
+            self.assertEqual(archive.read('factory_state/__init__.py'), b'')
             self.assertEqual(json.loads(archive.read('BUILD.json'))['source_commit'], result['source_commit'])
         self.assertIn(b'# SDK lock', locks[0])
         self.assertIn(b'# verification lock', locks[0])

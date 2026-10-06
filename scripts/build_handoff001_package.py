@@ -27,6 +27,10 @@ def build(output, *, activation=None, now=None):
     def blob(name): return subprocess.check_output(['git', 'show', commit+':'+name], cwd=ROOT)
     source_paths = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', commit, 'src'], cwd=ROOT, text=True).splitlines()
     files = {name[4:]: blob(name) for name in source_paths if name.startswith('src/') and name.endswith('.py')}
+    # The handoff imports explicit modules only. The development convenience
+    # initializers import unrelated Docker/YAML features absent from this ZIP.
+    files['factory_runtime/__init__.py'] = b''
+    files['factory_state/__init__.py'] = b''
     files.update({name: blob(name) for name in PINNED})
     files['BUILD.json'] = json.dumps({'source_commit': commit}, sort_keys=True).encode()
     activation_info = {}
