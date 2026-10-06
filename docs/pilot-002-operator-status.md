@@ -108,3 +108,20 @@ The controller integration test traverses Builder, Inspector and QA with real
 synthetic signatures and mocked external I/O, then checks that the terminal
 decision invokes nothing. This validates composition in tests, not a deployed
 autonomous service. The ledger deployment alone grants no execution access.
+
+## Read-only cloud controller observation
+
+The observer deployed from `0afbb3c27b8715375ed88102a220292dd2305eea`
+returned `COMPLETED_NO_DISPATCH` from immutable Lambda version 1 using its
+own role. IAM grants only reads of the three exact handoff002 attempt keys and
+its own logs; it has no worker invocation, provider, secret, signing or budget
+write permission. The public `handoff002-observer-live-result.json` and
+`handoff002-observer-disabled-proof.json` preserve this observation and the
+restored false execution flag and zero reserved concurrency.
+
+CI verifies the actual observer ZIP under isolated Python 3.12, including
+historical public signatures and rejection while disabled. The operator
+inventory includes this observer as a fourteenth component, without inventing
+a provider attempt or reservation for it. These proofs establish observation
+and stop behavior; a future autonomous task still needs fresh signed scopes,
+candidate test evidence and a separately reviewed dispatch deployment.

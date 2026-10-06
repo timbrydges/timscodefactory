@@ -10,7 +10,7 @@ import tempfile
 import zipfile
 
 
-def verify(package):
+def verify(package, *, observer=False):
     if sys.version_info[:2] != (3, 12): raise RuntimeError('Use the target Python 3.12 runtime')
     with tempfile.TemporaryDirectory(prefix='handoff-package-proof-') as temporary:
         root = Path(temporary)
@@ -48,10 +48,27 @@ else:
     raise AssertionError('Disabled boundary did not reject')
 print('ISOLATED_PYTHON312_PACKAGE_VERIFIED_NO_AWS_OR_MODEL_CALLS')
 '''
+        if observer:
+            code += '''
+import os
+sys.path.insert(0, str(Path(sys.argv[1])/'scripts'))
+from factory_runtime.handoff002_observer import handler
+from verify_handoff002_saved_evidence import verify as audit
+os.environ.pop('FACTORY_HANDOFF002_OBSERVER_ENABLED', None)
+try:
+    handler(None, None)
+except StateError as error:
+    assert str(error) == 'Observer disabled'
+else:
+    raise AssertionError('Observer not disabled')
+assert audit(Path(sys.argv[1])/'factory/evidence/handoff-002-live')['execution_authorized'] is False
+print('ISOLATED_OBSERVER_AND_SIGNATURES_VERIFIED_NO_AWS_OR_MODEL_CALLS')
+'''
         subprocess.run([sys.executable, '-I', '-S', '-c', code, str(root)], check=True, timeout=30)
     return {'status': 'ISOLATED_PACKAGE_VERIFIED', 'source_commit': index['source_commit'], 'model_calls': 0}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('package', type=Path)
-    print(json.dumps(verify(parser.parse_args().package)))
+    parser.add_argument('--observer', action='store_true'); args=parser.parse_args()
+    print(json.dumps(verify(args.package, observer=args.observer)))

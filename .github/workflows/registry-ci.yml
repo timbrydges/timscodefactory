@@ -39,3 +39,9 @@ jobs:
           set -euo pipefail
           python scripts/build_handoff002_package.py "$RUNNER_TEMP/handoff002.zip"
           python scripts/verify_handoff002_package.py "$RUNNER_TEMP/handoff002.zip"
+      - name: Verify isolated read-only observer and saved signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_handoff002_observer_package.py "$RUNNER_TEMP/handoff002-observer.zip"
+          python scripts/verify_handoff002_package.py "$RUNNER_TEMP/handoff002-observer.zip" --observer
