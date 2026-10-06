@@ -30,6 +30,8 @@ for number in ('001', '002', '003'):
 # This read-only component has no provider attempt or budget row.
 WORKERS['handoff002_observer']=('tims-factory-handoff-002-observer','FACTORY_HANDOFF002_OBSERVER_ENABLED')
 WORKERS['handoff003_dispatcher']=('tims-factory-handoff-003-dispatcher','FACTORY_HANDOFF003_DISPATCH_ENABLED')
+WORKERS['handoff003_qa_recovery001']=('tims-factory-handoff-003-qa-recovery-001','FACTORY_HANDOFF003_QA_RECOVERY001_ENABLED')
+ATTEMPTS['handoff003_qa_recovery001']=('tims-factory-handoff-003-qa-recovery-001-attempts',{'PK':{'S':'HANDOFF#003#QA_RECOVERY#001'}})
 
 
 def _amount(item,field):
@@ -96,4 +98,4 @@ def observe(*,sts,lam,db,clock=lambda:datetime.now(timezone.utc)):
         'reservation_total_complete':all(a['status']!='UNKNOWN' for a in attempts.values()),
         'known_reported_actual_micro_usd':sum(a.get('reported_actual_micro_usd') or 0 for a in attempts.values()),
         'invoice_verified':False,'gate_authority':False,'execution_authorized':False,
-        'scope':'Pilot 002 and handoff 001/002/003 workers, observer, dispatcher and provider attempts; authoritative task is Pilot 002 only; not all Factory infrastructure or IAM permissions'}
+        'scope':'Pilot 002 and handoff 001/002/003 workers, separate handoff003 QA recovery001, observer, dispatcher and provider attempts; authoritative task is Pilot 002 only; not all Factory infrastructure or IAM permissions'}
