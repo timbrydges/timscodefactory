@@ -55,6 +55,15 @@
       "not_before": 1791034056,
       "expires_at": 1791120456,
       "revoked": false
+    },
+    {
+      "identity": "product_spec_reviewer_service",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+      "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+      "not_before": 1791304369,
+      "expires_at": 1791390769,
+      "revoked": false
     }
   ]
 }

@@ -1,6 +1,9 @@
 """Real Ed25519 verification at a simulated isolated KMS boundary."""
 import json
 import hashlib
+import base64
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -10,7 +13,8 @@ from scripts.spec_signing_canary import KEY, IDENTITY, OTHER_ALIASES, ROLE, run
 from scripts.kms_signing_canary import AwsError
 from factory_state.kms_signer import ALGORITHM
 from factory_state.model import StateError
-from factory_state.signers import public_key_der
+from factory_state.signers import public_key_der, validate_trusted_signers
+from factory_state.scope import SignedScopeStore
 from test_dispatch_ledger import NOW
 
 
@@ -84,3 +88,22 @@ class SpecCustodyTests(unittest.TestCase):
         with self.assertRaises(StateError): self.execute(run_id='123-2')
         with self.assertRaises(StateError): self.execute(now=NOW.replace(tzinfo=None))
         self.assertEqual(self.calls, [])
+
+
+class SpecEnrollmentTests(unittest.TestCase):
+    def test_live_custody_signature_and_enrollment_expiry(self):
+        root = Path(__file__).resolve().parents[1]
+        evidence = json.loads((root / 'factory/evidence/spec-signer-enrollment-001.json').read_bytes())
+        registry = json.loads((root / 'factory/profiles/scope-signers.json').read_bytes())
+        proof = evidence['proof']
+        issued = datetime.fromtimestamp(proof['challenge']['issued_at'], timezone.utc)
+        keys = validate_trusted_signers(registry, now=issued)
+        self.assertEqual(keys[IDENTITY], proof['public_key_pem'].encode())
+        self.assertEqual(proof['key_arn'], KEY)
+        self.assertEqual(proof['cross_role_signing_denied'], list(OTHER_ALIASES))
+        SignedScopeStore('unused', None, keys)._verify(proof['challenge'],
+            base64.b64decode(proof['signature_base64'], validate=True), IDENTITY, issued)
+        self.assertNotIn(IDENTITY, validate_trusted_signers(registry, now=issued + timedelta(days=1)))
+        entry = next(x for x in registry['signers'] if x['identity'] == IDENTITY)
+        entry['revoked'] = True
+        self.assertNotIn(IDENTITY, validate_trusted_signers(registry, now=issued))
