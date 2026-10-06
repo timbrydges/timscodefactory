@@ -21,19 +21,23 @@ ROLES['qa'] = 'tims-factory-review-qa'
 
 
 class _EnrolledSigner:
+    key_bindings = KEYS
+    role_bindings = ROLES
+    identities = {'owner': 'tim_brydges', **{r: ROLE_IDENTITIES[r] for r in ('builder', 'inspector', 'qa')}}
+
     def __init__(self, *, role, kms, sts, key_loader, clock=None, enabled=False):
-        if (role not in KEYS or type(enabled) is not bool or not callable(key_loader) or
+        if (role not in self.key_bindings or type(enabled) is not bool or not callable(key_loader) or
                 (clock is not None and not callable(clock))):
             raise StateError('deployment-owned signing configuration required')
         self.role, self.kms, self.sts, self.key_loader = role, kms, sts, key_loader
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.enabled, self.attempted = enabled, False
         self._lock = threading.Lock()
-        self.identity = 'tim_brydges' if role == 'owner' else ROLE_IDENTITIES[role]
+        self.identity = self.identities[role]
 
     def _session(self):
         value = self.sts.get_caller_identity()
-        prefix = 'arn:aws:sts::666730517561:assumed-role/' + ROLES[self.role] + '/'
+        prefix = 'arn:aws:sts::666730517561:assumed-role/' + self.role_bindings[self.role] + '/'
         arn = value.get('Arn', '')
         if (value.get('Account') != '666730517561' or type(arn) is not str or
                 not arn.startswith(prefix) or not arn[len(prefix):] or '/' in arn[len(prefix):]):
@@ -68,7 +72,7 @@ class _EnrolledSigner:
         # Once remote work starts, an unknown outcome must not trigger a local retry.
         self.attempted = True
         session = self._session()
-        key = KEYS[self.role]
+        key = self.key_bindings[self.role]
         pem = public_pem(self.kms.get_public_key(KeyId=key), expected_arn=key)
         if pem != keys[self.identity]:
             raise StateError('KMS public key differs from active enrollment')
