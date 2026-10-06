@@ -30,7 +30,7 @@ class ScopeSigningTests(unittest.TestCase):
         self.states=Mock(load_state=Mock(side_effect=lambda *args:self.state))
         p=prepare_intake(material=self.material,role='builder',states=self.states,clock=lambda:self.now)
         plan=asdict(p);plan['lease']['expires_at']=p.lease.expires_at.isoformat()
-        self.packet={'kind':'bounded_review002_scope_signing_plan','source_commit':self.material.source_commit,
+        self.packet={'kind':'bounded_review003_scope_signing_plan','source_commit':self.material.source_commit,
             'role':'builder','proof_run_id':123,'material_digest':digest(self.f.raw),'plan':plan,'owner_signature_base64':''}
         self.mode='owner';self.calls=[]
         patcher=patch('scripts.sign_bounded_review_scope.load_trusted_signers',return_value=self.keys)

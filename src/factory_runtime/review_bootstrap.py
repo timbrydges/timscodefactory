@@ -15,7 +15,7 @@ PARTITION=f'FACTORY#{FACTORY}#TASK#{TASK}'
 
 
 def validate(config, *, approved_digest, material, now):
-    expected={'kind':'bounded_review002_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
+    expected={'kind':'bounded_review003_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
         'source_commit':material.source_commit,'contract_digest':digest(material.contract_bytes),
         'owner_identity':OWNER_IDENTITY,'initial_state':'PAUSED','provider_calls':0}
     if (type(config)is not dict or set(config)!=set(expected)|{'not_before','expires_at','nonce'} or
@@ -42,7 +42,7 @@ def run(config, *, approved_digest, material, db, sts, clock, enabled=False):
     at=datetime.fromtimestamp(config['not_before'],timezone.utc)
     state=TaskState(FACTORY,TASK,'PAUSED',0,at,OWNER_IDENTITY)
     row=DynamoDBStateStore._serialize_state(state);row['SK']={'S':'STATE'}
-    marker={'PK':{'S':PARTITION},'SK':{'S':'BOOTSTRAP#bounded-review-002'},
+    marker={'PK':{'S':PARTITION},'SK':{'S':'BOOTSTRAP#bounded-review-003'},
         'approval_digest':{'S':approved_digest},'source_commit':{'S':material.source_commit},
         'contract_digest':{'S':digest(material.contract_bytes)}}
     audit={'PK':{'S':PARTITION},'SK':{'S':'EVENT#'+at.isoformat()+'#bounded-review-bootstrap'},
@@ -60,7 +60,7 @@ def run(config, *, approved_digest, material, db, sts, clock, enabled=False):
     validate(config,approved_digest=approved_digest,material=material,now=clock())
     transaction=[{'Put':{'TableName':TABLE,'Item':item,
         'ConditionExpression':'attribute_not_exists(PK) AND attribute_not_exists(SK)'}} for item in expected]
-    transaction += [{'ConditionCheck':{'TableName':CLAIMS,'Key':{'PK':{'S':'BOUNDED_REVIEW#002#ROLE#'+role}},
+    transaction += [{'ConditionCheck':{'TableName':CLAIMS,'Key':{'PK':{'S':'BOUNDED_REVIEW#003#ROLE#'+role}},
         'ConditionExpression':'attribute_not_exists(PK)'}} for role in PROVIDERS]
     try:db.transact_write_items(TransactItems=transaction)
     except Exception:

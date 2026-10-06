@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 TABLE = 'tims-software-factory-state'
-PK = 'FACTORY#tims-software-factory#TASK#bounded-review-002'
+PK = 'FACTORY#tims-software-factory#TASK#bounded-review-003'
 ROLE = 'arn:aws:sts::666730517561:assumed-role/tims-factory-signing-spec-reviewer/'
 
 
