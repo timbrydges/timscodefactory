@@ -186,7 +186,7 @@ class BackendTests(unittest.TestCase):
 
     def hold(self):self.backend.reserve(self.state,self.request,dispatch_id=self.dispatch,now=self.now)
     def execute(self):return self.backend.execute(self.state,self.request,dispatch_id=self.dispatch,input_bytes=self.prepared.input_bytes)
-    def row(self):return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#002#ROLE#builder'}}).get('Item')
+    def row(self):return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#003#ROLE#builder'}}).get('Item')
 
     def test_real_signed_scope_shared_hold_send_once_and_retained_completion(self):
         self.hold();self.hold();connection=Connection(Response(response_for(self.prepared)))

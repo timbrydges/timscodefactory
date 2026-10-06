@@ -14,20 +14,20 @@ from test_autonomous_scheduler import NOW
 
 
 def fixture(role='builder'):
-    request=DispatchRequest('lease-'+role,'bounded-review-002','bounded-review', 'a'*40,
+    request=DispatchRequest('lease-'+role,'bounded-review-003','bounded-review', 'a'*40,
                             digest(b'contract'),digest(b'input-'+role.encode()))
     scope=ProviderScope(role,request,'b'*40,digest(b'candidate'),digest(b'tests'),b'exact request '+role.encode())
     times={'issued_at':int(NOW.timestamp())-1,'expires_at':int(NOW.timestamp())+600}
-    pricing={'kind':'bounded_review002_rate_qualification',**scope.bindings(),'currency':'USD',
+    pricing={'kind':'bounded_review003_rate_qualification',**scope.bindings(),'currency':'USD',
         'complete_request_bound_qualified':True,'standard_text_only_no_cache_rates':True,
         'input_token_bound':32768,'output_token_bound':4096,'input_micro_usd_per_million':3000000,
         'output_micro_usd_per_million':15000000,'evidence_digest':digest(b'fixture quote'),**times}
-    readiness={'kind':'bounded_review002_provider_readiness',**scope.bindings(),
+    readiness={'kind':'bounded_review003_provider_readiness',**scope.bindings(),
         'credential_route_verified':True,'model_metadata_verified':True,'repository_binding_verified':True,
         'single_attempt_failure_risk_accepted':True,'evidence_digest':digest(b'fixture readiness'),**times}
-    payload={'kind':'bounded_review002_provider_allowance','owner_identity':'tim_brydges',**scope.bindings(),
+    payload={'kind':'bounded_review003_provider_allowance','owner_identity':'tim_brydges',**scope.bindings(),
         'pricing_digest':digest(canonical(pricing)),'readiness_digest':digest(canonical(readiness)),
-        'reserved_micro_usd':250000,'run_reserved_micro_usd':750000,'aggregate_ceiling_micro_usd':3000000,
+        'reserved_micro_usd':250000,'run_reserved_micro_usd':750000,'aggregate_ceiling_micro_usd':3250000,
         'maximum_provider_calls':1,'retries':0,'production_release_authorized':False,**times}
     return scope,pricing,readiness,payload
 
@@ -59,8 +59,10 @@ class ScopeTests(unittest.TestCase):
     def test_old_kinds_budget_increase_and_boolean_numbers_block(self):
         for changes in ({'kind':'handoff004_exact_request_allowance'}, {'task_id':'authenticated-handoff-004'},
                 {'reserved_micro_usd':250001},{'run_reserved_micro_usd':750001},
-                {'aggregate_ceiling_micro_usd':3000001},{'maximum_provider_calls':True},
+                {'aggregate_ceiling_micro_usd':3250001},{'maximum_provider_calls':True},
                 {'kind':'bounded_review001_provider_allowance'},{'task_id':'bounded-review-001'},
+                {'kind':'bounded_review002_provider_allowance'},{'task_id':'bounded-review-002'},
+                {'aggregate_ceiling_micro_usd':3000000},
                 {'aggregate_ceiling_micro_usd':2750000},
                 {'retries':1},{'production_release_authorized':True}):
             scope,price,ready,payload=fixture()

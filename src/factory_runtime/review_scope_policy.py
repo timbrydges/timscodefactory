@@ -30,14 +30,14 @@ def contract(*, source_commit, candidate_commit, candidate_digest, test_evidence
             any(type(v) is not str or not SHA256_DIGEST.fullmatch(v)
                 for v in (candidate_digest, test_evidence_digest))):
         raise StateError('fixed contract requires immutable source/candidate/test pins')
-    return canonical({'kind': 'bounded_review002_contract', 'factory_id': FACTORY, 'task_id': TASK,
+    return canonical({'kind': 'bounded_review003_contract', 'factory_id': FACTORY, 'task_id': TASK,
         'objective': 'Reproduce and independently review the pinned fingerprint candidate',
         'source_commit': source_commit, 'candidate_commit': candidate_commit,
         'candidate_digest': candidate_digest, 'test_evidence_digest': test_evidence_digest,
         'allowed_paths': ['fingerprint.py', 'tests/test_fingerprint.py'],
         'providers': {role: list(route) for role, route in PROVIDERS.items()},
         'maximum_calls_per_provider': 1, 'retries': 0, 'role_reserved_micro_usd': 250000,
-        'run_reserved_micro_usd': 750000, 'aggregate_ceiling_micro_usd': 3000000,
+        'run_reserved_micro_usd': 750000, 'aggregate_ceiling_micro_usd': 3250000,
         'candidate_changes_allowed': False, 'production_release_authorized': False,
         'required_evidence': EVIDENCE, 'stop_condition': STOP})
 
