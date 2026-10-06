@@ -92,3 +92,19 @@ runtime. A configuration hash does not replace those signatures. No KMS or
 Secrets Manager client is created by this entrypoint. Deployment, packaging and
 exact task/claim permissions remain separate prerequisites; historical claims
 and controller activations are not reused.
+
+Build an isolated ZIP with `scripts/build_bounded_review_package.py OUTPUT`.
+This default package has no activation material. The builder requires a clean
+checkout and takes Python source and the signer registry from committed Git
+blobs; ignored files are excluded. Hash-locked Linux Python 3.12 SDK and crypto
+wheels are included, with a per-file manifest and deterministic archive metadata.
+`scripts/verify_bounded_review_package.py OUTPUT` verifies the archive and imports
+both disabled entrypoints without host site-packages. CI runs this verification.
+
+For deployment, additionally supply `--role controller|builder|inspector|qa`,
+`--material FILE --material-digest DIGEST --config FILE --config-digest DIGEST`.
+Both pins must come independently from the privileged authentication/deployment
+process. The builder checks the fresh proof, source binding and signed allowances
+offline before installing dependencies. It never obtains signatures or creates
+claims, and packaging does not enable execution. Existing output paths are
+refused. Keep all generated files outside the checkout.
