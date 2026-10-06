@@ -33,8 +33,8 @@ def render(current, *, source_commit, code):
         raise StateError('Disabled foundation differs; reconcile before permissions')
     result = copy.deepcopy(current)
     for role in ROLES:
-        result['Resources'][role.title()+'Access'] = {'Type': 'AWS::IAM::Policy', 'Properties': {
-            'PolicyName': 'handoff004-own-attempt-and-provider',
+        result['Resources'][role.title()+'Access'] = {'Type': 'AWS::IAM::ManagedPolicy', 'Properties': {
+            'ManagedPolicyName': 'handoff004-'+role+'-own-attempt-and-provider',
             'Roles': [EXECUTION_ROLES[role]], 'PolicyDocument': policy(role)}}
     return result
 
@@ -52,7 +52,7 @@ def validate_changes(template, change_set, *, current, source_commit, code):
         raise StateError('Handoff access must add exactly three policies')
     for item in changes:
         change = item['ResourceChange']
-        if item.get('Type') != 'Resource' or change.get('Action') != 'Add' or change.get('ResourceType') != 'AWS::IAM::Policy':
+        if item.get('Type') != 'Resource' or change.get('Action') != 'Add' or change.get('ResourceType') != 'AWS::IAM::ManagedPolicy':
             raise StateError('Handoff access cannot modify existing resources')
     return {'status': 'ACCESS_VALIDATED_NOT_EXECUTED', 'new_policies': 3,
         'execution_enabled': False, 'reserved_concurrency': 0, 'model_calls': 0}
