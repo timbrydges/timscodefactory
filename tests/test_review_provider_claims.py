@@ -28,7 +28,7 @@ class ClaimTests(unittest.TestCase):
         self.grant=validate_unsigned(payload,scope=scope,pricing=price,readiness=ready,now=NOW)
 
     def row(self):
-        return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#001#ROLE#builder'}},
+        return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#002#ROLE#builder'}},
                                 ConsistentRead=True)['Item']
 
     def test_shared_hold_then_one_send_and_completion_never_releases(self):
@@ -40,6 +40,15 @@ class ClaimTests(unittest.TestCase):
         self.assertEqual(self.row()['reservation_status'],{'S':'HELD'})
         with self.assertRaises(StateError):self.store.hold(self.grant,self.dispatch,now=NOW)
         with self.assertRaises(StateError):self.store.begin_send(self.grant,self.dispatch,now=NOW)
+
+    def test_successor_send_never_changes_historical_uncertain_hold(self):
+        old={'PK':{'S':'BOUNDED_REVIEW#001#ROLE#builder'},'status':{'S':'STARTED'},
+             'reservation_status':{'S':'HELD'},'reserved_micro_usd':{'N':'250000'}}
+        self.db.put_item(TableName=TABLE,Item=old)
+        self.store.hold(self.grant,self.dispatch,now=NOW)
+        self.store.begin_send(self.grant,self.dispatch,now=NOW)
+        self.assertEqual(self.row()['task_id'],{'S':'bounded-review-002'})
+        self.assertEqual(self.db.get_item(TableName=TABLE,Key={'PK':old['PK']})['Item'],old)
 
     def test_concurrent_send_claim_and_restarted_process_allow_one_winner(self):
         self.store.hold(self.grant,self.dispatch,now=NOW)

@@ -24,7 +24,7 @@ class OwnerPlanTests(unittest.TestCase):
         price.update(scope.bindings(),**times,evidence_digest=digest(canonical(self.evidence['pricing'])))
         ready.update(scope.bindings(),**times,evidence_digest=digest(canonical(self.evidence['readiness'])))
         payload.update(scope.bindings(),**times,pricing_digest=digest(canonical(price)),readiness_digest=digest(canonical(ready)))
-        self.plan={'kind':'bounded_review001_owner_signing_plan','source_commit':self.material.source_commit,
+        self.plan={'kind':'bounded_review002_owner_signing_plan','source_commit':self.material.source_commit,
             'role':'builder','proof_run_id':123,'material_digest':digest(self.f.raw),
             'pricing':price,'readiness':ready,'allowance':payload,'evidence':self.evidence}
         self.importer=Mock(return_value=self.f.raw)
@@ -52,7 +52,7 @@ class OwnerPlanTests(unittest.TestCase):
     def test_stale_material_expanded_budget_and_retries_rejected(self):
         with self.assertRaises(StateError):self.validate(clock=lambda:self.now+timedelta(hours=2))
         for change in ({'retries':1},{'reserved_micro_usd':250001},{'maximum_provider_calls':2},
-                       {'aggregate_ceiling_micro_usd':3000000},{'expires_at':int(self.now.timestamp())+299}):
+                       {'aggregate_ceiling_micro_usd':3000001},{'expires_at':int(self.now.timestamp())+299}):
             p=copy.deepcopy(self.plan);p['allowance'].update(change)
             with self.subTest(change=change),self.assertRaises(StateError):self.validate(p)
 

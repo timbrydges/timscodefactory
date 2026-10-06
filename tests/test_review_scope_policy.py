@@ -42,7 +42,7 @@ class ScopePolicyTests(unittest.TestCase):
         intake=AuthenticatedIntakeService(self.states,DynamoDBDispatchStore('unused',None),
                                           key_loader=lambda _:self.keys,clock=lambda:NOW)
         plan=intake.prepare(FACTORY,TASK,role_id=ROLE_IDS[role],source_commit='a'*40,
-            objective_id=TASK,capability_id='bounded-review',contract_bytes=raw,input_bytes=inp,
+            objective_id=TASK,capability_id='bounded-review-'+role,contract_bytes=raw,input_bytes=inp,
             reviewer_identity=IDENTITY,required_evidence=EVIDENCE,stop_condition=STOP,rationale=RATIONALE)
         prepared=prepare(role=role,request=plan.request,candidate_commit='b'*40,files=files,
                          test_evidence_digest=digest(proof),input_bytes=inp)

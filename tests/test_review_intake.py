@@ -22,6 +22,7 @@ class ReviewIntakeTests(unittest.TestCase):
         return prepare_intake(material=self.material,role=role,states=states,clock=clock or (lambda:self.now))
 
     def test_three_current_stages_bind_exact_deployment_requests_without_writes(self):
+        capabilities=set()
         for role in STAGES:
             states=Mock(load_state=Mock(return_value=self.state(role)))
             plan=self.prepare(role,states)
@@ -30,7 +31,11 @@ class ReviewIntakeTests(unittest.TestCase):
             self.assertEqual(plan.review_payload['binding'],DynamoDBDispatchStore._binding(plan.request))
             self.assertEqual(plan.capability_payload['required_evidence'],EVIDENCE)
             self.assertEqual(plan.capability_payload['stop_condition'],STOP)
+            self.assertEqual(plan.request.capability_id,'bounded-review-'+role)
+            self.assertEqual(plan.capability_payload['capability_id'],plan.request.capability_id)
+            capabilities.add(plan.request.capability_id)
             self.assertEqual({c[0] for c in states.mock_calls},{'load_state'})
+        self.assertEqual(len(capabilities),3)
 
     def test_missing_wrong_and_changing_stage_fail(self):
         for value in (None,self.state('qa')):

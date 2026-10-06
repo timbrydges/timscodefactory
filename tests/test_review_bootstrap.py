@@ -20,7 +20,7 @@ class BootstrapTests(unittest.TestCase):
             self.db.create_table(TableName=table,KeySchema=[{'AttributeName':k,'KeyType':'HASH' if k=='PK' else 'RANGE'} for k in keys],
                 AttributeDefinitions=[{'AttributeName':k,'AttributeType':'S'} for k in keys],BillingMode='PAY_PER_REQUEST')
         self.sts=Mock(get_caller_identity=Mock(return_value={'Account':'666730517561','Arn':'arn:aws:iam::666730517561:root'}))
-        self.config={'kind':'bounded_review001_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
+        self.config={'kind':'bounded_review002_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
             'source_commit':self.material.source_commit,'contract_digest':digest(self.material.contract_bytes),
             'owner_identity':'tim_brydges','initial_state':'PAUSED','provider_calls':0,
             'not_before':int(self.now.timestamp()),'expires_at':int(self.now.timestamp())+600,'nonce':'a'*32}
@@ -37,7 +37,23 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(self.db.scan(TableName=CLAIMS)['Items'],[])
 
     def test_any_existing_claim_blocks_all_state_writes(self):
-        self.db.put_item(TableName=CLAIMS,Item={'PK':{'S':'BOUNDED_REVIEW#001#ROLE#qa'},'status':{'S':'STARTED'}})
+        self.db.put_item(TableName=CLAIMS,Item={'PK':{'S':'BOUNDED_REVIEW#002#ROLE#qa'},'status':{'S':'STARTED'}})
+        with self.assertRaises(StateError):self.execute()
+        self.assertEqual(self.db.scan(TableName=TABLE)['Items'],[])
+
+    def test_fresh_bootstrap_preserves_consumed_001_history(self):
+        historical={'PK':{'S':'BOUNDED_REVIEW#001#ROLE#builder'},'status':{'S':'STARTED'},
+                    'reservation_status':{'S':'HELD'},'reserved_micro_usd':{'N':'250000'}}
+        self.db.put_item(TableName=CLAIMS,Item=historical)
+        old_state={'PK':{'S':'FACTORY#tims-software-factory#TASK#bounded-review-001'},
+                   'SK':{'S':'STATE'},'state':{'S':'PAUSED'},'version':{'N':'3'}}
+        self.db.put_item(TableName=TABLE,Item=old_state)
+        self.assertEqual(self.execute()['status'],'PAUSED_BOOTSTRAP_VERIFIED')
+        self.assertEqual(self.db.get_item(TableName=CLAIMS,Key={'PK':historical['PK']})['Item'],historical)
+        self.assertEqual(self.db.get_item(TableName=TABLE,Key={k:old_state[k] for k in ('PK','SK')})['Item'],old_state)
+
+    def test_old_bootstrap_packet_cannot_authorize_successor(self):
+        self.config.update(kind='bounded_review001_paused_bootstrap',task_id='bounded-review-001')
         with self.assertRaises(StateError):self.execute()
         self.assertEqual(self.db.scan(TableName=TABLE)['Items'],[])
 
