@@ -1,0 +1,7 @@
+{
+  "status": "DISPATCH_OUTCOME_UNCERTAIN_NO_RETRY",
+  "next_role": null,
+  "worker_invocations": 1,
+  "gate_authority": false,
+  "execution_authorized": false
+}

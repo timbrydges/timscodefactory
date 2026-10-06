@@ -73,6 +73,39 @@ class DispatchTests(unittest.TestCase):
         self.assertEqual(self.run_once()['status'],'DISPATCH_CONSUMED_OR_UNCERTAIN')
         self.lam.invoke.assert_called_once()
 
+    def test_safe_provider_failure_is_durable_terminal_and_not_a_receipt(self):
+        result={'status':'HANDOFF_FAILED_NO_RETRY','role':'builder','failure_stage':'provider',
+            'failure_category':'timeout','http_status':None,'attempt_reusable':False,
+            'reservation_status':'HELD','gate_authority':False}
+        self.lam.invoke.side_effect=lambda **kw:{'Payload':io.BytesIO(canonical(result))}
+        self.assertEqual(self.run_once()['status'],'DISPATCH_FAILED_NO_RETRY')
+        values=self.db.update_item.call_args.kwargs['ExpressionAttributeValues']
+        self.assertEqual(values[':failed'],{'S':'FAILED'})
+        self.assertEqual(values[':failure'],{'S':'timeout'})
+        self.assertNotIn(':receipt',values)
+        self.assertEqual(self.run_once()['status'],'DISPATCH_CONSUMED_OR_UNCERTAIN')
+        self.lam.invoke.assert_called_once()
+
+    def test_untrusted_failure_details_are_not_persisted(self):
+        from factory_runtime.handoff003_dispatch import _provider_failure
+        good={'status':'HANDOFF_FAILED_NO_RETRY','role':'builder','failure_stage':'provider',
+            'failure_category':'http_status','http_status':503,'attempt_reusable':False,
+            'reservation_status':'HELD','gate_authority':False}
+        self.assertEqual(_provider_failure(good,'builder'),'http_status_503')
+        for changes in ({'http_status':True},{'http_status':600},{'http_status':'503 secret'},
+                {'failure_category':'private detail'},{'response':'secret'},{'role':'qa'},{'gate_authority':True}):
+            with self.subTest(changes=changes):self.assertIsNone(_provider_failure({**good,**changes},'builder'))
+
+    def test_failure_persistence_error_still_cannot_repeat_worker(self):
+        value={'status':'HANDOFF_FAILED_NO_RETRY','role':'builder','failure_stage':'provider',
+            'failure_category':'unknown','http_status':None,'attempt_reusable':False,
+            'reservation_status':'HELD','gate_authority':False}
+        self.lam.invoke.side_effect=lambda **kw:{'Payload':io.BytesIO(canonical(value))}
+        self.db.update_item.side_effect=TimeoutError('unobserved write')
+        self.assertEqual(self.run_once()['status'],'DISPATCH_OUTCOME_UNCERTAIN_NO_RETRY')
+        self.assertEqual(self.run_once()['status'],'DISPATCH_CONSUMED_OR_UNCERTAIN')
+        self.lam.invoke.assert_called_once()
+
     def test_three_role_dispatch_chain_then_terminal_no_invoke(self):
         # Real synthetic signatures and owner scopes; only AWS/provider I/O is mocked.
         claims=set()

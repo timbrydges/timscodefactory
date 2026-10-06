@@ -1,0 +1,92 @@
+{
+  "status": "RUNTIME_PERMISSIONS_VERIFIED_ALL_ROLES_DISABLED",
+  "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88",
+  "results": [
+    {
+      "status": "HANDOFF_PERMISSION_CANARY_VERIFIED",
+      "role": "builder",
+      "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88",
+      "attempt_row_checks": [
+        {
+          "target_role": "builder",
+          "decision": "ConditionalCheckFailedException"
+        },
+        {
+          "target_role": "inspector",
+          "decision": "AccessDeniedException"
+        },
+        {
+          "target_role": "qa",
+          "decision": "AccessDeniedException"
+        }
+      ],
+      "dependencies": {
+        "credential_route_verified": true,
+        "signing_key_readable": true,
+        "key_fingerprint": "sha256:ecea01029d27d5f3512f25b5614143b0e7d8c65824944a58cbe43b2521ad1d10"
+      },
+      "state_writes": 0,
+      "model_calls": 0,
+      "signing_calls": 0,
+      "execution_authorized": false
+    },
+    {
+      "status": "HANDOFF_PERMISSION_CANARY_VERIFIED",
+      "role": "inspector",
+      "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88",
+      "attempt_row_checks": [
+        {
+          "target_role": "builder",
+          "decision": "AccessDeniedException"
+        },
+        {
+          "target_role": "inspector",
+          "decision": "ConditionalCheckFailedException"
+        },
+        {
+          "target_role": "qa",
+          "decision": "AccessDeniedException"
+        }
+      ],
+      "dependencies": {
+        "credential_route_verified": true,
+        "signing_key_readable": true,
+        "key_fingerprint": "sha256:0076b42c6428bb659deae3a6fd74283682d16a0d9040b4935ec3ae7c98d81cd9"
+      },
+      "state_writes": 0,
+      "model_calls": 0,
+      "signing_calls": 0,
+      "execution_authorized": false
+    },
+    {
+      "status": "HANDOFF_PERMISSION_CANARY_VERIFIED",
+      "role": "qa",
+      "source_commit": "059f42ae087b0c6429e71e0cb5e0a24f978eed88",
+      "attempt_row_checks": [
+        {
+          "target_role": "builder",
+          "decision": "AccessDeniedException"
+        },
+        {
+          "target_role": "inspector",
+          "decision": "AccessDeniedException"
+        },
+        {
+          "target_role": "qa",
+          "decision": "ConditionalCheckFailedException"
+        }
+      ],
+      "dependencies": {
+        "credential_route_verified": true,
+        "signing_key_readable": true,
+        "key_fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17"
+      },
+      "state_writes": 0,
+      "model_calls": 0,
+      "signing_calls": 0,
+      "execution_authorized": false
+    }
+  ],
+  "attempt_count": 0,
+  "model_calls": 0
+}

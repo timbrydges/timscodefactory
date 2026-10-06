@@ -19,6 +19,7 @@ from .handoff003_transport import Handoff003Transport
 from .pilot002_adapter import _cost
 from .pilot002_workflow import _fresh
 from .pilot002_protocols import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS
+from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
 
 
 def prepare_pricing(root, *, source_commit, qualification, predecessor_receipt_digest=None, **context):
@@ -51,8 +52,9 @@ def prepare_pricing(root, *, source_commit, qualification, predecessor_receipt_d
 
 
 class HandoffStopped(StateError):
-    def __init__(self, stage, response=None):
+    def __init__(self, stage, response=None, failure=None):
         self.stage = stage
+        self.failure = failure if stage == 'provider' else None
         self.response = response if (stage in ('response', 'signing', 'completion') and
             type(response) is bytes and 0 < len(response) <= 262144) else None
         super().__init__('Handoff stopped at ' + stage + '; retain hold and reconcile without retry')
@@ -138,7 +140,12 @@ def run_once(envelope, *, root, role, source_commit, qualification, readiness,
         stage = 'completion'
         store.complete(role=role, request_digest=expected_digest, output_bytes=canonical(signed), actual_micro_usd=cost)
         return signed
-    except Exception:
-        raise HandoffStopped(stage, retained_response) from None
+    except Exception as error:
+        failure = {'failure_category': 'unknown', 'http_status': None}
+        if isinstance(error, ProviderTimeoutError):
+            failure['failure_category'] = 'timeout'
+        elif isinstance(error, ProviderHTTPStatusError) and type(error.http_status) is int and 300 <= error.http_status <= 599:
+            failure = {'failure_category': 'http_status', 'http_status': error.http_status}
+        raise HandoffStopped(stage, retained_response, failure) from None
     finally:
         credential = None

@@ -142,10 +142,26 @@ class HandoffWorkflowTests(unittest.TestCase):
             with self.assertRaises(HandoffStopped) as error: run_once(allowance, **args)
             self.assertEqual(error.exception.stage, 'provider')
             self.assertIsNone(error.exception.response)
+            self.assertEqual(error.exception.failure, {'failure_category': 'unknown', 'http_status': None})
             self.assertNotIn('sensitive', str(error.exception))
             with self.assertRaisesRegex(HandoffStopped, 'reservation'): run_once(allowance, **args)
             transport.return_value.send_once.assert_called_once()
         self.db.update_item.assert_not_called()
+
+    def test_timeout_and_http_failure_keep_bounded_diagnostics_and_permanent_claim(self):
+        from factory_runtime.pilot002_transport import ProviderTimeoutError, ProviderHTTPStatusError
+        for exception,expected in ((ProviderTimeoutError(), {'failure_category':'timeout','http_status':None}),
+                (ProviderHTTPStatusError(503), {'failure_category':'http_status','http_status':503})):
+            with self.subTest(expected=expected):
+                self.setUp()
+                allowance,args,_=self.setup_role('builder')
+                with patch('factory_runtime.handoff003_workflow.Handoff003Transport') as transport:
+                    transport.return_value.send_once.side_effect=exception
+                    with self.assertRaises(HandoffStopped) as error:run_once(allowance,**args)
+                    self.assertEqual(error.exception.failure,expected)
+                    with self.assertRaisesRegex(HandoffStopped,'reservation'):run_once(allowance,**args)
+                    transport.return_value.send_once.assert_called_once()
+                self.db.update_item.assert_not_called()
 
     def test_predecessor_expiry_is_rechecked_before_provider(self):
         self.execute('builder')

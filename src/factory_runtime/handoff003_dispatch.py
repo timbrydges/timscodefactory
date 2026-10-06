@@ -17,6 +17,17 @@ TABLE='tims-factory-handoff-003-controller-dispatch'
 ROLES=('builder','inspector','qa')
 
 
+def _provider_failure(value, role):
+    fields={'status','role','failure_stage','failure_category','http_status','attempt_reusable','reservation_status','gate_authority'}
+    if (type(value) is not dict or set(value)!=fields or value['status']!='HANDOFF_FAILED_NO_RETRY' or
+            value['role']!=role or value['failure_stage']!='provider' or value['attempt_reusable'] is not False or
+            value['reservation_status']!='HELD' or value['gate_authority'] is not False):return None
+    category=value['failure_category'];status=value['http_status']
+    if category in ('timeout','unknown') and status is None:return category
+    if category=='http_status' and type(status) is int and 300<=status<=599:return 'http_status_'+str(status)
+    return None
+
+
 def dispatch_once(*, context, pin, activation_root, db, lam, clock, enabled=False):
     if enabled is not True:raise StateError('Handoff controller dispatch disabled')
     context={**context,'now':clock()}
@@ -73,6 +84,16 @@ def dispatch_once(*, context, pin, activation_root, db, lam, clock, enabled=Fals
         raw=reply['Payload'].read(524289)
         if reply.get('FunctionError') or not 0<len(raw)<=524288:raise ValueError('Runtime failure')
         envelope=json.loads(raw)
+        failure=_provider_failure(envelope,role)
+        if failure is not None:
+            db.update_item(TableName=TABLE,Key=claim,
+                UpdateExpression='SET #s = :failed, failure_code = :failure',
+                ConditionExpression='#s = :started AND request_digest = :request',
+                ExpressionAttributeNames={'#s':'status'},ExpressionAttributeValues={
+                    ':failed':{'S':'FAILED'},':started':{'S':'STARTED'},
+                    ':request':{'S':request},':failure':{'S':failure}})
+            return {'status':'DISPATCH_FAILED_NO_RETRY','failure_code':failure,'next_role':None,
+                'worker_invocations':1,'gate_authority':False,'execution_authorized':False}
         envelopes={**context['envelopes'],role:envelope}
         verify_context={k:context[k] for k in ('root','trusted_keys','source_commit','candidate_commit')}
         verify_context.update(request_digests={**context['request_digests'],role:request},now=clock())

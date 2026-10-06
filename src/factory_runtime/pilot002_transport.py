@@ -31,6 +31,12 @@ class ProviderHTTPStatusError(StateError):
         super().__init__('Pilot 002 provider transport failed; reconcile without retry')
 
 
+class ProviderTimeoutError(StateError):
+    """A timeout category without exception text, headers, or credentials."""
+    def __init__(self):
+        super().__init__('Pilot 002 provider transport failed; reconcile without retry')
+
+
 class _QuietSigV4(SigV4Auth):
     def add_auth(self, request):
         # The SDK's ordinary add_auth logs the canonical request (including the
@@ -109,6 +115,8 @@ workflow's permanent role claim remains mandatory for cross-instance safety.
             return raw
         except ProviderHTTPStatusError:
             raise
+        except TimeoutError:
+            raise ProviderTimeoutError() from None
         except Exception:
             raise StateError('Pilot 002 provider transport failed; reconcile without retry') from None
         finally:
