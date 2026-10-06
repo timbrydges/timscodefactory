@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyFreshBoundedReviewTask",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-software-factory-state",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:LeadingKeys": ["FACTORY#tims-software-factory#TASK#bounded-review-001"]
+        },
+        "Null": {"dynamodb:LeadingKeys": "false"}
+      }
+    }
+  ]
+}
