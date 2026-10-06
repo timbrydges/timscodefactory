@@ -1,0 +1,21 @@
+{
+  "source_commit": "c4b539d14cee39b8dbaa282989c2c547192aa4ae",
+  "task_id": "authenticated-handoff-001",
+  "finding_count": 23,
+  "maximum_findings": 16,
+  "other_schema_checks_pass": true,
+  "unsigned_response": true,
+  "provider_usage": {
+    "input_tokens": 4671,
+    "output_tokens_including_reasoning": 1735,
+    "total_tokens": 6406
+  },
+  "estimated_micro_usd": 40038,
+  "invoice_verified": false,
+  "attempt_status": "STARTED",
+  "reservation_status": "HELD",
+  "reserved_micro_usd": 250000,
+  "retry_authorized": false,
+  "qa_invoked": false,
+  "gate_authority": false
+}

@@ -60,3 +60,22 @@ class HandoffPacketsTests(unittest.TestCase):
     def test_duplicate_fields_and_added_authority_rejected(self):
         with self.assertRaises(StateError): packets.parse_builder(b'{"task_id":"x","task_id":"y"}', root=ROOT)
         with self.assertRaises(StateError): self.parse({**self.review(), 'tests_executed': True})
+
+    def test_review_prompt_and_parser_share_output_bounds(self):
+        for role in ('inspector', 'qa'):
+            packet = packets.review_packet(ROOT, role=role, builder_response=self.response,
+                                           candidate_commit='a' * 40)
+            for constraint in ('at most 16 entries', '1 to 2000 characters',
+                               '1 to 1000 characters', 'tests/test_fingerprint.py'):
+                self.assertIn(constraint, packet['instructions'])
+            finding = {'severity': 'info', 'path': 'fingerprint.py', 'detail': 'x' * 1000}
+            value = {**self.review(role), 'rationale': 'x' * 2000,
+                     'findings': [finding] * 16}
+            self.assertFalse(self.parse(value, role)['gate_authority'])
+            for count in (17, 23):
+                with self.subTest(role=role, count=count), self.assertRaises(StateError):
+                    self.parse({**value, 'findings': [finding] * count}, role)
+            with self.assertRaises(StateError):
+                self.parse({**value, 'rationale': 'x' * 2001}, role)
+            with self.assertRaises(StateError):
+                self.parse({**value, 'findings': [{**finding, 'detail': 'x' * 1001}]}, role)
