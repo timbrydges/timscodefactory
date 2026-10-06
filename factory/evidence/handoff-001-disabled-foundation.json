@@ -1,0 +1,39 @@
+{
+  "attempt_count": 0,
+  "attempt_table": "arn:aws:dynamodb:ca-central-1:666730517561:table/tims-factory-handoff-001-attempts",
+  "code": {
+    "S3Bucket": "tims-software-factory-666730517561-ca-central-1",
+    "S3Key": "handoff-001/runtime/79d80961081b2c8d6a5da6d4bddf4e6cf16529de/dc57c96d96f9e52221967ab6f25105027c8fe165da1b2b10ee874c631c686b55.zip",
+    "S3ObjectVersion": "Hn9S0OyIsIuN8u_Gvx_RQN6sfxPfNrug"
+  },
+  "functions": [
+    {
+      "code_sha256": "3FfJbZb55SIhlnq28lEFAnyP4WXaGysQ7odMYxxoa1U=",
+      "enabled": false,
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-handoff-001-builder",
+      "reserved_concurrency": 0,
+      "role": "builder"
+    },
+    {
+      "code_sha256": "3FfJbZb55SIhlnq28lEFAnyP4WXaGysQ7odMYxxoa1U=",
+      "enabled": false,
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-handoff-001-inspector",
+      "reserved_concurrency": 0,
+      "role": "inspector"
+    },
+    {
+      "code_sha256": "3FfJbZb55SIhlnq28lEFAnyP4WXaGysQ7odMYxxoa1U=",
+      "enabled": false,
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-handoff-001-qa",
+      "reserved_concurrency": 0,
+      "role": "qa"
+    }
+  ],
+  "iam_changes": 0,
+  "model_calls": 0,
+  "observed_at": "2026-10-06T02:01:03.992528+00:00",
+  "package_sha256": "dc57c96d96f9e52221967ab6f25105027c8fe165da1b2b10ee874c631c686b55",
+  "source_commit": "79d80961081b2c8d6a5da6d4bddf4e6cf16529de",
+  "stack_id": "arn:aws:cloudformation:ca-central-1:666730517561:stack/tims-factory-handoff-001-disabled/ac8d0920-c129-11f1-bcdd-0effd5a56a8f",
+  "status": "DISABLED_FOUNDATION_VERIFIED"
+}
