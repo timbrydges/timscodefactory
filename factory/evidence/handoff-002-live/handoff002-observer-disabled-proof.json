@@ -1,0 +1,11 @@
+{
+  "code_sha256": "QAtzD/szQBz2KFMa3UBrcfb1uwq0+u7+yNIkThkF4Bg=",
+  "exact_read_only_iam_verified": true,
+  "execution_flag": false,
+  "model_calls": 0,
+  "observed_at": "2026-10-06T03:15:13.199558+00:00",
+  "reserved_concurrency": 0,
+  "source_commit": "0afbb3c27b8715375ed88102a220292dd2305eea",
+  "status": "OBSERVER_RESTORED_DISABLED",
+  "worker_invocations": 0
+}

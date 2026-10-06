@@ -79,6 +79,14 @@ class OperatorStatusTests(unittest.TestCase):
         self.assertEqual(report['known_reported_actual_micro_usd'],87664)
         self.assertFalse(report['invoice_verified'])
 
+    def test_observer_has_no_provider_budget_but_enabled_flag_prevents_all_disabled(self):
+        self.assertNotIn('handoff002_observer',p.ATTEMPTS)
+        function,flag=p.WORKERS['handoff002_observer']
+        self.configs[function]['Environment']['Variables'][flag]='true'
+        report=self.observe()
+        self.assertFalse(report['all_workers_disabled_observed'])
+        self.assertEqual(len(report['attempts']),13)
+
     def test_handoff_attempts_use_separate_fixed_tables_and_keys(self):
         for number in ('001', '002'):
             for role in ('builder', 'inspector', 'qa'):
