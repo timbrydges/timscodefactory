@@ -2,6 +2,20 @@
 
 ## Current continuation boundary — 2026-10-05
 
+The owner has confirmed a separate US$0.75 ceiling for
+`authenticated-handoff-001`: one US$0.25 attempt each for OpenAI Builder,
+Anthropic Inspector and Google QA, without retries. The pinned contract,
+baseline and budget record are preparation evidence, not executable allowances.
+Fresh packets and provider codecs bind that task and exact candidate; a
+read-only three-key receipt verifier also requires accepted reviews and an
+independently verified test result. It grants no Factory state authority.
+`Handoff001AttemptStore` uses a separate fixed table and permanent role rows;
+the inherited atomic claim/completion logic preserves the old pilot rows.
+No new table, live adapter, signed allowance or runtime deployment is installed
+by these library changes. Exact-request pricing, isolated role publication,
+fresh signer trust and controller integration remain prerequisites to the
+new paid run. Do not use historical unsigned responses as new signed results.
+
 Pilot 002's owner-merged acceptance artifact is a completed fixture, not proof
 of unattended Factory operation. PR397/398 added a read-only worker/attempt
 observer and offline operator page. The retained observation is

@@ -27,13 +27,20 @@ def _digest(value):
 
 
 class Pilot002AttemptStore:
+    # Deployment-owned constants, never event fields. Subclasses can isolate a
+    # separately approved task without resetting or granting access to this one.
+    table = TABLE
+    task = TASK
+    contract_digest = 'sha256:' + PINNED[CONTRACT]
+    row_key = staticmethod(key)
+
     def __init__(self, client):
         self.client = client
 
     def begin(self, *, role, request_bytes, source_commit, approval_digest,
               pricing_digest, now, approval_expires_at, pricing_expires_at):
         """One atomic full-cap hold and attempt claim. Never retry uncertainty."""
-        rowkey = key(role)
+        rowkey = self.row_key(role)
         times = (now, approval_expires_at, pricing_expires_at)
         if (not isinstance(request_bytes, bytes) or not 0 < len(request_bytes) <= 65536 or
                 not isinstance(source_commit, str) or not re.fullmatch('[0-9a-f]{40}', source_commit) or
@@ -45,8 +52,8 @@ class Pilot002AttemptStore:
             raise StateError('Pilot 002 authorization or pricing window invalid')
         digest = 'sha256:' + hashlib.sha256(request_bytes).hexdigest()
         item = {**rowkey, 'status': {'S': 'STARTED'},
-            'task_id': {'S': TASK}, 'role': {'S': role},
-            'contract_digest': {'S': 'sha256:' + PINNED[CONTRACT]},
+            'task_id': {'S': self.task}, 'role': {'S': role},
+            'contract_digest': {'S': self.contract_digest},
             'source_commit': {'S': source_commit}, 'request_digest': {'S': digest},
             'approval_digest': {'S': approval_digest}, 'pricing_digest': {'S': pricing_digest},
             'reservation_status': {'S': 'HELD'},
@@ -55,20 +62,20 @@ class Pilot002AttemptStore:
             'approval_expires_at': {'S': approval_expires_at.astimezone(timezone.utc).isoformat()},
             'pricing_expires_at': {'S': pricing_expires_at.astimezone(timezone.utc).isoformat()}}
         try:
-            self.client.put_item(TableName=TABLE, Item=item,
+            self.client.put_item(TableName=self.table, Item=item,
                 ConditionExpression='attribute_not_exists(PK)')
         except Exception:
             raise StateError('Pilot 002 attempt exists or is uncertain; reconcile without retry') from None
         return digest
 
     def complete(self, *, role, request_digest, output_bytes, actual_micro_usd):
-        rowkey = key(role)
+        rowkey = self.row_key(role)
         if (not _digest(request_digest) or not isinstance(output_bytes, bytes) or
                 not 0 < len(output_bytes) <= 65536 or type(actual_micro_usd) is not int or
                 not 0 <= actual_micro_usd <= CAP_MICRO_USD):
             raise StateError('Pilot 002 completion invalid or over cap; retain hold')
         try:
-            self.client.update_item(TableName=TABLE, Key=rowkey,
+            self.client.update_item(TableName=self.table, Key=rowkey,
                 ConditionExpression='#s = :started AND request_digest = :request AND reservation_status = :held AND reserved_micro_usd = :cap',
                 UpdateExpression='SET #s = :complete, output_digest = :output, actual_micro_usd = :actual',
                 ExpressionAttributeNames={'#s': 'status'}, ExpressionAttributeValues={

@@ -25,6 +25,13 @@ The reviewed transport must bind the fixed endpoint/model, exact bytes and
 one-attempt allowance. This function has no credentials or network operations.
 """
     packet = _packet(root, role, builder_response, candidate_commit)
+    return serialize_packet(packet, role=role)
+
+
+def serialize_packet(packet, *, role):
+    """Pure serialization of a deployment-built packet; no authorization."""
+    if role not in ('builder', 'inspector', 'qa') or packet.get('role') != role:
+        raise StateError('Provider packet role differs')
     material = canonical(packet).decode('utf-8')
     instruction = packet['instructions']
     if role == 'builder':
