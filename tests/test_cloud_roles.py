@@ -53,7 +53,8 @@ class CloudRoleTests(unittest.TestCase):
         role_id, state_name = {'builder': ('engineering_agent', 'IMPLEMENTATION'),
             'planner': ('software_architect', 'ARCHITECTURE'),
             'inspector': ('independent_inspector', 'INSPECTION'),
-            'qa': ('qa_engineer', 'QA')}[role]
+            'qa': ('qa_engineer', 'QA'),
+            'security': ('deep_security_reviewer', 'SECURITY_REVIEW')}[role]
         base = snapshot()
         self.state = replace(base, task_id='task-' + role, state=state_name,
             leases=(replace(base.leases[0], authoritative_identity=identity, role_id=role_id),))
@@ -110,8 +111,9 @@ class CloudRoleTests(unittest.TestCase):
                 if test.mode == 'lost-response': raise TimeoutError('response lost')
                 return {'StatusCode': 200, 'ExecutedVersion': '1', 'Payload': io.BytesIO(json.dumps(result).encode())}
         self.client = Client()
+        function = 'review-security' if role == 'security' else role
         self.executor = LambdaRoleExecutor(self.client,
-            function_arn=f'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-{role}:1',
+            function_arn=f'arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-{function}:1',
             worker_id='worker-1', guard=Backend())
         self.worker = DispatchWorker(self.states, self.ledger, deployed_commit='a'*40, worker_id='worker-1',
             key_loader=lambda now: self.keys, executors={role_id: self.executor}, clock=lambda: NOW)
@@ -120,8 +122,8 @@ class CloudRoleTests(unittest.TestCase):
         return self.worker.run(self.state.factory_id, self.state.task_id, self.request,
             input_bytes=self.input, contract_bytes=self.contract)
 
-    def test_all_four_roles_return_signed_results_and_replay_without_work(self):
-        for role in ('builder', 'planner', 'inspector', 'qa'):
+    def test_all_five_roles_return_signed_results_and_replay_without_work(self):
+        for role in ('builder', 'planner', 'inspector', 'qa', 'security'):
             if role != 'builder': self.setup_role(role)
             with self.subTest(role=role):
                 before = self.calls
@@ -132,6 +134,67 @@ class CloudRoleTests(unittest.TestCase):
                 self.assertEqual(self.calls, before + 1)
                 self.assertEqual(self.last_invocation['InvocationType'], 'RequestResponse')
                 self.assertNotIn('credentials', self.last_event)
+
+    def test_security_uncertain_send_cannot_repeat(self):
+        self.setup_role('security')
+        self.mode = 'crash'
+        with self.assertRaises(TimeoutError): self.run_worker()
+        self.assertEqual(self.run_worker()['status'], 'NEEDS_RECONCILIATION')
+        with self.assertRaises(StateError): self.service.handle(self.last_event)
+        self.assertEqual((self.calls, self.invocations), (1, 1))
+
+    def test_security_rejects_other_review_identity_before_io(self):
+        from unittest.mock import Mock
+        self.setup_role('security')
+        guard = Mock(); self.executor.guard = guard
+        lease = self.state.leases[0]
+        for role, role_id in (('inspector', 'independent_inspector'), ('qa', 'qa_engineer'),
+                              ('builder', 'engineering_agent')):
+            state = replace(self.state, leases=(replace(lease,
+                role_id=role_id, authoritative_identity=ROLE_IDENTITIES[role]),))
+            with self.assertRaises(StateError):
+                self.executor.check_activation(state, self.request, now=NOW)
+            with self.assertRaises(StateError):
+                self.executor.reserve(state, self.request, dispatch_id=self.dispatch, now=NOW)
+            with self.assertRaises(StateError):
+                self.executor.execute(state, self.request, dispatch_id=self.dispatch, input_bytes=self.input)
+        self.assertEqual(guard.mock_calls, [])
+        self.assertEqual((self.calls, self.invocations), (0, 0))
+
+    def test_security_signed_verdict_advances_once_without_release(self):
+        from factory_runtime.progression import SignedResultProgressor
+        from factory_runtime.review_verdict import ReviewBinding
+        from factory_runtime.security_verdict import SecurityReviewBinding, BoundSecurityValidator
+        from factory_state.scope import canonical
+        self.setup_role('security')
+        self.db.put_item(TableName='role-state', Item=self.states._serialize_lease(
+            self.state, self.state.leases[0]))
+        qa = ReviewBinding(self.state.factory_id, self.state.task_id, 'qa_engineer', 'a'*40,
+            self.request.contract_digest, digest(b'previous QA input'), 'd'*40,
+            digest(b'candidate'), digest(b'fresh independent proof'), ('fingerprint.py',))
+        binding = SecurityReviewBinding(qa, self.request.input_digest,
+            digest(b'authenticated QA receipt'), digest(b'current security scope'))
+        report = {key: getattr(qa, key) for key in qa.__dataclass_fields__ if key != 'allowed_paths'}
+        report.update(kind='factory_security_review_v1', role_id='deep_security_reviewer',
+            input_digest=binding.input_digest, qa_result_digest=binding.qa_result_digest,
+            security_scope_digest=binding.security_scope_digest, verdict='ACCEPTED',
+            rationale='Synthetic integration fixture only.', findings=[])
+        self.service.backend.execute = lambda *args, **kwargs: canonical(report)
+        self.run_worker()
+        progressor = SignedResultProgressor(self.states, self.ledger,
+            key_loader=lambda _: self.keys, clock=lambda: NOW,
+            review_validator=BoundSecurityValidator(binding, lambda *args: True, lambda b: False))
+        with self.assertRaises(StateError):
+            progressor.advance(self.state.factory_id, self.state.task_id, self.request)
+        self.assertEqual(self.states.load_state(self.state.factory_id, self.state.task_id).state,
+                         'SECURITY_REVIEW')
+        progressor.review_validator = BoundSecurityValidator(binding, lambda *args: True, lambda b: True)
+        result = progressor.advance(self.state.factory_id, self.state.task_id, self.request)
+        self.assertEqual(result['state'], 'RELEASE_READY')
+        self.assertFalse(result['release_dispatched'])
+        replay = progressor.advance(self.state.factory_id, self.state.task_id, self.request)
+        self.assertEqual(replay['status'], 'ALREADY_ADVANCED')
+        self.assertEqual(self.invocations, 1)
 
     def test_qa_uncertain_attempt_cannot_repeat(self):
         self.setup_role('qa')

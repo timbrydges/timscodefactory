@@ -10,6 +10,14 @@ three-role controller, dispatch a security job, or reuse synthetic security
 receipts. Signing, scope authentication and at-most-once execution remain
 separate prerequisites for a real security stage.
 
+The generic Lambda role transport also recognizes numeric versions of the
+existing `tims-factory-review-security` function. Its dispatch lease must name
+`deep_security_reviewer_service`; Builder, Inspector and QA leases cannot use
+this route. Transport support adds no live function configuration, credentials
+or provider allowance. Integration tests use real test signatures and simulated
+AWS to verify one security transition, replay handling and uncertain-send
+retention. The three-role controller still stops before security.
+
 `BoundedReviewController` composes authenticated intake, immutable S3 jobs and
 scope receipts, generic Lambda role transport, durable dispatch, and signed
 result progression. It defaults to disabled and has no Lambda entrypoint.
