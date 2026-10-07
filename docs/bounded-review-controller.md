@@ -1,5 +1,13 @@
 # Bounded review controller composition
 
+`SecurityProviderScope` verifies a separate owner-signed allowance for one
+security call with a USD0.25 reservation under the approved USD3.50 aggregate
+ceiling. It binds exact request bytes, candidate, test proof, QA result and
+security scope to `BOUNDED_SECURITY#004#ROLE#security`. Historical three-role
+allowances and claims are unchanged. Pricing and readiness still require fresh
+deployment verification; this offline verifier does not establish those facts
+itself. No live handler, claim writer or provider invocation uses this scope yet.
+
 `BoundSecurityValidator` is a separate, unwired security report validator. It
 binds the exact candidate, fresh test evidence, QA result and security scope to
 a distinct security input and lease. Deployment must supply authenticated test
