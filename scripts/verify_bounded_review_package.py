@@ -63,6 +63,17 @@ except StateError as error:
 else:
     raise AssertionError('Permission probe disabled boundary did not reject')
 print('ISOLATED_READ_ONLY_PERMISSION_PROBE_DISABLED_VERIFIED')
+from factory_runtime.security_role_lambda import dispatch as security_role
+from factory_runtime.security_controller_lambda import dispatch as security_controller
+for boundary, message in ((security_role, 'Security Lambda disabled'),
+                          (security_controller, 'Security controller Lambda disabled')):
+    try:
+        boundary(None, None, root=Path('/does-not-exist'), env={}, clock=lambda: None)
+    except StateError as error:
+        assert str(error) == message
+    else:
+        raise AssertionError('Security disabled boundary did not reject')
+print('ISOLATED_SECURITY_ROLE_AND_CONTROLLER_DISABLED_VERIFIED')
 '''
         subprocess.run([sys.executable, '-I', '-S', '-c', code, str(root)], check=True, timeout=30)
     return {'status': 'ISOLATED_PACKAGE_VERIFIED', 'source_commit': index['source_commit'], 'model_calls': 0}
