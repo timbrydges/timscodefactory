@@ -9,12 +9,15 @@ from .pilot002_protocols import _decode, _bedrock
 from .security_provider_scope import MODEL, SecurityProviderScope
 from .security_verdict import SecurityReviewBinding
 from .worker import digest
+from .security_policy import policy_bytes, policy_digest
 
 
 def job_input(binding, files):
     if type(binding) is not SecurityReviewBinding:
         raise StateError('Deployment-owned security binding required')
     binding.validate()
+    if binding.security_scope_digest != policy_digest():
+        raise StateError('Security policy material differs from scope')
     q = binding.qa
     files = _files(files)
     if digest(canonical(files)) != q.candidate_digest or set(files) != set(q.allowed_paths):
@@ -24,7 +27,8 @@ def job_input(binding, files):
         'contract_digest': q.contract_digest, 'candidate_commit': q.candidate_commit,
         'candidate_digest': q.candidate_digest, 'test_evidence_digest': q.test_evidence_digest,
         'qa_result_digest': binding.qa_result_digest,
-        'security_scope_digest': binding.security_scope_digest, 'files': files}
+        'security_scope_digest': binding.security_scope_digest,
+        'security_policy': json.loads(policy_bytes()), 'files': files}
     raw = canonical(value)
     if len(raw) > 42020:
         raise StateError('Security job exceeds bound')
@@ -62,7 +66,8 @@ def prepare(*, binding, request, files, input_bytes):
         'path from supplied files, detail 1-1000 characters). Reject any unresolved risk, including low '
         'severity. Do not waive findings or assume historical mitigations are current. Do not claim '
         'test execution, sandbox protection or production release authority. No tools or commands.')
-    packet = {'untrusted_candidate_files': files, 'expected_output_bindings': output}
+    packet = {'security_policy': json.loads(policy_bytes()),
+              'untrusted_candidate_files': files, 'expected_output_bindings': output}
     raw = canonical({'modelId': MODEL, 'system': [{'text': instructions}],
         'messages': [{'role': 'user', 'content': [{'text': canonical(packet).decode()}]}],
         'inferenceConfig': {'maxTokens': 4096, 'temperature': 0}})

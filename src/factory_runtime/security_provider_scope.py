@@ -10,6 +10,7 @@ from .pilot002_adapter import _cost
 from .pilot002_authorization import _exact, _window
 from .security_verdict import SecurityReviewBinding
 from .worker import digest
+from .security_policy import policy_digest
 
 RESERVATION = 250000
 AGGREGATE_CEILING = 3500000
@@ -29,6 +30,8 @@ class SecurityProviderScope:
         self.binding.validate()
         b = self.binding
         q = b.qa
+        if b.security_scope_digest != policy_digest():
+            raise StateError('Security scope must bind the fixed deployment policy')
         if ((q.factory_id, q.task_id) != ('tims-software-factory', 'bounded-review-004') or
                 (self.request.source_commit, self.request.contract_digest, self.request.input_digest) !=
                 (q.source_commit, q.contract_digest, b.input_digest) or
