@@ -1,5 +1,13 @@
 # Bounded review controller composition
 
+`SecurityProviderClaims` uses the existing permanent table with only the new
+security claim key. It conditionally moves RESERVED to STARTED to COMPLETE,
+retaining the USD0.25 hold in every outcome. Concurrent or restarted sends,
+changed grants and uncertain write responses cannot create another attempt.
+This store accepts only internally verified security allowances; it supplies no
+signature verification or live access grants. Historical review keys are never
+read or modified by its operations.
+
 `SecurityProviderScope` verifies a separate owner-signed allowance for one
 security call with a USD0.25 reservation under the approved USD3.50 aggregate
 ceiling. It binds exact request bytes, candidate, test proof, QA result and
