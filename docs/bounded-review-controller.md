@@ -130,3 +130,18 @@ not prove write permission, authenticate review material, authorize a model
 call or advance a gate. It performs no data writes, signing, secret reads or
 provider calls. IAM simulation is not a substitute for this live source-context
 check. Deploying or invoking this probe does not enable the paid entrypoints.
+
+## Verified bounded run 004
+
+On 2026-10-07, runtime `cd8c06647e2f8b41480ddc53cf17d2fabce69033` completed
+one OpenAI Builder, one Bedrock/Anthropic Inspector, and one Google QA call.
+Each signed result advanced exactly one stage; the final state is
+`SECURITY_REVIEW`, version 7. All four workers returned to concurrency zero.
+The three calls reported USD 0.121833 against the approved USD 0.50 reservation.
+The aggregate USD 3.25 ceiling and historical consumed claims were preserved.
+
+[The retained proof](../factory/evidence/bounded-review004-live-proof-2026-10-07.json)
+binds the runtime, candidate, authenticated 17-test Docker artifact, numeric
+Lambda versions, permanent claims and historical signatures. Receipt signatures
+were audited at issuance time; the record cannot grant fresh authority.
+This run does not authorize security review, release or unattended operation.
