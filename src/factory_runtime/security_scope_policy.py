@@ -9,6 +9,7 @@ from .intake import IntakePlan
 from .security_material import PinnedSecurityMaterial
 from .security_contract import validate_link
 from .security_qa_provenance import ConsumedQAProvenance
+from .review_signing import _EnrolledSigner
 
 IDENTITY = 'product_spec_reviewer_service'
 EVIDENCE = 'Fresh authenticated 17-test Docker proof and exact consumed signed QA result.'
@@ -66,3 +67,21 @@ class SecurityScopeReview:
         if canonical(p.review_payload) != canonical(expected):
             raise StateError('Security independent scope receipt differs')
         return expected
+
+
+class SecurityScopeSigner(_EnrolledSigner):
+    """Existing independent spec custody; disabled until explicitly configured."""
+    key_bindings = {'spec':'arn:aws:kms:ca-central-1:666730517561:key/76066708-e1ef-47c9-98fb-f38003c99d30'}
+    role_bindings = {'spec':'tims-factory-signing-spec-reviewer'}
+    identities = {'spec':IDENTITY}
+
+    def __init__(self, *, policy, kms, sts, enabled=False):
+        if type(policy) is not SecurityScopeReview:
+            raise StateError('Independent security scope policy required')
+        self.policy = policy
+        super().__init__(role='spec',kms=kms,sts=sts,key_loader=policy.key_loader,
+            clock=policy.clock,enabled=enabled)
+
+    def _check(self, payload, now):
+        if type(payload) is not dict or canonical(payload) != canonical(self.policy.review(now=now)):
+            raise StateError('Only the independently checked security scope can be signed')
