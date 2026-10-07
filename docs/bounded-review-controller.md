@@ -1,5 +1,15 @@
 # Bounded review controller composition
 
+`BoundSecurityValidator` is a separate, unwired security report validator. It
+binds the exact candidate, fresh test evidence, QA result and security scope to
+a distinct security input and lease. Deployment must supply authenticated test
+and prerequisite verifiers; a matching digest alone is not authority. Only an
+accepted report with no unresolved risk findings passes. The model cannot waive
+findings or assert release authority. This addition does not extend the
+three-role controller, dispatch a security job, or reuse synthetic security
+receipts. Signing, scope authentication and at-most-once execution remain
+separate prerequisites for a real security stage.
+
 `BoundedReviewController` composes authenticated intake, immutable S3 jobs and
 scope receipts, generic Lambda role transport, durable dispatch, and signed
 result progression. It defaults to disabled and has no Lambda entrypoint.
