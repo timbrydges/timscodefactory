@@ -31,7 +31,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
+      - name: Install locked build dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt
       - name: Build committed-source disabled runtime package
+        # Build-time imports use the existing hash-locked CI environment. The
+        # package verifier below still runs its probe with Python -I -S.
         run: python scripts/build_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
       - name: Verify packaged dependencies and disabled entrypoints
         run: python scripts/verify_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
