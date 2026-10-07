@@ -24,7 +24,7 @@ class OwnerPlanTests(unittest.TestCase):
         price.update(scope.bindings(),**times,evidence_digest=digest(canonical(self.evidence['pricing'])))
         ready.update(scope.bindings(),**times,evidence_digest=digest(canonical(self.evidence['readiness'])))
         payload.update(scope.bindings(),**times,pricing_digest=digest(canonical(price)),readiness_digest=digest(canonical(ready)))
-        self.plan={'kind':'bounded_review003_owner_signing_plan','source_commit':self.material.source_commit,
+        self.plan={'kind':'bounded_review004_owner_signing_plan','source_commit':self.material.source_commit,
             'role':'builder','proof_run_id':123,'material_digest':digest(self.f.raw),
             'pricing':price,'readiness':ready,'allowance':payload,'evidence':self.evidence}
         self.importer=Mock(return_value=self.f.raw)

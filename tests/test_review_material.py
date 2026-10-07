@@ -33,7 +33,7 @@ class MaterialTests(unittest.TestCase):
             self.assertTrue(material.evidence(role,clock=lambda:self.f.now)(
                 CANDIDATE,CANDIDATE_DIGEST,digest(material.proof_bytes)))
         contract=json.loads(material.contract_bytes)
-        self.assertEqual(contract['run_reserved_micro_usd'],750000)
+        self.assertEqual(contract['run_reserved_micro_usd'],500000)
         self.assertFalse(contract['production_release_authorized'])
         files=material.files();files['fingerprint.py']='changed'
         self.assertNotEqual(files,material.files())

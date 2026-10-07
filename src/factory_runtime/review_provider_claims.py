@@ -6,10 +6,10 @@ its signature and current pricing. This store is not an authorization verifier.
 import re
 from datetime import datetime
 from factory_state.model import SHA256_DIGEST, StateError
-from .review_provider_scope import CAP, PROVIDERS, TASK, VerifiedAllowance
+from .review_provider_scope import ROLE_CAPS, PROVIDERS, TASK, VerifiedAllowance
 from .worker import digest
 
-# Reuse permanent storage; historical 001/002 keys are never accessed or mutated.
+# Reuse permanent storage; historical 001/002/003 keys are never accessed or mutated.
 TABLE = 'tims-factory-bounded-review-001-attempts'
 
 
@@ -24,17 +24,17 @@ class ReviewProviderClaims:
         if (type(grant) is not VerifiedAllowance or grant.role not in PROVIDERS or
                 any(type(v) is not str or not SHA256_DIGEST.fullmatch(v)
                     for v in (grant.allowance_digest, grant.scope_digest)) or
-                type(grant.maximum_cost_micro_usd) is not int or not 0 < grant.maximum_cost_micro_usd <= CAP or
+                type(grant.maximum_cost_micro_usd) is not int or not 0 < grant.maximum_cost_micro_usd <= ROLE_CAPS[grant.role] or
                 type(dispatch_id) is not str or not re.fullmatch('[0-9a-f]{64}', dispatch_id) or
                 type(now) is not datetime or now.tzinfo is None or now.utcoffset() is None or
                 type(grant.expires_at) is not int or not now.timestamp() < grant.expires_at <= now.timestamp()+3600):
             raise StateError('fresh verified claim binding required')
-        return {'PK': {'S': 'BOUNDED_REVIEW#003#ROLE#'+grant.role}, 'status': {'S': 'RESERVED'},
+        return {'PK': {'S': 'BOUNDED_REVIEW#004#ROLE#'+grant.role}, 'status': {'S': 'RESERVED'},
             'task_id': {'S': TASK}, 'role': {'S': grant.role}, 'dispatch_id': {'S': dispatch_id},
             'allowance_digest': {'S': grant.allowance_digest}, 'scope_digest': {'S': grant.scope_digest},
             'maximum_cost_micro_usd': {'N': str(grant.maximum_cost_micro_usd)},
             'expires_at': {'N': str(grant.expires_at)}, 'reservation_status': {'S': 'HELD'},
-            'reserved_micro_usd': {'N': str(CAP)}}
+            'reserved_micro_usd': {'N': str(ROLE_CAPS[grant.role])}}
 
     def hold(self, grant, dispatch_id, *, now):
         item = self._item(grant, dispatch_id, now)

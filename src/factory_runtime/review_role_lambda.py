@@ -1,4 +1,4 @@
-"""Disabled-by-default immutable-version entrypoint for bounded-review-003 only."""
+"""Disabled-by-default immutable-version entrypoint for bounded-review-004 only."""
 import json
 import os
 import re
@@ -84,7 +84,7 @@ def dispatch(event, context, *, root, env, clock):
         if role!='qa':
             credentials=client(session,'sts').assume_role(
                 RoleArn=f'arn:aws:iam::{ACCOUNT}:role/tims-factory-signing-{role}',
-                RoleSessionName='bounded-review-003-'+role,DurationSeconds=900)['Credentials']
+                RoleSessionName='bounded-review-004-'+role,DurationSeconds=900)['Credentials']
             import boto3
             signing=boto3.Session(aws_access_key_id=credentials['AccessKeyId'],
                 aws_secret_access_key=credentials['SecretAccessKey'],aws_session_token=credentials['SessionToken'],

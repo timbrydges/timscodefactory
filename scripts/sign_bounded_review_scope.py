@@ -26,7 +26,7 @@ from factory_state.signers import load_trusted_signers
 def context(packet, *, approved_digest, source_commit, mode, root=ROOT, clock, importer=prepare):
     fields={'kind','source_commit','role','proof_run_id','material_digest','plan','owner_signature_base64'}
     if (mode not in ('owner','spec') or type(packet)is not dict or set(packet)!=fields or
-            digest(canonical(packet))!=approved_digest or packet['kind']!='bounded_review003_scope_signing_plan' or
+            digest(canonical(packet))!=approved_digest or packet['kind']!='bounded_review004_scope_signing_plan' or
             packet['source_commit']!=source_commit or type(packet['proof_run_id'])is not int or packet['proof_run_id']<=0):
         raise StateError('exact reviewed scope packet required')
     try:

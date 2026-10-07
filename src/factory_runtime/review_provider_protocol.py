@@ -32,7 +32,7 @@ def job_input(*, role, source_commit, contract_digest, candidate_commit, files, 
             any(type(v) is not str or not SHA256_DIGEST.fullmatch(v)
                 for v in (contract_digest, test_evidence_digest))):
         raise StateError('fixed candidate job pins required')
-    raw = canonical({'kind': 'bounded_review003_job', 'factory_id': FACTORY, 'task_id': TASK,
+    raw = canonical({'kind': 'bounded_review004_job', 'factory_id': FACTORY, 'task_id': TASK,
         'role': role, 'source_commit': source_commit, 'contract_digest': contract_digest,
         'candidate_commit': candidate_commit, 'files': _files(files),
         'test_evidence_digest': test_evidence_digest})

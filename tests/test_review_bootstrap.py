@@ -20,7 +20,7 @@ class BootstrapTests(unittest.TestCase):
             self.db.create_table(TableName=table,KeySchema=[{'AttributeName':k,'KeyType':'HASH' if k=='PK' else 'RANGE'} for k in keys],
                 AttributeDefinitions=[{'AttributeName':k,'AttributeType':'S'} for k in keys],BillingMode='PAY_PER_REQUEST')
         self.sts=Mock(get_caller_identity=Mock(return_value={'Account':'666730517561','Arn':'arn:aws:iam::666730517561:root'}))
-        self.config={'kind':'bounded_review003_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
+        self.config={'kind':'bounded_review004_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
             'source_commit':self.material.source_commit,'contract_digest':digest(self.material.contract_bytes),
             'owner_identity':'tim_brydges','initial_state':'PAUSED','provider_calls':0,
             'not_before':int(self.now.timestamp()),'expires_at':int(self.now.timestamp())+600,'nonce':'a'*32}
@@ -37,7 +37,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(self.db.scan(TableName=CLAIMS)['Items'],[])
 
     def test_any_existing_claim_blocks_all_state_writes(self):
-        self.db.put_item(TableName=CLAIMS,Item={'PK':{'S':'BOUNDED_REVIEW#003#ROLE#qa'},'status':{'S':'STARTED'}})
+        self.db.put_item(TableName=CLAIMS,Item={'PK':{'S':'BOUNDED_REVIEW#004#ROLE#qa'},'status':{'S':'STARTED'}})
         with self.assertRaises(StateError):self.execute()
         self.assertEqual(self.db.scan(TableName=TABLE)['Items'],[])
 
@@ -59,7 +59,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(self.db.get_item(TableName=TABLE,Key={k:state002[k] for k in ('PK','SK')})['Item'],state002)
 
     def test_old_bootstrap_packet_cannot_authorize_successor(self):
-        for previous in ('001','002'):
+        for previous in ('001','002','003'):
             self.config.update(kind='bounded_review'+previous+'_paused_bootstrap',task_id='bounded-review-'+previous)
             with self.assertRaises(StateError):self.execute()
         self.assertEqual(self.db.scan(TableName=TABLE)['Items'],[])

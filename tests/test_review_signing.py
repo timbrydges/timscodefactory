@@ -51,7 +51,7 @@ class ReviewSigningTests(unittest.TestCase):
         scope,price,ready,payload = fixture('builder' if role=='owner' else role)
         if role=='owner':
             return ReviewAllowanceSigner(scope=scope,pricing=price,readiness=ready,**context),payload
-        payload = {'kind':'role_result','factory_id':'tims-software-factory','task_id':'bounded-review-003',
+        payload = {'kind':'role_result','factory_id':'tims-software-factory','task_id':'bounded-review-004',
             'binding':DynamoDBDispatchStore._binding(scope.request),'dispatch_id':'d'*64,
             'producer_identity':ROLE_IDENTITIES[role],'output_digest':'sha256:'+'e'*64,
             'issued_at':int(NOW.timestamp()),'expires_at':int(NOW.timestamp())+300}
