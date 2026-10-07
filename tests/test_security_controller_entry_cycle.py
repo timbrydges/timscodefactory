@@ -1,7 +1,7 @@
 """Actual entrypoints and versioned job parser; simulated cloud transport only.
 
-Intake is already durably authorized by the fixture, so receipt S3 is not read.
-The controller, not the fixture, claims dispatch and reserves provider spend.
+The controller retrieves both signed receipts, activates intake, claims dispatch
+and reserves provider spend. No fixture preactivates or preclaims security work.
 """
 import base64
 import hashlib
@@ -19,7 +19,7 @@ from factory_runtime import security_controller_lambda as controller, security_r
 from factory_runtime import pilot002_transport as wire
 from factory_runtime.acceptance_jobs import encode_job
 from factory_runtime.autonomy import ScheduledAutonomyJob
-from factory_runtime.receipt_transport import ReceiptVersions
+from factory_runtime.receipt_transport import ReceiptVersions, receipt_plan_digest
 from factory_runtime.worker import digest
 from factory_state.model import StateError
 from factory_state.scope import canonical
@@ -28,8 +28,8 @@ from factory_state.scope import canonical
 @unittest.skipIf(mock_aws is None,'Requires moto[dynamodb]')
 class ControllerEntryCycleTests(unittest.TestCase):
     def setUp(self):
-        f=fixtures.EntryCycleTests();f.preclaim=False;f.setUp();self.addCleanup(f.doCleanups)
-        self.f=f;self.invocations=0;self.reads=[];self.bad_checksum=False
+        f=fixtures.EntryCycleTests();f.preclaim=False;f.preactivate=False;f.setUp();self.addCleanup(f.doCleanups)
+        self.f=f;self.invocations=0;self.reads=[];self.bad_checksum=False;self.bad_receipt=False
         q=f.material.binding.qa
         job=ScheduledAutonomyJob(f.t.policy.plan,ReceiptVersions('owner-v1','review-v1'),
             f.material.prepared().input_bytes,f.material.contract_bytes)
@@ -57,6 +57,21 @@ class ControllerEntryCycleTests(unittest.TestCase):
 
     def get_object(self,**kwargs):
         self.reads.append(kwargs)
+        if kwargs['Key'].startswith('factory-scope-receipts/'):
+            kind=kwargs['Key'].rsplit('/',1)[-1].removesuffix('.json')
+            self.assertIn(kind,('owner','reviewer'))
+            version='owner-v1' if kind=='owner' else 'review-v1'
+            self.assertEqual(kwargs['VersionId'],version)
+            plan=self.f.t.policy.plan;pin=receipt_plan_digest(plan)
+            self.assertEqual(kwargs['Key'],f'factory-scope-receipts/{pin[7:]}/{kind}.json')
+            signature=self.f.t.policy.owner_signature if kind=='owner' else self.f.review_signature
+            if self.bad_receipt and kind=='reviewer':signature=b'x'*64
+            raw=canonical({'schema_version':'1.0','plan_digest':pin,
+                'signer_identity':'tim_brydges' if kind=='owner' else 'product_spec_reviewer_service',
+                'payload':plan.capability_payload if kind=='owner' else plan.review_payload,
+                'signature_base64':base64.b64encode(signature).decode()})
+            return {'VersionId':version,'ContentLength':len(raw),'Body':io.BytesIO(raw),
+                'Metadata':{'plan-digest':pin},'ChecksumSHA256':base64.b64encode(hashlib.sha256(raw).digest()).decode()}
         self.assertEqual(kwargs['VersionId'],'job-v1')
         self.assertEqual(kwargs['Key'],'factory-autonomy-jobs/bounded-security-004/SECURITY_REVIEW.json')
         checksum=base64.b64encode(hashlib.sha256(self.job).digest()).decode()
@@ -81,7 +96,7 @@ class ControllerEntryCycleTests(unittest.TestCase):
         self.assertEqual(result['status'],'ADVANCED')
         self.assertEqual(result['progression']['state'],'RELEASE_READY')
         self.assertEqual(again['status'],'STOPPED');self.assertFalse(again['release_dispatched'])
-        self.assertEqual((self.invocations,network.call_count,len(self.reads)),(1,1,1))
+        self.assertEqual((self.invocations,network.call_count,len(self.reads)),(1,1,3))
 
     def test_wrong_s3_checksum_blocks_role_and_provider(self):
         self.bad_checksum=True
@@ -90,6 +105,19 @@ class ControllerEntryCycleTests(unittest.TestCase):
             with self.assertRaises(StateError):self.tick()
             network.assert_not_called()
         self.assertEqual(self.invocations,0)
+
+    def test_bad_reviewer_receipt_prevents_intake_and_provider(self):
+        self.bad_receipt=True
+        with patch.object(controller,'_aws_session',return_value=self.session), \
+                patch.object(wire.http.client,'HTTPSConnection') as network:
+            with self.assertRaises(StateError):self.tick()
+            network.assert_not_called()
+        self.assertEqual(self.invocations,0)
+        from factory_state.dynamodb import DynamoDBStateStore
+        q=self.f.material.binding.qa
+        state=DynamoDBStateStore('tims-software-factory-state',self.f.t.db).load_state(q.factory_id,q.task_id)
+        self.assertEqual(state.version,7)
+        self.assertFalse(any(lease.role_id=='deep_security_reviewer' for lease in state.leases))
 
 
 if __name__ == '__main__':unittest.main()
