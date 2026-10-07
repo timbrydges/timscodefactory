@@ -62,5 +62,20 @@ class SecurityScopeTests(unittest.TestCase):
                 with self.subTest(change=change),self.assertRaises(StateError):
                     SecurityScopeReview(**args).review(now=self.now)
 
+    def test_stale_proof_version_and_receipt_lifetime_rejected(self):
+        original=self.states.load_state.return_value
+        for change in ('proof','version','receipt'):
+            self.states.load_state.return_value=original
+            args=dict(self.args)
+            if change=='proof':args['clock']=lambda:self.now+timedelta(hours=2)
+            if change=='version':self.states.load_state.return_value=replace(original,version=8)
+            if change=='receipt':
+                p=args['plan'];cap={**p.capability_payload,'expires_at':int(self.now.timestamp())+601}
+                args['plan']=replace(p,capability_payload=cap)
+                args['owner_signature']=sign(cap,self.private['tim_brydges'],self.temp.name)
+            with patch.object(ConsumedQAProvenance,'__call__',return_value=True):
+                with self.subTest(change=change),self.assertRaises(StateError):
+                    SecurityScopeReview(**args).review(now=self.now)
+
 
 if __name__ == '__main__':unittest.main()
