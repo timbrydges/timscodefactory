@@ -1,5 +1,12 @@
 # Bounded review controller composition
 
+`security_provider_protocol` builds bounded Bedrock requests for the exact two
+candidate paths and all security provenance pins. Its strict response parser
+retains ACCEPTED or REJECTED reports and findings without granting advancement.
+Tool output, incomplete responses, unqualified billing modes, changed bindings
+and model-supplied authority fields fail closed. The codec performs no network
+or credential access; live transport and backend integration remain separate.
+
 `SecurityProviderClaims` uses the existing permanent table with only the new
 security claim key. It conditionally moves RESERVED to STARTED to COMPLETE,
 retaining the USD0.25 hold in every outcome. Concurrent or restarted sends,
