@@ -30,7 +30,9 @@ class EntryCycleTests(unittest.TestCase):
     def setUp(self):
         t=intake_fixture.SecurityIntakeTests();t.setUp();self.addCleanup(t.doCleanups)
         self.t=t;policy=t.policy;self.now=t.f.f.now;self.material=policy.material
-        queued=t.activate(t.reviewer_signature());self.dispatch_id=queued['dispatch_id']
+        self.review_signature=t.reviewer_signature()
+        queued=t.activate(self.review_signature) if getattr(self,'preactivate',True) else {'dispatch_id':'0'*64}
+        self.dispatch_id=queued['dispatch_id']
         s=signing_fixture.SecuritySigningTests();s.setUp();self.addCleanup(s.doCleanups);self.signing=s
         keys=dict(t.f.f.keys);keys['deep_security_reviewer_service']=s.keys['deep_security_reviewer_service']
         self.root=Path(t.f.f.temp.name)
