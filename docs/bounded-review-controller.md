@@ -1,5 +1,13 @@
 # Bounded review controller composition
 
+`security_scope_digest` identifies the fixed deployment-owned policy returned by
+`security_policy.policy_bytes()`. The exact policy is included in both job and
+provider request. It is not a signed receipt containing the job's own input
+digest: policy bytes are fixed first, then the job/request is hashed, then fresh
+owner and independent scope signatures authorize that exact dispatch. The policy
+requires review of filesystem, resource, disclosure, injection and dependency
+risks without assuming historical mitigations or permitting risk waivers.
+
 `ConsumedQAProvenance` authenticates the exact retained QA result and requires
 its evidence ID to have been consumed by the same task, now in SECURITY_REVIEW.
 Deployment pins the prior QA binding and historical key loader. Signature

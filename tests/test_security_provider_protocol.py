@@ -3,6 +3,7 @@ import json
 import unittest
 from factory_runtime.security_provider_protocol import job_input, prepare, parse_response
 from factory_runtime.worker import digest
+from factory_runtime.security_policy import policy_bytes, policy_digest
 from factory_state.model import StateError
 from factory_state.scope import canonical
 from test_security_provider_scope import fixture
@@ -34,6 +35,22 @@ class SecurityProtocolTests(unittest.TestCase):
         output, usage = parse_response(self.response(), self.prepared)
         self.assertEqual(json.loads(output), self.output)
         self.assertEqual(usage['input_tokens'], 100)
+
+    def test_policy_material_is_in_job_and_wire_without_receipt_cycle(self):
+        job = json.loads(self.raw)
+        body = json.loads(self.prepared.scope.request_bytes)
+        packet = json.loads(body['messages'][0]['content'][0]['text'])
+        self.assertEqual(job['security_policy'], json.loads(policy_bytes()))
+        self.assertEqual(packet['security_policy'], job['security_policy'])
+        self.assertEqual(job['security_scope_digest'], policy_digest())
+        self.assertNotIn('input_digest', job['security_policy'])
+        self.assertFalse(job['security_policy']['risk_waivers_allowed'])
+        bad = replace(self.prepared.scope.binding, security_scope_digest=digest(b'changed policy'))
+        with self.assertRaises(StateError): job_input(bad, self.files)
+        job['security_policy']['risk_waivers_allowed'] = True
+        with self.assertRaises(StateError):
+            prepare(binding=self.prepared.scope.binding, request=self.prepared.scope.request,
+                    files=self.files, input_bytes=canonical(job))
 
     def test_rejected_findings_retained_without_gate_authority(self):
         self.output.update(verdict='REJECTED', findings=[{'severity':'critical',
