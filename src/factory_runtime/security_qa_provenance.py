@@ -21,13 +21,18 @@ class ConsumedQAProvenance:
     No synthetic proof files or historical acceptance overrides are loaded.
     """
     def __init__(self, *, binding, qa_binding, qa_request, states, ledger,
-                 historical_key_loader, clock):
+                 historical_key_loader, clock, contract_bytes=None):
         if (type(binding) is not SecurityReviewBinding or type(qa_binding) is not ReviewBinding or
                 qa_binding.role_id != 'qa_engineer' or type(qa_request) is not DispatchRequest or
                 not callable(historical_key_loader) or not callable(clock)):
             raise StateError('Deployment-owned QA provenance configuration required')
         binding.validate(); qa_binding.validate()
-        shared = ('factory_id', 'task_id', 'contract_digest', 'candidate_commit', 'candidate_digest', 'allowed_paths')
+        shared = ('factory_id', 'task_id', 'candidate_commit', 'candidate_digest', 'allowed_paths')
+        if contract_bytes is not None:
+            from .security_contract import validate_link
+            validate_link(binding, qa_binding, contract_bytes)
+        elif binding.qa.contract_digest != qa_binding.contract_digest:
+            raise StateError('Fresh security contract required for cross-contract QA provenance')
         if (any(getattr(binding.qa, key) != getattr(qa_binding, key) for key in shared) or
                 (qa_request.source_commit, qa_request.contract_digest, qa_request.input_digest) !=
                 (qa_binding.source_commit, qa_binding.contract_digest, qa_binding.input_digest)):
