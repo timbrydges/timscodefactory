@@ -79,7 +79,7 @@ class ProtocolTests(unittest.TestCase):
             (canonical({**good,'service_tier':'secret'}),'provider-tier'),
             (canonical({**good,'usage':{**good['usage'],'total_tokens':999}}),'provider-usage'),
             (canonical({**good,'output':[]}),'provider-output'),
-            (response_for(prepared,{**output_for(prepared),'rationale':'','extra':'secret'}),'output-binding'),
+            (response_for(prepared,{**output_for(prepared),'rationale':'','extra':'secret'}),'output-fields'),
             (response_for(prepared,{**output_for(prepared),'files':{**FILES,'fingerprint.py':'secret'}}),'candidate-files')]
         bad=json.loads(response_for(prepared));bad['output'][0]['content'][0]['text']='secret'
         cases.append((canonical(bad),'output-json'))
@@ -90,6 +90,43 @@ class ProtocolTests(unittest.TestCase):
             self.assertNotIn('secret',str(error.exception))
         failure=ResponseValidationFailure('secret');failure.code='secret';failure.args=('secret',)
         self.assertNotIn('secret',str(BoundedProviderFailure('response validation',failure)))
+
+    def test_exact_fields_and_bindings_rejected_without_provider_text(self):
+        for role in ('builder','inspector','qa'):
+            prepared,_=material(role);good=output_for(prepared)
+            cases=[({k:v for k,v in good.items() if k!='rationale'},'output-fields'),
+                   ({'wrapper':good},'output-fields'),
+                   ({**good,'rationale':' '},'output-rationale'),
+                   ({**good,'rationale':42},'output-rationale'),
+                   ({**good,'rationale':'x'*2001},'output-rationale')]
+            cases += [({**good,key:'secret'},'binding-'+key.replace('_','-'))
+                      for key in json.loads(prepared.expected_output)]
+            for output,code in cases:
+                with self.subTest(role=role,code=code),self.assertRaises(ResponseValidationFailure) as error:
+                    parse_response(response_for(prepared,output),prepared)
+                self.assertEqual(error.exception.code,code)
+                self.assertNotIn('secret',str(error.exception))
+                self.assertNotIn('secret',str(BoundedProviderFailure('response validation',error.exception)))
+
+    def test_builder_strict_schema_matches_local_acceptance_boundary(self):
+        from jsonschema import Draft202012Validator
+        prepared,_=material();body=json.loads(prepared.scope.request_bytes)
+        fmt=body['text']['format'];self.assertEqual(fmt['type'],'json_schema');self.assertTrue(fmt['strict'])
+        schema=fmt['schema'];Draft202012Validator.check_schema(schema);validator=Draft202012Validator(schema)
+        valid=output_for(prepared);validator.validate(valid)
+        self.assertEqual(set(schema['required']),set(valid))
+        self.assertFalse(schema['additionalProperties'])
+        for bad in ({k:v for k,v in valid.items() if k!='files'},
+                    {**valid,'candidate_commit':'c'*40},{**valid,'extra':True},
+                    {**valid,'files':{'unapproved.py':'secret'}}):
+            self.assertFalse(validator.is_valid(bad))
+        # A shape-valid changed candidate still cannot pass the local gate.
+        changed={**valid,'files':{**FILES,'fingerprint.py':'changed'}}
+        validator.validate(changed)
+        with self.assertRaisesRegex(ResponseValidationFailure,'candidate-files'):
+            parse_response(response_for(prepared,changed),prepared)
+        changed=replace(prepared,scope=replace(prepared.scope,request_bytes=canonical({**body,'text':{}})))
+        with self.assertRaises(StateError):changed.validate()
 
     def test_failure_metadata_rejects_untrusted_text_and_status(self):
         for status in ('secret', True, 200, 600, None):
@@ -232,7 +269,7 @@ class BackendTests(unittest.TestCase):
         self.hold();bad={**output_for(self.prepared),'candidate_commit':'c'*40}
         connection=Connection(Response(response_for(self.prepared,bad)))
         with patch.object(wire.http.client,'HTTPSConnection',return_value=connection) as connect:
-            with self.assertRaisesRegex(StateError,'response validation \\(output-binding\\)'):self.execute()
+            with self.assertRaisesRegex(StateError,'response validation \\(binding-candidate-commit\\)'):self.execute()
             self.now+=timedelta(minutes=11)
             with self.assertRaises(StateError):self.execute()
             self.assertEqual(connect.call_count,1)
