@@ -14,6 +14,7 @@ from factory_runtime.autonomy import AutonomyActivation, ScheduledAutonomyJob
 from factory_runtime.intake import IntakePlan
 from factory_runtime.receipt_transport import ReceiptVersions
 from factory_runtime.security_controller import BoundedSecurityController
+from factory_runtime.security_contract import contract
 from factory_runtime.security_provider_protocol import prepare, job_input
 from factory_runtime.security_qa_provenance import ConsumedQAProvenance
 from factory_runtime.worker import digest
@@ -42,11 +43,16 @@ class FullSecurityCycleTests(unittest.TestCase):
             'producer_identity':'qa_engineer_service','output_digest':digest(qa_raw),
             'issued_at':int(NOW.timestamp())-7200,'expires_at':int(NOW.timestamp())-6900}
         qa_digest=digest(canonical(qa_payload))
-        binding=replace(old.binding,qa_result_digest=qa_digest)
+        contract_bytes=contract(source_commit=q.source_commit,test_evidence_digest=q.test_evidence_digest,
+            qa_binding=q,qa_result_digest=qa_digest)
+        current_q=replace(q,contract_digest=digest(contract_bytes))
+        binding=replace(old.binding,qa=current_q,qa_result_digest=qa_digest)
         raw=job_input(binding,json.loads(b.prepared.candidate_files))
         binding=replace(binding,input_digest=digest(raw))
-        request=replace(old.request,lease_id='security-cycle',input_digest=digest(raw))
+        request=replace(old.request,lease_id='security-cycle',capability_id='security-cycle',
+            contract_digest=digest(contract_bytes),input_digest=digest(raw))
         b.prepared=prepare(binding=binding,request=request,files=json.loads(b.prepared.candidate_files),input_bytes=raw)
+        b.evidence=copy.copy(b.evidence);b.evidence.binding=current_q
         security_lease=replace(a.state.leases[0],lease_id=request.lease_id)
         qa_lease=Lease('prior-qa','qa_engineer','qa_engineer_service',NOW-timedelta(hours=1))
         a.state=replace(a.state,leases=(security_lease,qa_lease),
@@ -60,6 +66,13 @@ class FullSecurityCycleTests(unittest.TestCase):
             'result_signature':{'S':base64.b64encode(sign(qa_payload,qa_private['qa_engineer_service'],a.temp.name)).decode()},
             'result_output':{'S':base64.b64encode(qa_raw).decode()}}
         a.db.put_item(TableName='security-state',Item=qa_row)
+        cap={'kind':'capability','factory_id':q.factory_id,'objective_id':request.objective_id,
+            'capability_id':request.capability_id,'contract_digest':request.contract_digest,
+            'owner_identity':'tim_brydges','required_evidence':'Fixture signed QA and current test proof',
+            'stop_condition':json.loads(contract_bytes)['stop_condition'],
+            'issued_at':int(NOW.timestamp())-1,'expires_at':int(NOW.timestamp())+600}
+        SignedScopeStore('security-state',a.db,a.keys).approve_capability(a.state,request,cap,
+            sign(cap,a.private['tim_brydges'],a.temp.name),now=NOW)
         review={'kind':'scope_review','factory_id':q.factory_id,'task_id':q.task_id,
             'binding':a.ledger._binding(request),'reviewer_identity':'product_spec_reviewer_service',
             'verdict':'ACCEPTED','rationale':'Exact security integration fixture.',
@@ -74,7 +87,8 @@ class FullSecurityCycleTests(unittest.TestCase):
         b.envelope={'payload':payload,'signature_base64':base64.b64encode(
             sign(payload,a.private['tim_brydges'],a.temp.name)).decode()}
         provenance=ConsumedQAProvenance(binding=binding,qa_binding=q,qa_request=qa_request,
-            states=a.states,ledger=a.ledger,historical_key_loader=lambda _:a.keys,clock=lambda:NOW)
+            states=a.states,ledger=a.ledger,historical_key_loader=lambda _:a.keys,clock=lambda:NOW,
+            contract_bytes=contract_bytes)
         b.verify_prerequisites=provenance
         guard=copy.copy(b);guard.load_credential=None
         test=self
@@ -85,13 +99,13 @@ class FullSecurityCycleTests(unittest.TestCase):
                 return {'StatusCode':200,'ExecutedVersion':'1','Payload':io.BytesIO(json.dumps(result).encode())}
         self.invocations=0
         activation=AutonomyActivation('security-cycle',q.factory_id,q.task_id,q.source_commit,
-            q.contract_digest,NOW-timedelta(minutes=1),NOW+timedelta(hours=1))
+            current_q.contract_digest,NOW-timedelta(minutes=1),NOW+timedelta(hours=1))
         self.controller=BoundedSecurityController(activation=activation,deployed_commit=q.source_commit,
             guard=guard,prerequisites=provenance,lambda_api=Client('lambda'),s3=NoIO('s3'),
             function_arn='arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-review-security:1',
             job_versions={'SECURITY_REVIEW':PinnedJobVersion('v1','sha256:'+'f'*64)},enabled=True)
         plan=IntakePlan(q.factory_id,q.task_id,'SECURITY_REVIEW',a.state.version,security_lease,request,{}, {})
-        job=ScheduledAutonomyJob(plan,ReceiptVersions('owner-v1','review-v1'),raw,b'contract')
+        job=ScheduledAutonomyJob(plan,ReceiptVersions('owner-v1','review-v1'),raw,contract_bytes)
         self.controller.scheduler.jobs.jobs=Mock(load=Mock(return_value=job))
         report={**json.loads(b.prepared.expected_output),'verdict':'ACCEPTED','rationale':'Fixture only.','findings':[]}
         self.response=canonical({'stopReason':'end_turn','output':{'message':{'role':'assistant',
@@ -116,6 +130,20 @@ class FullSecurityCycleTests(unittest.TestCase):
             with self.assertRaises(StateError):self.tick()
             network.assert_not_called()
         self.assertEqual(self.invocations,0)
+
+    def test_old_owner_capability_cannot_replace_fresh_contract_approval(self):
+        a=self.f.auth
+        key={'PK':{'S':'FACTORY#tims-software-factory#TASK#SCOPE#OBJECTIVE#bounded-review-004'},
+             'SK':{'S':'CAPABILITY#'+a.request.capability_id}}
+        historical=a.db.get_item(TableName='security-state',Key=key)['Item']
+        substituted=copy.deepcopy(historical)
+        substituted['SK']={'S':'CAPABILITY#security-cycle'}
+        a.db.put_item(TableName='security-state',Item=substituted)
+        with patch.object(wire.http.client,'HTTPSConnection') as network:
+            with self.assertRaises(StateError):self.tick()
+            network.assert_not_called()
+        self.assertEqual(self.invocations,0)
+        self.assertEqual(a.db.get_item(TableName='security-state',Key=key)['Item'],historical)
 
     def test_rejected_security_report_never_advances_or_repeats_provider(self):
         response=json.loads(self.response)
