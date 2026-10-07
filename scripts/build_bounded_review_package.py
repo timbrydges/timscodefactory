@@ -17,6 +17,7 @@ from factory_runtime.pilot002_entrypoint import _read
 from factory_runtime.worker import digest
 from factory_runtime.review_role_lambda import load_deployment as load_role
 from factory_runtime.review_controller_lambda import load_deployment as load_controller
+from stage_security_bundle import stage as stage_security_bundle
 
 PINNED=('factory/profiles/scope-signers.json',)
 
@@ -40,9 +41,16 @@ def deployment(files, *, role, material, material_digest, config, config_digest,
 
 
 def build(output, *, role='controller', material=None, material_digest=None,
-          config=None, config_digest=None, now=None):
-    if role not in ('controller','builder','inspector','qa'):raise ValueError('Exact bounded role required')
+          config=None, config_digest=None, now=None, security_files=None, security_pins=None):
+    if role not in ('controller','builder','inspector','qa','security','security-controller'):
+        raise ValueError('Exact bounded role required')
     args=(material,material_digest,config,config_digest)
+    security=role in ('security','security-controller')
+    if security:
+        if security_files is None or security_pins is None or any(v is not None for v in args):
+            raise ValueError('Security requires its separate exact bundle and independent pins')
+    elif security_files is not None or security_pins is not None:
+        raise ValueError('Security material cannot configure a historical review role')
     if any(v is not None for v in args) and not all(v is not None for v in args):
         raise ValueError('Material, configuration and both independent pins are required together')
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip():
@@ -57,6 +65,13 @@ def build(output, *, role='controller', material=None, material_digest=None,
     files.update({n:blob(n) for n in PINNED})
     files['BUILD.json']=json.dumps({'source_commit':commit},sort_keys=True).encode()
     info={}
+    if security:
+        additions,env=stage_security_bundle(security_files,security_pins,source_commit=commit,
+            role='controller' if role=='security-controller' else 'security',now=now or datetime.now(timezone.utc))
+        if set(additions)&(set(files)|{'PACKAGE.json'}):
+            raise RuntimeError('Security bundle shadows committed package files')
+        files.update(additions)
+        info={'role':role,'environment':env,'deployment_authority_verified':False}
     if material is not None:
         m=Path(material).absolute();c=Path(config).absolute()
         info=deployment(files,role=role,material=_read(m.parent,m.name,196608),material_digest=material_digest,
