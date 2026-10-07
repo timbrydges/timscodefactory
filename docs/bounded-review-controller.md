@@ -1,5 +1,13 @@
 # Bounded review controller composition
 
+`BoundedSecurityController` is a separate disabled composition for SECURITY_REVIEW
+only. Its guard cannot load credentials, its numeric Lambda route must name the
+security function, and its only executor is the security reviewer. It binds
+consumed QA provenance and fresh test proof before loading a signed stage job.
+All other states stop with zero dispatches, including RELEASE_READY. The new
+role/signing compositions and this controller still have no deployed entrypoint;
+full end-to-end runtime integration and live custody checks remain required.
+
 `security_scope_digest` identifies the fixed deployment-owned policy returned by
 `security_policy.policy_bytes()`. The exact policy is included in both job and
 provider request. It is not a signed receipt containing the job's own input
