@@ -94,8 +94,21 @@ def build(output, *, role='controller', material=None, material_digest=None,
         'zip_bytes':output.stat().st_size,'execution_enabled':False,'model_calls':0,**info}
 
 
-if __name__=='__main__':
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('output',type=Path)
-    parser.add_argument('--role',choices=('controller','builder','inspector','qa'),default='controller')
+    parser.add_argument('--role',choices=('controller','builder','inspector','qa','security','security-controller'),default='controller')
     for name in ('material','material-digest','config','config-digest'):parser.add_argument('--'+name)
-    print(json.dumps(build(**vars(parser.parse_args())),indent=2))
+    for name in ('security-bundle','security-pins','security-pins-digest'):parser.add_argument('--'+name)
+    args=vars(parser.parse_args(argv))
+    bundle=args.pop('security_bundle');pins=args.pop('security_pins');pin_digest=args.pop('security_pins_digest')
+    if args['role'] in ('security','security-controller'):
+        if not all((bundle,pins,pin_digest)) or any(args[k] is not None for k in ('material','material_digest','config','config_digest')):
+            parser.error('Security requires only --security-bundle, --security-pins and --security-pins-digest')
+        from stage_security_bundle import read_bundle
+        args['security_files'],args['security_pins']=read_bundle(bundle,pins,pin_digest,role=args['role'])
+    elif any(v is not None for v in (bundle,pins,pin_digest)):
+        parser.error('Security bundle options require a security role')
+    print(json.dumps(build(**args),indent=2))
+
+
+if __name__=='__main__':main()
