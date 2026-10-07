@@ -17,3 +17,12 @@ class PaidRecoveryEvidenceTests(unittest.TestCase):
                 folder=Path(temporary)/'evidence';shutil.copytree(audit.ROOT/audit.FOLDER,folder)
                 p=folder/(name+'.json');v=json.loads(p.read_bytes());mutate(v);p.write_text(json.dumps(v))
                 with self.assertRaises(ValueError):audit.verify(folder)
+
+    def test_activation_registry_tampering_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder=Path(temporary)/'evidence';shutil.copytree(audit.ROOT/audit.FOLDER,folder)
+            path=folder/'owner-activation.json';doc=json.loads(path.read_bytes())
+            doc['signer_registry']['signers'][0]['expires_at']+=86400
+            path.write_text(json.dumps(doc))
+            with self.assertRaisesRegex(ValueError,'Owner activation differs'):
+                audit.verify(folder)
