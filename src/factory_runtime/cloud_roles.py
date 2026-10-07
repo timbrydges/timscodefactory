@@ -21,10 +21,12 @@ ROLE_IDENTITIES = {
     'builder': 'engineering_agent_service',
     'inspector': 'independent_inspector_service',
     'qa': 'qa_engineer_service',
+    'security': 'deep_security_reviewer_service',
 }
 ROLE_IDS = {'planner': 'software_architect', 'builder': 'engineering_agent',
-            'inspector': 'independent_inspector', 'qa': 'qa_engineer'}
-FUNCTION = re.compile(r'^arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-(planner|builder|inspector|qa):([1-9][0-9]*)$')
+            'inspector': 'independent_inspector', 'qa': 'qa_engineer',
+            'security': 'deep_security_reviewer'}
+FUNCTION = re.compile(r'^arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-(planner|builder|inspector|qa|review-security):([1-9][0-9]*)$')
 MAX_INPUT = 65536
 MAX_WIRE = 128 * 1024
 
@@ -80,6 +82,8 @@ class LambdaRoleExecutor:
             raise StateError('invalid controller worker identity')
         self.client, self.function_arn, self.worker_id, self.guard = client, function_arn, worker_id, guard
         self.role, self.version = match.groups()
+        if self.role == 'review-security':
+            self.role = 'security'
         self.identity = ROLE_IDENTITIES[self.role]
 
     def _assert_role(self, state, request):
