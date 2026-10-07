@@ -1,5 +1,13 @@
 # Bounded review controller composition
 
+`SecurityProviderBackend` defaults to disabled. It verifies current state and
+lease, persisted signed scope, fresh test evidence, deployment-owned QA/scope
+prerequisites and the separate owner allowance before reserving or sending.
+The permanent send claim precedes credential loading; authority is checked again
+before transport and completion. The fixed regional Bedrock transport has no
+retry path. Rejected reports remain evidence and do not authorize progression.
+There is no security Lambda entrypoint or live deployment in this addition.
+
 `security_provider_protocol` builds bounded Bedrock requests for the exact two
 candidate paths and all security provenance pins. Its strict response parser
 retains ACCEPTED or REJECTED reports and findings without granting advancement.
