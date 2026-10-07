@@ -1,5 +1,5 @@
 """Audit saved paid QA acceptance; historical evidence grants no live authority."""
-import base64,hashlib,json,sys
+import base64,hashlib,json,sys,tempfile
 from datetime import datetime
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -8,7 +8,7 @@ from factory_state.scope import SignedScopeStore,canonical
 from factory_runtime.handoff003_qa_paid_recovery_authorization import TASK,PK,SCOPE_DIGEST
 from factory_runtime.handoff003_packets import parse_review
 from factory_runtime.handoff003_receipts import IDENTITIES
-from sign_handoff003_qa_paid_recovery_allowance import material
+from sign_handoff003_qa_paid_recovery_allowance import material, PINNED, SCOPE, REGISTRY
 
 SOURCE='ccfd8860b2a665a295cd66db4ecdfb45ea36e97f'
 ACTIVATION_SHA='d384a18f0c64149d834344958b34bc075485bd88437586b04c6e930683c00635'
@@ -26,7 +26,17 @@ def verify(folder,root=ROOT):
     doc=json.loads(raw)
     if doc['source_commit']!=SOURCE:raise ValueError('Source differs')
     when=datetime.fromisoformat('2026-10-06T05:57:28.590243+00:00')
-    _,keys=material(doc,root,when,unsigned=False)
+    # Only this audit uses the registry authenticated by ACTIVATION_SHA above.
+    # Current enrollment controls live signing; old receipts grant no live authority.
+    with tempfile.TemporaryDirectory() as directory:
+        historical=Path(directory)
+        names=set(PINNED)|{SCOPE}|set(json.loads((root/SCOPE).read_bytes())['historical_files'])
+        for name in names:
+            path=historical/name;path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes((root/name).read_bytes())
+        path=historical/REGISTRY;path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_bytes(canonical(doc['signer_registry']))
+        _,keys=material(doc,historical,when,unsigned=False)
     result=read('live-result');p=result['payload']
     SignedScopeStore('unused',None,keys)._verify(p,base64.b64decode(result['signature_base64'],validate=True),IDENTITIES['qa'],when)
     expected={'kind':'handoff003_qa_paid_recovery002_result','task_id':TASK,'source_commit':SOURCE,
