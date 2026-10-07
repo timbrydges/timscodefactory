@@ -41,7 +41,7 @@ def decode(encoded):
 def validate_plan(plan, *, approved_digest, source_commit, root=ROOT, clock, importer=prepare):
     fields={'kind','source_commit','role','proof_run_id','material_digest','pricing','readiness','allowance','evidence'}
     if (type(plan)is not dict or set(plan)!=fields or digest(canonical(plan))!=approved_digest or
-            plan['kind']!='bounded_review003_owner_signing_plan' or plan['source_commit']!=source_commit or
+            plan['kind']!='bounded_review004_owner_signing_plan' or plan['source_commit']!=source_commit or
             type(plan['role'])is not str or plan['role'] not in PROVIDERS or
             type(plan['proof_run_id'])is not int or plan['proof_run_id']<=0 or
             type(plan['evidence'])is not dict or set(plan['evidence'])!={'pricing','readiness'}):

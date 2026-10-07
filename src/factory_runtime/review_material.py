@@ -35,7 +35,7 @@ class PinnedReviewMaterial:
         try:
             value = json.loads(raw)
             if (canonical(value) != raw or set(value) != {'kind','test_proof','candidate_files'} or
-                    value['kind'] != 'bounded_review003_deployment_material'):
+                    value['kind'] != 'bounded_review004_deployment_material'):
                 raise ValueError('material shape')
             proof = value['test_proof']; files = value['candidate_files']
             expected = {'status':'AUTHENTICATED_MAIN_TEST_PROOF',
@@ -71,7 +71,7 @@ class PinnedReviewMaterial:
         raw = job_input(role=role,source_commit=self.source_commit,
             contract_digest=digest(self.contract_bytes),candidate_commit=CANDIDATE,
             files=self.files(),test_evidence_digest=digest(self.proof_bytes))
-        request = DispatchRequest('bounded-review-003-'+role,TASK,'bounded-review-'+role,
+        request = DispatchRequest('bounded-review-004-'+role,TASK,'bounded-review-'+role,
             self.source_commit,digest(self.contract_bytes),digest(raw))
         return prepare(role=role,request=request,candidate_commit=CANDIDATE,files=self.files(),
             test_evidence_digest=digest(self.proof_bytes),input_bytes=raw)

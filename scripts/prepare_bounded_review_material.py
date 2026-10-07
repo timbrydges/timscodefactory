@@ -20,7 +20,7 @@ def prepare(commit, run_id, *, api=github_api, root=ROOT, clock=None):
     baseline = (root/BASELINE).read_bytes()
     if hashlib.sha256(baseline).hexdigest() != PINNED[BASELINE]:
         raise StateError('candidate changed during authenticated preparation')
-    raw = canonical({'kind':'bounded_review003_deployment_material','test_proof':proof,
+    raw = canonical({'kind':'bounded_review004_deployment_material','test_proof':proof,
                      'candidate_files':json.loads(baseline)['files']})
     PinnedReviewMaterial.load(raw,expected_digest=digest(raw),deployed_commit=commit,clock=clock)
     return raw

@@ -1,4 +1,4 @@
-"""Fresh bounded-review-003 provider scope; no credentials, network or signing."""
+"""Fresh bounded-review-004 provider scope; no credentials, network or signing."""
 import base64
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -10,12 +10,13 @@ from .pilot002_adapter import _cost
 from .pilot002_authorization import _exact, _window
 from .worker import digest
 
-TASK = 'bounded-review-003'
+TASK = 'bounded-review-004'
 FACTORY = 'tims-software-factory'
 PROVIDERS = {'builder': ('openai', 'gpt-5.6-sol'),
              'inspector': ('bedrock', 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'),
              'qa': ('google', 'gemini-3.7-flash')}
-CAP = 250000
+ROLE_CAPS = {'builder':250000, 'inspector':175000, 'qa':75000}
+RUN_CAP = sum(ROLE_CAPS.values())
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
             now.tzinfo is None or now.utcoffset() is None):
         raise StateError('deployment-owned scope and aware clock required')
     binding = scope.bindings()
-    price_expected = {'kind': 'bounded_review003_rate_qualification', **binding,
+    price_expected = {'kind': 'bounded_review004_rate_qualification', **binding,
         'currency': 'USD', 'complete_request_bound_qualified': True,
         'standard_text_only_no_cache_rates': True, 'output_token_bound': 4096}
     extra = {'input_token_bound', 'input_micro_usd_per_million', 'output_micro_usd_per_million',
@@ -69,19 +70,19 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
             type(pricing['evidence_digest']) is not str or not SHA256_DIGEST.fullmatch(pricing['evidence_digest'])):
         raise StateError('fresh exact-request pricing required')
     maximum = _cost(pricing['input_token_bound'], 4096, pricing)
-    if not 0 < maximum <= CAP:
+    if not 0 < maximum <= ROLE_CAPS[scope.role]:
         raise StateError('provider request exceeds reserved cap')
-    ready_expected = {'kind': 'bounded_review003_provider_readiness', **binding,
+    ready_expected = {'kind': 'bounded_review004_provider_readiness', **binding,
         'credential_route_verified': True, 'model_metadata_verified': True,
         'repository_binding_verified': True, 'single_attempt_failure_risk_accepted': True}
     if (not _exact(readiness, ready_expected, {'issued_at', 'expires_at', 'evidence_digest'}) or
             not _window(readiness, now, 3600) or type(readiness['evidence_digest']) is not str or
             not SHA256_DIGEST.fullmatch(readiness['evidence_digest'])):
         raise StateError('fresh exact-route readiness required')
-    expected = {'kind': 'bounded_review003_provider_allowance', 'owner_identity': 'tim_brydges',
+    expected = {'kind': 'bounded_review004_provider_allowance', 'owner_identity': 'tim_brydges',
         **binding, 'pricing_digest': digest(canonical(pricing)),
-        'readiness_digest': digest(canonical(readiness)), 'reserved_micro_usd': CAP,
-        'run_reserved_micro_usd': 750000, 'aggregate_ceiling_micro_usd': 3250000,
+        'readiness_digest': digest(canonical(readiness)), 'reserved_micro_usd': ROLE_CAPS[scope.role],
+        'run_reserved_micro_usd': RUN_CAP, 'aggregate_ceiling_micro_usd': 3250000,
         'maximum_provider_calls': 1, 'retries': 0, 'production_release_authorized': False}
     if (not _exact(payload, expected, {'issued_at', 'expires_at'}) or not _window(payload, now, 3600) or
             payload['expires_at'] > min(pricing['expires_at'], readiness['expires_at'])):

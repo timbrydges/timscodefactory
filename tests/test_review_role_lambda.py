@@ -44,7 +44,7 @@ class EntryTests(unittest.TestCase):
         self.save_doc()
         self.context=SimpleNamespace(invoked_function_arn='arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-qa:1',
                                      get_remaining_time_in_millis=lambda:180000)
-        self.event={'schema_version':'1.0','factory_id':'tims-software-factory','task_id':'bounded-review-003',
+        self.event={'schema_version':'1.0','factory_id':'tims-software-factory','task_id':'bounded-review-004',
             'worker_id':'bounded-review-controller','dispatch_id':'d'*64,'request':asdict(scope.request),
             'input_base64':base64.b64encode(self.material.prepared('qa').input_bytes).decode()}
         key_patch=patch.object(entry,'load_trusted_signers',return_value=self.keys)
@@ -84,7 +84,7 @@ class EntryTests(unittest.TestCase):
             self.context.invoked_function_arn=old
             self.event['task_id']='historical-task'
             with self.assertRaises(StateError):self.dispatch()
-            self.event['task_id']='bounded-review-003';self.env['FACTORY_BOUNDED_REVIEW_ROLE_DIGEST']='sha256:'+'0'*64
+            self.event['task_id']='bounded-review-004';self.env['FACTORY_BOUNDED_REVIEW_ROLE_DIGEST']='sha256:'+'0'*64
             with self.assertRaises(StateError):self.dispatch()
             aws.assert_not_called()
 

@@ -28,7 +28,7 @@ class ClaimTests(unittest.TestCase):
         self.grant=validate_unsigned(payload,scope=scope,pricing=price,readiness=ready,now=NOW)
 
     def row(self):
-        return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#003#ROLE#builder'}},
+        return self.db.get_item(TableName=TABLE,Key={'PK':{'S':'BOUNDED_REVIEW#004#ROLE#builder'}},
                                 ConsistentRead=True)['Item']
 
     def test_shared_hold_then_one_send_and_completion_never_releases(self):
@@ -47,11 +47,14 @@ class ClaimTests(unittest.TestCase):
         self.db.put_item(TableName=TABLE,Item=old)
         old002={**old,'PK':{'S':'BOUNDED_REVIEW#002#ROLE#builder'}}
         self.db.put_item(TableName=TABLE,Item=old002)
+        old003={**old,'PK':{'S':'BOUNDED_REVIEW#003#ROLE#builder'}}
+        self.db.put_item(TableName=TABLE,Item=old003)
         self.store.hold(self.grant,self.dispatch,now=NOW)
         self.store.begin_send(self.grant,self.dispatch,now=NOW)
-        self.assertEqual(self.row()['task_id'],{'S':'bounded-review-003'})
+        self.assertEqual(self.row()['task_id'],{'S':'bounded-review-004'})
         self.assertEqual(self.db.get_item(TableName=TABLE,Key={'PK':old['PK']})['Item'],old)
         self.assertEqual(self.db.get_item(TableName=TABLE,Key={'PK':old002['PK']})['Item'],old002)
+        self.assertEqual(self.db.get_item(TableName=TABLE,Key={'PK':old003['PK']})['Item'],old003)
 
     def test_concurrent_send_claim_and_restarted_process_allow_one_winner(self):
         self.store.hold(self.grant,self.dispatch,now=NOW)
@@ -70,7 +73,9 @@ class ClaimTests(unittest.TestCase):
             self.store.hold(grant,self.dispatch,now=NOW)
         items=self.db.scan(TableName=TABLE)['Items']
         self.assertEqual(len(items),3)
-        self.assertEqual(sum(int(item['reserved_micro_usd']['N']) for item in items),750000)
+        self.assertEqual({v['role']['S']:int(v['reserved_micro_usd']['N']) for v in items},
+                         {'builder':250000,'inspector':175000,'qa':75000})
+        self.assertEqual(sum(int(item['reserved_micro_usd']['N']) for item in items),500000)
         with self.assertRaises(StateError):self.store.hold(replace(self.grant,role='fourth'),self.dispatch,now=NOW)
 
     def test_changed_scope_dispatch_or_expiry_cannot_reclaim_hold(self):
