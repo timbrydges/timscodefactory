@@ -8,12 +8,37 @@ on:
       - "factory/canary/runtime-v1/**"
       - "scripts/runtime_canary.py"
       - "scripts/candidate_test_proof_canary.py"
+      - "scripts/build_bounded_review_package.py"
+      - "scripts/verify_bounded_review_package.py"
+      - "scripts/stage_security_bundle.py"
+      - "requirements-role-lambda.txt"
+      - "requirements-aws-signing.txt"
       - ".github/workflows/runtime-canary.yml"
 
 permissions:
   contents: read
 
 jobs:
+  isolated-package:
+    name: runtime / isolated Python 3.12 package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Install locked build dependencies
+        run: python -m pip install --require-hashes -r requirements-ci.txt -r requirements-aws-signing.txt
+      - name: Build committed-source disabled runtime package
+        # Build-time imports use the existing hash-locked CI environment. The
+        # package verifier below still runs its probe with Python -I -S.
+        run: python scripts/build_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
+      - name: Verify packaged dependencies and disabled entrypoints
+        run: python scripts/verify_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
   real-runtime-canary:
     name: runtime / real Docker canary
     runs-on: ubuntu-latest
