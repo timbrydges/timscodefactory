@@ -1,5 +1,6 @@
 """Validate public deployment bundle bytes offline; never publish or enable them."""
 from pathlib import Path
+import json
 import tempfile
 
 from factory_state.model import StateError, COMMIT_SHA
@@ -9,6 +10,7 @@ from factory_runtime.security_role_lambda import load_allowance
 from factory_runtime.security_provider_scope import verify
 from factory_runtime.security_controller_config import load_controller_config
 from factory_runtime.worker import digest
+from factory_runtime.pilot002_entrypoint import _read, _pairs
 
 FILES={
     'REVIEW_MATERIAL.json':('FACTORY_SECURITY_MATERIAL_DIGEST',196608),
@@ -18,6 +20,28 @@ FILES={
     'SECURITY_ALLOWANCE.json':('FACTORY_SECURITY_ALLOWANCE_DIGEST',131072),
 }
 CONTROLLER=('FACTORY_SECURITY_CONTROLLER_DIGEST',16384)
+
+
+def read_bundle(directory, pins_path, pins_digest, *, role):
+    """Read exact bounded files using an independently authenticated pin manifest."""
+    if role not in ('security','security-controller'):
+        raise StateError('Security bundle role required')
+    directory=Path(directory).absolute();pins_path=Path(pins_path).absolute()
+    required={**FILES,**({'SECURITY_CONTROLLER.json':CONTROLLER} if role=='security-controller' else {})}
+    if any(p.is_symlink() for p in (directory,*directory.parents)) or not directory.is_dir():
+        raise StateError('Security bundle requires a real directory')
+    if {p.name for p in directory.iterdir()}!=set(required):
+        raise StateError('Security bundle directory contains missing or extra files')
+    raw=_read(pins_path.parent,pins_path.name,8192)
+    if digest(raw)!=pins_digest:
+        raise StateError('Security pin manifest differs from independent digest')
+    pins=json.loads(raw,object_pairs_hook=_pairs)
+    if type(pins) is not dict or canonical(pins)!=raw or set(pins)!=set(required):
+        raise StateError('Exact canonical security pin manifest required')
+    files={name:_read(directory,name,limit) for name,(_,limit) in required.items()}
+    if any(digest(files[name])!=pins[name] for name in required):
+        raise StateError('Security bundle file differs from pin manifest')
+    return files,pins
 
 
 def stage(files, pins, *, source_commit, role, now):
