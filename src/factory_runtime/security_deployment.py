@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from factory_state.dispatch import DispatchRequest
 from factory_state.model import StateError
 from factory_state.scope import canonical
+from factory_state.signers import validate_trusted_signers
 from .pilot002_entrypoint import _read, _pairs
 from .review_verdict import ReviewBinding
 from .security_material import PinnedSecurityMaterial
@@ -16,6 +17,37 @@ class SecurityDeployment:
     material: PinnedSecurityMaterial
     qa_binding: ReviewBinding
     qa_request: DispatchRequest
+
+
+def signer_loader(root, env, *, historical=False):
+    """Capture pinned bytes once; validate enrollment at each requested time.
+
+    Historical keys are restricted to QA provenance and cannot supply owner,
+    reviewer or security signing authority. Deployment authenticates both pins.
+    """
+    if type(historical) is not bool:
+        raise StateError('Exact signer snapshot mode required')
+    name='SECURITY_QA_SIGNERS.json' if historical else 'SECURITY_SIGNERS.json'
+    pin='FACTORY_SECURITY_QA_SIGNERS_DIGEST' if historical else 'FACTORY_SECURITY_SIGNERS_DIGEST'
+    raw=_read(root,name,65536)
+    if digest(raw)!=env.get(pin):
+        raise StateError('Security signer snapshot differs from deployment pin')
+
+    def keys(now):
+        try:
+            doc=json.loads(raw,object_pairs_hook=_pairs)
+            if canonical(doc)!=raw:
+                raise ValueError('noncanonical signer snapshot')
+            result=validate_trusted_signers(doc,now=now)
+            if historical:
+                if {e['identity'] for e in doc['signers']}!={'qa_engineer_service'} or set(result)!={'qa_engineer_service'}:
+                    raise StateError('Historical snapshot is only active QA provenance')
+            elif not {'tim_brydges','product_spec_reviewer_service','deep_security_reviewer_service'} <= set(result):
+                raise StateError('Current security signing identities are inactive')
+            return result
+        except (ValueError,TypeError,KeyError,AttributeError,RecursionError):
+            raise StateError('Invalid security signer snapshot') from None
+    return keys
 
 
 def load_deployment(root, env, *, clock):
