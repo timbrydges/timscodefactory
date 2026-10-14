@@ -53,4 +53,3 @@ class SecurityCapabilitySigner(_EnrolledSigner):
         check_plan(self.material,self.plan,now)
         if canonical(payload)!=canonical(self.plan.capability_payload):
             raise StateError('only exact owner capability may be signed')
-
