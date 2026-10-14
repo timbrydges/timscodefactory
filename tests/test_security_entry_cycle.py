@@ -72,9 +72,10 @@ class EntryCycleTests(unittest.TestCase):
         states=DynamoDBStateStore('tims-software-factory-state',db)
         ledger=DynamoDBDispatchStore('tims-software-factory-state',db)
         q=self.material.binding.qa;state=states.load_state(q.factory_id,q.task_id)
-        ledger.claim(state,scope.request,worker_id='bounded-security-controller',caller_identity=CONTROLLER_IDENTITY,now=self.now)
-        SecurityProviderClaims(db).hold(verify(envelope,scope=scope,pricing=price,readiness=ready,
-            trusted_keys=keys,now=self.now),self.dispatch_id,now=self.now)
+        if getattr(self,'preclaim',True):
+            ledger.claim(state,scope.request,worker_id='bounded-security-controller',caller_identity=CONTROLLER_IDENTITY,now=self.now)
+            SecurityProviderClaims(db).hold(verify(envelope,scope=scope,pricing=price,readiness=ready,
+                trusted_keys=keys,now=self.now),self.dispatch_id,now=self.now)
         def meta(service):return SimpleNamespace(endpoint_url=f'https://{service}.ca-central-1.amazonaws.com',
             config=SimpleNamespace(retries={'total_max_attempts':1}))
         clients={'dynamodb':db,'sts':SimpleNamespace(meta=meta('sts'),get_caller_identity=s.get_caller_identity),
