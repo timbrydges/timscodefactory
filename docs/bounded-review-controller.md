@@ -1,5 +1,14 @@
 # Bounded review controller composition
 
+`ConsumedQAProvenance` authenticates the exact retained QA result and requires
+its evidence ID to have been consumed by the same task, now in SECURITY_REVIEW.
+Deployment pins the prior QA binding and historical key loader. Signature
+verification at issuance establishes provenance only; it does not renew an
+expired receipt or authorize another dispatch. Candidate and contract must
+match the new security binding even when runtime source and test proof change.
+Fresh security scope, current leases and authenticated tests remain separate
+backend requirements. This verifier performs no writes or provider calls.
+
 `SecurityProviderBackend` defaults to disabled. It verifies current state and
 lease, persisted signed scope, fresh test evidence, deployment-owned QA/scope
 prerequisites and the separate owner allowance before reserving or sending.
