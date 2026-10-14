@@ -47,7 +47,7 @@ jobs:
           role-session-name: handoff004-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once
         run: python scripts/sign_handoff004_allowance.py "$RUNNER_TEMP/handoff004-activation.json" --approved-plan-digest "$HANDOFF004_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: handoff004-owner-${{ github.run_id }}-${{ github.run_attempt }}
