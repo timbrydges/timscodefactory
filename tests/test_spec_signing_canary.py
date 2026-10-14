@@ -97,13 +97,15 @@ class SpecEnrollmentTests(unittest.TestCase):
         registry = json.loads((root / 'factory/profiles/scope-signers.json').read_bytes())
         proof = evidence['proof']
         issued = datetime.fromtimestamp(proof['challenge']['issued_at'], timezone.utc)
-        keys = validate_trusted_signers(registry, now=issued)
+        # Original custody proof is checked against its original enrollment.
+        historical = {**registry, 'signers': [evidence['added_entry']]}
+        keys = validate_trusted_signers(historical, now=issued)
         self.assertEqual(keys[IDENTITY], proof['public_key_pem'].encode())
         self.assertEqual(proof['key_arn'], KEY)
         self.assertEqual(proof['cross_role_signing_denied'], list(OTHER_ALIASES))
         SignedScopeStore('unused', None, keys)._verify(proof['challenge'],
             base64.b64decode(proof['signature_base64'], validate=True), IDENTITY, issued)
-        self.assertNotIn(IDENTITY, validate_trusted_signers(registry, now=issued + timedelta(days=1)))
-        entry = next(x for x in registry['signers'] if x['identity'] == IDENTITY)
+        self.assertNotIn(IDENTITY, validate_trusted_signers(historical, now=issued + timedelta(days=1)))
+        entry = historical['signers'][0]
         entry['revoked'] = True
-        self.assertNotIn(IDENTITY, validate_trusted_signers(registry, now=issued))
+        self.assertNotIn(IDENTITY, validate_trusted_signers(historical, now=issued))

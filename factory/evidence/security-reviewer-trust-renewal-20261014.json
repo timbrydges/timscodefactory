@@ -1,0 +1,50 @@
+{
+  "approval": "Direct user I approve following proposal to renew existing specification and security reviewers for 24 hours",
+  "observation_path": "factory/evidence/security-reviewer-custody-20261014.json",
+  "observation_sha256": "560b32b511bd9b27addff086b52c6e83f6b6eae20060efdbd8b426cfc1a42e25",
+  "old_attempts_reusable": false,
+  "expired_gap_reopened": false,
+  "gate_authority": false,
+  "renewals": {
+    "deep_security_reviewer_service": {
+      "previous_entry": {
+        "identity": "deep_security_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+        "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+        "not_before": 1791034056,
+        "expires_at": 1791120456,
+        "revoked": false
+      },
+      "renewed_entry": {
+        "identity": "deep_security_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+        "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+        "not_before": 1791985973,
+        "expires_at": 1792072373,
+        "revoked": false
+      }
+    },
+    "product_spec_reviewer_service": {
+      "previous_entry": {
+        "identity": "product_spec_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+        "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+        "not_before": 1791304369,
+        "expires_at": 1791390769,
+        "revoked": false
+      },
+      "renewed_entry": {
+        "identity": "product_spec_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+        "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+        "not_before": 1791985973,
+        "expires_at": 1792072373,
+        "revoked": false
+      }
+    }
+  }
+}
