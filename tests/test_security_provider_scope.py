@@ -8,6 +8,7 @@ from factory_runtime.security_provider_scope import SecurityProviderScope, verif
 from factory_runtime.security_verdict import SecurityReviewBinding
 from factory_runtime.review_verdict import ReviewBinding
 from factory_runtime.worker import digest
+from factory_runtime.security_policy import policy_digest
 from factory_state.dispatch import DispatchRequest
 from factory_state.model import StateError
 from factory_state.scope import canonical
@@ -21,7 +22,7 @@ def fixture():
     qa = ReviewBinding('tims-software-factory', 'bounded-review-004', 'qa_engineer',
         request.source_commit, request.contract_digest, digest(b'QA input'), 'b'*40,
         digest(b'candidate'), digest(b'tests'), ('fingerprint.py',))
-    binding = SecurityReviewBinding(qa, request.input_digest, digest(b'QA result'), digest(b'scope'))
+    binding = SecurityReviewBinding(qa, request.input_digest, digest(b'QA result'), policy_digest())
     scope = SecurityProviderScope(binding, request, b'exact security provider request')
     times = {'issued_at': int(NOW.timestamp())-1, 'expires_at': int(NOW.timestamp())+600}
     pricing = {'kind': 'bounded_security004_rate_qualification', **scope.bindings(),
