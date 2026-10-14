@@ -180,7 +180,7 @@ jobs:
           role-session-name: handoff003_qa_recovery001-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once
         run: python scripts/sign_handoff003_qa_recovery_allowance.py "$RUNNER_TEMP/handoff003_qa_recovery001-activation.json" --approved-plan-digest "$HANDOFF003_QA_RECOVERY001_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: handoff003_qa_recovery001-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -227,7 +227,7 @@ jobs:
           role-session-name: handoff003-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once
         run: python scripts/sign_handoff003_allowance.py "$RUNNER_TEMP/handoff003-activation.json" --approved-plan-digest "$HANDOFF003_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: handoff003-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -274,7 +274,7 @@ jobs:
           role-session-name: handoff002-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once
         run: python scripts/sign_handoff002_allowance.py "$RUNNER_TEMP/handoff002-activation.json" --approved-plan-digest "$HANDOFF002_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: handoff002-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -321,7 +321,7 @@ jobs:
           role-session-name: handoff001-owner-${{ github.run_id }}
       - name: Sign the exact fresh handoff allowance once
         run: python scripts/sign_handoff001_allowance.py "$RUNNER_TEMP/handoff001-activation.json" --approved-plan-digest "$HANDOFF001_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: handoff001-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -372,7 +372,7 @@ jobs:
           role-session-name: qa-recovery003-owner-${{ github.run_id }}
       - name: Sign exact reviewed recovery allowance once
         run: python scripts/sign_qa_recovery003_allowance.py "$RUNNER_TEMP/qa-recovery003-allowance.json" --approved-plan-digest "$RECOVERY003_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: qa-recovery003-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -423,7 +423,7 @@ jobs:
           role-session-name: qa-recovery002-owner-${{ github.run_id }}
       - name: Sign exact reviewed recovery allowance once
         run: python scripts/sign_qa_recovery002_allowance.py "$RUNNER_TEMP/qa-recovery002-allowance.json" --approved-plan-digest "$RECOVERY002_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: qa-recovery002-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -474,7 +474,7 @@ jobs:
           role-session-name: qa-recovery001-owner-${{ github.run_id }}
       - name: Sign exact reviewed recovery allowance once
         run: python scripts/sign_qa_recovery001_allowance.py "$RUNNER_TEMP/qa-recovery001-allowance.json" --approved-plan-digest "$RECOVERY001_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: qa-recovery001-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -522,7 +522,7 @@ jobs:
           role-session-name: recovery001-owner-${{ github.run_id }}
       - name: Sign exact reviewed recovery allowance once
         run: python scripts/sign_inspector_recovery001_allowance.py "$RUNNER_TEMP/recovery001-allowance.json" --approved-plan-digest "$RECOVERY001_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: recovery001-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -574,7 +574,7 @@ jobs:
           role-session-name: pilot002-reviewer-owner-${{ github.run_id }}
       - name: Sign exact reviewed reviewer allowance once
         run: python scripts/sign_pilot002_reviewer_allowance.py "$PILOT002_REVIEWER_ROLE" "$RUNNER_TEMP/pilot002-reviewer-allowance.json" --approved-plan-digest "$PILOT002_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: pilot002-reviewer-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -624,7 +624,7 @@ jobs:
           role-session-name: pilot002-builder-owner-${{ github.run_id }}
       - name: Sign exact reviewed Builder allowance once
         run: python scripts/sign_pilot002_builder_allowance.py "$RUNNER_TEMP/pilot002-builder-allowance.json" --approved-plan-digest "$PILOT002_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: pilot002-builder-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -686,7 +686,7 @@ jobs:
               output.write(raw)
           PY
           python scripts/sign_google_qa_free_allowance.py "$RUNNER_TEMP/google-proposal.json" "$RUNNER_TEMP/google-allowance.json" --approved-digest "$GOOGLE_APPROVED_DIGEST" --target-source-commit "$GOOGLE_TARGET_SOURCE"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: google-free-owner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -736,7 +736,7 @@ jobs:
           role-session-name: owner-receipt-${{ github.run_id }}
       - name: Publish exact owner receipt once
         run: python scripts/publish_acceptance_owner_receipt.py "$RUNNER_TEMP/owner-receipt-result.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: owner-receipt-${{ github.run_id }}-${{ github.run_attempt }}
@@ -821,7 +821,7 @@ jobs:
           set -euo pipefail
           python scripts/kms_signing_canary.py owner "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$GITHUB_SHA" > "$RUNNER_TEMP/signing-evidence.json"
           cat "$RUNNER_TEMP/signing-evidence.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: factory-signing-owner-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/signing-evidence.json

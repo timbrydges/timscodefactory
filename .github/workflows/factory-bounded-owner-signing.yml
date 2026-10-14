@@ -48,7 +48,7 @@ jobs:
           disable-retry: true
       - name: Authenticate fresh Docker proof and sign exact owner scope once
         run: python scripts/sign_bounded_review_allowance.py "$RUNNER_TEMP/bounded-allowance.json" --approved-plan-digest "$APPROVED_PLAN_DIGEST"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: bounded-owner-${{ github.run_id }}-${{ github.run_attempt }}
