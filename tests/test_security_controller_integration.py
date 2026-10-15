@@ -151,10 +151,21 @@ class FullSecurityCycleTests(unittest.TestCase):
         report.update(verdict='REJECTED',findings=[{'severity':'high','path':'fingerprint.py','detail':'Fixture risk.'}])
         response['output']['message']['content'][0]['text']=canonical(report).decode()
         with patch.object(wire.http.client,'HTTPSConnection',return_value=Connection(Response(canonical(response)))) as network:
-            for _ in range(2):
-                with self.assertRaises(StateError):self.tick()
+            before=self.f.auth.states.load_state('tims-software-factory','bounded-review-004')
+            for attempt in range(2):
+                result=self.tick()
+                self.assertEqual(result['status'],'REJECTED')
+                self.assertEqual(result['progression']['state'],'SECURITY_REVIEW')
+                self.assertEqual(result['progression']['version'],before.version)
+                self.assertFalse(result['release_dispatched'])
+                self.assertEqual(result['worker_invocations'],1 if attempt == 0 else 0)
+                rows=self.f.auth.db.scan(TableName='security-state')['Items']
+                if attempt == 0:
+                    retained=copy.deepcopy(rows)
+                else:
+                    self.assertEqual(rows,retained)
         state=self.f.auth.states.load_state('tims-software-factory','bounded-review-004')
-        self.assertEqual(state.state,'SECURITY_REVIEW')
+        self.assertEqual(state,before)
         self.assertEqual((self.invocations,network.call_count),(1,1))
 
 

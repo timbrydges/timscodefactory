@@ -125,6 +125,28 @@ class SignedResultProgressionTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, '^review verdict validation failed$'):
             self.progressor.advance('factory','task-1',self.request)
         self.assertEqual(self.states.writes, [])
+        self.progressor.review_validator = lambda *args: False
+        for value in (False, None, 1, 'REJECTED'):
+            self.progressor.rejection_validator = lambda *args: value
+            with self.assertRaisesRegex(StateError, 'does not authorize'):
+                self.progressor.advance('factory','task-1',self.request)
+        self.progressor.rejection_validator = lambda *args: True
+        original = deepcopy(row)
+        for field, value in (
+                ('result_output', {'S':base64.b64encode(b'tampered').decode()}),
+                ('result_signature', {'S':base64.b64encode(b'x'*64).decode()})):
+            self.client.items[key] = {**deepcopy(original), field:value}
+            with self.assertRaises(StateError):
+                self.progressor.advance('factory','task-1',self.request)
+        self.client.items[key] = original
+        before = deepcopy(self.states.state)
+        for _ in range(2):
+            result = self.progressor.advance('factory','task-1',self.request)
+            self.assertEqual(result['status'], 'REJECTED')
+            self.assertFalse(result['release_dispatched'])
+        self.assertEqual(self.states.state, before)
+        self.assertEqual(self.states.writes, [])
+        self.assertEqual(self.client.items[key], original)
         seen = []
         def accept(state, request, output):
             seen.append((state, request, output))

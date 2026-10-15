@@ -86,6 +86,21 @@ class SecurityVerdictTests(unittest.TestCase):
         self.request.input_digest = self.qa.input_digest; self.assertFalse(self.validate())
         self.tests.assert_not_called()
 
+    def test_rejection_requires_exact_binding_and_both_verifiers(self):
+        report = {**self.report, 'verdict': 'REJECTED', 'findings': [
+            {'severity': 'high', 'path': 'fingerprint.py', 'detail': 'Risk.'}]}
+        reject = lambda value: self.validator.is_rejected(self.state, self.request, canonical(value))
+        self.assertTrue(reject(report))
+        self.assertFalse(self.validator(self.state, self.request, canonical(report)))
+        for changes in ({'candidate_digest': 'other'}, {'verdict': 'ACCEPTED'},
+                        {'findings': [{'severity': 'waived', 'path': 'fingerprint.py', 'detail': 'x'}]},
+                        {'findings': [None]}, {'rationale': ''}, {'authority': True}):
+            self.assertFalse(reject({**report, **changes}))
+        for callback in (self.tests, self.prerequisites):
+            callback.return_value = False
+            self.assertFalse(reject(report))
+            callback.return_value = True
+
     def test_configuration_cannot_reuse_qa_input_or_other_role(self):
         for binding in (None, replace(self.binding, input_digest=self.qa.input_digest),
                 replace(self.binding, qa=replace(self.qa, role_id='independent_inspector')),

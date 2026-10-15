@@ -62,12 +62,14 @@ def _decode(value: str, maximum: int) -> bytes:
 class SignedResultProgressor:
     """Persist exactly one evidence-backed transition from a completed dispatch."""
 
-    def __init__(self, state_store, ledger, *, key_loader, clock=None, review_validator=None):
+    def __init__(self, state_store, ledger, *, key_loader, clock=None, review_validator=None,
+                 rejection_validator=None):
         self.states, self.ledger = state_store, ledger
         self.key_loader = key_loader
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         # Deployment-owned semantic validation; never taken from job/model input.
         self.review_validator = review_validator
+        self.rejection_validator = rejection_validator
 
     def advance(self, factory_id, task_id, request):
         now = self.clock()
@@ -122,8 +124,16 @@ class SignedResultProgressor:
                 raise StateError('review progression requires a configured verdict validator')
             try:
                 accepted = self.review_validator(state, request, output)
+                rejected = (accepted is not True and self.rejection_validator is not None
+                            and self.rejection_validator(state, request, output) is True)
             except Exception:
                 raise StateError('review verdict validation failed') from None
+            if rejected:
+                # Authenticated, well-formed rejection is a terminal result, not
+                # an infrastructure failure. Retain all state, claims and holds.
+                return {'status': 'REJECTED', 'state': state.state,
+                        'version': state.version, 'evidence_id': evidence_id,
+                        'receipt_digest': receipt, 'release_dispatched': False}
             if accepted is not True:
                 raise StateError('review verdict does not authorize advancement')
 

@@ -44,7 +44,8 @@ class BoundedSecurityController:
             executors={'deep_security_reviewer':executor},clock=guard.clock)
         validator = BoundSecurityValidator(b,guard.evidence,prerequisites)
         progressor = SignedResultProgressor(guard.states,guard.ledger,key_loader=guard.key_loader,
-            clock=guard.clock,review_validator=validator)
+            clock=guard.clock,review_validator=validator,
+            rejection_validator=validator.is_rejected)
         jobs = _PinnedInputs(VersionedS3AcceptanceJobSource(s3,activation,job_versions),
                              {'SECURITY_REVIEW':b.input_digest})
         cycle = AutonomousCycle(intake,worker,progressor,VersionedS3ReceiptTransport(s3),enabled=enabled)
