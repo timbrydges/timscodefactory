@@ -7,7 +7,7 @@ from .pilot002_adapter import _cost
 from .pilot002_transport import ProviderHTTPStatusError, ProviderTimeoutError
 from .review_provider_claims import ReviewProviderClaims
 from .review_provider_protocol import PreparedProviderRequest, ResponseValidationFailure, parse_response
-from .review_provider_scope import FACTORY, TASK, verify
+from .review_provider_scope import FACTORY, verify
 from .review_provider_transport import ReviewProviderTransport
 from .review_verdict import PinnedPythonTestEvidence
 
@@ -47,7 +47,7 @@ class ReviewProviderBackend:
             raise StateError('deployment-owned provider backend configuration required')
         prepared.validate()
         scope = prepared.scope; b = test_evidence.binding
-        expected = (FACTORY, TASK, scope.request.source_commit, scope.request.contract_digest,
+        expected = (FACTORY, scope.task_id, scope.request.source_commit, scope.request.contract_digest,
                     scope.candidate_commit, scope.candidate_digest, scope.test_evidence_digest)
         if (b.factory_id,b.task_id,b.source_commit,b.contract_digest,b.candidate_commit,
                 b.candidate_digest,b.test_evidence_digest) != expected:
@@ -62,9 +62,9 @@ class ReviewProviderBackend:
         if not self.enabled:
             raise StateError('fresh review provider backend disabled')
         scope = self.prepared.scope
-        if (state.factory_id,state.task_id) != (FACTORY,TASK) or request != scope.request:
+        if (state.factory_id,state.task_id) != (FACTORY,scope.task_id) or request != scope.request:
             raise StateError('provider task or request differs from signed scope')
-        current = self.states.load_state(FACTORY,TASK)
+        current = self.states.load_state(FACTORY,scope.task_id)
         if current != state:
             raise StateError('provider task changed; stop before send')
         FactoryStateMachine(state).assert_dispatch_allowed(CONTROLLER_IDENTITY,request.lease_id,now=now)

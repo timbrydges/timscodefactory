@@ -27,11 +27,16 @@ COMMAND=('python','-I','-S','-B','-c',
     "sys.exit(0 if result.wasSuccessful() else 1)")
 
 
-async def run(image_ref,source_commit):
+async def run(image_ref,source_commit,*,task=None):
     if not re.fullmatch('[0-9a-f]{40}',source_commit):raise ValueError('Exact source required')
     if not re.fullmatch(r'python@sha256:[0-9a-f]{64}',image_ref):raise ValueError('Immutable Python image required')
-    raw=(ROOT/BASELINE).read_bytes()
-    if hashlib.sha256(raw).hexdigest()!=PINNED[BASELINE]:raise ValueError('Fixture bytes changed')
+    baseline_path, baseline_sha, test_count = BASELINE, PINNED[BASELINE], 17
+    if task is not None:
+        from factory_runtime.remediation_profile import TASK, BASELINE as NEW_BASELINE, BASELINE_SHA256, TEST_COUNT
+        if task != TASK:raise ValueError('Unknown test task')
+        baseline_path, baseline_sha, test_count = NEW_BASELINE, BASELINE_SHA256, TEST_COUNT
+    raw=(ROOT/baseline_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=baseline_sha:raise ValueError('Fixture bytes changed')
     baseline=json.loads(raw);files=baseline['files']
     if set(files)!={'fingerprint.py','tests/test_fingerprint.py'}:raise ValueError('Fixture paths changed')
     with tempfile.TemporaryDirectory(prefix='review-tests-') as directory:
@@ -67,7 +72,7 @@ async def run(image_ref,source_commit):
     binding=ReviewBinding('factory','candidate-test-proof-canary','qa_engineer',source_commit,
         digest(b'non-authoritative canary'),digest(b'fixed acceptance fixture'),baseline['commit'],
         digest(canonical(files)),digest(encoded),tuple(files))
-    verifier=PinnedPythonTestEvidence(binding,encoded,files,test_count=17)
+    verifier=PinnedPythonTestEvidence(binding,encoded,files,test_count=test_count)
     if verifier(binding.candidate_commit,binding.candidate_digest,binding.test_evidence_digest) is not True:
         raise ValueError('Independent test evidence rejected')
     return encoded
@@ -76,9 +81,9 @@ async def run(image_ref,source_commit):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--image-ref',required=True)
     p.add_argument('--source-commit',required=True);p.add_argument('--output',type=Path,required=True)
-    args=p.parse_args()
+    p.add_argument('--task',choices=['bounded-review-005']);args=p.parse_args()
     if args.output.exists():raise ValueError('Evidence output exists')
-    evidence=asyncio.run(run(args.image_ref,args.source_commit))
+    evidence=asyncio.run(run(args.image_ref,args.source_commit,task=args.task))
     with args.output.open('xb') as stream:stream.write(evidence)
-    print(json.dumps({'status':'ISOLATED_CANDIDATE_TEST_PROOF_VERIFIED','tests':17,
+    print(json.dumps({'status':'ISOLATED_CANDIDATE_TEST_PROOF_VERIFIED','tests':21 if args.task else 17,
         'proof_digest':digest(evidence),'model_calls':0,'state_writes':0,'gate_authority':False}))

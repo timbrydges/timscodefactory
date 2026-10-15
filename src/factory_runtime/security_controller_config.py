@@ -21,7 +21,7 @@ class SecurityControllerConfig:
     job_version: PinnedJobVersion
 
 
-def load_controller_config(root, env, *, deployment, grant, now):
+def load_controller_config(root, env, *, deployment, grant, now, activation_id='bounded-security-004'):
     if type(deployment) is not SecurityDeployment or type(grant) is not VerifiedSecurityAllowance:
         raise StateError('Exact deployment and verified security allowance required')
     try:
@@ -43,7 +43,7 @@ def load_controller_config(root, env, *, deployment, grant, now):
         scope=deployment.material.prepared().scope
         if ((activation.activation_id,activation.factory_id,activation.task_id,
                 activation.source_commit,activation.contract_digest)!=
-                ('bounded-security-004',q.factory_id,q.task_id,q.source_commit,q.contract_digest) or
+                (activation_id,q.factory_id,q.task_id,q.source_commit,q.contract_digest) or
                 activation.expires_at-activation.starts_at>timedelta(hours=1) or
                 activation.expires_at.timestamp()>grant.expires_at or
                 grant.scope_digest!=digest(canonical(scope.bindings()))):

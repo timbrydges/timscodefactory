@@ -6,8 +6,9 @@ its signature and current pricing. This store is not an authorization verifier.
 import re
 from datetime import datetime
 from factory_state.model import SHA256_DIGEST, StateError
-from .review_provider_scope import ROLE_CAPS, PROVIDERS, TASK, VerifiedAllowance
+from .review_provider_scope import ROLE_CAPS, PROVIDERS, VerifiedAllowance
 from .worker import digest
+from .remediation_profile import claim_key
 
 # Reuse permanent storage; historical 001/002/003 keys are never accessed or mutated.
 TABLE = 'tims-factory-bounded-review-001-attempts'
@@ -29,8 +30,8 @@ class ReviewProviderClaims:
                 type(now) is not datetime or now.tzinfo is None or now.utcoffset() is None or
                 type(grant.expires_at) is not int or not now.timestamp() < grant.expires_at <= now.timestamp()+3600):
             raise StateError('fresh verified claim binding required')
-        return {'PK': {'S': 'BOUNDED_REVIEW#004#ROLE#'+grant.role}, 'status': {'S': 'RESERVED'},
-            'task_id': {'S': TASK}, 'role': {'S': grant.role}, 'dispatch_id': {'S': dispatch_id},
+        return {'PK': {'S': claim_key(grant.task_id, grant.role)}, 'status': {'S': 'RESERVED'},
+            'task_id': {'S': grant.task_id}, 'role': {'S': grant.role}, 'dispatch_id': {'S': dispatch_id},
             'allowance_digest': {'S': grant.allowance_digest}, 'scope_digest': {'S': grant.scope_digest},
             'maximum_cost_micro_usd': {'N': str(grant.maximum_cost_micro_usd)},
             'expires_at': {'N': str(grant.expires_at)}, 'reservation_status': {'S': 'HELD'},

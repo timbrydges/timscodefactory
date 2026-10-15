@@ -10,6 +10,7 @@ from .pilot002_adapter import _cost
 from .pilot002_authorization import _exact, _window
 from .security_verdict import SecurityReviewBinding
 from .worker import digest
+from .remediation_profile import task_number, validate_candidate, claim_key, AGGREGATE_CEILING as NEW_CEILING
 from .security_policy import policy_digest
 
 RESERVATION = 250000
@@ -30,15 +31,16 @@ class SecurityProviderScope:
         self.binding.validate()
         b = self.binding
         q = b.qa
+        validate_candidate(q.task_id, q.candidate_commit, q.candidate_digest)
         if b.security_scope_digest != policy_digest():
             raise StateError('Security scope must bind the fixed deployment policy')
-        if ((q.factory_id, q.task_id) != ('tims-software-factory', 'bounded-review-004') or
+        if (q.factory_id != 'tims-software-factory' or (q.task_id != 'bounded-review-004' and self.request.objective_id != q.task_id) or
                 (self.request.source_commit, self.request.contract_digest, self.request.input_digest) !=
                 (q.source_commit, q.contract_digest, b.input_digest) or
                 type(self.request_bytes) is not bytes or not 0 < len(self.request_bytes) <= 65536):
             raise StateError('Security task, request or candidate binding differs')
         return {'factory_id': q.factory_id, 'task_id': q.task_id, 'role': 'security',
-            'provider': 'bedrock', 'model_id': MODEL, 'claim_key': CLAIM_KEY,
+            'provider': 'bedrock', 'model_id': MODEL, 'claim_key': claim_key(q.task_id, 'security'),
             'dispatch_request': asdict(self.request), 'candidate_commit': q.candidate_commit,
             'candidate_digest': q.candidate_digest, 'test_evidence_digest': q.test_evidence_digest,
             'qa_result_digest': b.qa_result_digest, 'security_scope_digest': b.security_scope_digest,
@@ -51,6 +53,7 @@ class VerifiedSecurityAllowance:
     scope_digest: str
     maximum_cost_micro_usd: int
     expires_at: int
+    task_id: str = 'bounded-review-004'
 
 
 def validate_unsigned(payload, *, scope, pricing, readiness, now):
@@ -58,7 +61,7 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
             now.tzinfo is None or now.utcoffset() is None):
         raise StateError('Exact security scope and aware clock required')
     binding = scope.bindings()
-    expected_price = {'kind': 'bounded_security004_rate_qualification', **binding,
+    expected_price = {'kind': 'bounded_security'+task_number(scope.binding.qa.task_id)+'_rate_qualification', **binding,
         'currency': 'USD', 'complete_request_bound_qualified': True,
         'standard_text_only_no_cache_rates': True, 'output_token_bound': 4096}
     extra = {'input_token_bound', 'input_micro_usd_per_million', 'output_micro_usd_per_million',
@@ -72,23 +75,23 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
     maximum = _cost(pricing['input_token_bound'], 4096, pricing)
     if not 0 < maximum <= RESERVATION:
         raise StateError('Security request exceeds reserved cap')
-    expected_ready = {'kind': 'bounded_security004_provider_readiness', **binding,
+    expected_ready = {'kind': 'bounded_security'+task_number(scope.binding.qa.task_id)+'_provider_readiness', **binding,
         'credential_route_verified': True, 'model_metadata_verified': True,
         'repository_binding_verified': True, 'single_attempt_failure_risk_accepted': True}
     if (not _exact(readiness, expected_ready, {'issued_at', 'expires_at', 'evidence_digest'}) or
             not _window(readiness, now, 3600) or type(readiness['evidence_digest']) is not str or
             not SHA256_DIGEST.fullmatch(readiness['evidence_digest'])):
         raise StateError('Fresh exact security route readiness required')
-    expected = {'kind': 'bounded_security004_provider_allowance', 'owner_identity': 'tim_brydges',
+    expected = {'kind': 'bounded_security'+task_number(scope.binding.qa.task_id)+'_provider_allowance', 'owner_identity': 'tim_brydges',
         **binding, 'pricing_digest': digest(canonical(pricing)),
         'readiness_digest': digest(canonical(readiness)), 'reserved_micro_usd': RESERVATION,
-        'aggregate_ceiling_micro_usd': AGGREGATE_CEILING,
+        'aggregate_ceiling_micro_usd': AGGREGATE_CEILING if scope.binding.qa.task_id == 'bounded-review-004' else NEW_CEILING,
         'maximum_provider_calls': 1, 'retries': 0, 'production_release_authorized': False}
     if (not _exact(payload, expected, {'issued_at', 'expires_at'}) or not _window(payload, now, 3600) or
             payload['expires_at'] > min(pricing['expires_at'], readiness['expires_at'])):
         raise StateError('Exact security owner allowance or expiry differs')
     return VerifiedSecurityAllowance(digest(canonical(payload)), digest(canonical(binding)),
-                                     maximum, payload['expires_at'])
+                                     maximum, payload['expires_at'], scope.binding.qa.task_id)
 
 
 def verify(envelope, *, trusted_keys, **context):

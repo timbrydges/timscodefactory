@@ -12,7 +12,7 @@ class BoundedSecurityRoleRuntime:
     @staticmethod
     def validate_event(prepared, event):
         expected = {'schema_version':'1.0', 'factory_id':'tims-software-factory',
-            'task_id':'bounded-review-004', 'worker_id':'bounded-security-controller',
+            'task_id':prepared.scope.binding.qa.task_id, 'worker_id':'bounded-security-controller',
             'request':asdict(prepared.scope.request),
             'input_base64':base64.b64encode(prepared.input_bytes).decode()}
         if (type(event) is not dict or set(event) != set(expected) | {'dispatch_id'} or

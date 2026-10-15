@@ -9,7 +9,8 @@ from factory_state.kms_signer import ALGORITHM, public_pem
 from factory_state.model import SHA256_DIGEST, StateError
 from factory_state.scope import SignedScopeStore, canonical
 from .cloud_roles import ROLE_IDENTITIES
-from .review_provider_scope import FACTORY, TASK, ProviderScope, validate_unsigned
+from .review_provider_scope import FACTORY, ProviderScope, validate_unsigned
+from .remediation_profile import task_number
 
 KEYS = {
     'owner': 'arn:aws:kms:ca-central-1:666730517561:key/4cdc8470-77f4-4c5a-a772-7b379f34fbbb',
@@ -123,7 +124,8 @@ class ReviewRoleResultSigner(_EnrolledSigner):
         if (role not in {'builder', 'inspector', 'qa'} or type(request) is not DispatchRequest or
                 type(dispatch_id) is not str or not re.fullmatch(r'[a-f0-9]{64}', dispatch_id)):
             raise StateError('exact fresh role request and dispatch required')
-        self.expected = {'kind': 'role_result', 'factory_id': FACTORY, 'task_id': TASK,
+        task_number(request.objective_id)
+        self.expected = {'kind': 'role_result', 'factory_id': FACTORY, 'task_id': request.objective_id,
             'binding': DynamoDBDispatchStore._binding(request), 'dispatch_id': dispatch_id,
             'producer_identity': ROLE_IDENTITIES[role]}
         super().__init__(role=role, **kwargs)

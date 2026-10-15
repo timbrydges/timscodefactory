@@ -50,7 +50,8 @@ def signer_loader(root, env, *, historical=False):
     return keys
 
 
-def load_deployment(root, env, *, clock):
+def load_deployment(root, env, *, clock, material_type=PinnedSecurityMaterial,
+                    provenance_kind='bounded_security004_qa_provenance'):
     """Pins must originate in the authenticated deployer, not arbitrary uploads.
 
     QA bytes identify historical evidence only. ConsumedQAProvenance must still
@@ -67,7 +68,7 @@ def load_deployment(root, env, *, clock):
         doc=json.loads(raw,object_pairs_hook=_pairs)
         if (type(doc) is not dict or canonical(doc)!=raw or
                 set(doc)!={'kind','qa_binding','qa_request','qa_result_digest'} or
-                doc['kind']!='bounded_security004_qa_provenance' or
+                doc['kind']!=provenance_kind or
                 type(doc['qa_binding']) is not dict or
                 set(doc['qa_binding'])!=set(ReviewBinding.__dataclass_fields__) or
                 type(doc['qa_binding']['allowed_paths']) is not list or
@@ -79,7 +80,7 @@ def load_deployment(root, env, *, clock):
         if (request.source_commit,request.contract_digest,request.input_digest)!=(
                 q.source_commit,q.contract_digest,q.input_digest):
             raise StateError('Historical QA request differs from binding')
-        material=PinnedSecurityMaterial.load(_read(root,'REVIEW_MATERIAL.json',196608),
+        material=material_type.load(_read(root,'REVIEW_MATERIAL.json',196608),
             expected_digest=env.get('FACTORY_SECURITY_MATERIAL_DIGEST'),
             deployed_commit=build['source_commit'],qa_binding=q,
             qa_result_digest=doc['qa_result_digest'],clock=clock)

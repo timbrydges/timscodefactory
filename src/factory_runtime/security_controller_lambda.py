@@ -18,23 +18,24 @@ from .security_controller import BoundedSecurityController
 EVENT={'factory_id':'tims-software-factory','task_id':'bounded-review-004','mode':'bounded-security'}
 
 
-def dispatch(event, context, *, root, env, clock):
+def dispatch(event, context, *, root, env, clock, deployment_loader=None, backend_factory=None,
+             config_loader=None, task_id='bounded-review-004'):
     if env.get('FACTORY_SECURITY_CONTROLLER_ENABLED')!='true':
         raise StateError('Security controller Lambda disabled')
     try:
         prefix=f'arn:aws:lambda:{REGION}:{ACCOUNT}:function:{NAME}:'
         arn=context.invoked_function_arn
-        if (type(event) is not dict or event!=EVENT or type(arn) is not str or
+        if (type(event) is not dict or event!={**EVENT,'task_id':task_id} or type(arn) is not str or
                 not arn.startswith(prefix) or not re.fullmatch('[1-9][0-9]*',arn[len(prefix):]) or
                 env.get('AWS_REGION')!=REGION or env.get('AWS_LAMBDA_FUNCTION_NAME')!=NAME or
                 context.get_remaining_time_in_millis()<240000):
             raise StateError('Exact security tick and numeric controller version required')
-        deployment=load_deployment(root,env,clock=clock);m=deployment.material
+        deployment=(deployment_loader or load_deployment)(root,env,clock=clock);m=deployment.material
         keys=signer_loader(root,env);history=signer_loader(root,env,historical=True)
         now=clock();doc=load_allowance(root,env,material=m,keys=keys,now=now)
         grant=verify(doc['allowance'],scope=m.prepared().scope,pricing=doc['pricing'],
             readiness=doc['readiness'],trusted_keys=keys(now),now=now)
-        config=load_controller_config(root,env,deployment=deployment,grant=grant,now=now)
+        config=(config_loader or load_controller_config)(root,env,deployment=deployment,grant=grant,now=now)
         session=_aws_session(env);caller=client(session,'sts').get_caller_identity()
         role_prefix=f'arn:aws:sts::{ACCOUNT}:assumed-role/{EXECUTION_ROLE}/'
         caller_arn=caller.get('Arn','')
@@ -46,7 +47,7 @@ def dispatch(event, context, *, root, env, clock):
         from factory_state.dispatch import DynamoDBDispatchStore
         from .security_provider_claims import SecurityProviderClaims
         db=client(session,'dynamodb');table='tims-software-factory-state'
-        guard=disabled_backend(material=m,qa_binding=deployment.qa_binding,
+        guard=(backend_factory or disabled_backend)(material=m,qa_binding=deployment.qa_binding,
             qa_request=deployment.qa_request,envelope=doc['allowance'],pricing=doc['pricing'],
             readiness=doc['readiness'],states=DynamoDBStateStore(table,db),
             ledger=DynamoDBDispatchStore(table,db),claims=SecurityProviderClaims(db),
@@ -56,7 +57,7 @@ def dispatch(event, context, *, root, env, clock):
             deployed_commit=m.binding.qa.source_commit,guard=guard,prerequisites=guard.verify_prerequisites,
             lambda_api=runtime_client(session,'lambda'),s3=runtime_client(session,'s3'),
             function_arn=config.function_arn,job_versions={'SECURITY_REVIEW':config.job_version},enabled=True)
-        return controller.tick(EVENT['factory_id'],EVENT['task_id'])
+        return controller.tick(EVENT['factory_id'],task_id)
     except Exception:
         raise StateError('Security controller stopped; reconcile retained dispatch and claims before further action') from None
 

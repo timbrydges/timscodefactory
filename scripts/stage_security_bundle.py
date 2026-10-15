@@ -44,7 +44,7 @@ def read_bundle(directory, pins_path, pins_digest, *, role):
     return files,pins
 
 
-def stage(files, pins, *, source_commit, role, now):
+def stage(files, pins, *, source_commit, role, now, task=None):
     """Pins come from an authenticated deployer, not hashes of arbitrary uploads.
 
     Historical QA signature/consumption, cloud custody and current claims are
@@ -53,6 +53,12 @@ def stage(files, pins, *, source_commit, role, now):
     if (role not in ('security','controller') or type(source_commit) is not str or
             not COMMIT_SHA.fullmatch(source_commit)):
         raise StateError('Exact committed security package target required')
+    deployment_loader, config_loader = load_deployment, load_controller_config
+    if task is not None:
+        from factory_runtime.remediation_profile import TASK
+        if task != TASK:raise StateError('Unknown staging task')
+        from factory_runtime.remediation_deployment import load_security, load_security_controller
+        deployment_loader, config_loader = load_security, load_security_controller
     required={**FILES,**({'SECURITY_CONTROLLER.json':CONTROLLER} if role=='controller' else {})}
     if type(files) is not dict or type(pins) is not dict or set(files)!=set(required) or set(pins)!=set(required):
         raise StateError('Exact public security files and independent pins required')
@@ -66,13 +72,16 @@ def stage(files, pins, *, source_commit, role, now):
         root=Path(tmp)
         (root/'BUILD.json').write_bytes(canonical({'source_commit':source_commit}))
         for name,raw in files.items():(root/name).write_bytes(raw)
-        deployment=load_deployment(root,env,clock=lambda:now)
+        deployment=deployment_loader(root,env,clock=lambda:now)
         keys=signer_loader(root,env)
         signer_loader(root,env,historical=True)  # Snapshot pin only; issuance-time verification stays runtime-owned.
         doc=load_allowance(root,env,material=deployment.material,keys=keys,now=now)
         grant=verify(doc['allowance'],scope=deployment.material.prepared().scope,
             pricing=doc['pricing'],readiness=doc['readiness'],trusted_keys=keys(now),now=now)
-        if role=='controller':load_controller_config(root,env,deployment=deployment,grant=grant,now=now)
+        if role=='controller':config_loader(root,env,deployment=deployment,grant=grant,now=now)
+    if task is not None:
+        from factory_runtime.remediation_profile import DISABLED_ENV
+        env.update(DISABLED_ENV)
     env['FACTORY_SECURITY_ENABLED']='false'
     env['FACTORY_SECURITY_CONTROLLER_ENABLED']='false'
     return dict(files),env

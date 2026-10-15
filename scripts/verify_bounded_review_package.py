@@ -74,6 +74,15 @@ for boundary, message in ((security_role, 'Security Lambda disabled'),
     else:
         raise AssertionError('Security disabled boundary did not reject')
 print('ISOLATED_SECURITY_ROLE_AND_CONTROLLER_DISABLED_VERIFIED')
+from factory_runtime.remediation_lambda import dispatch as remediation
+for stage in ('review_role', 'review_controller', 'security_role', 'security_controller'):
+    try:
+        remediation(stage, None, None, root=Path('/does-not-exist'), env={}, clock=lambda: None)
+    except StateError as error:
+        assert str(error) == 'Task005 deployment disabled'
+    else:
+        raise AssertionError('Task005 disabled boundary did not reject')
+print('ISOLATED_TASK005_DISABLED_BOUNDARIES_VERIFIED')
 '''
         subprocess.run([sys.executable, '-I', '-S', '-c', code, str(root)], check=True, timeout=30)
     return {'status': 'ISOLATED_PACKAGE_VERIFIED', 'source_commit': index['source_commit'], 'model_calls': 0}

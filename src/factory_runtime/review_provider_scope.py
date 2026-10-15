@@ -9,6 +9,7 @@ from factory_state.scope import SignedScopeStore, canonical
 from .pilot002_adapter import _cost
 from .pilot002_authorization import _exact, _window
 from .worker import digest
+from .remediation_profile import task_number, validate_candidate, AGGREGATE_CEILING
 
 TASK = 'bounded-review-004'
 FACTORY = 'tims-software-factory'
@@ -27,6 +28,7 @@ class ProviderScope:
     candidate_digest: str
     test_evidence_digest: str
     request_bytes: bytes
+    task_id: str = TASK
 
     def bindings(self):
         if (type(self.role) is not str or self.role not in PROVIDERS or
@@ -36,8 +38,11 @@ class ProviderScope:
                     for v in (self.candidate_digest, self.test_evidence_digest)) or
                 type(self.request_bytes) is not bytes or not 0 < len(self.request_bytes) <= 65536):
             raise StateError('exact fresh provider scope required')
+        validate_candidate(self.task_id, self.candidate_commit, self.candidate_digest)
+        if self.task_id != TASK and self.request.objective_id != self.task_id:
+            raise StateError('New task objective differs')
         provider, model = PROVIDERS[self.role]
-        return {'factory_id': FACTORY, 'task_id': TASK, 'role': self.role,
+        return {'factory_id': FACTORY, 'task_id': self.task_id, 'role': self.role,
             'provider': provider, 'model_id': model, 'dispatch_request': asdict(self.request),
             'candidate_commit': self.candidate_commit, 'candidate_digest': self.candidate_digest,
             'test_evidence_digest': self.test_evidence_digest, 'request_digest': digest(self.request_bytes)}
@@ -51,6 +56,7 @@ class VerifiedAllowance:
     scope_digest: str
     maximum_cost_micro_usd: int
     expires_at: int
+    task_id: str = TASK
 
 
 def validate_unsigned(payload, *, scope, pricing, readiness, now):
@@ -58,7 +64,7 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
             now.tzinfo is None or now.utcoffset() is None):
         raise StateError('deployment-owned scope and aware clock required')
     binding = scope.bindings()
-    price_expected = {'kind': 'bounded_review004_rate_qualification', **binding,
+    price_expected = {'kind': 'bounded_review'+task_number(scope.task_id)+'_rate_qualification', **binding,
         'currency': 'USD', 'complete_request_bound_qualified': True,
         'standard_text_only_no_cache_rates': True, 'output_token_bound': 4096}
     extra = {'input_token_bound', 'input_micro_usd_per_million', 'output_micro_usd_per_million',
@@ -72,23 +78,23 @@ def validate_unsigned(payload, *, scope, pricing, readiness, now):
     maximum = _cost(pricing['input_token_bound'], 4096, pricing)
     if not 0 < maximum <= ROLE_CAPS[scope.role]:
         raise StateError('provider request exceeds reserved cap')
-    ready_expected = {'kind': 'bounded_review004_provider_readiness', **binding,
+    ready_expected = {'kind': 'bounded_review'+task_number(scope.task_id)+'_provider_readiness', **binding,
         'credential_route_verified': True, 'model_metadata_verified': True,
         'repository_binding_verified': True, 'single_attempt_failure_risk_accepted': True}
     if (not _exact(readiness, ready_expected, {'issued_at', 'expires_at', 'evidence_digest'}) or
             not _window(readiness, now, 3600) or type(readiness['evidence_digest']) is not str or
             not SHA256_DIGEST.fullmatch(readiness['evidence_digest'])):
         raise StateError('fresh exact-route readiness required')
-    expected = {'kind': 'bounded_review004_provider_allowance', 'owner_identity': 'tim_brydges',
+    expected = {'kind': 'bounded_review'+task_number(scope.task_id)+'_provider_allowance', 'owner_identity': 'tim_brydges',
         **binding, 'pricing_digest': digest(canonical(pricing)),
         'readiness_digest': digest(canonical(readiness)), 'reserved_micro_usd': ROLE_CAPS[scope.role],
-        'run_reserved_micro_usd': RUN_CAP, 'aggregate_ceiling_micro_usd': 3250000,
+        'run_reserved_micro_usd': RUN_CAP, 'aggregate_ceiling_micro_usd': 3250000 if scope.task_id == TASK else AGGREGATE_CEILING,
         'maximum_provider_calls': 1, 'retries': 0, 'production_release_authorized': False}
     if (not _exact(payload, expected, {'issued_at', 'expires_at'}) or not _window(payload, now, 3600) or
             payload['expires_at'] > min(pricing['expires_at'], readiness['expires_at'])):
         raise StateError('fresh owner scope, fixed reservation or expiry differs')
     return VerifiedAllowance(scope.role, digest(canonical(payload)), digest(canonical(binding)),
-                             maximum, payload['expires_at'])
+                             maximum, payload['expires_at'], scope.task_id)
 
 
 def verify(envelope, *, trusted_keys, **context):

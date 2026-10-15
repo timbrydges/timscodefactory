@@ -22,12 +22,12 @@ SECRETS={'builder':'arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims
          'qa':'arn:aws:secretsmanager:ca-central-1:666730517561:secret:tims-software-factory/provider/google/qa-rYGeOE'}
 
 
-def load_deployment(root, env, *, clock):
+def load_deployment(root, env, *, clock, material_type=PinnedReviewMaterial):
     role=env.get('FACTORY_BOUNDED_REVIEW_ROLE')
     if role not in PROVIDERS:raise StateError('exact bounded role required')
     build=json.loads(_read(root,'BUILD.json',1024),object_pairs_hook=_pairs)
     if set(build)!={'source_commit'}:raise StateError('exact build source required')
-    material=PinnedReviewMaterial.load(_read(root,'REVIEW_MATERIAL.json',196608),
+    material=material_type.load(_read(root,'REVIEW_MATERIAL.json',196608),
         expected_digest=env.get('FACTORY_BOUNDED_REVIEW_MATERIAL_DIGEST'),
         deployed_commit=build['source_commit'],clock=clock)
     raw=_read(root,'REVIEW_ROLE.json',131072)
@@ -57,7 +57,7 @@ def client(session, service):
         config=Config(retries={'total_max_attempts':1},connect_timeout=5,read_timeout=10,proxies={}))
 
 
-def dispatch(event, context, *, root, env, clock):
+def dispatch(event, context, *, root, env, clock, deployment_loader=None):
     if env.get('FACTORY_BOUNDED_REVIEW_ENABLED')!='true':
         raise StateError('bounded role Lambda disabled')
     try:
@@ -70,7 +70,7 @@ def dispatch(event, context, *, root, env, clock):
                 env.get('AWS_REGION')!=REGION or env.get('AWS_LAMBDA_FUNCTION_NAME')!=name or
                 context.get_remaining_time_in_millis()<150000):
             raise StateError('exact numeric role version and execution time required')
-        role,material,doc,keys=load_deployment(root,env,clock=clock)
+        role,material,doc,keys=(deployment_loader or load_deployment)(root,env,clock=clock)
         prepared=material.prepared(role)
         BoundedReviewRoleRuntime.validate_event(prepared,event)
         session=_aws_session(env)
@@ -84,7 +84,7 @@ def dispatch(event, context, *, root, env, clock):
         if role!='qa':
             credentials=client(session,'sts').assume_role(
                 RoleArn=f'arn:aws:iam::{ACCOUNT}:role/tims-factory-signing-{role}',
-                RoleSessionName='bounded-review-004-'+role,DurationSeconds=900)['Credentials']
+                RoleSessionName=prepared.scope.task_id+'-'+role,DurationSeconds=900)['Credentials']
             import boto3
             signing=boto3.Session(aws_access_key_id=credentials['AccessKeyId'],
                 aws_secret_access_key=credentials['SecretAccessKey'],aws_session_token=credentials['SessionToken'],

@@ -22,11 +22,11 @@ EXECUTION_ROLE='tims-software-factory-autonomy-controller-disabled'
 EVENT={'factory_id':FACTORY,'task_id':TASK,'mode':'bounded-review'}
 
 
-def load_deployment(root, env, *, clock):
+def load_deployment(root, env, *, clock, material_type=PinnedReviewMaterial, task_id=TASK):
     build=json.loads(_read(root,'BUILD.json',1024),object_pairs_hook=_pairs)
     if type(build)is not dict or set(build)!={'source_commit'}:
         raise StateError('exact controller source required')
-    material=PinnedReviewMaterial.load(_read(root,'REVIEW_MATERIAL.json',196608),
+    material=material_type.load(_read(root,'REVIEW_MATERIAL.json',196608),
         expected_digest=env.get('FACTORY_BOUNDED_REVIEW_MATERIAL_DIGEST'),
         deployed_commit=build['source_commit'],clock=clock)
     raw=_read(root,'REVIEW_CONTROLLER.json',131072)
@@ -44,7 +44,7 @@ def load_deployment(root, env, *, clock):
     now=clock();activation.validate(now)
     if ((activation.activation_id,activation.factory_id,activation.task_id,
             activation.source_commit,activation.contract_digest)!=
-            (TASK,FACTORY,TASK,material.source_commit,digest(material.contract_bytes)) or
+            (task_id,FACTORY,task_id,material.source_commit,digest(material.contract_bytes)) or
             activation.expires_at-activation.starts_at>timedelta(hours=1)):
         raise StateError('controller activation differs from bounded deployment')
     if (set(doc['function_arns'])!=set(PROVIDERS) or set(doc['providers'])!=set(PROVIDERS) or
@@ -75,17 +75,17 @@ def runtime_client(session, service):
             read_timeout=185 if service=='lambda' else 10,proxies={}))
 
 
-def dispatch(event, context, *, root, env, clock):
+def dispatch(event, context, *, root, env, clock, deployment_loader=None, task_id=TASK, test_count=17):
     if env.get('FACTORY_BOUNDED_CONTROLLER_ENABLED')!='true':
         raise StateError('bounded controller Lambda disabled')
     try:
         prefix=f'arn:aws:lambda:{REGION}:{ACCOUNT}:function:{NAME}:'
         arn=context.invoked_function_arn
-        if (type(event)is not dict or event!=EVENT or type(arn)is not str or not arn.startswith(prefix) or
+        if (type(event)is not dict or event!={**EVENT,'task_id':task_id} or type(arn)is not str or not arn.startswith(prefix) or
                 not re.fullmatch('[1-9][0-9]*',arn[len(prefix):]) or env.get('AWS_REGION')!=REGION or
                 env.get('AWS_LAMBDA_FUNCTION_NAME')!=NAME or context.get_remaining_time_in_millis()<240000):
             raise StateError('exact bounded controller event and numeric version required')
-        material,activation,doc,versions,keys=load_deployment(root,env,clock=clock)
+        material,activation,doc,versions,keys=(deployment_loader or load_deployment)(root,env,clock=clock)
         session=_aws_session(env)
         caller=client(session,'sts').get_caller_identity()
         role_prefix=f'arn:aws:sts::{ACCOUNT}:assumed-role/{EXECUTION_ROLE}/'
@@ -109,8 +109,8 @@ def dispatch(event, context, *, root, env, clock):
             s3=runtime_client(session,'s3'),function_arns=doc['function_arns'],guards=guards,
             job_versions=versions,inspector_binding=material.binding('inspector'),qa_binding=material.binding('qa'),
             builder_input_digest=material.prepared('builder').scope.request.input_digest,
-            proof_bytes=material.proof_bytes,candidate_files=material.files(),test_count=17,clock=clock,enabled=True)
-        return service.tick(FACTORY,TASK)
+            proof_bytes=material.proof_bytes,candidate_files=material.files(),test_count=test_count,clock=clock,enabled=True)
+        return service.tick(FACTORY,task_id)
     except Exception:
         raise StateError('bounded controller stopped; reconcile permanent claims before further action') from None
 

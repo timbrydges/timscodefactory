@@ -31,7 +31,7 @@ def load_allowance(root, env, *, material, keys, now):
     return doc
 
 
-def dispatch(event, context, *, root, env, clock):
+def dispatch(event, context, *, root, env, clock, deployment_loader=None, backend_factory=None):
     if env.get('FACTORY_SECURITY_ENABLED')!='true':
         raise StateError('Security Lambda disabled')
     try:
@@ -42,7 +42,7 @@ def dispatch(event, context, *, root, env, clock):
                 env.get('AWS_REGION')!=REGION or env.get('AWS_LAMBDA_FUNCTION_NAME')!=NAME or
                 context.get_remaining_time_in_millis()<150000):
             raise StateError('Exact security numeric version and runtime required')
-        deployment=load_deployment(root,env,clock=clock);m=deployment.material
+        deployment=(deployment_loader or load_deployment)(root,env,clock=clock);m=deployment.material
         BoundedSecurityRoleRuntime.validate_event(m.prepared(),event)
         keys=signer_loader(root,env);history=signer_loader(root,env,historical=True)
         doc=load_allowance(root,env,material=m,keys=keys,now=clock())
@@ -58,7 +58,7 @@ def dispatch(event, context, *, root, env, clock):
         from factory_state.dispatch import DynamoDBDispatchStore
         from .security_provider_claims import SecurityProviderClaims
         db=client(session,'dynamodb');table='tims-software-factory-state'
-        backend=disabled_backend(material=m,qa_binding=deployment.qa_binding,
+        backend=(backend_factory or disabled_backend)(material=m,qa_binding=deployment.qa_binding,
             qa_request=deployment.qa_request,envelope=doc['allowance'],pricing=doc['pricing'],
             readiness=doc['readiness'],states=DynamoDBStateStore(table,db),
             ledger=DynamoDBDispatchStore(table,db),claims=SecurityProviderClaims(db),
