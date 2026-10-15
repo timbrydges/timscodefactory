@@ -64,17 +64,27 @@ class FixedScopeReview:
             raise StateError('aware scope review time required')
         p, prepared = self.plan, self.prepared
         prepared.validate(); scope = prepared.scope
-        expected_contract = contract(source_commit=scope.request.source_commit,
-            candidate_commit=scope.candidate_commit, candidate_digest=scope.candidate_digest,
-            test_evidence_digest=scope.test_evidence_digest)
+        task_id = scope.task_id
+        evidence_text, stop_text, test_count = EVIDENCE, STOP, 17
+        capability_id = 'bounded-review-'+scope.role
+        if task_id == 'bounded-review-005':
+            from .remediation_material import contract as new_contract
+            from .remediation_profile import EVIDENCE as new_evidence, STOP as new_stop, TEST_COUNT
+            expected_contract = new_contract(scope.request.source_commit, scope.test_evidence_digest)
+            evidence_text, stop_text, test_count = new_evidence, new_stop, TEST_COUNT
+            capability_id = 'bounded-review-005-'+scope.role
+        else:
+            expected_contract = contract(source_commit=scope.request.source_commit,
+                candidate_commit=scope.candidate_commit, candidate_digest=scope.candidate_digest,
+                test_evidence_digest=scope.test_evidence_digest)
         if self.contract_bytes != expected_contract or digest(expected_contract) != scope.request.contract_digest:
             raise StateError('work exceeds the fixed reviewed contract')
-        state = self.states.load_state(FACTORY, TASK)
+        state = self.states.load_state(FACTORY, task_id)
         if (state is None or (state.factory_id, state.task_id, state.state, state.version) !=
-                (FACTORY, TASK, STAGES[scope.role], p.state_version) or
-                (p.factory_id, p.task_id, p.state) != (FACTORY, TASK, state.state) or
-                p.request != scope.request or p.request.objective_id != TASK or
-                p.request.capability_id != 'bounded-review-'+scope.role or p.lease.lease_id != p.request.lease_id or
+                (FACTORY, task_id, STAGES[scope.role], p.state_version) or
+                (p.factory_id, p.task_id, p.state) != (FACTORY, task_id, state.state) or
+                p.request != scope.request or p.request.objective_id != task_id or
+                p.request.capability_id != capability_id or p.lease.lease_id != p.request.lease_id or
                 (p.lease.role_id, p.lease.authoritative_identity) !=
                 (ROLE_IDS[scope.role], ROLE_IDENTITIES[scope.role]) or
                 p.lease.authoritative_identity == IDENTITY or
@@ -85,7 +95,7 @@ class FixedScopeReview:
         FactoryStateMachine(state).issue_lease(CONTROLLER_IDENTITY, p.lease,
             expected_version=state.version, now=now)
         cap = p.capability_payload
-        if cap.get('required_evidence') != EVIDENCE or cap.get('stop_condition') != STOP:
+        if cap.get('required_evidence') != evidence_text or cap.get('stop_condition') != stop_text:
             raise StateError('owner evidence and stop link differ from fixed policy')
         for receipt in (cap, p.review_payload):
             if (type(receipt.get('issued_at')) is not int or type(receipt.get('expires_at')) is not int or
@@ -95,14 +105,14 @@ class FixedScopeReview:
         SignedScopeStore('unused', None, self.key_loader(now))._capability_item(
             state, p.request, cap, self.owner_signature, now=now)
         b = self.evidence.binding
-        if (self.evidence.test_count != 17 or
+        if (self.evidence.test_count != test_count or
                 (b.factory_id, b.task_id, b.source_commit, b.contract_digest, b.candidate_commit,
                  b.candidate_digest, b.test_evidence_digest) !=
-                (FACTORY, TASK, p.request.source_commit, p.request.contract_digest, scope.candidate_commit,
+                (FACTORY, task_id, p.request.source_commit, p.request.contract_digest, scope.candidate_commit,
                  scope.candidate_digest, scope.test_evidence_digest) or
                 self.evidence(scope.candidate_commit, scope.candidate_digest, scope.test_evidence_digest) is not True):
             raise StateError('independent pinned test proof differs or expired')
-        expected = {'kind': 'scope_review', 'factory_id': FACTORY, 'task_id': TASK,
+        expected = {'kind': 'scope_review', 'factory_id': FACTORY, 'task_id': task_id,
             'binding': DynamoDBDispatchStore._binding(p.request), 'verdict': 'ACCEPTED',
             'reviewer_identity': IDENTITY, 'rationale': RATIONALE,
             'issued_at': cap['issued_at'], 'expires_at': cap['expires_at']}

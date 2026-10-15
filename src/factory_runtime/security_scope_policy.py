@@ -7,6 +7,7 @@ from factory_state.model import CONTROLLER_IDENTITY, FactoryStateMachine, StateE
 from factory_state.scope import SignedScopeStore, canonical
 from .intake import IntakePlan
 from .security_material import PinnedSecurityMaterial
+from .remediation_deployment import RemediationSecurityMaterial
 from .security_contract import validate_link
 from .security_qa_provenance import ConsumedQAProvenance
 from .review_signing import _EnrolledSigner
@@ -19,7 +20,7 @@ RATIONALE = 'Exact security contract, QA provenance, fresh tests, owner scope an
 
 class SecurityScopeReview:
     def __init__(self, *, material, plan, owner_signature, prerequisites, key_loader, clock):
-        if (type(material) is not PinnedSecurityMaterial or type(plan) is not IntakePlan or
+        if (type(material) not in (PinnedSecurityMaterial, RemediationSecurityMaterial) or type(plan) is not IntakePlan or
                 type(owner_signature) is not bytes or type(prerequisites) is not ConsumedQAProvenance or
                 not callable(key_loader) or not callable(clock)):
             raise StateError('Deployment-owned security scope review required')
@@ -32,7 +33,14 @@ class SecurityScopeReview:
             raise StateError('Aware security scope review time required')
         m, p, prerequisite = self.material, self.plan, self.prerequisites
         b = m.binding; q = b.qa
-        validate_link(b, prerequisite.qa_binding, m.contract_bytes)
+        evidence_text, stop_text = EVIDENCE, STOP
+        if type(m) is RemediationSecurityMaterial:
+            from .remediation_profile import EVIDENCE as evidence_text, STOP as stop_text
+            if (prerequisite.qa_binding != m.review.binding('qa') or
+                    prerequisite.request != m.review.prepared('qa').scope.request):
+                raise StateError('Task005 scope requires new consumed QA provenance')
+        else:
+            validate_link(b, prerequisite.qa_binding, m.contract_bytes)
         prepared = m.prepared(); prepared.validate()
         state = prerequisite.states.load_state(q.factory_id, q.task_id)
         if (prerequisite.binding != b or state is None or
@@ -48,7 +56,7 @@ class SecurityScopeReview:
         FactoryStateMachine(state).issue_lease(CONTROLLER_IDENTITY,p.lease,
             expected_version=state.version,now=now)
         cap = p.capability_payload
-        if cap.get('required_evidence') != EVIDENCE or cap.get('stop_condition') != STOP:
+        if cap.get('required_evidence') != evidence_text or cap.get('stop_condition') != stop_text:
             raise StateError('Security evidence and stop conditions differ')
         for receipt in (cap,p.review_payload):
             if (type(receipt.get('issued_at')) is not int or type(receipt.get('expires_at')) is not int or

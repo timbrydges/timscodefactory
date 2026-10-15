@@ -36,7 +36,9 @@ class SecurityResultSigner(ReviewRoleResultSigner):
         if (type(request) is not DispatchRequest or type(dispatch_id) is not str or
                 not re.fullmatch('[a-f0-9]{64}', dispatch_id)):
             raise StateError('Exact security dispatch required')
+        from .remediation_profile import task_number
+        task_number(request.objective_id)
         self.expected = {'kind':'role_result', 'factory_id':'tims-software-factory',
-            'task_id':'bounded-review-004', 'binding':DynamoDBDispatchStore._binding(request),
+            'task_id':request.objective_id, 'binding':DynamoDBDispatchStore._binding(request),
             'dispatch_id':dispatch_id, 'producer_identity':IDENTITY}
         _EnrolledSigner.__init__(self, role='security', **kwargs)

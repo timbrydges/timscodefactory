@@ -51,7 +51,7 @@ def verify_sandbox(proof,files,commit):
     except (KeyError,TypeError,ValueError,AttributeError):raise StateError('Docker test provenance rejected') from None
 
 
-def verify_metadata(run,artifact,commit,run_id):
+def verify_metadata(run,artifact,commit,run_id,*,artifact_name=ARTIFACT):
     try:
         if (type(run_id)is not int or run_id<=0 or type(commit)is not str or
                 re.fullmatch('[0-9a-f]{40}',commit) is None or
@@ -59,7 +59,7 @@ def verify_metadata(run,artifact,commit,run_id):
                 run['head_sha']!=commit or run['path']!=WORKFLOW or run['status']!='completed' or
                 run['conclusion']!='success' or run['repository']['full_name']!=REPOSITORY or
                 run['head_repository']['full_name']!=REPOSITORY or
-                artifact['name']!=ARTIFACT or artifact['expired'] is not False or
+                artifact['name']!=artifact_name or artifact['expired'] is not False or
                 type(artifact['id'])is not int or artifact['id']<=0 or
                 type(artifact['size_in_bytes'])is not int or not 0<artifact['size_in_bytes']<=MAX_ARCHIVE or
                 not re.fullmatch('sha256:[0-9a-f]{64}',artifact['digest']) or
@@ -84,30 +84,36 @@ def verify_archive(archive,artifact):
     except (zipfile.BadZipFile,RuntimeError,ValueError):raise StateError('Invalid test artifact archive') from None
 
 
-def prepare(commit,run_id,*,api,root=ROOT,clock=None):
+def prepare(commit,run_id,*,api,root=ROOT,clock=None,task=None):
     if type(run_id)is not int or run_id<=0 or type(commit)is not str or not re.fullmatch('[0-9a-f]{40}',commit):
         raise StateError('Exact approved source and run ID required')
+    baseline_path, baseline_sha, test_count, artifact_name = BASELINE, PINNED[BASELINE], 17, ARTIFACT
+    if task is not None:
+        from factory_runtime.remediation_profile import TASK, BASELINE as NEW_BASELINE, BASELINE_SHA256, TEST_COUNT
+        if task != TASK:raise StateError('Unknown proof task')
+        baseline_path, baseline_sha, test_count = NEW_BASELINE, BASELINE_SHA256, TEST_COUNT
+        artifact_name = 'isolated-remediation005-test-proof'
     prefix='repos/'+REPOSITORY
     head=json.loads(api(prefix+'/git/ref/heads/main'))
     if head.get('object',{}).get('sha')!=commit:raise StateError('Approved source is not current main')
     run=json.loads(api(prefix+'/actions/runs/'+str(run_id)))
     listing=json.loads(api(prefix+'/actions/runs/'+str(run_id)+'/artifacts?per_page=100'))
-    matches=[a for a in listing.get('artifacts',[]) if a.get('name')==ARTIFACT]
+    matches=[a for a in listing.get('artifacts',[]) if a.get('name')==artifact_name]
     if len(matches)!=1 or listing.get('total_count')!=len(listing.get('artifacts',[])):
         raise StateError('Missing, duplicate or incomplete artifact inventory')
-    artifact=matches[0];verify_metadata(run,artifact,commit,run_id)
+    artifact=matches[0];verify_metadata(run,artifact,commit,run_id,artifact_name=artifact_name)
     raw=verify_archive(api(prefix+'/actions/artifacts/'+str(artifact['id'])+'/zip'),artifact)
-    baseline_raw=(root/BASELINE).read_bytes()
-    if hashlib.sha256(baseline_raw).hexdigest()!=PINNED[BASELINE]:raise StateError('Reviewed candidate fixture changed')
+    baseline_raw=(root/baseline_path).read_bytes()
+    if hashlib.sha256(baseline_raw).hexdigest()!=baseline_sha:raise StateError('Reviewed candidate fixture changed')
     baseline=json.loads(baseline_raw);files=baseline['files']
     verify_sandbox(json.loads(raw),files,commit)
     binding=ReviewBinding('factory','candidate-test-proof-canary','qa_engineer',commit,
         sha(b'non-authoritative canary'),sha(b'fixed acceptance fixture'),baseline['commit'],
         sha(canonical(files)),sha(raw),tuple(files))
-    verifier=PinnedPythonTestEvidence(binding,raw,files,test_count=17,clock=clock)
+    verifier=PinnedPythonTestEvidence(binding,raw,files,test_count=test_count,clock=clock)
     if verifier(binding.candidate_commit,binding.candidate_digest,binding.test_evidence_digest) is not True:
         raise StateError('Fresh independent test artifact rejected')
-    return {'status':'AUTHENTICATED_MAIN_TEST_PROOF','repository':REPOSITORY,'source_commit':commit,
+    return {**({'task_id':task} if task else {}),'status':'AUTHENTICATED_MAIN_TEST_PROOF','repository':REPOSITORY,'source_commit':commit,
         'run_id':run_id,'workflow':WORKFLOW,'artifact_id':artifact['id'],'archive_digest':artifact['digest'],
         'proof_digest':sha(raw),'proof_base64':base64.b64encode(raw).decode(),
         'candidate_commit':baseline['commit'],'candidate_digest':binding.candidate_digest,

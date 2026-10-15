@@ -8,7 +8,8 @@ import re
 
 from factory_state.model import SHA256_DIGEST, StateError
 from .review_provider_claims import ReviewProviderClaims
-from .security_provider_scope import CLAIM_KEY, RESERVATION, VerifiedSecurityAllowance
+from .remediation_profile import claim_key
+from .security_provider_scope import RESERVATION, VerifiedSecurityAllowance
 
 
 class SecurityProviderClaims(ReviewProviderClaims):
@@ -23,8 +24,8 @@ class SecurityProviderClaims(ReviewProviderClaims):
                 type(grant.expires_at) is not int or
                 not now.timestamp() < grant.expires_at <= now.timestamp()+3600):
             raise StateError('Fresh verified security claim binding required')
-        return {'PK': {'S': CLAIM_KEY}, 'status': {'S': 'RESERVED'},
-            'task_id': {'S': 'bounded-review-004'}, 'role': {'S': 'security'},
+        return {'PK': {'S': claim_key(grant.task_id, 'security')}, 'status': {'S': 'RESERVED'},
+            'task_id': {'S': grant.task_id}, 'role': {'S': 'security'},
             'dispatch_id': {'S': dispatch_id},
             'allowance_digest': {'S': grant.allowance_digest},
             'scope_digest': {'S': grant.scope_digest},

@@ -22,8 +22,14 @@ from stage_security_bundle import stage as stage_security_bundle
 PINNED=('factory/profiles/scope-signers.json',)
 
 
-def deployment(files, *, role, material, material_digest, config, config_digest, now):
+def deployment(files, *, role, material, material_digest, config, config_digest, now, task=None):
     """Validate bytes offline; hashes must originate in the privileged deployment process."""
+    role_loader, controller_loader = load_role, load_controller
+    if task is not None:
+        from factory_runtime.remediation_profile import TASK
+        if task != TASK:raise ValueError('Unknown deployment task')
+        from factory_runtime.remediation_deployment import load_review_role, load_review_controller
+        role_loader, controller_loader = load_review_role, load_review_controller
     env={'FACTORY_BOUNDED_REVIEW_MATERIAL_DIGEST':material_digest}
     name='REVIEW_CONTROLLER.json' if role=='controller' else 'REVIEW_ROLE.json'
     key='FACTORY_BOUNDED_REVIEW_CONTROLLER_DIGEST' if role=='controller' else 'FACTORY_BOUNDED_REVIEW_ROLE_DIGEST'
@@ -35,13 +41,19 @@ def deployment(files, *, role, material, material_digest, config, config_digest,
         for path,raw in {**{p:files[p] for p in (*PINNED,'BUILD.json')},
                          'REVIEW_MATERIAL.json':material,name:config}.items():
             target=root/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
-        (load_controller if role=='controller' else load_role)(root,env,clock=lambda:now)
+        (controller_loader if role=='controller' else role_loader)(root,env,clock=lambda:now)
     files.update({'REVIEW_MATERIAL.json':material,name:config})
-    return {'material_digest':material_digest,'config_digest':config_digest,'role':role}
+    info = {'material_digest':material_digest,'config_digest':config_digest,'role':role}
+    if task is not None:
+        from factory_runtime.remediation_profile import DISABLED_ENV
+        env.update(DISABLED_ENV)
+        info.update(task_id=task, environment=env)
+    return info
 
 
 def build(output, *, role='controller', material=None, material_digest=None,
-          config=None, config_digest=None, now=None, security_files=None, security_pins=None):
+          config=None, config_digest=None, now=None, security_files=None, security_pins=None, task=None):
+    if task not in (None,'bounded-review-005'):raise ValueError('Unknown deployment task')
     if role not in ('controller','builder','inspector','qa','security','security-controller'):
         raise ValueError('Exact bounded role required')
     args=(material,material_digest,config,config_digest)
@@ -67,7 +79,8 @@ def build(output, *, role='controller', material=None, material_digest=None,
     info={}
     if security:
         additions,env=stage_security_bundle(security_files,security_pins,source_commit=commit,
-            role='controller' if role=='security-controller' else 'security',now=now or datetime.now(timezone.utc))
+            role='controller' if role=='security-controller' else 'security',now=now or datetime.now(timezone.utc),
+            **({'task':task} if task else {}))
         if set(additions)&(set(files)|{'PACKAGE.json'}):
             raise RuntimeError('Security bundle shadows committed package files')
         files.update(additions)
@@ -75,7 +88,11 @@ def build(output, *, role='controller', material=None, material_digest=None,
     if material is not None:
         m=Path(material).absolute();c=Path(config).absolute()
         info=deployment(files,role=role,material=_read(m.parent,m.name,196608),material_digest=material_digest,
-            config=_read(c.parent,c.name,131072),config_digest=config_digest,now=now or datetime.now(timezone.utc))
+            config=_read(c.parent,c.name,131072),config_digest=config_digest,now=now or datetime.now(timezone.utc),task=task)
+    if task is not None:
+        from factory_runtime.remediation_profile import HANDLERS, DISABLED_ENV
+        info.update(task_id=task, handler=HANDLERS[role],
+            environment={**info.get('environment',{}), **DISABLED_ENV})
     with tempfile.TemporaryDirectory(prefix='bounded-review-wheels-') as temporary:
         root=Path(temporary);lock=root/'requirements.txt'
         lock.write_bytes(blob('requirements-role-lambda.txt')+b'\n'+blob('requirements-aws-signing.txt'))
@@ -96,6 +113,7 @@ def build(output, *, role='controller', material=None, material_digest=None,
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('output',type=Path)
+    parser.add_argument('--task',choices=('bounded-review-005',))
     parser.add_argument('--role',choices=('controller','builder','inspector','qa','security','security-controller'),default='controller')
     for name in ('material','material-digest','config','config-digest'):parser.add_argument('--'+name)
     for name in ('security-bundle','security-pins','security-pins-digest'):parser.add_argument('--'+name)

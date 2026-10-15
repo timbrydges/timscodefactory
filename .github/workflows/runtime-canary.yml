@@ -36,9 +36,15 @@ jobs:
       - name: Build committed-source disabled runtime package
         # Build-time imports use the existing hash-locked CI environment. The
         # package verifier below still runs its probe with Python -I -S.
-        run: python scripts/build_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
+        run: python scripts/build_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip" --task bounded-review-005
       - name: Verify packaged dependencies and disabled entrypoints
         run: python scripts/verify_bounded_review_package.py "$RUNNER_TEMP/disabled-runtime.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: task005-disabled-runtime
+          path: ${{ runner.temp }}/disabled-runtime.zip
+          if-no-files-found: error
+          retention-days: 7
   real-runtime-canary:
     name: runtime / real Docker canary
     runs-on: ubuntu-latest
@@ -81,5 +87,22 @@ jobs:
         with:
           name: isolated-candidate-test-proof
           path: ${{ runner.temp }}/candidate-test-proof.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Verify task005 isolated candidate test evidence
+        run: >-
+          python scripts/candidate_test_proof_canary.py
+          --task bounded-review-005
+          --image-ref "$CANARY_IMAGE_REF"
+          --source-commit "$SOURCE_COMMIT"
+          --output "$RUNNER_TEMP/candidate-test-proof.json.005"
+      - name: Stage task005 proof artifact
+        run: |
+          mkdir -p "$RUNNER_TEMP/remediation005-proof"
+          cp "$RUNNER_TEMP/candidate-test-proof.json.005" "$RUNNER_TEMP/remediation005-proof/candidate-test-proof.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: isolated-remediation005-test-proof
+          path: ${{ runner.temp }}/remediation005-proof/candidate-test-proof.json
           if-no-files-found: error
           retention-days: 7

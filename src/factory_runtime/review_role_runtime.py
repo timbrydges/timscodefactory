@@ -10,14 +10,14 @@ from dataclasses import asdict
 from factory_state.model import StateError
 from .cloud_roles import ROLE_IDENTITIES, RoleExecutionService
 from .review_provider_backend import ReviewProviderBackend
-from .review_provider_scope import FACTORY, TASK
+from .review_provider_scope import FACTORY
 from .review_signing import ReviewRoleResultSigner
 
 
 class BoundedReviewRoleRuntime:
     @staticmethod
     def validate_event(prepared, event):
-        expected = {'schema_version': '1.0', 'factory_id': FACTORY, 'task_id': TASK,
+        expected = {'schema_version': '1.0', 'factory_id': FACTORY, 'task_id': prepared.scope.task_id,
                     'worker_id': 'bounded-review-controller',
                     'request': asdict(prepared.scope.request),
                     'input_base64': base64.b64encode(prepared.input_bytes).decode()}
@@ -45,7 +45,7 @@ class BoundedReviewRoleRuntime:
             raise StateError('bounded role runtime disabled')
         prepared = self.backend.prepared
         self.validate_event(prepared, event)
-        state = self.backend.states.load_state(FACTORY, TASK)
+        state = self.backend.states.load_state(FACTORY, prepared.scope.task_id)
         if state is None:
             raise StateError('bounded role task missing')
         now = self.backend.clock()

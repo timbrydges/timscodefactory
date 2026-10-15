@@ -7,14 +7,18 @@ from factory_state.model import StateError
 from factory_state.scope import canonical
 from .intake import IntakePlan
 from .security_material import PinnedSecurityMaterial
+from .remediation_deployment import RemediationSecurityMaterial
 from .security_scope_policy import IDENTITY, EVIDENCE, STOP, RATIONALE
 from .review_signing import _EnrolledSigner
 
 
 def check_plan(material, plan, now):
-    if (type(material)is not PinnedSecurityMaterial or
+    if (type(material) not in (PinnedSecurityMaterial, RemediationSecurityMaterial) or
             type(plan)is not IntakePlan or type(now)is not datetime or now.tzinfo is None):
         raise StateError('exact bounded scope signing context required')
+    evidence_text, stop_text = EVIDENCE, STOP
+    if type(material) is RemediationSecurityMaterial:
+        from .remediation_profile import EVIDENCE as evidence_text, STOP as stop_text
     prepared=material.prepared()
     q=material.binding.qa
     FACTORY,TASK=q.factory_id,q.task_id
@@ -28,7 +32,7 @@ def check_plan(material, plan, now):
     cap=plan.capability_payload
     expected={'kind':'capability','factory_id':FACTORY,'objective_id':TASK,'capability_id':prepared.scope.request.capability_id,
         'contract_digest':plan.request.contract_digest,'owner_identity':'tim_brydges',
-        'required_evidence':EVIDENCE,'stop_condition':STOP}
+        'required_evidence':evidence_text,'stop_condition':stop_text}
     if (type(cap)is not dict or set(cap)!=set(expected)|{'issued_at','expires_at'} or
             any(type(cap[k])is not type(v) or cap[k]!=v for k,v in expected.items()) or
             any(type(cap[k])is not int for k in ('issued_at','expires_at')) or

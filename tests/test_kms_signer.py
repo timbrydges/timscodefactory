@@ -202,6 +202,17 @@ class KmsSignerTests(unittest.TestCase):
         self.assertTrue(registry['enabled'])
         approval = json.loads((ROOT / 'factory/evidence/qa-signer-enrollment-approval-2026-10-03.json').read_text())
         qa = next(x for x in registry['signers'] if x['identity'] == 'qa_engineer_service')
+        latest = json.loads((ROOT / 'factory/evidence/qa-signer-renewal-2026-10-15.json').read_bytes())
+        self.assertEqual(qa, latest['renewed_entry'])
+        self.assertEqual(qa, {**latest['prior_entry'], 'not_before': qa['not_before'],
+                             'expires_at': qa['expires_at']})
+        self.assertEqual(qa['expires_at'] - qa['not_before'], 86400)
+        self.assertGreater(qa['not_before'], latest['prior_entry']['expires_at'])
+        self.assertFalse(latest['signing_authorized'])
+        self.assertFalse(latest['execution_authorized'])
+        self.assertFalse(latest['cloud_deployment_authorized'])
+        self.assertTrue(latest['holds_preserved'])
+        qa = latest['prior_entry']  # Historical renewal chain remains immutable.
         renewal = json.loads((ROOT / 'factory/evidence/handoff-001-qa-trust-renewal.json').read_bytes())
         observed = (ROOT / renewal['observation_path']).read_bytes()
         self.assertEqual(hashlib.sha256(observed).hexdigest(), renewal['observation_sha256'])

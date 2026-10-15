@@ -1,0 +1,30 @@
+{
+  "kind": "SAME_SCOPE_QA_ENROLLMENT_RENEWAL",
+  "approved_at": "2026-10-15T22:53:22.877897+00:00",
+  "approval_text": "Renew the QA signer enrollment within the same scope, help get PR #517 reviewed and merged, and finish preflight. Keep everything disabled, preserve all holds, and don\u2019t sign or run the workflow yet.",
+  "prior_entry": {
+    "identity": "qa_engineer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+    "enrollment_commit": "a5d81a3127930418600065476f5f5414881cbdf5",
+    "not_before": 1791341967,
+    "expires_at": 1791428367,
+    "revoked": false
+  },
+  "renewed_entry": {
+    "identity": "qa_engineer_service",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOhBFg8zIZN2Br7gBVJ/RqsBojUHHpwkNYwze/3Xi3cs=\n-----END PUBLIC KEY-----\n",
+    "fingerprint": "sha256:2a3b220725f75ef8c7b292e610718861292cf406b157bbb658faada97143fd17",
+    "enrollment_commit": "a5d81a3127930418600065476f5f5414881cbdf5",
+    "not_before": 1792104802,
+    "expires_at": 1792191202,
+    "revoked": false
+  },
+  "scope": "Existing QA identity, public key, ownership enrollment commit and permissions unchanged; renew for 86400 seconds only.",
+  "prior_registry_sha256": "ae142b469b80657661db0b84cf30cbef30655af04b161e8c538b24e54040fe99",
+  "renewed_registry_sha256": "a7713a5d9617c036004fbb94158ee382d13f289a74e930a669420a0aa4927909",
+  "cloud_deployment_authorized": false,
+  "signing_authorized": false,
+  "execution_authorized": false,
+  "holds_preserved": true
+}

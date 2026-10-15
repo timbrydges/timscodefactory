@@ -9,6 +9,7 @@ from .pilot002_protocols import _decode, _bedrock
 from .security_provider_scope import MODEL, SecurityProviderScope
 from .security_verdict import SecurityReviewBinding
 from .worker import digest
+from .remediation_profile import task_number, validate_candidate
 from .security_policy import policy_bytes, policy_digest
 
 
@@ -22,7 +23,8 @@ def job_input(binding, files):
     files = _files(files)
     if digest(canonical(files)) != q.candidate_digest or set(files) != set(q.allowed_paths):
         raise StateError('Security candidate files differ')
-    value = {'kind': 'bounded_security004_job', 'factory_id': q.factory_id,
+    validate_candidate(q.task_id, q.candidate_commit, q.candidate_digest)
+    value = {'kind': 'bounded_security'+task_number(q.task_id)+'_job', 'factory_id': q.factory_id,
         'task_id': q.task_id, 'source_commit': q.source_commit,
         'contract_digest': q.contract_digest, 'candidate_commit': q.candidate_commit,
         'candidate_digest': q.candidate_digest, 'test_evidence_digest': q.test_evidence_digest,

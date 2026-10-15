@@ -6,6 +6,8 @@ from factory_state.dynamodb import DynamoDBStateStore
 from factory_state.model import TaskState, StateError, OWNER_IDENTITY
 from factory_state.scope import canonical
 from .review_material import PinnedReviewMaterial
+from .remediation_material import RemediationMaterial
+from .remediation_profile import claim_key
 from .review_provider_scope import FACTORY, TASK, PROVIDERS
 from .review_provider_claims import TABLE as CLAIMS
 from .worker import digest
@@ -15,7 +17,9 @@ PARTITION=f'FACTORY#{FACTORY}#TASK#{TASK}'
 
 
 def validate(config, *, approved_digest, material, now):
-    expected={'kind':'bounded_review004_paused_bootstrap','factory_id':FACTORY,'task_id':TASK,
+    task_id = 'bounded-review-005' if type(material) is RemediationMaterial else TASK
+    number = '005' if task_id.endswith('005') else '004'
+    expected={'kind':'bounded_review'+number+'_paused_bootstrap','factory_id':FACTORY,'task_id':task_id,
         'source_commit':material.source_commit,'contract_digest':digest(material.contract_bytes),
         'owner_identity':OWNER_IDENTITY,'initial_state':'PAUSED','provider_calls':0}
     if (type(config)is not dict or set(config)!=set(expected)|{'not_before','expires_at','nonce'} or
@@ -30,7 +34,7 @@ def validate(config, *, approved_digest, material, now):
 
 
 def run(config, *, approved_digest, material, db, sts, clock, enabled=False):
-    if enabled is not True or type(material)is not PinnedReviewMaterial:
+    if enabled is not True or type(material) not in (PinnedReviewMaterial, RemediationMaterial):
         raise StateError('paused bootstrap disabled or material missing')
     if (getattr(getattr(db,'meta',None),'endpoint_url',None)!='https://dynamodb.ca-central-1.amazonaws.com' or
             getattr(getattr(getattr(db,'meta',None),'config',None),'retries',{}).get('total_max_attempts')!=1):
@@ -39,13 +43,15 @@ def run(config, *, approved_digest, material, db, sts, clock, enabled=False):
     caller=sts.get_caller_identity()
     if caller.get('Account')!='666730517561' or not caller.get('Arn'):
         raise StateError('bootstrap account differs')
+    task_id = 'bounded-review-005' if type(material) is RemediationMaterial else TASK
+    partition = f'FACTORY#{FACTORY}#TASK#{task_id}'
     at=datetime.fromtimestamp(config['not_before'],timezone.utc)
-    state=TaskState(FACTORY,TASK,'PAUSED',0,at,OWNER_IDENTITY)
+    state=TaskState(FACTORY,task_id,'PAUSED',0,at,OWNER_IDENTITY)
     row=DynamoDBStateStore._serialize_state(state);row['SK']={'S':'STATE'}
-    marker={'PK':{'S':PARTITION},'SK':{'S':'BOOTSTRAP#bounded-review-004'},
+    marker={'PK':{'S':partition},'SK':{'S':'BOOTSTRAP#'+task_id},
         'approval_digest':{'S':approved_digest},'source_commit':{'S':material.source_commit},
         'contract_digest':{'S':digest(material.contract_bytes)}}
-    audit={'PK':{'S':PARTITION},'SK':{'S':'EVENT#'+at.isoformat()+'#bounded-review-bootstrap'},
+    audit={'PK':{'S':partition},'SK':{'S':'EVENT#'+at.isoformat()+'#bounded-review-bootstrap'},
         'event_type':{'S':'TASK_BOOTSTRAPPED'},'actor_identity':{'S':OWNER_IDENTITY},
         'caller_arn':{'S':caller['Arn']},'to_state':{'S':'PAUSED'},'to_version':{'N':'0'},
         'approval_digest':{'S':approved_digest}}
@@ -60,8 +66,8 @@ def run(config, *, approved_digest, material, db, sts, clock, enabled=False):
     validate(config,approved_digest=approved_digest,material=material,now=clock())
     transaction=[{'Put':{'TableName':TABLE,'Item':item,
         'ConditionExpression':'attribute_not_exists(PK) AND attribute_not_exists(SK)'}} for item in expected]
-    transaction += [{'ConditionCheck':{'TableName':CLAIMS,'Key':{'PK':{'S':'BOUNDED_REVIEW#004#ROLE#'+role}},
-        'ConditionExpression':'attribute_not_exists(PK)'}} for role in PROVIDERS]
+    transaction += [{'ConditionCheck':{'TableName':CLAIMS,'Key':{'PK':{'S':claim_key(task_id,role)}},
+        'ConditionExpression':'attribute_not_exists(PK)'}} for role in ((*PROVIDERS,'security') if task_id.endswith('005') else PROVIDERS)]
     try:db.transact_write_items(TransactItems=transaction)
     except Exception:
         if read()!=expected:raise StateError('bootstrap outcome unresolved; reconcile without retry') from None
