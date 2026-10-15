@@ -47,6 +47,13 @@ class BoundSecurityValidator:
         self.verify_prerequisites = verify_prerequisites
 
     def __call__(self, state, request, output):
+        return self._validate(state, request, output, 'ACCEPTED')
+
+    def is_rejected(self, state, request, output):
+        """Recognize a bound rejection; never grant advancement or release."""
+        return self._validate(state, request, output, 'REJECTED')
+
+    def _validate(self, state, request, output, verdict):
         b = self.binding
         q = b.qa
         if ((state.factory_id, state.task_id, state.state) !=
@@ -89,7 +96,7 @@ class BoundSecurityValidator:
         if (type(value) is not dict or
                 set(value) != set(expected) | {'verdict', 'rationale', 'findings'} or
                 any(value[key] != item for key, item in expected.items()) or
-                value['verdict'] != 'ACCEPTED' or
+                value['verdict'] != verdict or
                 type(value['rationale']) is not str or
                 not 1 <= len(value['rationale'].strip()) <= 2000 or
                 type(value['findings']) is not list or len(value['findings']) > 16):
@@ -98,7 +105,8 @@ class BoundSecurityValidator:
         # observation cannot claim remediation, waiver or accepted-risk authority.
         for finding in value['findings']:
             if (type(finding) is not dict or set(finding) != {'severity', 'path', 'detail'} or
-                    finding['severity'] != 'info' or finding['path'] not in q.allowed_paths or
+                    finding['severity'] not in (('info',) if verdict == 'ACCEPTED' else
+                        ('info', 'low', 'medium', 'high', 'critical')) or finding['path'] not in q.allowed_paths or
                     type(finding['detail']) is not str or
                     not 1 <= len(finding['detail'].strip()) <= 1000):
                 return False
