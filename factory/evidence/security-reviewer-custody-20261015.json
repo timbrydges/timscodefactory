@@ -1,0 +1,90 @@
+{
+  "observed_at": "2026-10-15T17:25:14.823468+00:00",
+  "read_only": true,
+  "keys": [
+    {
+      "identity": "product_spec_reviewer_service",
+      "key": "76066708-e1ef-47c9-98fb-f38003c99d30",
+      "state": "Enabled",
+      "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+      "sign_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "AccountAdministration",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::666730517561:root"
+            },
+            "Action": "kms:*",
+            "Resource": "*"
+          },
+          {
+            "Sid": "IsolatedSigner",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::666730517561:root"
+            },
+            "Action": [
+              "kms:GetPublicKey",
+              "kms:Sign"
+            ],
+            "Resource": "*",
+            "Condition": {
+              "ArnEquals": {
+                "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-spec-reviewer"
+              }
+            }
+          },
+          {
+            "Sid": "DenyOtherSigners",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "kms:Sign",
+            "Resource": "*",
+            "Condition": {
+              "ArnNotEquals": {
+                "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-signing-spec-reviewer"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "identity": "deep_security_reviewer_service",
+      "key": "12303b9c-fa89-44a2-8864-fbc7b3903ca9",
+      "state": "Enabled",
+      "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+      "sign_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "OwnerAccountAdministration",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::666730517561:root"
+            },
+            "Action": "kms:*",
+            "Resource": "*"
+          },
+          {
+            "Sid": "DenySigningOutsideExactRole",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "kms:Sign",
+            "Resource": "*",
+            "Condition": {
+              "ArnNotEquals": {
+                "aws:PrincipalArn": "arn:aws:iam::666730517561:role/tims-factory-review-security"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "key_policy_comparison": "Exact match to 20261014 observed policies",
+  "usage": "SIGN_VERIFY",
+  "spec": "ECC_NIST_EDWARDS25519"
+}
