@@ -69,6 +69,38 @@ def allowance(scope, role):
 
 
 class RemediationTests(unittest.TestCase):
+    def test_qa_model_is_task_specific_in_scope_route_and_response(self):
+        from factory_runtime.review_provider_protocol import parse_response
+        from factory_runtime.review_provider_transport import ReviewProviderTransport
+        from test_review_provider_execution import material, response_for
+        current = load().prepared('qa')
+        legacy, _ = material('qa')
+        for prepared, model, wrong in ((current, 'gemini-3.8-flash', 'gemini-3.7-flash'),
+                                      (legacy, 'gemini-3.7-flash', 'gemini-3.8-flash')):
+            with self.subTest(task=prepared.scope.task_id):
+                self.assertEqual(prepared.scope.bindings()['model_id'], model)
+                transport = ReviewProviderTransport(prepared)
+                self.assertEqual(transport._path, '/v1beta/models/'+model+':generateContent')
+                response = json.loads(response_for(prepared))
+                response['modelVersion'] = model
+                parse_response(canonical(response), prepared)
+                for rejected in (wrong, model+'-alias', None):
+                    response['modelVersion'] = rejected
+                    with self.assertRaises(StateError):
+                        parse_response(canonical(response), prepared)
+        # Instance-specific routing cannot leak the new pin into historical calls.
+        self.assertIn('gemini-3.7-flash', ReviewProviderTransport(legacy)._path)
+
+    def test_task005_qa_rejects_old_model_qualification(self):
+        scope = load().prepared('qa').scope
+        payload, pricing, readiness = allowance(scope, 'qa')
+        for document in (payload, pricing, readiness):
+            old = document['model_id']
+            document['model_id'] = 'gemini-3.7-flash'
+            with self.assertRaises(StateError):
+                review_unsigned(payload, scope=scope, pricing=pricing, readiness=readiness, now=NOW)
+            document['model_id'] = old
+
     def test_four_distinct_requests_and_budget_accounting(self):
         m=load(); requests=[m.prepared(r) for r in ('builder','inspector','qa')]
         requests.append(m.security(qa_binding=m.binding('qa'),qa_result_digest=digest(b'new QA receipt')))

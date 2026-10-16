@@ -6,7 +6,7 @@ from factory_state.scope import canonical
 from .cloud_roles import ROLE_IDS
 from .pilot002_packets import _files, _decode as decode_output
 from .pilot002_protocols import serialize_packet, _decode, _openai, _bedrock, _google
-from .review_provider_scope import FACTORY, TASK, PROVIDERS, ProviderScope
+from .review_provider_scope import FACTORY, TASK, PROVIDERS, ProviderScope, provider_for
 from .worker import digest
 from .remediation_profile import task_number, validate_candidate
 
@@ -84,7 +84,7 @@ def prepare(*, role, request, candidate_commit, files, test_evidence_digest, inp
             'rationale (1-2000 characters), and findings (at most 16 objects with severity '
             'info/low/medium/high/critical, path from the supplied files, and detail 1-1000 characters). '
             'Use REJECTED for any blocking concern. Do not claim that you executed tests.')
-    packet = {'role': role, 'model_id': PROVIDERS[role][1], 'instructions': instructions,
+    packet = {'role': role, 'model_id': provider_for(task_id, role)[1], 'instructions': instructions,
               'untrusted_candidate_files': files, 'expected_output_bindings': output}
     raw = serialize_packet(packet, role=role)
     if role == 'builder':
@@ -120,7 +120,7 @@ def parse_response(raw, prepared):
             if value.get('service_tier') != 'default':
                 raise ResponseValidationFailure('provider-tier')
         text, usage = (_openai(value, PROVIDERS[role][1]) if role == 'builder' else
-                       _bedrock(value) if role == 'inspector' else _google(value, PROVIDERS[role][1]))
+                       _bedrock(value) if role == 'inspector' else _google(value, provider_for(prepared.scope.task_id, role)[1]))
         code = 'output-json'
         if type(text) is not str:
             raise ValueError('text required')

@@ -2,6 +2,7 @@
 from factory_state.model import StateError
 from .pilot002_transport import Pilot002Transport, ROUTES
 from .review_provider_protocol import PreparedProviderRequest
+from .review_provider_scope import provider_for
 
 
 class ReviewProviderTransport(Pilot002Transport):
@@ -19,4 +20,7 @@ class ReviewProviderTransport(Pilot002Transport):
     def __init__(self, prepared, *, enabled=False):
         if type(prepared) is not PreparedProviderRequest or type(enabled) is not bool:
             raise StateError('explicit fresh provider transport configuration required')
+        model = provider_for(prepared.scope.task_id, 'qa')[1]
+        self.routes = {**self.routes, 'qa': ('generativelanguage.googleapis.com',
+                                          '/v1beta/models/'+model+':generateContent')}
         super().__init__(prepared, role=prepared.scope.role, enabled=enabled)
