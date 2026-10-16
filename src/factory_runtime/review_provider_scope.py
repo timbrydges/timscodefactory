@@ -20,6 +20,13 @@ ROLE_CAPS = {'builder':250000, 'inspector':175000, 'qa':75000}
 RUN_CAP = sum(ROLE_CAPS.values())
 
 
+def provider_for(task_id, role):
+    number = task_number(task_id)
+    if role == 'qa' and number == '005':
+        return 'google', 'gemini-3.8-flash'
+    return PROVIDERS[role]
+
+
 @dataclass(frozen=True)
 class ProviderScope:
     role: str
@@ -41,7 +48,7 @@ class ProviderScope:
         validate_candidate(self.task_id, self.candidate_commit, self.candidate_digest)
         if self.task_id != TASK and self.request.objective_id != self.task_id:
             raise StateError('New task objective differs')
-        provider, model = PROVIDERS[self.role]
+        provider, model = provider_for(self.task_id, self.role)
         return {'factory_id': FACTORY, 'task_id': self.task_id, 'role': self.role,
             'provider': provider, 'model_id': model, 'dispatch_request': asdict(self.request),
             'candidate_commit': self.candidate_commit, 'candidate_digest': self.candidate_digest,
