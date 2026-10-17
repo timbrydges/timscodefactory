@@ -1,0 +1,55 @@
+{
+  "approval_id": "task005-enrollment-renewal-v2",
+  "approval_text": "I approve task005-enrollment-renewal-v2 as proposed. Renew for 24 hours with unchanged keys and scope, run offline checks, and prepare the PR. Preserve all holds; no merge, CI dispatch, AWS changes, signing, spending or workflow execution.",
+  "prepared_at": "2026-10-16T21:08:32+00:00",
+  "expires_at": "2026-10-17T21:08:32+00:00",
+  "registry_before_sha256": "a7713a5d9617c036004fbb94158ee382d13f289a74e930a669420a0aa4927909",
+  "registry_after_sha256": "9e1472765a83b7147eeddd2375577d78a262f41ce122c8eb288c463a177da11b",
+  "renewals": [
+    {
+      "before": {
+        "identity": "deep_security_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+        "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+        "not_before": 1792085147,
+        "expires_at": 1792171547,
+        "revoked": false
+      },
+      "after": {
+        "identity": "deep_security_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHe/RcWSHgiJVwLJPPiUNt5f7jTPOnfpwgyIffEiPJGo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:4629480d8cb236c32586bfda8dd5985c44954ee02836e37fc12e44b5beea32fe",
+        "enrollment_commit": "91db9f28231c02fdd6dd303f3b554c6974d74a05",
+        "not_before": 1792184912,
+        "expires_at": 1792271312,
+        "revoked": false
+      }
+    },
+    {
+      "before": {
+        "identity": "product_spec_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+        "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+        "not_before": 1792085147,
+        "expires_at": 1792171547,
+        "revoked": false
+      },
+      "after": {
+        "identity": "product_spec_reviewer_service",
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIvgbppJwMPSr4YA1vhcN7u6zRu7dXIpbQ9XyHdQiMUo=\n-----END PUBLIC KEY-----\n",
+        "fingerprint": "sha256:116b7ae802ec2bb9b484b56c68ea0a258cd900d1d426e41a9a22fd1764be5cbd",
+        "enrollment_commit": "8c5fe07db95a36653b057ee7565c7bd3909185f2",
+        "not_before": 1792184912,
+        "expires_at": 1792271312,
+        "revoked": false
+      }
+    }
+  ],
+  "scope": "Repository metadata only; not merged or deployed. Only not_before and expires_at changed. Existing enrollment_commit records retained as original enrollment provenance.",
+  "holds_changed": false,
+  "aws_calls": 0,
+  "signatures": 0,
+  "workflow_execution_authorized": false
+}
