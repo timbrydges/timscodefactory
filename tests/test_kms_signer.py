@@ -180,6 +180,24 @@ class KmsSignerTests(unittest.TestCase):
 
     def test_persisted_live_keys_match_owner_approved_evidence(self):
         registry = json.loads((ROOT / 'factory/profiles/scope-signers.json').read_text())
+        renewal = json.loads((ROOT / 'factory/evidence/task005-enrollment-renewal-v2.json').read_bytes())
+        self.assertEqual(renewal['approval_id'], 'task005-enrollment-renewal-v2')
+        self.assertFalse(renewal['holds_changed'])
+        self.assertFalse(renewal['workflow_execution_authorized'])
+        self.assertEqual(renewal['aws_calls'], 0)
+        self.assertEqual(renewal['signatures'], 0)
+        self.assertEqual(len(renewal['renewals']), 2)
+        self.assertEqual({item['after']['identity'] for item in renewal['renewals']},
+                         {'deep_security_reviewer_service', 'product_spec_reviewer_service'})
+        for item in renewal['renewals']:
+            before, after = item['before'], item['after']
+            self.assertEqual(after, {**before, 'not_before': after['not_before'],
+                                     'expires_at': after['expires_at']})
+            self.assertEqual(after['expires_at'] - after['not_before'], 86400)
+            self.assertGreater(after['not_before'], before['expires_at'])
+            entry = next(x for x in registry['signers'] if x['identity'] == after['identity'])
+            self.assertEqual(entry, after)
+            entry.update(before)  # Continue checking the immutable historical chain.
         current = json.loads((ROOT / 'factory/evidence/security-reviewer-trust-renewal-20261015.json').read_bytes())
         observed = (ROOT / current['observation_path']).read_bytes()
         self.assertEqual(hashlib.sha256(observed).hexdigest(), current['observation_sha256'])
