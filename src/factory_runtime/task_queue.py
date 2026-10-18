@@ -56,6 +56,7 @@ class LocalTaskQueue:
                 status TEXT NOT NULL, result TEXT)''')
             db.execute('CREATE TABLE IF NOT EXISTS plans (plan_id TEXT PRIMARY KEY, binding TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS dependencies (entry_id TEXT PRIMARY KEY, predecessor TEXT NOT NULL UNIQUE)')
+            db.execute('CREATE TABLE IF NOT EXISTS admissions (receipt_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL UNIQUE, receipt TEXT NOT NULL)')
 
     @contextmanager
     def _connect(self):
@@ -84,7 +85,7 @@ class LocalTaskQueue:
         with self._connect() as db:
             db.execute('UPDATE controls SET paused=? WHERE id=1', (int(paused),))
 
-    def enqueue_plan(self, plan_id, *, repository, target_commit, contract_bytes, tasks):
+    def enqueue_plan(self, plan_id, *, repository, target_commit, contract_bytes, tasks, admission=None):
         """Pin a linear development plan atomically; still grants no authority.
 
         Only IMPLEMENTATION -> INSPECTION -> QA is admitted in this first slice.
@@ -120,13 +121,28 @@ class LocalTaskQueue:
             if old:
                 if old[0] != binding:
                     raise StateError('plan binding cannot change')
+                if admission is not None:
+                    saved = db.execute('SELECT receipt_id,receipt FROM admissions WHERE plan_id=?', (plan_id,)).fetchone()
+                    if saved != admission:
+                        raise StateError('plan admission cannot change or be added retroactively')
                 return
+            if admission is not None:
+                db.execute('INSERT INTO admissions VALUES (?,?,?)', (admission[0], plan_id, admission[1]))
             db.execute('INSERT INTO plans VALUES (?,?)', (plan_id, binding))
             for index, task in enumerate(tasks):
                 db.execute('INSERT INTO tasks VALUES (?,?,?,NULL)',
                            (task.entry_id, json.dumps(asdict(task), sort_keys=True), 'PENDING'))
                 if index:
                     db.execute('INSERT INTO dependencies VALUES (?,?)', (task.entry_id, tasks[index-1].entry_id))
+
+    def admission_for(self, task):
+        with self._connect() as db:
+            row = db.execute('''SELECT a.receipt FROM admissions a
+                JOIN plans p ON p.plan_id=a.plan_id, json_each(p.binding,'$.tasks') t
+                WHERE json_extract(t.value,'$.entry_id')=?''', (task.entry_id,)).fetchone()
+        if row is None:
+            raise StateError('queue entry has no authenticated admission')
+        return json.loads(row[0])
 
     def claim(self):
         with self._connect() as db:

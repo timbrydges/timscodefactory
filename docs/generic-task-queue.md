@@ -44,5 +44,7 @@ used. SQLite persistence is not proof of AWS deployment or chat-closed operation
 
 Progression tests use inert adapters and demonstrate implementation, inspection
 and QA ticks ending before security. They are not evidence of actual model review.
-Next: authenticated queue admission, offline provider adapter integration and
-owner-visible status. Credential lifecycle and live activation remain separate.
+Queue-only authenticated admission and offline implementation proposals are
+documented in `docs/task-admission-provider.md`. Deployment integration,
+sandboxed application/testing and owner-visible status remain outstanding.
+Credential lifecycle and live activation remain separate.

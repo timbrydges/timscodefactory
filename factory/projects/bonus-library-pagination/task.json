@@ -36,5 +36,10 @@
     "Provider/model and request pricing pins",
     "Fresh bounded task authorization and allowance"
   ],
-  "target_commit": "ef88df95bc3f046d080af51e3654d2259759072b"
+  "target_commit": "ef88df95bc3f046d080af51e3654d2259759072b",
+  "allowed_paths": [
+    "src/app/dashboard/page.tsx",
+    "src/lib/library-pagination.ts",
+    "tests/library-pagination.test.mjs"
+  ]
 }
