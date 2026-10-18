@@ -1,0 +1,93 @@
+{
+  "source_commit": "d9addb3f741dc07a3d24fe3f1b31553071e02b10",
+  "status": "THREE_ROLE_TRANSPORTS_AND_OPERATIONAL_BOUNDARY_VERIFIED",
+  "model_calls": 0,
+  "operational_execution_enabled": false,
+  "autonomous_scheduling_enabled": false,
+  "proofs": [
+    {
+      "role": "planner",
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-planner:5",
+      "identity": "software_architect_service",
+      "transport_payload": {
+        "kind": "transport_result",
+        "producer_identity": "software_architect_service",
+        "source_commit": "d9addb3f741dc07a3d24fe3f1b31553071e02b10",
+        "nonce": "84682c10280b41438ad60cbcad45b712",
+        "input_digest": "sha256:ab1a0ec2342e0d0c55f97550f3fae81697b26b95656ca521e6e89bc066d28385",
+        "output_digest": "sha256:54e57fc4aeb063bd36c467c3b653b72699e711339477155fb66fef4b5854fb44",
+        "purpose": "lambda-transport-canary-only",
+        "issued_at": 1790487809,
+        "expires_at": 1790488109
+      },
+      "signature_base64": "w2xZjeb+nxiZQVyx9Be1wPA0DehHbwo9H2MZlZjFVjreqtdsVzcoP1bVMi7LhMQCa9DAsa5vpZL4gsRfYvmWDA==",
+      "replay_returned_identical_result": true,
+      "durable_record_status": "COMPLETE",
+      "model_calls": 0
+    },
+    {
+      "role": "builder",
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:5",
+      "identity": "engineering_agent_service",
+      "transport_payload": {
+        "kind": "transport_result",
+        "producer_identity": "engineering_agent_service",
+        "source_commit": "d9addb3f741dc07a3d24fe3f1b31553071e02b10",
+        "nonce": "9f60daf2b2df4e738312e5b1ecc67118",
+        "input_digest": "sha256:21f5a8c4b819988d1f98b3f289ca247d3b5ba44270c908ae46df8991c688420c",
+        "output_digest": "sha256:5c11ca940a184fa94ee8ecf36e687ebd58a16c686079eb666c92a2678e237387",
+        "purpose": "lambda-transport-canary-only",
+        "issued_at": 1790487819,
+        "expires_at": 1790488119
+      },
+      "signature_base64": "d9Ic0wWvdRSQpkS+Vzfbt0G9mfgS/xIOx+q/SM+RlmzUb3LatqgdFJdKyItQsLDIQdti0ZCEXWGwnQ2MzEq2Ag==",
+      "replay_returned_identical_result": true,
+      "durable_record_status": "COMPLETE",
+      "model_calls": 0
+    },
+    {
+      "role": "inspector",
+      "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-inspector:5",
+      "identity": "independent_inspector_service",
+      "transport_payload": {
+        "kind": "transport_result",
+        "producer_identity": "independent_inspector_service",
+        "source_commit": "d9addb3f741dc07a3d24fe3f1b31553071e02b10",
+        "nonce": "4a0e7f232e4a4457a46c009a02994dc7",
+        "input_digest": "sha256:2c43ccaa88834b01e8d670ce5e27c664ae7b63a881ede047120516909b3b8dd3",
+        "output_digest": "sha256:0b655cc9240adac91b4136e13fab4398da3b35260703747ed25adc1d20e58f47",
+        "purpose": "lambda-transport-canary-only",
+        "issued_at": 1790487831,
+        "expires_at": 1790488131
+      },
+      "signature_base64": "uuT3BduvHXmPiEkrHzQuFOu6YIZskOnjLtgCNFl/ErlkXh2mljpnOOwIQDvN+t7sTvWa+w2AX6noyIlqa7FYDA==",
+      "replay_returned_identical_result": true,
+      "durable_record_status": "COMPLETE",
+      "model_calls": 0
+    }
+  ],
+  "operational_boundary_proof": {
+    "role": "builder",
+    "function_arn": "arn:aws:lambda:ca-central-1:666730517561:function:tims-factory-builder:5",
+    "payload": {
+      "kind": "operational_boundary_attestation",
+      "producer_identity": "engineering_agent_service",
+      "source_commit": "d9addb3f741dc07a3d24fe3f1b31553071e02b10",
+      "nonce": "4447f4c543ca4f4c9fe697b61acedd99",
+      "task_id": "deterministic-text-fingerprint",
+      "target_alias": "coding_primary_sol_live",
+      "model_id": "gpt-5.6-sol",
+      "maximum_cost_usd_per_call": "0.25",
+      "maximum_provider_calls": 3,
+      "maximum_request_bytes": 42020,
+      "provider_credentials_in_role": false,
+      "operational_execution_enabled": false,
+      "purpose": "operational-boundary-deployment-verification-only",
+      "issued_at": 1790487823,
+      "expires_at": 1790488123
+    },
+    "signature_base64": "tWZfUfrRI8CZbkyAmWEk5EN7wFVluQFe2eYjJN5FxkpBtlVYt5mTHye5ZyORpIDUxrxrI1XtJfpwCdS/YCpnDA==",
+    "model_calls": 0,
+    "operational_execution_enabled": false
+  }
+}
