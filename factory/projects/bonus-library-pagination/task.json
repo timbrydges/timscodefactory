@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-pagination",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Browse older library items using Older and Newer navigation.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Use deterministic ordering with an ID tie-breaker when creation timestamps match.",
+    "Preserve authenticated owner filtering on every page and existing access controls.",
+    "Bound page size and reject malformed pagination inputs.",
+    "Provide Older and Newer navigation, empty-state messaging and a distinct read-error state.",
+    "Preserve existing upload and draft-review behavior."
+  ],
+  "acceptance_tests": [
+    "More than ten items are reachable in both directions.",
+    "Equal timestamps have stable ordering without duplicates or omissions on an unchanged dataset.",
+    "Another owner's items never appear; cursor input cannot change owner scope.",
+    "Empty and final pages, malformed cursors and failed reads are handled explicitly.",
+    "Navigation is keyboard accessible and clearly labeled."
+  ],
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "pending_before_live_use": [
+    "Reviewed file scope; recheck pinned target commit before live admission",
+    "Reviewed implementation and task digest",
+    "Provider/model and request pricing pins",
+    "Fresh bounded task authorization and allowance"
+  ],
+  "target_commit": "ef88df95bc3f046d080af51e3654d2259759072b"
+}
