@@ -180,6 +180,24 @@ class KmsSignerTests(unittest.TestCase):
 
     def test_persisted_live_keys_match_owner_approved_evidence(self):
         registry = json.loads((ROOT / 'factory/profiles/scope-signers.json').read_text())
+        newest = json.loads((ROOT / 'factory/evidence/task005-enrollment-renewal-v3.json').read_bytes())
+        self.assertEqual(newest['approval_id'], 'task005-enrollment-renewal-v3')
+        self.assertFalse(newest['holds_changed'])
+        self.assertFalse(newest['workflow_execution_authorized'])
+        self.assertEqual(newest['aws_calls'], 0)
+        self.assertEqual(newest['signatures'], 0)
+        self.assertEqual(len(newest['renewals']), 3)
+        self.assertEqual({item['after']['identity'] for item in newest['renewals']},
+                         {'qa_engineer_service', 'deep_security_reviewer_service', 'product_spec_reviewer_service'})
+        for item in newest['renewals']:
+            before, after = item['before'], item['after']
+            self.assertEqual(after, {**before, 'not_before': after['not_before'],
+                                     'expires_at': after['expires_at']})
+            self.assertEqual(after['expires_at'] - after['not_before'], 86400)
+            self.assertGreater(after['not_before'], before['expires_at'])
+            entry = next(x for x in registry['signers'] if x['identity'] == after['identity'])
+            self.assertEqual(entry, after)
+            entry.update(before)  # Preserve all checks of earlier approved renewals.
         renewal = json.loads((ROOT / 'factory/evidence/task005-enrollment-renewal-v2.json').read_bytes())
         self.assertEqual(renewal['approval_id'], 'task005-enrollment-renewal-v2')
         self.assertFalse(renewal['holds_changed'])
