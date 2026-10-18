@@ -75,9 +75,14 @@ class QaEnrollmentTests(unittest.TestCase):
         old=json.loads(original); old['enabled']=False; p.write_text(json.dumps(old))
         with self.assertRaises(StateError): self.propose()
 
-    def test_approved_live_qa_entry_expires_without_expiring_other_signers(self):
+    def test_approved_shared_reviewer_window_preserves_other_signers(self):
         registry=json.loads((ROOT/enrollment.REGISTRY).read_bytes())
+        renewed={enrollment.IDENTITY,'deep_security_reviewer_service','product_spec_reviewer_service'}
         entry=next(e for e in registry['signers'] if e['identity']==enrollment.IDENTITY)
+        for reviewer in registry['signers']:
+            if reviewer['identity'] in renewed:
+                self.assertEqual((reviewer['not_before'],reviewer['expires_at']),
+                                 (entry['not_before'],entry['expires_at']))
         self.assertEqual(entry['expires_at']-entry['not_before'],86400)
         start=datetime.fromtimestamp(entry['not_before'],timezone.utc)
         end=datetime.fromtimestamp(entry['expires_at'],timezone.utc)
@@ -86,10 +91,12 @@ class QaEnrollmentTests(unittest.TestCase):
         self.assertIn(enrollment.IDENTITY,active)
         self.assertNotIn(enrollment.IDENTITY,expired)
         before_expiry=validate_trusted_signers(registry,now=end-timedelta(seconds=1))
-        self.assertEqual(set(expired),set(before_expiry)-{enrollment.IDENTITY})
+        self.assertTrue(renewed.issubset(before_expiry))
+        self.assertEqual(set(expired),set(before_expiry)-renewed)
         before_start=validate_trusted_signers(registry,now=start-timedelta(seconds=1))
         self.assertNotIn(enrollment.IDENTITY,before_start)
-        self.assertEqual(set(active),set(before_start)|{enrollment.IDENTITY})
+        self.assertTrue(renewed.isdisjoint(before_start))
+        self.assertEqual(set(active),set(before_start)|renewed)
 
     def test_security_enrollment_starts_and_expires_at_approved_boundaries(self):
         registry=json.loads((ROOT/enrollment.REGISTRY).read_bytes())
