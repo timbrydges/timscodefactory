@@ -1,0 +1,10 @@
+{
+  "artifact": "factory/evidence/builder-disabled-v5-cloudshell-original.json",
+  "received_on": "2026-10-18",
+  "sha256": "8faff013adc543e9c36fc7716549692979cf447c38272b98112d50af9d16ca4b",
+  "source": "Owner-uploaded factory-builder-disabled-evidence.json; original bytes preserved",
+  "attestation_issued_at": "2026-09-27T05:43:43Z",
+  "classification": "historical_model_free_deployment_evidence",
+  "validation": "JSON structure, source commit, version :5, replay flags, and disabled/zero-call assertions checked locally; AWS signatures not independently reverified on receipt",
+  "activation_effect": "None; does not supersede later deployment evidence or authorize execution, scheduling, credentials, model calls, or production release"
+}
