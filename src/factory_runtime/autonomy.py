@@ -110,7 +110,7 @@ class AutonomousScheduler:
         self.cycle, self.states, self.jobs = cycle, state_store, job_source
         self.activation, self.clock, self.enabled = activation, clock, enabled
 
-    def tick(self, factory_id: str, task_id: str):
+    def tick(self, factory_id: str, task_id: str, *, expected_state: str | None = None):
         if not self.enabled:
             raise StateError('autonomous scheduler is disabled')
         now = self.clock()
@@ -122,6 +122,8 @@ class AutonomousScheduler:
         state = self.states.load_state(factory_id, task_id)
         if state is None:
             raise StateError('autonomous scheduler task state missing')
+        if expected_state is not None and state.state != expected_state:
+            raise StateError('authoritative state differs from queued stage')
         if state.state == 'RELEASE_READY':
             return {'status': 'RELEASE_READY', 'worker_invocations': 0,
                     'release_dispatched': False, 'activation_id': self.activation.activation_id}
