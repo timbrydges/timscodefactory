@@ -33,7 +33,9 @@ class QueueProgressionTests(unittest.TestCase):
         self.queue.enqueue_plan('pagination-plan', **args)
 
     def scheduler(self, task):
-        def tick(*args):
+        def tick(*args, expected_state=None):
+            if self.state != expected_state:
+                raise StateError('authoritative state differs from queued stage')
             self.calls.append(self.state)
             if self.outcome == 'CRASH':
                 raise TimeoutError('uncertain external outcome')

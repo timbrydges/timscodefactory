@@ -182,11 +182,10 @@ class GenericTaskRunner:
             for field in ('factory_id', 'task_id', 'activation_id', 'source_commit', 'contract_digest'):
                 if getattr(activation, field) != getattr(task, field):
                     raise StateError('queued task differs from scheduler activation')
-            if task.expected_state is not None:
-                current = scheduler.states.load_state(task.factory_id, task.task_id)
-                if current is None or current.state != task.expected_state:
-                    raise StateError('authoritative state differs from queued stage')
-            result = scheduler.tick(task.factory_id, task.task_id)
+            # Check against the same state snapshot used to select the job, not
+            # a separate read that could become stale before scheduler.tick().
+            options = {} if task.expected_state is None else {'expected_state': task.expected_state}
+            result = scheduler.tick(task.factory_id, task.task_id, **options)
             if (not isinstance(result, dict) or result.get('release_dispatched') is not False
                     or type(result.get('worker_invocations')) is not int
                     or not 0 <= result['worker_invocations'] <= 1):

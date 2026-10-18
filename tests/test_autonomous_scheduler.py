@@ -89,6 +89,26 @@ class AutonomousSchedulerTests(unittest.TestCase):
         with self.assertRaisesRegex(StateError, 'disabled'):
             scheduler.tick('factory', 'task-1')
 
+    def test_queued_stage_mismatch_blocks_job_selection(self):
+        scheduler, jobs, cycle = self.scheduler(state=task_state('QA'))
+        with self.assertRaisesRegex(StateError, 'queued stage'):
+            scheduler.tick('factory', 'task-1', expected_state='IMPLEMENTATION')
+        self.assertEqual(jobs.calls, 0)
+        self.assertEqual(cycle.calls, 0)
+
+    def test_queued_stage_uses_single_authoritative_snapshot(self):
+        scheduler, jobs, cycle = self.scheduler()
+        reads = []
+        def read(*args):
+            reads.append(args)
+            return task_state() if len(reads) == 1 else task_state('QA')
+        scheduler.states.load_state = read
+        result = scheduler.tick('factory', 'task-1', expected_state='IMPLEMENTATION')
+        self.assertEqual(result['status'], 'ADVANCED')
+        self.assertEqual(len(reads), 1)
+        self.assertEqual(jobs.calls, 1)
+        self.assertEqual(cycle.calls, 1)
+
     def test_one_tick_runs_at_most_one_non_release_cycle(self):
         scheduler, jobs, cycle = self.scheduler()
         result = scheduler.tick('factory', 'task-1')
