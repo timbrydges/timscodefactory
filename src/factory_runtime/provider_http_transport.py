@@ -2,6 +2,10 @@
 import asyncio
 import http.client
 import ssl
+import json
+import os
+import sys
+from pathlib import Path
 
 from .openai_provider import ProviderHTTPResponse, OpenAIProviderDisabledError, OpenAIProviderProtocolError
 
@@ -31,8 +35,45 @@ class DirectOpenAITransport:
                 or any(not isinstance(v, str) or any(ord(c) < 32 or ord(c) > 126 for c in v)
                        for v in headers.values())):
             raise OpenAIProviderProtocolError('invalid bounded transport request')
-        # Copy before yielding; the caller drops its own credential references.
-        return await asyncio.to_thread(self._post, dict(headers), body, timeout_seconds)
+        # Isolate blocking DNS/TLS/socket IO in a killable child. Credentials go
+        # through a private pipe, never argv, environment, or a disk file.
+        payload = json.dumps({'headers': dict(headers), 'body': body.decode('utf-8'),
+            'timeout': timeout_seconds, 'limit': self.max_response_bytes}).encode()
+        child = None
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                spawn = asyncio.create_task(asyncio.create_subprocess_exec(sys.executable, '-I', '-c',
+                    'import sys; sys.path.insert(0, sys.argv[1]); '
+                    'from factory_runtime.provider_http_transport import _worker; _worker()',
+                    str(Path(__file__).resolve().parents[1]),
+                    stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
+                    env={k: os.environ[k] for k in ('SystemRoot', 'WINDIR') if k in os.environ}))
+                try:
+                    child = await asyncio.shield(spawn)
+                except asyncio.CancelledError:
+                    child = await spawn
+                    raise
+                stdout, _ = await child.communicate(payload)
+                if child.returncode != 0 or len(stdout) > self.max_response_bytes * 6 + 128:
+                    raise ValueError('invalid child result')
+                result = json.loads(stdout)
+                raw = result['body'].encode('utf-8')
+                if type(result['status']) is not int or len(raw) > self.max_response_bytes:
+                    raise ValueError('invalid child response')
+                return ProviderHTTPResponse(result['status'], raw)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            raise OpenAIProviderProtocolError('provider transport failed; attempt consumed') from None
+        finally:
+            payload = b''
+            if child is not None and child.returncode is None:
+                try:
+                    child.kill()
+                except ProcessLookupError:
+                    pass
+                await child.wait()
 
     def _post(self, headers, body, timeout):
         connection = None
@@ -54,3 +95,16 @@ class DirectOpenAITransport:
             headers.clear()
             if connection is not None:
                 connection.close()
+
+
+def _worker():
+    """Private subprocess endpoint; no retry and no diagnostic output."""
+    try:
+        raw = sys.stdin.buffer.read(2 * 1048576)
+        request = json.loads(raw)
+        response = DirectOpenAITransport(max_response_bytes=request['limit'])._post(
+            request['headers'], request['body'].encode('utf-8'), request['timeout'])
+        sys.stdout.write(json.dumps({'status': response.status_code,
+                                    'body': response.body.decode('utf-8')}))
+    except Exception:
+        sys.exit(1)

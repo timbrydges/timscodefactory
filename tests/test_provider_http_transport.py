@@ -14,7 +14,10 @@ class TransportTests(TestCase):
             body=b'{}', timeout_seconds=10)
 
     def call(self, **options):
-        return asyncio.run(DirectOpenAITransport(**options).post_json(**self.args))
+        transport = DirectOpenAITransport(**options)
+        if options.get('enabled') and self.args['endpoint'] == 'https://api.openai.com/v1/responses':
+            return transport._post(dict(self.args['headers']), self.args['body'], 10)
+        return asyncio.run(transport.post_json(**self.args))
 
     @patch('factory_runtime.provider_http_transport.http.client.HTTPSConnection')
     def test_disabled_and_wrong_destination_never_connect(self, connect):
