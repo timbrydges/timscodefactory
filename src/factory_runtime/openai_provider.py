@@ -35,6 +35,11 @@ _OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 _OPENAI_AUDIENCE = "api.openai.com"
 _DECISION_SCHEMA_VERSION = "1"
 _ALLOWED_REASONING_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
+PROVIDER_FAILURE_CODES = frozenset({
+    'timeout', 'transport_failure', 'http_error', 'protocol_failure',
+    'output_token_limit', 'response_incomplete', 'model_mismatch', 'refusal',
+    'structured_output_invalid', 'usage_invalid',
+})
 
 
 class OpenAIProviderError(ProviderBrokerInvocationError):
@@ -58,9 +63,29 @@ class OpenAIProviderProtocolError(OpenAIProviderError):
 
     def __init__(self, message, *, failure_code='protocol_failure'):
         super().__init__(message)
-        self.failure_code = failure_code if failure_code in {
-            'timeout', 'transport_failure', 'http_error', 'protocol_failure'
-        } else 'protocol_failure'
+        self.failure_code = failure_code if failure_code in PROVIDER_FAILURE_CODES else 'protocol_failure'
+
+
+def _response_evidence(payload, requested_model):
+    """Bounded scalars only; never persist provider text, identifiers or errors."""
+    evidence = {'model_matches': payload.get('model') == requested_model}
+    status = payload.get('status')
+    if status in ('completed', 'incomplete', 'failed', 'cancelled', 'queued', 'in_progress'):
+        evidence['response_status'] = status
+    details = payload.get('incomplete_details')
+    if isinstance(details, dict) and details.get('reason') in ('max_output_tokens', 'content_filter'):
+        evidence['incomplete_reason'] = details['reason']
+    usage = payload.get('usage')
+    if isinstance(usage, dict):
+        for name in ('input_tokens', 'output_tokens'):
+            value = usage.get(name)
+            if type(value) is int and 0 <= value <= 1_000_000_000:
+                evidence[name] = value
+        output_details = usage.get('output_tokens_details')
+        value = output_details.get('reasoning_tokens') if isinstance(output_details, dict) else None
+        if (type(value) is int and 0 <= value <= evidence.get('output_tokens', -1)):
+            evidence['reasoning_tokens'] = value
+    return evidence
 
 
 @dataclass(frozen=True, repr=False)
@@ -333,7 +358,11 @@ def _normalize_decision(value: Any) -> dict[str, Any]:
 
 def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") -> dict[str, Any]:
     if payload.get("status") != "completed":
-        raise OpenAIProviderProtocolError("OpenAI response did not complete")
+        details = payload.get('incomplete_details')
+        limited = (payload.get('status') == 'incomplete' and isinstance(details, dict)
+                   and details.get('reason') == 'max_output_tokens')
+        raise OpenAIProviderProtocolError("OpenAI response did not complete",
+            failure_code='output_token_limit' if limited else 'response_incomplete')
     if payload.get("error") is not None or payload.get("incomplete_details") is not None:
         raise OpenAIProviderProtocolError("OpenAI response contains failure/incomplete details")
     output = payload.get("output")
@@ -354,7 +383,7 @@ def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") ->
                 raise OpenAIProviderProtocolError("OpenAI message content item is invalid")
             part_type = part.get("type")
             if part_type == "refusal":
-                raise OpenAIProviderProtocolError("OpenAI model refused the structured repair request")
+                raise OpenAIProviderProtocolError("OpenAI model refused the structured repair request", failure_code='refusal')
             if part_type == "output_text":
                 text = part.get("text")
                 if not isinstance(text, str):
@@ -414,6 +443,7 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
         self.transport = transport
         self.policy = policy or OpenAIProviderPolicy()
         self.invocation_count = 0
+        self.last_response_evidence = {}
 
     async def invoke(
         self,
@@ -423,6 +453,7 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
         max_cost_usd: Decimal,
         decision_schema_version: str,
     ) -> ProviderInvocationResult:
+        self.last_response_evidence = {}
         if not self.policy.live_enabled:
             raise OpenAIProviderDisabledError("live OpenAI provider traffic is disabled by policy")
         if not isinstance(target, ResolvedProviderTarget) or target.provider_family != _OPENAI_FAMILY:
@@ -521,11 +552,21 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
             raise OpenAIProviderProtocolError("OpenAI response is not valid UTF-8 JSON") from exc
         if not isinstance(payload, dict):
             raise OpenAIProviderProtocolError("OpenAI response must be an object")
+        self.last_response_evidence = _response_evidence(payload, target.model_id)
         if payload.get("model") != target.model_id:
-            raise OpenAIProviderProtocolError("OpenAI response model does not match requested target")
+            raise OpenAIProviderProtocolError("OpenAI response model does not match requested target", failure_code='model_mismatch')
 
-        decision = _extract_structured_output(payload, self.policy.workload)
-        input_tokens, output_tokens = _parse_usage(payload)
+        try:
+            decision = _extract_structured_output(payload, self.policy.workload)
+        except OpenAIProviderProtocolError as exc:
+            if exc.failure_code == 'protocol_failure':
+                exc.failure_code = 'structured_output_invalid'
+            raise
+        try:
+            input_tokens, output_tokens = _parse_usage(payload)
+        except OpenAIProviderProtocolError as exc:
+            exc.failure_code = 'usage_invalid'
+            raise
         cost = _cost_usd(quote, input_tokens, output_tokens)
         if cost > max_cost_usd:
             raise OpenAIProviderPricingError("OpenAI reported usage exceeds broker cost grant")

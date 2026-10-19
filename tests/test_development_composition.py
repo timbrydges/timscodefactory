@@ -33,6 +33,10 @@ class CompositionTests(TestCase):
             self.assertEqual(reviewer.policy.workload, 'task_review')
             self.assertEqual(builder.policy.timeout_seconds, 180)
             self.assertEqual(reviewer.policy.timeout_seconds, 180)
+            for adapter in (builder, reviewer):
+                self.assertEqual(adapter.policy.reasoning_effort, 'low')
+                self.assertEqual(adapter.policy.max_output_tokens, 4096)
+                self.assertEqual(adapter.policy.max_request_bytes, 42020)
             candidate = Mock()
             args['request_for'](candidate)
             self.assertEqual(candidate.request.call_args.kwargs['command'],
