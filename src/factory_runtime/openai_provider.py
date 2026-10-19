@@ -41,6 +41,8 @@ PROVIDER_FAILURE_CODES = frozenset({
     'structured_output_invalid', 'usage_invalid',
     'decision_shape_invalid', 'decision_fields_contradictory', 'output_json_invalid',
     'output_text_count_invalid', 'output_content_invalid', 'response_failure_details',
+    'decision_paths_invalid', 'decision_fields_invalid', 'edit_keys_invalid',
+    'edit_fields_invalid', 'decision_type_invalid', 'review_fields_invalid',
 })
 
 
@@ -349,9 +351,9 @@ def _normalize_decision(value: Any) -> dict[str, Any]:
     edits = value.get("edits")
     reason = value.get("reason")
     if not isinstance(paths, list) or not all(isinstance(item, str) for item in paths):
-        raise OpenAIProviderProtocolError("structured decision paths are invalid")
+        raise OpenAIProviderProtocolError("structured decision paths are invalid", failure_code='decision_paths_invalid')
     if not isinstance(summary, str) or not isinstance(reason, str) or not isinstance(edits, list):
-        raise OpenAIProviderProtocolError("structured decision fields are invalid")
+        raise OpenAIProviderProtocolError("structured decision fields are invalid", failure_code='decision_fields_invalid')
 
     if decision_type == "read_files":
         if not paths or summary or edits or reason:
@@ -363,16 +365,16 @@ def _normalize_decision(value: Any) -> dict[str, Any]:
         normalized_edits: list[dict[str, str]] = []
         for edit in edits:
             if not isinstance(edit, dict) or set(edit) != {"path", "old_text", "new_text"}:
-                raise OpenAIProviderProtocolError("apply_edits item is invalid")
+                raise OpenAIProviderProtocolError("apply_edits item is invalid", failure_code='edit_keys_invalid')
             if not all(isinstance(edit[key], str) for key in ("path", "old_text", "new_text")):
-                raise OpenAIProviderProtocolError("apply_edits item fields must be strings")
+                raise OpenAIProviderProtocolError("apply_edits item fields must be strings", failure_code='edit_fields_invalid')
             normalized_edits.append(dict(edit))
         return {"type": "apply_edits", "summary": summary, "edits": normalized_edits}
     if decision_type == "escalate":
         if paths or summary or edits or not reason.strip():
             raise OpenAIProviderProtocolError("escalate decision contains contradictory fields", failure_code='decision_fields_contradictory')
         return {"type": "escalate", "reason": reason}
-    raise OpenAIProviderProtocolError("structured decision type is unsupported")
+    raise OpenAIProviderProtocolError("structured decision type is unsupported", failure_code='decision_type_invalid')
 
 
 def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") -> dict[str, Any]:
@@ -431,7 +433,7 @@ def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") ->
                 or parsed['verdict'] not in ("APPROVE", "REJECT")
                 or not isinstance(parsed['findings'], list)
                 or any(not isinstance(v, str) for v in parsed['findings'])):
-            raise OpenAIProviderProtocolError("structured review has invalid fields")
+            raise OpenAIProviderProtocolError("structured review has invalid fields", failure_code='review_fields_invalid')
         return parsed
     return _normalize_decision(parsed)
 

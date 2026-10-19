@@ -215,6 +215,14 @@ class OpenAIProviderTests(unittest.TestCase):
                 _extract_structured_output(payload, 'task_implementation')
             self.assertEqual(caught.exception.failure_code, code)
 
+    def test_task_edit_shape_failures_have_exact_safe_codes(self):
+        for edit, code in (({'path': 'x'}, 'edit_keys_invalid'),
+                           ({'path': 'x', 'old_text': '', 'new_text': 1}, 'edit_fields_invalid')):
+            wire = {'decision': {'type': 'apply_edits', 'summary': 'change', 'edits': [edit]}}
+            with self.assertRaises(OpenAIProviderProtocolError) as caught:
+                _extract_structured_output(provider_payload(wire), 'task_implementation')
+            self.assertEqual(caught.exception.failure_code, code)
+
     def test_failure_evidence_is_bounded_redacted_and_reset(self):
         payload = provider_payload(read_files_decision(), output_tokens=4096)
         payload.update(status='incomplete', incomplete_details={'reason': 'max_output_tokens'},
