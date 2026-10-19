@@ -19,7 +19,7 @@ def _path(path):
 
 
 class TaskImplementationProtocol:
-    def __init__(self, task, *, repository, target_commit, contract_bytes, files):
+    def __init__(self, task, *, repository, target_commit, contract_bytes, files, missing_paths=()):
         task.validate()
         if (task.expected_state != 'IMPLEMENTATION' or type(contract_bytes) is not bytes
                 or len(contract_bytes) > 65536 or digest(contract_bytes) != task.contract_digest
@@ -40,11 +40,15 @@ class TaskImplementationProtocol:
         self.files = dict(files)
         if any(_path(p) not in self.allowed or type(text) is not str for p, text in self.files.items()):
             raise StateError('source snapshot exceeds file scope')
+        if (type(missing_paths) not in {tuple, list} or len(missing_paths) > 50
+                or any(_path(p) not in self.allowed or p in self.files for p in missing_paths)
+                or len(set(missing_paths)) != len(missing_paths)):
+            raise StateError('new files require distinct scoped missing paths')
         self._turn = {'kind': 'factory_task_implementation_v1', 'factory_id': task.factory_id,
             'task_id': task.task_id, 'source_commit': task.source_commit, 'repository': repository,
             'target_commit': target_commit, 'contract_digest': task.contract_digest,
             'source_snapshot_digest': digest(canonical(self.files)), 'specification': spec,
-            'files': self.files}
+            'files': self.files, 'missing_paths': sorted(missing_paths)}
         self._raw = canonical(self._turn)
         if len(self._raw) > 32000:
             raise StateError('implementation input exceeds byte limit')
@@ -58,7 +62,9 @@ class TaskImplementationProtocol:
         return digest(self._raw)
 
     def validate_decision(self, decision):
-        files = self.turn['files']  # Always validate against the frozen hashed snapshot.
+        turn = self.turn  # Always validate against the frozen hashed snapshot.
+        files, missing = turn['files'], turn['missing_paths']
+        allowed = turn['specification']['allowed_paths']
         if type(decision) is not dict:
             raise StateError('invalid implementation decision')
         kind = decision.get('type')
@@ -66,7 +72,7 @@ class TaskImplementationProtocol:
             paths = decision['paths']
             if not isinstance(paths, list) or not paths or len(paths) > 50:
                 raise StateError('bounded read scope required')
-            if any(_path(p) not in self.allowed for p in paths):
+            if any(_path(p) not in allowed or p in missing for p in paths):
                 raise StateError('provider requested out-of-scope file')
         elif kind == 'apply_edits' and set(decision) == {'type', 'summary', 'edits'}:
             edits = decision['edits']
@@ -78,9 +84,14 @@ class TaskImplementationProtocol:
                 if type(edit) is not dict or set(edit) != {'path', 'old_text', 'new_text'}:
                     raise StateError('invalid proposed edit fields')
                 path = _path(edit['path'])
-                if (path not in files or path in seen or type(edit['old_text']) is not str
-                        or not edit['old_text'] or files[path].count(edit['old_text']) != 1
+                if (path in seen or type(edit['old_text']) is not str
                         or type(edit['new_text']) is not str):
+                    raise StateError('edit fields or duplicate path invalid')
+                if path in missing:
+                    if edit['old_text'] != '' or not edit['new_text']:
+                        raise StateError('new file requires empty old text and nonempty content')
+                elif (path not in files or not edit['old_text']
+                      or files[path].count(edit['old_text']) != 1):
                     raise StateError('edit requires one exact source match in supplied file')
                 seen.add(path)
         elif kind == 'escalate' and set(decision) == {'type', 'reason'}:

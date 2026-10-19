@@ -29,8 +29,17 @@ commit and explicit file scope. It builds a bounded input for the existing OpenA
 adapter's opt-in `task_implementation` workload. The default CI-repair workload
 and default disabled provider policy are unchanged. Decisions may request scoped
 files, propose literal replacements with exactly one source match, or escalate.
-They never apply edits or assert passing tests. New-file creation and multiple
-edits to one path are intentionally not supported in this first slice.
+They never apply edits or assert passing tests. Multiple edits to one path are
+not supported. New files use empty `old_text` and nonempty `new_text` only for
+paths explicitly listed in the frozen input's `missing_paths`. Those paths must
+be distinct, within contract scope and absent from the supplied existing files.
+The candidate builder requires the complete pinned repository snapshot and
+confirms absence before materializing new files. Existing files still require
+one nonempty exact source match. Case aliases and parent/file collisions are
+checked across the entire resulting repository. New files are non-executable.
+Changes to declared missing paths change the provider input digest. This grants
+no write access to the actual repository and does not change the default CI
+repair workload or its downstream edit restrictions.
 
 The Bonus Library scope now lists the dashboard page, a pagination helper and its
 test file. This is an inert specification; the actual product has not changed.
