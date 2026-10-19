@@ -23,6 +23,7 @@ class DevelopmentProviderTests(unittest.TestCase):
         self.addCleanup(self.f.doCleanups)
         self.events, self.requests = {}, []
         self.fail_transport = False
+        self.incomplete = False
         outer = self
         class Transport:
             async def post_json(self, *, endpoint, headers, body, timeout_seconds):
@@ -36,8 +37,11 @@ class DevelopmentProviderTests(unittest.TestCase):
                 else:
                     decision = {'review_input_digest': turn['review_input_digest'],
                                 'verdict': 'APPROVE', 'findings': []}
-                return ProviderHTTPResponse(200, json.dumps(
-                    provider_fixtures.provider_payload(decision)).encode())
+                payload = provider_fixtures.provider_payload(decision)
+                if outer.incomplete:
+                    payload.update(status='incomplete', incomplete_details={'reason': 'max_output_tokens'},
+                                   output=[{'private': 'must not persist'}])
+                return ProviderHTTPResponse(200, json.dumps(payload).encode())
         def adapter(workload):
             return OpenAIResponsesProviderInvoker(provider_fixtures.CountingCredentialSource(),
                 provider_fixtures.StaticPricingSource(), Transport(),
@@ -77,10 +81,28 @@ class DevelopmentProviderTests(unittest.TestCase):
         self.fail_transport = True
         result = self.f.tick()
         self.assertEqual(result['status'], 'NEEDS_RECONCILIATION')
-        self.assertEqual(list(self.events), ['builder.started'])
+        self.assertEqual(list(self.events), ['builder.started', 'builder.failed'])
+        self.assertEqual(self.events['builder.failed']['failure_code'], 'timeout')
+        self.assertEqual(self.events['builder.failed']['response_evidence'], {})
+        self.assertNotIn('private token', json.dumps(self.events))
         self.assertNotIn('private token', json.dumps(result))
         with self.assertRaises(StateError):
             asyncio.run(self.session.build({'kind': 'factory_task_implementation_v1'}))
+        self.assertEqual(len(self.requests), 1)
+
+    def test_incomplete_response_retains_usage_without_content_and_cannot_repeat(self):
+        self.session.enabled = self.f.runner.enabled = True
+        self.incomplete = True
+        self.session.journal = ExclusiveDevelopmentJournal(self.f.root)
+        result = self.f.tick()
+        self.assertEqual(result['result']['failure_code'], 'output_token_limit')
+        evidence = json.loads((self.f.root / 'builder.failed.json').read_text())
+        self.assertEqual(evidence['response_evidence']['output_tokens'], 100)
+        self.assertEqual(evidence['response_evidence']['incomplete_reason'], 'max_output_tokens')
+        self.assertFalse(evidence['billing_reconciled'])
+        self.assertNotIn('must not persist', json.dumps(evidence))
+        self.assertEqual(self.session.completed, set())
+        self.assertEqual(self.f.tick()['status'], 'IDLE_OR_PAUSED')
         self.assertEqual(len(self.requests), 1)
 
     def test_persisted_start_prevents_recreated_session_from_dispatching(self):

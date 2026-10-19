@@ -33,6 +33,10 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
             policy=OpenAIProviderPolicy(live_enabled=True, workload=workload,
                 max_request_bytes=pins['max_request_bytes'],
                 timeout_seconds=180,
+                # Bounded acceptance attempt: reserve more of the unchanged
+                # output allowance for the structured decision rather than reasoning.
+                # This behavior is bound by the approved source commit.
+                reasoning_effort='low',
                 max_output_tokens=pins['max_output_tokens']))
     def request(candidate):
         return candidate.request(request_id='pagination-tests', lease_id=task.activation_id,

@@ -159,6 +159,42 @@ def make_invoker(
 
 
 class OpenAIProviderTests(unittest.TestCase):
+    def test_failure_evidence_is_bounded_redacted_and_reset(self):
+        payload = provider_payload(read_files_decision(), output_tokens=4096)
+        payload.update(status='incomplete', incomplete_details={'reason': 'max_output_tokens'},
+                       output=[{'text': 'private response'}])
+        payload['usage']['output_tokens_details']['reasoning_tokens'] = 4096
+        invoker, _, _, transport = make_invoker(
+            ProviderHTTPResponse(200, json.dumps(payload).encode()), live_enabled=True)
+        def invoke():
+            return asyncio.run(invoker.invoke(target=TARGET, turn={}, max_cost_usd=Decimal('1'),
+                                              decision_schema_version='1'))
+        with self.assertRaises(OpenAIProviderProtocolError) as caught:
+            invoke()
+        self.assertEqual(caught.exception.failure_code, 'output_token_limit')
+        self.assertEqual(invoker.last_response_evidence, {
+            'model_matches': True, 'response_status': 'incomplete',
+            'incomplete_reason': 'max_output_tokens', 'input_tokens': 1000,
+            'output_tokens': 4096, 'reasoning_tokens': 4096})
+        # Independent offline invocation proves stale evidence is cleared even on HTTP failure.
+        transport.response = ProviderHTTPResponse(500, b'private body')
+        with self.assertRaises(OpenAIProviderProtocolError):
+            invoke()
+        self.assertEqual(invoker.last_response_evidence, {})
+
+    def test_mismatch_retains_only_safe_metadata_and_keeps_strict_validation(self):
+        payload = provider_payload(read_files_decision(), model='private unexpected model')
+        payload['usage'] = {'input_tokens': True, 'output_tokens': 10**30,
+                            'output_tokens_details': {'reasoning_tokens': 'private'}}
+        payload['status'] = 'private status'
+        invoker, _, _, _ = make_invoker(ProviderHTTPResponse(200, json.dumps(payload).encode()),
+                                      live_enabled=True)
+        with self.assertRaises(OpenAIProviderProtocolError) as caught:
+            asyncio.run(invoker.invoke(target=TARGET, turn={}, max_cost_usd=Decimal('1'),
+                                      decision_schema_version='1'))
+        self.assertEqual(caught.exception.failure_code, 'model_mismatch')
+        self.assertEqual(invoker.last_response_evidence, {'model_matches': False})
+
     def test_disabled_policy_fails_before_pricing_credentials_or_transport(self):
         response = ProviderHTTPResponse(
             status_code=200,

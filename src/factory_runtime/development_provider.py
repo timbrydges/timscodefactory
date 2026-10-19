@@ -10,7 +10,7 @@ from pathlib import Path
 
 from factory_state.model import StateError
 from factory_state.scope import canonical
-from .openai_provider import OpenAIResponsesProviderInvoker
+from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 from .worker import digest
 
 
@@ -22,8 +22,8 @@ class ExclusiveDevelopmentJournal:
             raise StateError('existing attempt journal directory required')
 
     def __call__(self, event, evidence):
-        if event not in {'builder.started', 'builder.completed',
-                         'reviewer.started', 'reviewer.completed'}:
+        if event not in {'builder.started', 'builder.completed', 'builder.failed',
+                         'reviewer.started', 'reviewer.completed', 'reviewer.failed'}:
             raise StateError('unknown development journal event')
         raw = canonical(evidence)
         with (self.directory / (event + '.json')).open('xb') as handle:
@@ -75,8 +75,16 @@ class DevelopmentProviderSession:
         binding = {'stage': stage, 'input_digest': digest(frozen),
                    'model_id': self.target.model_id, 'max_cost_usd': str(self.caps[stage])}
         self.journal(stage + '.started', binding)
-        result = await self.adapters[stage].invoke(target=self.target,
-            turn=json.loads(frozen), max_cost_usd=self.caps[stage], decision_schema_version='1')
+        try:
+            result = await self.adapters[stage].invoke(target=self.target,
+                turn=json.loads(frozen), max_cost_usd=self.caps[stage], decision_schema_version='1')
+        except Exception as exc:
+            code = exc.failure_code if isinstance(exc, OpenAIProviderProtocolError) else 'protocol_failure'
+            self.journal(stage + '.failed', {**binding,
+                'failure_code': code if code in PROVIDER_FAILURE_CODES else 'protocol_failure',
+                'response_evidence': dict(self.adapters[stage].last_response_evidence),
+                'billing_reconciled': False})
+            raise
         self.journal(stage + '.completed', {**binding,
             'decision_digest': digest(canonical(result.decision)),
             'input_tokens': result.input_tokens, 'output_tokens': result.output_tokens,
