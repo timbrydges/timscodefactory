@@ -7,6 +7,8 @@ on:
       - "src/factory_runtime/**"
       - "factory/canary/runtime-v1/**"
       - "scripts/runtime_canary.py"
+      - "scripts/development_runner_replay.py"
+      - "factory/projects/bonus-library-pagination/**"
       - "scripts/candidate_test_proof_canary.py"
       - "scripts/build_bounded_review_package.py"
       - "scripts/verify_bounded_review_package.py"
@@ -19,6 +21,34 @@ permissions:
   contents: read
 
 jobs:
+  development-replay:
+    name: runtime / Bonus Library end-to-end replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --require-hashes -r requirements-ci.txt
+      - name: Resolve Node for isolated offline tests
+        run: |
+          set -euo pipefail
+          docker pull --quiet node:22-slim >/dev/null
+          IMAGE_REF="$(docker image inspect --format '{{index .RepoDigests 0}}' node:22-slim)"
+          echo "REPLAY_IMAGE=$IMAGE_REF" >> "$GITHUB_ENV"
+      - name: Replay pinned real-repository candidate through connected runner
+        run: python scripts/development_runner_replay.py --image-ref "$REPLAY_IMAGE" --output "$RUNNER_TEMP/bonus-replay"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: bonus-library-offline-replay
+          path: ${{ runner.temp }}/bonus-replay
+          if-no-files-found: error
+          retention-days: 7
   isolated-package:
     name: runtime / isolated Python 3.12 package
     runs-on: ubuntu-latest
