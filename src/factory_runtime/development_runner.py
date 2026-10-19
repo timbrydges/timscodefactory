@@ -13,6 +13,7 @@ from .task_candidate import candidate_workspace
 from .task_provider import TaskImplementationProtocol
 from .task_review import TaskReviewProtocol
 from .worker import digest
+from .openai_provider import OpenAIProviderProtocolError
 
 
 class DevelopmentTaskRunner:
@@ -83,5 +84,10 @@ class DevelopmentTaskRunner:
         except Exception as error:
             outcome = 'NEEDS_RECONCILIATION'
             result = {'status': outcome, 'phase': phase, 'error_type': type(error).__name__}
+            if isinstance(error, OpenAIProviderProtocolError):
+                # Never persist exception text, provider bodies or credentials.
+                result['failure_code'] = error.failure_code if error.failure_code in {
+                    'timeout', 'transport_failure', 'http_error', 'protocol_failure'
+                } else 'protocol_failure'
         self.queue.finish(task.entry_id, outcome, result)
         return {'entry_id': task.entry_id, 'status': outcome, 'result': result}

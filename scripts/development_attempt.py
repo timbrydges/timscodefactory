@@ -33,6 +33,11 @@ class PinnedPricing:
         return self.value  # Adapter enforces model, age, expiry and worst-case cost.
 
 
+def report_result(result):
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result.get('status') == 'TICK_COMPLETED' else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute-approved-once', action='store_true')
@@ -68,8 +73,7 @@ def main(argv=None):
         task=task, contract_bytes=raw, snapshot=snapshot,
         pricing_source=PinnedPricing(json.loads(args.pricing.read_text())),
         clock=lambda: datetime.now(timezone.utc), owner_authorized=True)
-    print(json.dumps(asyncio.run(host.tick()), sort_keys=True))
-    return 0
+    return report_result(asyncio.run(host.tick()))
 
 
 if __name__ == '__main__':

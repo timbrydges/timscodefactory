@@ -58,14 +58,23 @@ class DirectOpenAITransport:
                 if child.returncode != 0 or len(stdout) > self.max_response_bytes * 6 + 128:
                     raise ValueError('invalid child result')
                 result = json.loads(stdout)
+                if set(result) == {'error_code'}:
+                    raise OpenAIProviderProtocolError('provider child failed; attempt consumed',
+                        failure_code=result['error_code'])
                 raw = result['body'].encode('utf-8')
                 if type(result['status']) is not int or len(raw) > self.max_response_bytes:
                     raise ValueError('invalid child response')
                 return ProviderHTTPResponse(result['status'], raw)
         except asyncio.CancelledError:
             raise
+        except TimeoutError:
+            raise OpenAIProviderProtocolError('provider deadline exceeded; attempt consumed',
+                failure_code='timeout') from None
+        except OpenAIProviderProtocolError:
+            raise
         except Exception:
-            raise OpenAIProviderProtocolError('provider transport failed; attempt consumed') from None
+            raise OpenAIProviderProtocolError('provider transport failed; attempt consumed',
+                failure_code='transport_failure') from None
         finally:
             payload = b''
             if child is not None and child.returncode is None:
@@ -89,8 +98,14 @@ class DirectOpenAITransport:
             if len(raw) > self.max_response_bytes:
                 raise OpenAIProviderProtocolError('provider response exceeds byte limit')
             return ProviderHTTPResponse(response.status, raw)
+        except TimeoutError:
+            raise OpenAIProviderProtocolError('provider socket deadline exceeded; attempt consumed',
+                failure_code='timeout') from None
+        except OpenAIProviderProtocolError:
+            raise
         except Exception:
-            raise OpenAIProviderProtocolError('provider transport failed; attempt consumed') from None
+            raise OpenAIProviderProtocolError('provider transport failed; attempt consumed',
+                failure_code='transport_failure') from None
         finally:
             headers.clear()
             if connection is not None:
@@ -106,5 +121,7 @@ def _worker():
             request['headers'], request['body'].encode('utf-8'), request['timeout'])
         sys.stdout.write(json.dumps({'status': response.status_code,
                                     'body': response.body.decode('utf-8')}))
+    except OpenAIProviderProtocolError as error:
+        sys.stdout.write(json.dumps({'error_code': error.failure_code}))
     except Exception:
         sys.exit(1)

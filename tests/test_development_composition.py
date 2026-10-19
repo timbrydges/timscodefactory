@@ -31,6 +31,8 @@ class CompositionTests(TestCase):
             self.assertEqual(builder.credential_source.environment_variable, 'FACTORY_OPENAI_API_KEY')
             self.assertEqual(builder.policy.workload, 'task_implementation')
             self.assertEqual(reviewer.policy.workload, 'task_review')
+            self.assertEqual(builder.policy.timeout_seconds, 180)
+            self.assertEqual(reviewer.policy.timeout_seconds, 180)
             candidate = Mock()
             args['request_for'](candidate)
             self.assertEqual(candidate.request.call_args.kwargs['command'],
