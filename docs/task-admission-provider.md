@@ -44,7 +44,28 @@ receipt remains unqualified. The integrated queue/provider test stops after a
 proposal and does not unlock Inspector or QA. Synthetic cost values are not
 charges and change no financial ledger or hold.
 
-Remaining work: sandboxed application/testing of proposals, independent review
+`candidate_workspace` now applies validated replacements to a fresh disposable
+directory, never to the source checkout. It freezes the decision, bounds candidate
+size, rejects portable-path aliases and cleans up on success or failure. This is
+only the supplied partial source snapshot: it does not fetch or authenticate a
+complete repository, install dependencies or implement Bonus Library pagination.
+
+The candidate prepares an existing `SandboxRequest` with the target repository
+commit and actual workspace tree digest. Trusted deployment composition supplies
+the command, environment, lease and runner identity; provider output cannot
+choose them. No adapter is invoked by this module. Before use, deployment must
+provide a complete authenticated workspace, a network-disabled sandbox and
+separate execution authorization. Temporary directories are not themselves an
+execution security boundary; never run candidate commands directly on the host.
+
+Receipt evaluation reuses the existing sandbox binding checks and rejects a
+changed candidate. Exit zero yields `TESTS_PASSED_REVIEW_REQUIRED`; nonzero and
+timeout remain distinct. Every result is non-authoritative and grants no
+progression or release. Offline regressions use receipt doubles, not actual
+candidate test execution. Independent review and controller evidence remain
+required, even for a successful sandbox observation.
+
+Remaining work: complete repository sandbox integration, independent review
 semantics for the one-provider development contract, authenticated deployment
 composition and owner controls. No live activation, provider call or PR publishing
 capability is added to the runner here.
