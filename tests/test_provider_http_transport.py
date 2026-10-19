@@ -51,8 +51,18 @@ class TransportTests(TestCase):
         with self.assertRaises(OpenAIProviderProtocolError) as error:
             self.call(enabled=True)
         self.assertNotIn('secret', str(error.exception))
+        self.assertEqual(error.exception.failure_code, 'timeout')
         connect.return_value.request.assert_called_once()
         connect.return_value.close.assert_called_once()
+
+    @patch('factory_runtime.provider_http_transport.http.client.HTTPSConnection')
+    def test_connection_failure_is_distinct_and_does_not_leak(self, connect):
+        connect.return_value.request.side_effect = OSError('private connection details')
+        with self.assertRaises(OpenAIProviderProtocolError) as error:
+            self.call(enabled=True)
+        self.assertEqual(error.exception.failure_code, 'transport_failure')
+        self.assertNotIn('private', str(error.exception))
+        connect.return_value.request.assert_called_once()
 
     @patch('factory_runtime.provider_http_transport.http.client.HTTPSConnection')
     def test_response_limit_stops(self, connect):

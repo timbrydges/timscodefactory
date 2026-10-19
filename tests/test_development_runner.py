@@ -9,6 +9,7 @@ from factory_runtime.development_runner import DevelopmentTaskRunner
 from factory_runtime.repository_snapshot import RepositoryFile, RepositorySnapshot
 from factory_runtime.task_queue import LocalTaskQueue, QueuedTask
 from factory_runtime.worker import digest
+from factory_runtime.openai_provider import OpenAIProviderProtocolError
 import test_task_candidate as fixtures
 
 
@@ -99,3 +100,27 @@ class DevelopmentRunnerTests(unittest.TestCase):
         self.runner.contract_bytes=b'{}'
         self.assertEqual(self.tick()['status'],'NEEDS_RECONCILIATION')
         self.assertEqual(self.calls,[])
+
+    def test_provider_failure_reason_is_safe_durable_and_never_retried(self):
+        self.runner.enabled = True
+        async def fail(turn):
+            self.calls.append('builder')
+            raise OpenAIProviderProtocolError('private-provider-body', failure_code='timeout')
+        self.runner.builder = fail
+        result = self.tick()
+        self.assertEqual(result['result']['failure_code'], 'timeout')
+        self.assertEqual(result['result']['phase'], 'BUILDER')
+        self.assertNotIn('private-provider-body', json.dumps(result))
+        self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')
+        self.assertEqual(self.calls, ['builder'])
+
+    def test_failure_code_cannot_carry_untrusted_text(self):
+        self.runner.enabled = True
+        async def fail(turn):
+            error = OpenAIProviderProtocolError('private', failure_code='timeout')
+            error.failure_code = 'private credential'
+            raise error
+        self.runner.builder = fail
+        result = self.tick()
+        self.assertEqual(result['result']['failure_code'], 'protocol_failure')
+        self.assertNotIn('private', json.dumps(result))

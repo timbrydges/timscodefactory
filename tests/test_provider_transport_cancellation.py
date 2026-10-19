@@ -21,8 +21,9 @@ class CancellationTests(IsolatedAsyncioTestCase):
         child.communicate = blocked
         child.wait = AsyncMock()
         with patch('asyncio.create_subprocess_exec', AsyncMock(return_value=child)) as spawn:
-            with self.assertRaises(OpenAIProviderProtocolError):
+            with self.assertRaises(OpenAIProviderProtocolError) as error:
                 await DirectOpenAITransport(enabled=True).post_json(**self.args)
+            self.assertEqual(error.exception.failure_code, 'timeout')
             spawn.assert_awaited_once()
             self.assertNotIn('offline-fake-key', repr(spawn.call_args))
         child.kill.assert_called_once()
@@ -44,6 +45,18 @@ class CancellationTests(IsolatedAsyncioTestCase):
                 await task
         child.kill.assert_called_once()
         child.wait.assert_awaited_once()
+
+    async def test_child_failure_codes_are_preserved_but_untrusted_text_is_not(self):
+        for code, expected in [('timeout', 'timeout'), ('transport_failure', 'transport_failure'),
+                               ('private secret', 'protocol_failure')]:
+            child = Mock(returncode=0)
+            child.communicate = AsyncMock(return_value=(json.dumps({'error_code': code}).encode(), None))
+            with patch('asyncio.create_subprocess_exec', AsyncMock(return_value=child)) as spawn:
+                with self.assertRaises(OpenAIProviderProtocolError) as error:
+                    await DirectOpenAITransport(enabled=True).post_json(**self.args)
+                self.assertEqual(error.exception.failure_code, expected)
+                self.assertNotIn('secret', str(error.exception))
+                spawn.assert_awaited_once()
 
     async def test_success_uses_pipe_and_does_not_kill_completed_child(self):
         child = Mock(returncode=0)

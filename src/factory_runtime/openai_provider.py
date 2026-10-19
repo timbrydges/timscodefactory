@@ -56,6 +56,12 @@ class OpenAIProviderPricingError(OpenAIProviderError):
 class OpenAIProviderProtocolError(OpenAIProviderError):
     """The OpenAI HTTP response cannot be trusted or normalized."""
 
+    def __init__(self, message, *, failure_code='protocol_failure'):
+        super().__init__(message)
+        self.failure_code = failure_code if failure_code in {
+            'timeout', 'transport_failure', 'http_error', 'protocol_failure'
+        } else 'protocol_failure'
+
 
 @dataclass(frozen=True, repr=False)
 class ProviderCredentialLease:
@@ -496,7 +502,7 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
                 timeout=self.policy.timeout_seconds,
             )
         except asyncio.TimeoutError as exc:
-            raise OpenAIProviderProtocolError("OpenAI provider transport timed out") from exc
+            raise OpenAIProviderProtocolError("OpenAI provider transport timed out", failure_code='timeout') from exc
         finally:
             # Drop local references promptly; the credential source remains solely
             # responsible for the underlying secret lifecycle.
@@ -506,7 +512,7 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
         if not isinstance(response, ProviderHTTPResponse):
             raise OpenAIProviderProtocolError("OpenAI transport returned an invalid response object")
         if response.status_code != 200:
-            raise OpenAIProviderProtocolError(f"OpenAI provider returned HTTP {response.status_code}")
+            raise OpenAIProviderProtocolError(f"OpenAI provider returned HTTP {response.status_code}", failure_code='http_error')
         if not isinstance(response.body, bytes) or len(response.body) > self.policy.max_response_bytes:
             raise OpenAIProviderProtocolError("OpenAI response body is invalid or exceeds byte cap")
         try:
