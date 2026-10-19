@@ -90,7 +90,21 @@ offline integration tests inject a process double and verify network-disabled,
 no-pull configuration. No real candidate command or provider call is dispatched.
 Dependencies must already be available in a separately reviewed immutable image.
 
-Remaining work: actual isolated candidate verification, independent review
-semantics for the one-provider development contract, authenticated deployment
+`TaskReviewProtocol` prepares a separate review packet only after a bound exit-zero
+test observation. It binds the specification, exact before/after edits, candidate
+and test request digests, and distinct deployment-supplied builder/reviewer
+identities. The provider adapter has a separate opt-in `task_review` schema.
+Review replies must echo the exact input digest; approvals cannot contain findings
+and rejections must explain their findings. Neither outcome authorizes progression
+or release. This is a non-authoritative development review, not a replacement for
+the existing release gates or cross-provider release requirements.
+
+Distinct identity labels do not prove independent authentication. Trusted
+deployment still must establish reviewer identity, separate invocation provenance,
+receipt provenance and controller evidence. The protocol performs no calls or
+signing. Offline tests use receipt/transport doubles and do not qualify actual
+model review quality. Insufficient context must cause rejection, not approval.
+
+Remaining work: actual isolated candidate verification, authenticated deployment
 composition and owner controls. No live activation, provider call or PR publishing
 capability is added to the runner here.
