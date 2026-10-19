@@ -33,7 +33,7 @@ class DevelopmentProviderTests(unittest.TestCase):
                 if outer.fail_transport:
                     raise TimeoutError('private token must not escape')
                 if turn['kind'] == 'factory_task_implementation_v1':
-                    decision = {**outer.f.f.decision, 'paths': [], 'reason': ''}
+                    decision = {'decision': outer.f.f.decision}
                 else:
                     decision = {'review_input_digest': turn['review_input_digest'],
                                 'verdict': 'APPROVE', 'findings': []}
