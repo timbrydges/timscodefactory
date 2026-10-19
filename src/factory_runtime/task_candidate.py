@@ -81,7 +81,8 @@ def candidate_workspace(protocol, decision, *, repository_snapshot=None):
 
     Without repository_snapshot this is only the supplied partial source text.
     A deployment-owned snapshot adds the complete pinned Git tree and must match
-    every supplied source byte. No commands are run; new files remain unsupported.
+    every supplied source byte. New files require confirmed absence in that tree.
+    No commands are run.
     """
     decision = json.loads(canonical(decision))
     checked = protocol.validate_decision(decision)
@@ -91,6 +92,9 @@ def candidate_workspace(protocol, decision, *, repository_snapshot=None):
     files = turn['files']
     _portable_paths(files)
     baseline, executable = {}, set()
+    missing = turn['missing_paths']
+    if missing and repository_snapshot is None:
+        raise StateError('new files require a complete pinned repository snapshot')
     if repository_snapshot is not None:
         from .repository_snapshot import RepositorySnapshot
         if (type(repository_snapshot) is not RepositorySnapshot
@@ -102,11 +106,16 @@ def candidate_workspace(protocol, decision, *, repository_snapshot=None):
         executable = {entry.path for entry in repository_snapshot.files if entry.executable}
         if any(baseline.get(path) != content.encode('utf-8') for path, content in files.items()):
             raise StateError('provider source differs from pinned repository')
+        if any(path in baseline for path in missing):
+            raise StateError('declared missing path already exists in pinned repository')
     for edit in decision['edits']:
-        files[edit['path']] = files[edit['path']].replace(edit['old_text'], edit['new_text'], 1)
+        path = edit['path']
+        files[path] = (edit['new_text'] if path in missing else
+                       files[path].replace(edit['old_text'], edit['new_text'], 1))
     if len(canonical(files)) > 65536:
         raise StateError('candidate source exceeds byte limit')
     baseline.update({path: content.encode('utf-8') for path, content in files.items()})
+    _portable_paths(baseline)
     with TemporaryDirectory(prefix='factory-candidate-') as directory:
         root = Path(directory)
         for path, content in baseline.items():
