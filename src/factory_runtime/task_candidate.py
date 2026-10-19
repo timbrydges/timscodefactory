@@ -18,6 +18,7 @@ from .sandbox import SandboxRequest, bind_sandbox_receipt
 
 def _portable_paths(files):
     seen = set()
+    prefixes = {}
     for path in files:
         parts = path.split('/')
         if (not re.fullmatch(r'[A-Za-z0-9_./-]+', path)
@@ -27,6 +28,11 @@ def _portable_paths(files):
                 or path.lower() in seen):
             raise StateError('candidate requires distinct portable source paths')
         seen.add(path.lower())
+        for index in range(1, len(parts) + 1):
+            prefix = '/'.join(parts[:index])
+            previous = prefixes.setdefault(prefix.lower(), prefix)
+            if previous != prefix:
+                raise StateError('candidate directory spelling differs across platforms')
     if any('/'.join(p.split('/')[:i]).lower() in seen
            for p in files for i in range(1, len(p.split('/')))):
         raise StateError('candidate file and directory paths conflict')

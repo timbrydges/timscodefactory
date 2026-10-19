@@ -107,6 +107,7 @@ class TaskCandidateTests(unittest.TestCase):
     def test_nonportable_aliases_and_file_directory_collisions_rejected(self):
         from factory_runtime.task_candidate import _portable_paths
         for files in [{'CON.txt': ''}, {'a.': ''}, {'a': '', 'A': ''}, {'a': '', 'a/b': ''},
+                      {'Src/a.ts': '', 'src/b.ts': ''},
                       {'../escape': ''}, {'/absolute': ''}, {'a\x00b': ''}, {'.git/config': ''}]:
             with self.subTest(files=files), self.assertRaises(StateError): _portable_paths(files)
 
