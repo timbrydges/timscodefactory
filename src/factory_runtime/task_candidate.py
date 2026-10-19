@@ -21,8 +21,8 @@ def _portable_paths(files):
     prefixes = {}
     for path in files:
         parts = path.split('/')
-        if (not re.fullmatch(r'[A-Za-z0-9_./-]+', path)
-                or any(p in {'', '.', '..'} or p.endswith('.') for p in parts)
+        if (not re.fullmatch(r'[A-Za-z0-9_./()\[\]@+ -]+', path)
+                or any(p in {'', '.', '..'} or p.endswith(('.', ' ')) for p in parts)
                 or any(re.fullmatch(r'(?i)(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\..*)?', p) for p in parts)
                 or any(p.lower() in {'.git', '__pycache__', '.pytest_cache'} for p in parts)
                 or path.lower() in seen):
@@ -76,11 +76,12 @@ class TaskCandidate:
 
 
 @contextmanager
-def candidate_workspace(protocol, decision):
+def candidate_workspace(protocol, decision, *, repository_snapshot=None):
     """Apply a frozen proposal only to a disposable copy of supplied source text.
 
-    This is a partial source snapshot, not proof of a complete repository checkout.
-    No commands are run. New files remain unsupported by the proposal protocol.
+    Without repository_snapshot this is only the supplied partial source text.
+    A deployment-owned snapshot adds the complete pinned Git tree and must match
+    every supplied source byte. No commands are run; new files remain unsupported.
     """
     decision = json.loads(canonical(decision))
     checked = protocol.validate_decision(decision)
@@ -89,15 +90,29 @@ def candidate_workspace(protocol, decision):
     turn = protocol.turn
     files = turn['files']
     _portable_paths(files)
+    baseline, executable = {}, set()
+    if repository_snapshot is not None:
+        from .repository_snapshot import RepositorySnapshot
+        if (type(repository_snapshot) is not RepositorySnapshot
+                or repository_snapshot.repository != turn['repository']
+                or repository_snapshot.commit != turn['target_commit']):
+            raise StateError('repository snapshot differs from task target')
+        _portable_paths([entry.path for entry in repository_snapshot.files])
+        baseline = {entry.path: entry.content for entry in repository_snapshot.files}
+        executable = {entry.path for entry in repository_snapshot.files if entry.executable}
+        if any(baseline.get(path) != content.encode('utf-8') for path, content in files.items()):
+            raise StateError('provider source differs from pinned repository')
     for edit in decision['edits']:
         files[edit['path']] = files[edit['path']].replace(edit['old_text'], edit['new_text'], 1)
     if len(canonical(files)) > 65536:
         raise StateError('candidate source exceeds byte limit')
+    baseline.update({path: content.encode('utf-8') for path, content in files.items()})
     with TemporaryDirectory(prefix='factory-candidate-') as directory:
         root = Path(directory)
-        for path, content in files.items():
+        for path, content in baseline.items():
             destination = root / path
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(content.encode('utf-8'))
+            destination.write_bytes(content)
+            destination.chmod(0o755 if path in executable else 0o644)
         yield TaskCandidate(root, workspace_tree_digest(root), checked['input_digest'],
             checked['decision_digest'], turn['task_id'], turn['target_commit'])

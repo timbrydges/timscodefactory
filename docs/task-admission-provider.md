@@ -65,7 +65,23 @@ progression or release. Offline regressions use receipt doubles, not actual
 candidate test execution. Independent review and controller evidence remain
 required, even for a successful sandbox observation.
 
-Remaining work: complete repository sandbox integration, independent review
+`read_repository_snapshot` now reads the complete tree of an exact local Git
+commit, checks each blob against its object ID and bounds the file count and byte
+sizes. It ignores dirty/untracked working files and replacement objects, rejects
+links/submodules, and performs no fetch, checkout or hooks. A missing object fails
+closed. The local object database and repository label must come from trusted
+deployment composition: neither a caller-supplied label nor a hash establishes
+GitHub provenance or approval. Source executable modes are retained.
+
+Passing that snapshot to `candidate_workspace` retains unchanged tracked files
+and requires every provider-context byte to match the pinned source before edits.
+Next.js route groups and dynamic path segments are supported without accepting
+Windows aliases. The existing Docker adapter can consume the resulting candidate;
+offline integration tests inject a process double and verify network-disabled,
+no-pull configuration. No real candidate command or provider call is dispatched.
+Dependencies must already be available in a separately reviewed immutable image.
+
+Remaining work: actual isolated candidate verification, independent review
 semantics for the one-provider development contract, authenticated deployment
 composition and owner controls. No live activation, provider call or PR publishing
 capability is added to the runner here.
