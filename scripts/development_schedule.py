@@ -12,6 +12,7 @@ sys.path.insert(0,str(ROOT/'src'))
 from development_attempt import execute
 from factory_runtime.development_schedule import DevelopmentSchedule
 from factory_runtime.development_schedule_host import ScheduledPacketHost, poll_schedule
+from factory_runtime.github_identity_bootstrap import binding_from_configuration
 
 
 def main(argv=None, *, credential_binding=None):
@@ -25,6 +26,8 @@ def main(argv=None, *, credential_binding=None):
     parser.add_argument('--due-at')
     parser.add_argument('--max-ticks',type=int,default=1)
     parser.add_argument('--interval-seconds',type=int,default=60)
+    parser.add_argument('--identity-config',type=Path)
+    parser.add_argument('--identity-config-sha256')
     args=parser.parse_args(argv)
     if not args.enable:
         print(json.dumps({'status':'DISABLED','ticks':0}))
@@ -48,6 +51,11 @@ def main(argv=None, *, credential_binding=None):
         return 0
     if args.repository_path is None:
         parser.error('operator-owned repository path required')
+    if args.action == 'run' and (args.identity_config is not None or args.identity_config_sha256 is not None):
+        if credential_binding is not None or args.identity_config is None or args.identity_config_sha256 is None:
+            parser.error('one complete operator identity binding required')
+        credential_binding = binding_from_configuration(args.identity_config, args.identity_config_sha256,
+            clock=lambda:datetime.now(timezone.utc), owner_authorized=True, enabled=True)
     host=ScheduledPacketHost(packet_directory=base/'packets',
         attempt_directory=base/'attempts',repository_path=args.repository_path,
         execute=partial(execute, credential_binding=credential_binding),owner_authorized=True)

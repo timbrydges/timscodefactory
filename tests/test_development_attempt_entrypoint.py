@@ -52,6 +52,23 @@ class EntrypointTests(TestCase):
             self.assertEqual(entry.main([], credential_binding=object()), 0)
             execute.assert_not_awaited()
 
+    def test_cli_identity_bootstrap_is_gated_and_passes_only_trusted_binding(self):
+        with patch.object(entry, 'binding_from_configuration', return_value=object()) as bind, \
+                patch.object(entry, 'execute', new_callable=AsyncMock,
+                             return_value={'status':'TICK_COMPLETED'}) as execute:
+            identity = ['--identity-config','operator.json','--identity-config-sha256','sha256:fake']
+            self.assertEqual(entry.main(identity), 0)
+            bind.assert_not_called()
+            with self.assertRaises(SystemExit):
+                entry.main(['--execute-approved-once']+identity)
+            bind.assert_not_called()
+            args = ['--execute-approved-once','--owner-authorized']
+            for flag in ('pins','approval','pricing','contract','repository-path','attempt-directory'):
+                args += ['--'+flag, 'unused']
+            self.assertEqual(entry.main(args+identity), 0)
+            bind.assert_called_once()
+            self.assertIs(execute.call_args.kwargs['credential_binding'], bind.return_value)
+
     def test_missing_or_untrusted_binding_stops_before_subprocess(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
