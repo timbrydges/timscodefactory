@@ -66,8 +66,8 @@ class CredentialIssuanceLedger:
         if not isinstance(authorization, IssuanceAuthorization):
             raise ValueError("issuance authorization required")
         self._binding = authorization.canonical()
-        self.authorization = authorization
-        self.path = Path(path)
+        self._authorization = authorization
+        self._path = Path(path).absolute()
         if self.path.is_symlink() or self.path.parent.is_symlink() or not self.path.parent.is_dir():
             raise ValueError("regular issuance ledger path required")
         with self._db() as db:
@@ -76,6 +76,14 @@ class CredentialIssuanceLedger:
             db.execute("INSERT OR IGNORE INTO issuance_policy VALUES (1,?,1,NULL)", (self._binding,))
             if db.execute("SELECT binding FROM issuance_policy WHERE id=1").fetchone()[0] != self._binding:
                 raise ProviderCredentialLeaseError("issuance authorization cannot change")
+
+    @property
+    def authorization(self):
+        return self._authorization
+
+    @property
+    def path(self):
+        return self._path
 
     @contextmanager
     def _db(self):

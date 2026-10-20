@@ -12,6 +12,7 @@ from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderPolic
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import EnvironmentProviderCredentialLeaseSource
 from .provider_http_transport import DirectOpenAITransport
+from .workload_identity_response import RenewableCredentialBinding
 
 
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
@@ -37,25 +38,37 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
 
 def compose_task_host(directory, *, profile, approval, expected_pins, receipt_path,
                       task, contract_bytes, snapshot, pricing_source, clock,
-                      owner_authorized=False):
+                      owner_authorized=False, credential_binding=None):
     # Profile must be supplied by the trusted operator, never generated task text.
     if owner_authorized is not True or type(profile) is not TaskExecutionProfile:
         raise StateError('explicit human authorization and trusted profile required')
-    if (expected_pins.get('credential_source') != 'env:FACTORY_OPENAI_API_KEY'
-            or expected_pins.get('model_id') != 'gpt-5.6-sol'):
+    if expected_pins.get('model_id') != 'gpt-5.6-sol':
         raise StateError('unsupported provider composition')
+    credential = None
+    if credential_binding is None:
+        if expected_pins.get('credential_source') != 'env:FACTORY_OPENAI_API_KEY':
+            raise StateError('explicit renewable credential binding required')
+    else:
+        if (type(credential_binding) is not RenewableCredentialBinding
+                or expected_pins.get('credential_source') != credential_binding.source_pin
+                or credential_binding.ledger.authorization.target != ResolvedProviderTarget(
+                    'openai', expected_pins['model_id'], 'development-pinned-v1')):
+            raise StateError('credential binding differs from approved source')
+        credential = credential_binding.compose(clock=clock)
     profile.validate_binding(pins=expected_pins, task=task, contract_bytes=contract_bytes)
     return _compose_host(directory, approval=approval, expected_pins=expected_pins,
         receipt_path=receipt_path, task=task, contract_bytes=contract_bytes,
         snapshot=snapshot, pricing_source=pricing_source, clock=clock,
-        profile=profile, bind_profile=True)
+        profile=profile, bind_profile=True, credential=credential)
 
 
 def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
-                  contract_bytes, snapshot, pricing_source, clock, profile, bind_profile):
+                  contract_bytes, snapshot, pricing_source, clock, profile, bind_profile,
+                  credential=None):
     pins = expected_pins
     policy = DockerSandboxPolicy(image_ref=pins['image_ref'])
-    credential = EnvironmentProviderCredentialLeaseSource()
+    if credential is None:
+        credential = EnvironmentProviderCredentialLeaseSource()
     transport = DirectOpenAITransport(enabled=True,
         max_request_bytes=pins['max_request_bytes'])
     def adapter(workload):
