@@ -77,3 +77,24 @@ queue data cannot select a plugin, import path or callable. The command-line
 entrypoint still supports only the existing environment-key composition until
 an approved identity-source implementation is available. Construction does not
 read credentials, exchange tokens or unpause the ledger.
+
+## JWT exchange transport
+
+`JWTTokenExchange` accepts an operator-supplied subject source and starts disabled.
+It checks the exact issuance authorization before requesting that identity, then
+sends one bounded request to the fixed token endpoint. It does not discover
+credentials, enable identity federation, or configure service-account mappings.
+The source must return a `TrustedSubjectIdentity` obtained through an authenticated
+identity provider; checking JWT envelope syntax does not verify its signature.
+
+The exchange uses the same killable-process transport mechanism as model calls,
+with a separate fixed route, 64 KiB request/response limits, no redirects, no
+proxy inheritance and no retries. A 30-second overall deadline includes subject
+acquisition; the exchange HTTP deadline is 20 seconds. Tokens travel through a
+private pipe, not command arguments, environment variables or files. Error bodies
+are discarded. A durable claim must surround the complete operation, via its
+ledger-bound credential source. Failure or cancellation requires reconciliation.
+
+The source interface and transport are implemented, but no AWS/GitHub identity
+source or CLI activation is configured. Tests mock sockets, processes and tokens;
+they do not qualify TLS access, real identity issuance or live provider behavior.

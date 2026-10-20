@@ -37,8 +37,13 @@ class DirectOpenAITransport:
             raise OpenAIProviderProtocolError('invalid bounded transport request')
         # Isolate blocking DNS/TLS/socket IO in a killable child. Credentials go
         # through a private pipe, never argv, environment, or a disk file.
+        return await self._run_request(headers, body, timeout_seconds, kind='responses')
+
+    async def _run_request(self, headers, body, timeout_seconds, *, kind):
+        if kind not in ('responses', 'token-exchange'):
+            raise OpenAIProviderProtocolError('unsupported transport operation')
         payload = json.dumps({'headers': dict(headers), 'body': body.decode('utf-8'),
-            'timeout': timeout_seconds, 'limit': self.max_response_bytes}).encode()
+            'timeout': timeout_seconds, 'limit': self.max_response_bytes, 'kind': kind}).encode()
         child = None
         try:
             async with asyncio.timeout(timeout_seconds):
@@ -84,12 +89,17 @@ class DirectOpenAITransport:
                     pass
                 await child.wait()
 
-    def _post(self, headers, body, timeout):
+    def _post(self, headers, body, timeout, *, kind='responses'):
         connection = None
         try:
-            connection = http.client.HTTPSConnection('api.openai.com', timeout=timeout,
+            routes = {'responses': ('api.openai.com', '/v1/responses'),
+                      'token-exchange': ('auth.openai.com', '/oauth/token')}
+            if kind not in routes:
+                raise OpenAIProviderProtocolError('unsupported transport operation')
+            host, path = routes[kind]
+            connection = http.client.HTTPSConnection(host, timeout=timeout,
                                                      context=ssl.create_default_context())
-            connection.request('POST', '/v1/responses', body=body, headers=headers)
+            connection.request('POST', path, body=body, headers=headers)
             response = connection.getresponse()
             # Never follow redirects, retry errors, or retain provider error bodies.
             if response.status != 200:
@@ -118,7 +128,8 @@ def _worker():
         raw = sys.stdin.buffer.read(2 * 1048576)
         request = json.loads(raw)
         response = DirectOpenAITransport(max_response_bytes=request['limit'])._post(
-            request['headers'], request['body'].encode('utf-8'), request['timeout'])
+            request['headers'], request['body'].encode('utf-8'), request['timeout'],
+            kind=request.get('kind', 'responses'))
         sys.stdout.write(json.dumps({'status': response.status_code,
                                     'body': response.body.decode('utf-8')}))
     except OpenAIProviderProtocolError as error:
