@@ -101,7 +101,7 @@ class GitHubSubjectTests(IsolatedAsyncioTestCase):
                 await self.source(enabled=True)(self.auth)
             self.transport.request.assert_awaited_once()
 
-    async def test_durable_binding_blocks_failed_renewal_replay(self):
+    async def test_durable_binding_renews_or_blocks_failed_renewal_replay(self):
         self.transport.request.side_effect = lambda **kwargs:self.response()
         provider = Mock(post_json=AsyncMock())
         async def exchange_response(**kwargs):
@@ -111,24 +111,34 @@ class GitHubSubjectTests(IsolatedAsyncioTestCase):
                 expires_in=300, expires_at=int(self.now.timestamp())+300,
                 scope='api.model.request')).encode())
         provider.post_json.side_effect = exchange_response
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = CredentialIssuanceLedger(Path(directory)/'issuance.db', self.auth,
-                                             operator_authorized=True)
-            ledger.pause(False)
-            exchange = JWTTokenExchange(authorization=self.auth, subject_source=self.source(enabled=True),
-                                        clock=lambda:self.now, enabled=True, transport=provider)
-            credential = exchange.binding(ledger).compose(clock=lambda:self.now)
-            first = await credential.issue(target=self.auth.target)
-            self.now += timedelta(seconds=180)
-            self.transport.request.side_effect = TimeoutError()
-            with self.assertRaises(ProviderCredentialLeaseError):
-                await credential.issue(target=self.auth.target)
-            with self.assertRaises(ProviderCredentialLeaseError):
-                await credential.issue(target=self.auth.target)
-            self.assertEqual(self.transport.request.await_count, 2)
-            provider.post_json.assert_awaited_once()
-            self.assertEqual(first.expires_at, self.auth.starts_at+timedelta(seconds=300))
-            self.assertNotIn(b'fake-exchanged-access-token', ledger.path.read_bytes())
+        for failure in (False, True):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                self.now = self.auth.starts_at
+                self.transport.request.reset_mock()
+                self.transport.request.side_effect = lambda **kwargs:self.response()
+                provider.post_json.reset_mock()
+                ledger = CredentialIssuanceLedger(Path(directory)/'issuance.db', self.auth,
+                                                 operator_authorized=True)
+                ledger.pause(False)
+                exchange = JWTTokenExchange(authorization=self.auth, subject_source=self.source(enabled=True),
+                                            clock=lambda:self.now, enabled=True, transport=provider)
+                credential = exchange.binding(ledger).compose(clock=lambda:self.now)
+                first = await credential.issue(target=self.auth.target)
+                self.now += timedelta(seconds=180)
+                if failure:
+                    self.transport.request.side_effect = TimeoutError()
+                    with self.assertRaises(ProviderCredentialLeaseError):
+                        await credential.issue(target=self.auth.target)
+                else:
+                    second = await credential.issue(target=self.auth.target)
+                    self.assertGreater(second.expires_at, first.expires_at)
+                    self.now += timedelta(seconds=180)
+                with self.assertRaises(ProviderCredentialLeaseError):
+                    await credential.issue(target=self.auth.target)
+                self.assertEqual(self.transport.request.await_count, 2)
+                self.assertEqual(provider.post_json.await_count, 1 if failure else 2)
+                self.assertEqual(first.expires_at, self.auth.starts_at+timedelta(seconds=300))
+                self.assertNotIn(b'fake-exchanged-access-token', ledger.path.read_bytes())
 
     def test_request_target_has_exact_origin_and_one_encoded_audience(self):
         host, path = request_target(self.url, self.policy.request_origin, self.policy.audience)
