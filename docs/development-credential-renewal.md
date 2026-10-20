@@ -37,3 +37,25 @@ tokens in schedule packets, receipts, logs, or exception text.
 
 Tests use fake tokens and an injected clock/issuer only. Passing them does not
 prove automatic production credential rotation or authorize an exchange.
+
+## Injected exchange-response integration
+
+`compose_exchange_credential_source` joins the durable ledger, renewal policy
+and a strict response parser. Its exchange callback has no default implementation
+and is never called while disabled. It must eventually use an authenticated,
+bounded, no-retry transport and the approved identity mapping. The callback also
+supplies subject expiry from a trusted identity source; parsing arbitrary JWT
+claims alone would not establish that trust.
+
+The parser requires exactly the approved nonempty scope set. A response without
+scopes is rejected even though the provider can omit them for an unrestricted
+mapping. It derives issuance time from absolute expiry minus issued lifetime,
+allows one second for timestamp rounding, and preserves absolute expiry. Tokens
+cannot outlive the subject identity. The composed source defaults to the existing
+900-second adapter lifetime limit; a longer token is rejected rather than given
+an invented shorter provider lifetime. Any change to that policy needs explicit
+qualification. Unexpected response fields, including refresh tokens, fail closed.
+
+Protocol reference: [OpenAI workload identity token exchange](https://developers.openai.com/api/reference/workload-identity-federation).
+No network transport, identity configuration or executable host selection is
+included in this integration.
