@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sys
+from functools import partial
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
@@ -13,7 +14,7 @@ from factory_runtime.development_schedule import DevelopmentSchedule
 from factory_runtime.development_schedule_host import ScheduledPacketHost, poll_schedule
 
 
-def main(argv=None):
+def main(argv=None, *, credential_binding=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--enable',action='store_true')
     parser.add_argument('--owner-authorized',action='store_true')
@@ -49,7 +50,7 @@ def main(argv=None):
         parser.error('operator-owned repository path required')
     host=ScheduledPacketHost(packet_directory=base/'packets',
         attempt_directory=base/'attempts',repository_path=args.repository_path,
-        execute=execute,owner_authorized=True)
+        execute=partial(execute, credential_binding=credential_binding),owner_authorized=True)
     if args.action=='admit':
         if args.packet is None or args.due_at is None:
             parser.error('exact packet and due time required')
