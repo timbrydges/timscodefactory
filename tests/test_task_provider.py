@@ -31,9 +31,9 @@ class TaskProviderTests(unittest.TestCase):
         self.protocol=TaskImplementationProtocol(self.task,**self.args)
 
     def test_existing_openai_adapter_prepares_bounded_task_request_offline(self):
-        decision={'type':'apply_edits','paths':[],'summary':'Proposed page size extraction',
-            'edits':[{'path':'src/app/dashboard/page.tsx','old_text':'10','new_text':'PAGE_SIZE'}],'reason':''}
-        transport=RecordingTransport(ProviderHTTPResponse(200,json.dumps(provider_payload(decision)).encode()))
+        decision={'type':'apply_edits','summary':'Proposed page size extraction',
+            'edits':[{'path':'src/app/dashboard/page.tsx','old_text':'10','new_text':'PAGE_SIZE'}]}
+        transport=RecordingTransport(ProviderHTTPResponse(200,json.dumps(provider_payload({'decision':decision})).encode()))
         invoker=OpenAIResponsesProviderInvoker(CountingCredentialSource(),StaticPricingSource(),transport,
             policy=OpenAIProviderPolicy(live_enabled=True,workload='task_implementation',max_output_tokens=512))
         with patch('socket.create_connection',side_effect=AssertionError('network forbidden')):
@@ -86,8 +86,8 @@ class TaskProviderTests(unittest.TestCase):
         payload={'kind':'factory_queue_admission_v1','owner':OWNER_IDENTITY,'receipt_id':'offline-receipt',
             'issued_at':int(now.timestamp()),'expires_at':int(now.timestamp())+3600,'plan':plan_binding(**args),
             'execution_authorized':False,'spending_authorized':False,'signing_authorized':False,'release_authorized':False}
-        decision={'type':'read_files','paths':['src/app/dashboard/page.tsx'],'summary':'','edits':[],'reason':''}
-        transport=RecordingTransport(ProviderHTTPResponse(200,json.dumps(provider_payload(decision)).encode()))
+        decision={'type':'read_files','paths':['src/app/dashboard/page.tsx']}
+        transport=RecordingTransport(ProviderHTTPResponse(200,json.dumps(provider_payload({'decision':decision})).encode()))
         credentials=CountingCredentialSource()
         invoker=OpenAIResponsesProviderInvoker(credentials,StaticPricingSource(),transport,
             policy=OpenAIProviderPolicy(live_enabled=True,workload='task_implementation',max_output_tokens=512))
