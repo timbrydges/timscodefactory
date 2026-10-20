@@ -29,3 +29,11 @@ class EntrypointTests(TestCase):
             with self.assertRaises(SystemExit): entry.main(['--execute-approved-once'])
             host.assert_not_called()
             self.assertEqual(process.mock_calls, [])
+
+    def test_disabled_profile_option_does_not_read_file_or_construct_generic_host(self):
+        with patch.object(entry, 'compose_task_host') as host, patch.object(entry, 'read_execution_profile') as read:
+            with patch.object(entry, 'subprocess') as process:
+                self.assertEqual(entry.main(['--execution-profile', 'not-present.json']), 0)
+                self.assertEqual(process.mock_calls, [])
+            read.assert_not_called()
+            host.assert_not_called()

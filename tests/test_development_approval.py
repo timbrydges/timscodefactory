@@ -49,3 +49,30 @@ class ApprovalTests(TestCase):
         self.approval['pins'] = dict(self.pins)
         with self.assertRaises(StateError): self.compose()
         self.assertFalse(self.receipt.exists())
+
+    def test_profile_digest_without_trusted_profile_is_rejected(self):
+        self.pins['execution_profile_digest'] = 'sha256:'+'a'*64
+        self.approval['pins'] = dict(self.pins)
+        with self.assertRaises(StateError): self.compose()
+        self.assertFalse(self.receipt.exists())
+
+    def test_generic_profile_checks_delivery_before_consuming(self):
+        import json
+        from factory_runtime.development_profile import TaskExecutionProfile
+        spec = json.loads(self.f.options['contract_bytes'])
+        profile = TaskExecutionProfile(spec['repository'], spec['task_id'],
+            tuple(spec['allowed_paths']), ('python', '-m', 'unittest'))
+        self.pins['execution_profile_digest'] = profile.digest
+        self.approval['pins'] = dict(self.pins)
+        with self.assertRaises(StateError):
+            compose_approved_host(self.f.path, approval=self.approval,
+                expected_pins=self.pins, receipt_path=self.receipt, now=self.now,
+                owner_authorized=True, execution_profile=profile, **self.f.options)
+        self.assertFalse(self.receipt.exists())
+        self.f.options['delivery'] = profile.delivery
+        with patch('factory_runtime.development_approval.DevelopmentHost') as host:
+            compose_approved_host(self.f.path, approval=self.approval,
+                expected_pins=self.pins, receipt_path=self.receipt, now=self.now,
+                owner_authorized=True, execution_profile=profile, **self.f.options)
+            host.assert_called_once()
+        self.assertTrue(self.receipt.exists())

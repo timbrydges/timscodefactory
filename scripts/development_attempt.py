@@ -14,8 +14,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from factory_runtime.development_composition import compose_bonus_host
+from factory_runtime.development_composition import compose_bonus_host, compose_task_host
 from factory_runtime.openai_provider import ProviderPricingQuote
+from factory_runtime.development_profile import read_execution_profile
 from factory_runtime.repository_snapshot import read_repository_snapshot
 from factory_runtime.task_queue import QueuedTask
 from factory_runtime.worker import digest
@@ -44,6 +45,7 @@ def main(argv=None):
     parser.add_argument('--owner-authorized', action='store_true')
     for name in ('pins', 'approval', 'pricing', 'contract', 'repository-path', 'attempt-directory'):
         parser.add_argument('--'+name, type=Path)
+    parser.add_argument('--execution-profile', type=Path)
     args = parser.parse_args(argv)
     if not args.execute_approved_once:
         print(json.dumps({'status': 'DISABLED', 'credential_read': False, 'model_calls': 0}))
@@ -63,16 +65,27 @@ def main(argv=None):
     spec = json.loads(raw)
     snapshot = read_repository_snapshot(args.repository_path,
         repository=pins['repository'], commit=pins['target_commit'])
+    task = QueuedTask(pins['attempt_id'], 'development-local', spec['task_id'],
+        pins['attempt_id'], head, digest(raw), 'IMPLEMENTATION')
+    profile = None
+    if args.execution_profile is not None:
+        with args.execution_profile.open('rb') as handle:
+            profile = read_execution_profile(handle.read(16385))
+        profile.validate_binding(pins=pins,
+            task=task,
+            contract_bytes=raw)
+    elif 'execution_profile_digest' in pins:
+        raise ValueError('approved execution profile file required')
     # Inspect only: never pull an image or provision dependencies.
     subprocess.run(['docker', 'image', 'inspect', pins['image_ref']], check=True,
                    capture_output=True, timeout=15)
-    task = QueuedTask(pins['attempt_id'], 'development-local', spec['task_id'],
-        pins['attempt_id'], head, digest(raw), 'IMPLEMENTATION')
-    host = compose_bonus_host(args.attempt_directory, approval=approval, expected_pins=pins,
+    composer = compose_task_host if profile is not None else compose_bonus_host
+    host = composer(args.attempt_directory, approval=approval, expected_pins=pins,
         receipt_path=args.attempt_directory.with_name(args.attempt_directory.name+'.consumed.json'),
         task=task, contract_bytes=raw, snapshot=snapshot,
         pricing_source=PinnedPricing(json.loads(args.pricing.read_text())),
-        clock=lambda: datetime.now(timezone.utc), owner_authorized=True)
+        clock=lambda: datetime.now(timezone.utc), owner_authorized=True,
+        **({'profile': profile} if profile is not None else {}))
     return report_result(asyncio.run(host.tick()))
 
 
