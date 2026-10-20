@@ -53,8 +53,15 @@ def main(argv=None):
     if not args.owner_authorized or any(getattr(args, name) is None for name in
             ('pins', 'approval', 'pricing', 'contract', 'repository_path', 'attempt_directory')):
         parser.error('explicit owner authorization and all pinned inputs required')
-    pins = json.loads(args.pins.read_text())
-    approval = json.loads(args.approval.read_text())
+    return report_result(asyncio.run(execute(args)))
+
+
+async def execute(args):
+    """Fixed scheduler integration; retains the same owner/pin gates."""
+    if args.owner_authorized is not True:
+        raise ValueError('explicit owner authorization required')
+    pins = json.loads(args.pins.read_bytes())
+    approval = json.loads(args.approval.read_bytes())
     head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], text=True)
     if head != pins['source_commit'] or dirty or args.attempt_directory.name != pins['attempt_id']:
@@ -83,10 +90,10 @@ def main(argv=None):
     host = composer(args.attempt_directory, approval=approval, expected_pins=pins,
         receipt_path=args.attempt_directory.with_name(args.attempt_directory.name+'.consumed.json'),
         task=task, contract_bytes=raw, snapshot=snapshot,
-        pricing_source=PinnedPricing(json.loads(args.pricing.read_text())),
+        pricing_source=PinnedPricing(json.loads(args.pricing.read_bytes())),
         clock=lambda: datetime.now(timezone.utc), owner_authorized=True,
         **({'profile': profile} if profile is not None else {}))
-    return report_result(asyncio.run(host.tick()))
+    return await host.tick()
 
 
 if __name__ == '__main__':
