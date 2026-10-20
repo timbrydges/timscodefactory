@@ -14,20 +14,22 @@ from typing import Awaitable, Callable
 from .openai_provider import ProviderCredentialLease
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import ProviderCredentialLeaseError
+from .credential_issuance import CredentialIssuanceLedger
 
 
 class RenewableProviderCredentialSource:
     """Coalesce renewal and retain absolute expiry without persisting secrets.
 
-    This is a process-local policy, not a durable exchange authorization ledger.
-    Production composition must provide that ledger before wiring a live issuer.
+    The optional issuance ledger preserves bounds and uncertain attempts across
+    restarts. Production composition must supply it before wiring a live issuer.
     """
 
     def __init__(self, *, target: ResolvedProviderTarget,
                  issuer: Callable[[], Awaitable[ProviderCredentialLease]],
                  clock: Callable[[], datetime], enabled: bool = False,
                  minimum_remaining_seconds: int = 210,
-                 maximum_lifetime_seconds: int = 3600):
+                 maximum_lifetime_seconds: int = 3600,
+                 issuance_ledger: CredentialIssuanceLedger | None = None):
         if not isinstance(target, ResolvedProviderTarget) or target.provider_family != "openai":
             raise ValueError("an exact OpenAI target is required")
         if type(enabled) is not bool or not callable(issuer) or not callable(clock):
@@ -37,6 +39,11 @@ class RenewableProviderCredentialSource:
                 or not 1 <= minimum_remaining_seconds < maximum_lifetime_seconds <= 3600):
             raise ValueError("invalid credential lifetime bounds")
         self._target = target
+        if issuance_ledger is not None and (
+                not isinstance(issuance_ledger, CredentialIssuanceLedger)
+                or issuance_ledger.authorization.target != target):
+            raise ValueError("issuance ledger target mismatch")
+        self._ledger = issuance_ledger
         self._issuer = issuer
         self._clock = clock
         self._enabled = enabled
@@ -78,18 +85,32 @@ class RenewableProviderCredentialSource:
         async with self._lock:
             if self._failed:
                 raise ProviderCredentialLeaseError("credential renewal requires reconciliation")
+            claim = None
             try:
                 now = self._now()
+                if self._ledger is not None:
+                    self._ledger.check(now=now, target=target)
                 if self._lease is not None and self._lease.expires_at - now > self._minimum:
                     return self._lease
                 self._lease = None
+                if self._ledger is not None:
+                    claim = self._ledger.claim(now=now, target=target)
                 lease = await self._issuer()
-                self._validate(lease, self._now())
+                completed_at = self._now()
+                self._validate(lease, completed_at)
+                if self._ledger is not None:
+                    self._ledger.finish(claim, succeeded=True, now=completed_at)
+                    claim = None
                 self._lease = lease
                 return lease
             except BaseException as error:
                 self._lease = None
                 self._failed = True
+                if claim is not None:
+                    try:
+                        self._ledger.finish(claim, succeeded=False)
+                    except Exception:
+                        pass  # STARTED is already durable and blocks all future claims.
                 if isinstance(error, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
                     raise
                 raise ProviderCredentialLeaseError("credential renewal failed; reconciliation required") from None
