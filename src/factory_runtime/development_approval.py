@@ -15,13 +15,15 @@ from .worker import digest
 
 
 def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
-                          now, owner_authorized=False, **options):
+                          now, owner_authorized=False, execution_profile=None, **options):
     if owner_authorized is not True:
         raise StateError('explicit human authorization required')
     keys = {'source_commit', 'contract_digest', 'repository', 'target_commit',
             'image_ref', 'model_id', 'attempt_id', 'credential_source',
             'builder_cap', 'reviewer_cap', 'total_cap', 'max_request_bytes',
             'max_output_tokens'}
+    if execution_profile is not None:
+        keys.add('execution_profile_digest')
     if (type(approval) is not dict or set(approval) != {'pins', 'expires_at'}
             or type(expected_pins) is not dict or set(expected_pins) != keys
             or canonical(approval['pins']) != canonical(expected_pins)):
@@ -39,6 +41,14 @@ def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
     except (ValueError, TypeError, ArithmeticError):
         raise StateError('invalid approval lifetime or limits') from None
     task, snapshot = options['task'], options['snapshot']
+    if execution_profile is not None:
+        from .development_profile import TaskExecutionProfile
+        if type(execution_profile) is not TaskExecutionProfile:
+            raise StateError('trusted execution profile required')
+        execution_profile.validate_binding(pins=pins, task=task,
+                                           contract_bytes=options['contract_bytes'])
+        if options.get('delivery') != execution_profile.delivery:
+            raise StateError('runtime delivery differs from execution profile')
     if (task.source_commit != pins['source_commit'] or task.entry_id != pins['attempt_id']
             or digest(options['contract_bytes']) != pins['contract_digest']
             or snapshot.repository != pins['repository'] or snapshot.commit != pins['target_commit']
