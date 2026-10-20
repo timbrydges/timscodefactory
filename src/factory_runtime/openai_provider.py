@@ -42,7 +42,7 @@ PROVIDER_FAILURE_CODES = frozenset({
     'decision_shape_invalid', 'decision_fields_contradictory', 'output_json_invalid',
     'output_text_count_invalid', 'output_content_invalid', 'response_failure_details',
     'decision_paths_invalid', 'decision_fields_invalid', 'edit_keys_invalid',
-    'edit_fields_invalid', 'decision_type_invalid', 'review_fields_invalid',
+    'edit_fields_invalid', 'decision_type_invalid', 'review_fields_invalid', 'request_byte_limit',
 })
 
 
@@ -541,7 +541,7 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
             ensure_ascii=False,
         ).encode("utf-8")
         if len(body) > self.policy.max_request_bytes:
-            raise OpenAIProviderProtocolError("OpenAI request exceeds configured byte cap")
+            raise OpenAIProviderProtocolError("OpenAI request exceeds configured byte cap", failure_code="request_byte_limit")
 
         # UTF-8 byte count is a deliberately conservative upper bound for input
         # token count; combine it with the configured max output tokens to stop a

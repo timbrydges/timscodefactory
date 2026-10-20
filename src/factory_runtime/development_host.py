@@ -43,10 +43,10 @@ class DevelopmentHost:
         session.journal = ExclusiveDevelopmentJournal(self.directory)
         self.queue = LocalTaskQueue(self.directory / 'queue.db')
         self.queue.enqueue(task)
-        def save(entry_id, raw):
+        def save_named(filename, entry_id, raw):
             if entry_id != task.entry_id:
                 raise StateError('artifact entry differs from admitted task')
-            with (self.directory / 'attempt.json').open('xb') as handle:
+            with (self.directory / filename).open('xb') as handle:
                 handle.write(raw)
                 handle.flush()
                 os.fsync(handle.fileno())
@@ -54,7 +54,8 @@ class DevelopmentHost:
             contract_bytes=contract_bytes, snapshot=snapshot,
             builder=session.build, reviewer=session.review,
             request_for=request_for, sandbox_for=sandbox_for,
-            save_artifact=save, clock=clock,
+            save_artifact=lambda entry, raw: save_named('attempt.json', entry, raw),
+            save_test_evidence=lambda entry, raw: save_named('tests.json', entry, raw), clock=clock,
             builder_identity='development-builder',
             reviewer_identity='development-reviewer', enabled=enabled, delivery=delivery)
         # Only this new attempt's local queue can be enabled by the trusted host.

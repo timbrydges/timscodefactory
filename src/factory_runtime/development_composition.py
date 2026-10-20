@@ -37,7 +37,10 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
                 # output allowance for the structured decision rather than reasoning.
                 # This behavior is bound by the approved source commit.
                 reasoning_effort='low',
-                max_output_tokens=pins['max_output_tokens']))
+                # Review returns a verdict/findings, not a full implementation.
+                # Its smaller output allowance leaves room for before/after input.
+                max_output_tokens=(min(pins['max_output_tokens'], 4096)
+                    if workload == 'task_review' else pins['max_output_tokens'])))
     command = ('node', '--experimental-strip-types', '--test', 'tests/library-pagination.test.mjs')
     delivery = {'mode': 'complete_task_single_proposal',
         'required_changed_paths': ['src/app/dashboard/page.tsx',

@@ -469,5 +469,35 @@ class OpenAIProviderTests(unittest.TestCase):
             OpenAIProviderPolicy(endpoint="https://example.com/v1/responses")
 
 
+    def test_large_review_fits_smaller_output_allowance_and_preserves_cost_gate(self):
+        turn = {'kind': 'factory_task_review_v1', 'fixture': 'x' * 25000}
+        response = ProviderHTTPResponse(200, json.dumps(provider_payload({
+            'review_input_digest': 'sha256:' + 'a'*64, 'verdict': 'REJECT',
+            'findings': ['Offline fixture only']})).encode())
+        for output, byte_cap, expected in [
+                (8192, 21540, OpenAIProviderProtocolError),
+                (8192, 42020, OpenAIProviderPricingError),
+                (4096, 42020, None)]:
+            with self.subTest(output=output, byte_cap=byte_cap):
+                credentials = CountingCredentialSource()
+                transport = RecordingTransport(response)
+                invoker = OpenAIResponsesProviderInvoker(credentials, StaticPricingSource(), transport,
+                    policy=OpenAIProviderPolicy(live_enabled=True, workload='task_review',
+                        max_output_tokens=output, max_request_bytes=byte_cap))
+                call = invoker.invoke(target=TARGET, turn=turn,
+                    max_cost_usd=Decimal('0.25'), decision_schema_version='1')
+                if expected:
+                    with self.assertRaises(expected) as caught:
+                        asyncio.run(call)
+                    if expected is OpenAIProviderProtocolError:
+                        self.assertEqual(caught.exception.failure_code, 'request_byte_limit')
+                    self.assertEqual(credentials.calls, 0)
+                    self.assertEqual(transport.calls, 0)
+                else:
+                    asyncio.run(call)
+                    self.assertEqual(transport.calls, 1)
+                    self.assertEqual(json.loads(transport.last_body)['max_output_tokens'], 4096)
+
+
 if __name__ == "__main__":
     unittest.main()

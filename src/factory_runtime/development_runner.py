@@ -19,7 +19,7 @@ from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 class DevelopmentTaskRunner:
     def __init__(self, queue, *, contract_bytes, snapshot, builder, reviewer,
                  request_for, sandbox_for, save_artifact, clock,
-                 builder_identity, reviewer_identity, enabled=False, delivery=None):
+                 builder_identity, reviewer_identity, enabled=False, delivery=None, save_test_evidence=None):
         if type(enabled) is not bool or builder_identity == reviewer_identity:
             raise StateError('explicit activation and distinct identities required')
         self.delivery = json.loads(canonical(delivery)) if delivery is not None else None
@@ -28,6 +28,7 @@ class DevelopmentTaskRunner:
         self.builder, self.reviewer = builder, reviewer
         self.request_for, self.sandbox_for = request_for, sandbox_for
         self.save_artifact, self.clock = save_artifact, clock
+        self.save_test_evidence = save_test_evidence
         self.builder_identity, self.reviewer_identity = builder_identity, reviewer_identity
 
     async def tick(self):
@@ -66,6 +67,12 @@ class DevelopmentTaskRunner:
                         'proposal': decision, 'test_observation': observation,
                         'test_request': asdict(request), 'test_receipt': asdict(receipt),
                         'authoritative': False, 'release_authorized': False}
+                    if self.save_test_evidence is not None:
+                        phase = 'TEST_EVIDENCE'
+                        # Persist before review can fail; this receipt is evidence only.
+                        raw = json.dumps(artifact, sort_keys=True,
+                            default=lambda v: v.isoformat()).encode('utf-8')
+                        self.save_test_evidence(task.entry_id, raw)
                     result = observation
                     outcome = 'REJECTED'
                     if observation['status'] == 'TESTS_PASSED_REVIEW_REQUIRED':
