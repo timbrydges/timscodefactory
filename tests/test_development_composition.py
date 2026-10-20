@@ -41,6 +41,11 @@ class CompositionTests(TestCase):
             args['request_for'](candidate)
             self.assertEqual(candidate.request.call_args.kwargs['command'],
                 ('node', '--experimental-strip-types', '--test', 'tests/library-pagination.test.mjs'))
+            self.assertEqual(args['delivery']['test_command'],
+                             list(candidate.request.call_args.kwargs['command']))
+            self.assertEqual(args['delivery']['required_changed_paths'],
+                ['src/app/dashboard/page.tsx', 'src/lib/library-pagination.ts',
+                 'tests/library-pagination.test.mjs'])
             self.options['pricing_source'].quote.assert_not_called()
 
     def test_other_secret_or_provider_is_rejected(self):

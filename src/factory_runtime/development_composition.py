@@ -38,10 +38,14 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
                 # This behavior is bound by the approved source commit.
                 reasoning_effort='low',
                 max_output_tokens=pins['max_output_tokens']))
+    command = ('node', '--experimental-strip-types', '--test', 'tests/library-pagination.test.mjs')
+    delivery = {'mode': 'complete_task_single_proposal',
+        'required_changed_paths': ['src/app/dashboard/page.tsx',
+            'src/lib/library-pagination.ts', 'tests/library-pagination.test.mjs'],
+        'test_command': list(command)}
     def request(candidate):
         return candidate.request(request_id='pagination-tests', lease_id=task.activation_id,
-            role_id='isolated-tests', command=('node', '--experimental-strip-types',
-                '--test', 'tests/library-pagination.test.mjs'),
+            role_id='isolated-tests', command=command,
             environment_digest=policy.environment_digest, timeout_seconds=60,
             expected_runner_identity=policy.runner_identity)
     return compose_approved_host(directory, approval=approval, expected_pins=pins,
@@ -53,4 +57,4 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
         builder_cap=Decimal(pins['builder_cap']), reviewer_cap=Decimal(pins['reviewer_cap']),
         total_cap=Decimal(pins['total_cap']), request_for=request,
         sandbox_for=lambda candidate: DockerSandboxAdapter(candidate.workspace, policy),
-        clock=clock)
+        clock=clock, delivery=delivery)

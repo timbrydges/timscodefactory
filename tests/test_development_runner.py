@@ -136,3 +136,44 @@ class DevelopmentRunnerTests(unittest.TestCase):
         self.assertNotIn('private validation detail', json.dumps(result))
         self.assertEqual(self.calls, ['builder'])
         self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')
+
+    def test_one_shot_partial_proposal_stops_before_sandbox_or_review(self):
+        import test_task_new_files
+        f = test_task_new_files.TaskNewFileTests()
+        f.setUp()
+        self.runner.snapshot = f.snapshot
+        self.runner.delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': [f.page, f.helper, f.test],
+            'test_command': ['node', '--test', f.test]}
+        # Reproduce the live v5 shape: helper only, no dashboard or tests.
+        self.f.decision = {**f.decision, 'edits': [f.decision['edits'][0]]}
+        self.runner.enabled = True
+        result = self.tick()
+        self.assertEqual(result['result']['failure_code'], 'incomplete_delivery')
+        self.assertEqual(result['result']['phase'], 'PROPOSAL_VALIDATION')
+        self.assertEqual(self.calls, ['builder'])
+        self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')
+
+    def test_one_shot_complete_proposal_reaches_tests_and_review_offline(self):
+        import test_task_new_files
+        f = test_task_new_files.TaskNewFileTests()
+        f.setUp()
+        self.runner.snapshot = f.snapshot
+        self.f.decision = f.decision
+        self.runner.delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': [f.page, f.helper, f.test],
+            'test_command': ['node', '--test']}
+        self.runner.enabled = True
+        result = self.tick()
+        self.assertEqual(result['status'], 'TICK_COMPLETED')
+        self.assertEqual(self.calls, ['builder', 'tests', 'reviewer'])
+        self.assertFalse(self.artifacts[0]['release_authorized'])
+
+    def test_one_shot_command_drift_stops_before_execution(self):
+        self.runner.delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': [self.f.path], 'test_command': ['different-command']}
+        self.runner.enabled = True
+        result = self.tick()
+        self.assertEqual(result['result']['phase'], 'CANDIDATE')
+        self.assertEqual(self.calls, ['builder'])
+        self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')

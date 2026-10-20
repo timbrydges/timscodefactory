@@ -77,3 +77,25 @@ class DevelopmentHostTests(unittest.TestCase):
         for path in self.path.iterdir():
             self.assertNotIn(secret.encode(), path.read_bytes())
         self.assertNotIn(secret, json.dumps(self.f.requests))
+
+    def test_delivery_survives_host_and_serialization_without_mutable_authority(self):
+        delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': [self.f.f.f.path], 'test_command': ['node', '--test']}
+        host = DevelopmentHost(self.path, enabled=True, delivery=delivery, **self.options)
+        delivery['test_command'].append('untrusted-change')
+        self.assertEqual(asyncio.run(host.tick())['status'], 'TICK_COMPLETED')
+        wire = self.f.requests[0]
+        turn = json.loads(wire['input'])
+        self.assertEqual(turn['delivery']['test_command'], ['node', '--test'])
+        self.assertIn('exactly one builder', wire['instructions'])
+        self.assertIn('complete implementation and regression tests', wire['instructions'])
+        self.assertEqual(len(self.f.requests), 2)
+        self.assertEqual(asyncio.run(host.tick())['status'], 'IDLE_OR_PAUSED')
+
+    def test_invalid_delivery_never_reaches_provider(self):
+        delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': ['.env'], 'test_command': ['node', '--test']}
+        host = DevelopmentHost(self.path, enabled=True, delivery=delivery, **self.options)
+        self.assertEqual(asyncio.run(host.tick())['result']['phase'], 'BINDING')
+        self.assertEqual(self.f.requests, [])
+        self.assertEqual(asyncio.run(host.tick())['status'], 'IDLE_OR_PAUSED')

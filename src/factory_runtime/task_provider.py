@@ -24,6 +24,7 @@ TASK_VALIDATION_FAILURES = {
     'escalation requires a reason': 'invalid_escalation',
     'unsupported implementation decision': 'unsupported_decision',
     'implementation proposal exceeds byte limit': 'proposal_byte_limit',
+    'proposal omits required delivery changes': 'incomplete_delivery',
 }
 
 
@@ -35,7 +36,7 @@ def _path(path):
 
 
 class TaskImplementationProtocol:
-    def __init__(self, task, *, repository, target_commit, contract_bytes, files, missing_paths=()):
+    def __init__(self, task, *, repository, target_commit, contract_bytes, files, missing_paths=(), delivery=None):
         task.validate()
         if (task.expected_state != 'IMPLEMENTATION' or type(contract_bytes) is not bytes
                 or len(contract_bytes) > 65536 or digest(contract_bytes) != task.contract_digest
@@ -65,6 +66,20 @@ class TaskImplementationProtocol:
             'target_commit': target_commit, 'contract_digest': task.contract_digest,
             'source_snapshot_digest': digest(canonical(self.files)), 'specification': spec,
             'files': self.files, 'missing_paths': sorted(missing_paths)}
+        if delivery is not None:
+            if (type(delivery) is not dict or set(delivery) != {
+                    'mode', 'required_changed_paths', 'test_command'}
+                    or delivery['mode'] != 'complete_task_single_proposal'
+                    or type(delivery['required_changed_paths']) is not list
+                    or not delivery['required_changed_paths']
+                    or any(_path(p) not in self.allowed for p in delivery['required_changed_paths'])
+                    or len(set(delivery['required_changed_paths'])) != len(delivery['required_changed_paths'])
+                    or type(delivery['test_command']) is not list
+                    or not 1 <= len(delivery['test_command']) <= 32
+                    or any(type(v) is not str or not v or len(v) > 1024
+                           for v in delivery['test_command'])):
+                raise StateError('invalid trusted delivery contract')
+            self._turn['delivery'] = json.loads(canonical(delivery))
         self._raw = canonical(self._turn)
         if len(self._raw) > 32000:
             raise StateError('implementation input exceeds byte limit')
@@ -110,6 +125,12 @@ class TaskImplementationProtocol:
                       or files[path].count(edit['old_text']) != 1):
                     raise StateError('edit requires one exact source match in supplied file')
                 seen.add(path)
+            delivery = turn.get('delivery')
+            if delivery and (not set(delivery['required_changed_paths']) <= seen
+                    or any(edit['path'] in delivery['required_changed_paths']
+                           and (edit['old_text'] == edit['new_text'] or not edit['new_text'].strip())
+                           for edit in edits)):
+                raise StateError('proposal omits required delivery changes')
         elif kind == 'escalate' and set(decision) == {'type', 'reason'}:
             if not isinstance(decision['reason'], str) or not decision['reason'].strip():
                 raise StateError('escalation requires a reason')
