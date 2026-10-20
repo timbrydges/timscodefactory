@@ -16,10 +16,22 @@ plus 30 seconds of margin). Network delay consumes that remaining lifetime.
 The maximum issued lifetime is one hour. Clock reversal, malformed results,
 issuance failures, and cancellation stop the instance without fallback or retry.
 
-This failure latch is process-local. Recreating the object is not permission to
-repeat an uncertain exchange. Before live wiring, provide a durable issuance
-authorization/attempt ledger, verify the host's trusted identity source and
-provider mapping, and obtain the specific live-action approval. The scheduler's
+Without a ledger, the failure latch is process-local. Recreating the object is
+not permission to repeat an uncertain exchange. The optional
+`CredentialIssuanceLedger` binds an immutable approval digest, identity mapping,
+exact target, expected scopes, authorization window, renewal interval and total
+exchange count. It starts paused and commits each claim before issuer access.
+Unfinished, failed or cancelled exchanges block further claims across restarts.
+Successful renewals use distinct slots within the same approved allowance.
+Cached credentials are also subject to the ledger's pause and expiry checks.
+The ledger stores metadata only. It does not authenticate human approval or
+verify provider scopes; trusted admission and the issuer must do that. Do not
+delete/replace it to recover an uncertain exchange. Its SQLite transactions
+coordinate processes sharing the same local ledger, not multiple hosts with
+separate copies. Live composition must choose one authoritative ledger.
+
+Before live wiring, verify the host's trusted identity source and provider
+mapping, and obtain the specific live-action approval. The scheduler's
 packet authorization alone must not grant identity-provider access. Never place
 tokens in schedule packets, receipts, logs, or exception text.
 
