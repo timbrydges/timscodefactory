@@ -19,9 +19,10 @@ from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 class DevelopmentTaskRunner:
     def __init__(self, queue, *, contract_bytes, snapshot, builder, reviewer,
                  request_for, sandbox_for, save_artifact, clock,
-                 builder_identity, reviewer_identity, enabled=False):
+                 builder_identity, reviewer_identity, enabled=False, delivery=None):
         if type(enabled) is not bool or builder_identity == reviewer_identity:
             raise StateError('explicit activation and distinct identities required')
+        self.delivery = json.loads(canonical(delivery)) if delivery is not None else None
         self.queue, self.enabled = queue, enabled
         self.contract_bytes, self.snapshot = contract_bytes, snapshot
         self.builder, self.reviewer = builder, reviewer
@@ -43,7 +44,7 @@ class DevelopmentTaskRunner:
             missing = [p for p in spec['allowed_paths'] if p not in source]
             protocol = TaskImplementationProtocol(task, repository=self.snapshot.repository,
                 target_commit=self.snapshot.commit, contract_bytes=self.contract_bytes,
-                files=files, missing_paths=missing)
+                files=files, missing_paths=missing, delivery=self.delivery)
             phase = 'BUILDER'
             decision = json.loads(canonical(await self.builder(protocol.turn)))
             phase = 'PROPOSAL_VALIDATION'
@@ -55,6 +56,9 @@ class DevelopmentTaskRunner:
                 phase = 'CANDIDATE'
                 with candidate_workspace(protocol, decision, repository_snapshot=self.snapshot) as candidate:
                     request = self.request_for(candidate)
+                    delivery = protocol.turn.get('delivery')
+                    if delivery and list(request.command) != delivery['test_command']:
+                        raise StateError('test command differs from delivery contract')
                     phase = 'TESTS'
                     receipt = await self.sandbox_for(candidate).execute(request)
                     observation = candidate.evaluate(request, receipt, now=self.clock())

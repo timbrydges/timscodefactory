@@ -107,4 +107,39 @@ class TaskNewFileTests(unittest.TestCase):
         self.assertIn('missing_paths',json.loads(transport.last_body)['instructions'])
 
 
+    def test_delivery_contract_is_frozen_and_cannot_expand_scope(self):
+        delivery = {'mode': 'complete_task_single_proposal',
+            'required_changed_paths': [self.page, self.helper, self.test],
+            'test_command': ['node', '--test', self.test]}
+        protocol = TaskImplementationProtocol(self.task, **self.args,
+            missing_paths=[self.helper, self.test], delivery=delivery)
+        original_digest = protocol.input_digest
+        delivery['required_changed_paths'].clear()
+        delivery['test_command'].append('private-command')
+        self.assertEqual(protocol.input_digest, original_digest)
+        self.assertNotEqual(original_digest, self.protocol.input_digest)
+        self.assertEqual(len(protocol.turn['delivery']['required_changed_paths']), 3)
+        self.assertNotIn('private-command', protocol.turn['delivery']['test_command'])
+        delivery['required_changed_paths'] = ['.env']
+        with self.assertRaises(StateError):
+            TaskImplementationProtocol(self.task, **self.args, delivery=delivery)
+
+    def test_delivery_rejects_missing_noop_or_empty_required_edits(self):
+        protocol = TaskImplementationProtocol(self.task, **self.args,
+            missing_paths=[self.helper, self.test], delivery={
+                'mode': 'complete_task_single_proposal',
+                'required_changed_paths': [self.page, self.helper, self.test],
+                'test_command': ['node', '--test', self.test]})
+        for omitted in range(3):
+            with self.subTest(omitted=omitted), self.assertRaisesRegex(StateError, 'required delivery'):
+                protocol.validate_decision({**self.decision,
+                    'edits': [e for i,e in enumerate(self.decision['edits']) if i != omitted]})
+        for value in ['10', '   ']:
+            edits = [dict(e) for e in self.decision['edits']]
+            edits[2]['new_text'] = value
+            with self.subTest(value=value), self.assertRaisesRegex(StateError, 'required delivery'):
+                protocol.validate_decision({**self.decision, 'edits': edits})
+        self.assertEqual(protocol.validate_decision(self.decision)['status'], 'PROPOSAL_ONLY')
+
+
 if __name__ == '__main__': unittest.main()

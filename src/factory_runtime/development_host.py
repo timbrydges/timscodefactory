@@ -17,7 +17,7 @@ from .worker import digest
 class DevelopmentHost:
     def __init__(self, directory, *, task, contract_bytes, snapshot, builder,
                  reviewer, target, builder_cap, reviewer_cap, total_cap,
-                 request_for, sandbox_for, clock, enabled=False):
+                 request_for, sandbox_for, clock, enabled=False, delivery=None):
         if type(enabled) is not bool:
             raise StateError('explicit boolean activation required')
         task.validate()
@@ -56,7 +56,7 @@ class DevelopmentHost:
             request_for=request_for, sandbox_for=sandbox_for,
             save_artifact=save, clock=clock,
             builder_identity='development-builder',
-            reviewer_identity='development-reviewer', enabled=enabled)
+            reviewer_identity='development-reviewer', enabled=enabled, delivery=delivery)
         # Only this new attempt's local queue can be enabled by the trusted host.
         self.queue.pause(not enabled)
 
