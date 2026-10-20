@@ -90,6 +90,34 @@ class DevelopmentProviderTests(unittest.TestCase):
             asyncio.run(self.session.build({'kind': 'factory_task_implementation_v1'}))
         self.assertEqual(len(self.requests), 1)
 
+    def test_rejected_task_proposal_is_retained_before_validation_without_authority(self):
+        self.session.enabled = self.f.runner.enabled = True
+        self.f.f.decision['edits'][0]['old_text'] = 'not present in pinned source'
+        result = self.f.tick()
+        self.assertEqual(result['result']['phase'], 'PROPOSAL_VALIDATION')
+        self.assertEqual(result['result']['failure_code'], 'source_match_not_unique')
+        evidence = self.events['builder.completed']
+        self.assertEqual(evidence['proposal'], self.f.f.decision)
+        self.assertFalse(evidence['authoritative'])
+        from factory_state.scope import canonical
+        from factory_runtime.worker import digest
+        self.assertEqual(evidence['decision_digest'], digest(canonical(evidence['proposal'])))
+        self.assertNotIn('provider-test-secret', json.dumps(evidence))
+        self.assertEqual(self.f.calls, [])  # Neither sandbox nor reviewer reached.
+        self.assertEqual(self.f.tick()['status'], 'IDLE_OR_PAUSED')
+        self.assertEqual(len(self.requests), 1)
+
+    def test_oversize_proposal_retains_hash_and_usage_but_not_content(self):
+        self.session.enabled = self.f.runner.enabled = True
+        self.f.f.decision['summary'] = 'x' * 33000
+        result = self.f.tick()
+        self.assertEqual(result['result']['failure_code'], 'proposal_byte_limit')
+        evidence = self.events['builder.completed']
+        self.assertIsNone(evidence['proposal'])
+        self.assertGreater(evidence['proposal_bytes'], 32000)
+        self.assertEqual(evidence['input_tokens'], 1000)
+        self.assertEqual(len(self.requests), 1)
+
     def test_incomplete_response_retains_usage_without_content_and_cannot_repeat(self):
         self.session.enabled = self.f.runner.enabled = True
         self.incomplete = True

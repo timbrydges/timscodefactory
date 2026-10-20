@@ -10,6 +10,8 @@ from factory_runtime.repository_snapshot import RepositoryFile, RepositorySnapsh
 from factory_runtime.task_queue import LocalTaskQueue, QueuedTask
 from factory_runtime.worker import digest
 from factory_runtime.openai_provider import OpenAIProviderProtocolError
+from factory_state.model import StateError
+from unittest.mock import patch
 import test_task_candidate as fixtures
 
 
@@ -124,3 +126,13 @@ class DevelopmentRunnerTests(unittest.TestCase):
         result = self.tick()
         self.assertEqual(result['result']['failure_code'], 'protocol_failure')
         self.assertNotIn('private', json.dumps(result))
+
+    def test_unknown_task_validation_message_is_not_persisted(self):
+        self.runner.enabled = True
+        with patch('factory_runtime.development_runner.TaskImplementationProtocol.validate_decision',
+                   side_effect=StateError('private validation detail')):
+            result = self.tick()
+        self.assertEqual(result['result']['failure_code'], 'task_validation_failure')
+        self.assertNotIn('private validation detail', json.dumps(result))
+        self.assertEqual(self.calls, ['builder'])
+        self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')

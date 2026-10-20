@@ -85,12 +85,17 @@ class DevelopmentProviderSession:
                 'response_evidence': dict(self.adapters[stage].last_response_evidence),
                 'billing_reconciled': False})
             raise
+        decision_bytes = canonical(result.decision)
         self.journal(stage + '.completed', {**binding,
-            'decision_digest': digest(canonical(result.decision)),
+            'decision_digest': digest(decision_bytes),
+            # Retain bounded normalized proposals, not the raw vendor response.
+            # This is untrusted evidence, never execution or release authority.
+            'proposal': json.loads(decision_bytes) if len(decision_bytes) <= 32000 else None,
+            'proposal_bytes': len(decision_bytes), 'authoritative': False,
             'input_tokens': result.input_tokens, 'output_tokens': result.output_tokens,
             'cost_usd': str(result.cost_usd)})
         self.completed.add(stage)
         if stage == 'builder':
             self.builder_input_digest = digest(frozen)
-            self.builder_decision_digest = digest(canonical(result.decision))
-        return result.decision
+            self.builder_decision_digest = digest(decision_bytes)
+        return json.loads(decision_bytes)

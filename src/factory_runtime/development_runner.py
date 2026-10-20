@@ -10,7 +10,7 @@ import json
 from factory_state.model import StateError
 from factory_state.scope import canonical
 from .task_candidate import candidate_workspace
-from .task_provider import TaskImplementationProtocol
+from .task_provider import TaskImplementationProtocol, TASK_VALIDATION_FAILURES
 from .task_review import TaskReviewProtocol
 from .worker import digest
 from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
@@ -46,6 +46,7 @@ class DevelopmentTaskRunner:
                 files=files, missing_paths=missing)
             phase = 'BUILDER'
             decision = json.loads(canonical(await self.builder(protocol.turn)))
+            phase = 'PROPOSAL_VALIDATION'
             protocol.validate_decision(decision)
             if decision['type'] != 'apply_edits':
                 result = {'status': 'NEEDS_INPUT', 'decision_type': decision['type']}
@@ -87,5 +88,7 @@ class DevelopmentTaskRunner:
             if isinstance(error, OpenAIProviderProtocolError):
                 # Never persist exception text, provider bodies or credentials.
                 result['failure_code'] = error.failure_code if error.failure_code in PROVIDER_FAILURE_CODES else 'protocol_failure'
+            elif phase == 'PROPOSAL_VALIDATION' and isinstance(error, StateError):
+                result['failure_code'] = TASK_VALIDATION_FAILURES.get(str(error), 'task_validation_failure')
         self.queue.finish(task.entry_id, outcome, result)
         return {'entry_id': task.entry_id, 'status': outcome, 'result': result}

@@ -330,6 +330,9 @@ def _instructions(workload="ci_repair") -> str:
             "Only paths explicitly listed in missing_paths may be created, using empty old_text "
             "and nonempty new_text. Never use empty old_text for an existing file. "
             "Return an object containing decision, with only the fields for its selected type. "
+            "Read requests must name only supplied existing files, never missing_paths or paths "
+            "outside specification.allowed_paths. Escalate if other context is necessary. "
+            "Use at most one edit per path and an old_text that occurs exactly once in that file. "
             "Do not claim that proposed changes were applied or tested."
         )
     return (
