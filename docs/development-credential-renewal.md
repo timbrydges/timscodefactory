@@ -95,9 +95,31 @@ private pipe, not command arguments, environment variables or files. Error bodie
 are discarded. A durable claim must surround the complete operation, via its
 ledger-bound credential source. Failure or cancellation requires reconciliation.
 
-The source interface and transport are implemented, but no AWS/GitHub identity
-source or CLI activation is configured. Tests mock sockets, processes and tokens;
+The source interface and transport are implemented, but no live identity source
+or CLI activation is configured. Tests mock sockets, processes and tokens;
 they do not qualify TLS access, real identity issuance or live provider behavior.
+
+## GitHub subject source
+
+`GitHubSubjectSource` supplies a GitHub job identity to `JWTTokenExchange`.
+Trusted host code pins the exact request origin, private repository name and ID,
+main ref and workflow file/ref. The origin must be an HTTPS subdomain of
+`actions.githubusercontent.com`; its actual job origin still requires
+qualification. Only an enabled source with a matching current authorization
+reads the two GitHub job request variables. It checks the URL before reading the
+bearer and adds the fixed OpenAI audience once. Packets cannot supply this policy.
+
+One GET runs in the killable transport child with a ten-second limit and 64 KiB
+response limit. Redirects, retries and error bodies are rejected. The source
+checks returned issuer, audience, repository ID/name, branch, workflow and fresh
+issuance/expiry claims. Decoding is not signature verification: OpenAI must
+verify the GitHub signature and the configured exact service-account mapping.
+Invoke this source only inside the ledger-bound exchange so a failed request
+cannot be repeated automatically. This implementation creates no identity
+provider, mapping, GitHub permission, runner registration or workflow.
+
+References: [GitHub identity requests](https://docs.github.com/en/actions/reference/security/oidc)
+and [OpenAI GitHub federation](https://developers.openai.com/api/docs/guides/workload-identity-federation/github-actions).
 
 ## Qualifying renewal timing
 
