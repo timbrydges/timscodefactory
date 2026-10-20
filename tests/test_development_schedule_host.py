@@ -113,3 +113,21 @@ class HostTests(TestCase):
             self.assertEqual(module.main([]),0)
             db.assert_not_called()
             execute.assert_not_called()
+
+    def test_schedule_cli_preserves_operator_binding_in_fixed_dispatch(self):
+        scripts=Path(__file__).resolve().parents[1]/'scripts'
+        with patch.object(sys,'path',[str(scripts)]+sys.path):
+            spec=importlib.util.spec_from_file_location('schedule_binding_cli',scripts/'development_schedule.py')
+            module=importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        binding=object()
+        with patch.object(module,'execute',new_callable=AsyncMock) as execute, \
+                patch.object(module,'poll_schedule',new_callable=AsyncMock,
+                             return_value={'outcomes':{}}) as poll:
+            self.assertEqual(module.main(['--enable','--owner-authorized','--action','run',
+                '--host-directory',str(self.base),'--repository-path',str(self.base/'repo')],
+                credential_binding=binding),0)
+            host=poll.call_args.args[1]
+            self.assertIs(host.execute.func,execute)
+            self.assertIs(host.execute.keywords['credential_binding'],binding)
+            execute.assert_not_awaited()

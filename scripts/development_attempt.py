@@ -20,6 +20,7 @@ from factory_runtime.development_profile import read_execution_profile
 from factory_runtime.repository_snapshot import read_repository_snapshot
 from factory_runtime.task_queue import QueuedTask
 from factory_runtime.worker import digest
+from factory_runtime.workload_identity_response import RenewableCredentialBinding
 
 
 class PinnedPricing:
@@ -39,7 +40,7 @@ def report_result(result):
     return 0 if result.get('status') == 'TICK_COMPLETED' else 1
 
 
-def main(argv=None):
+def main(argv=None, *, credential_binding=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute-approved-once', action='store_true')
     parser.add_argument('--owner-authorized', action='store_true')
@@ -53,15 +54,23 @@ def main(argv=None):
     if not args.owner_authorized or any(getattr(args, name) is None for name in
             ('pins', 'approval', 'pricing', 'contract', 'repository_path', 'attempt_directory')):
         parser.error('explicit owner authorization and all pinned inputs required')
-    return report_result(asyncio.run(execute(args)))
+    return report_result(asyncio.run(execute(args, credential_binding=credential_binding)))
 
 
-async def execute(args):
+async def execute(args, *, credential_binding=None):
     """Fixed scheduler integration; retains the same owner/pin gates."""
     if args.owner_authorized is not True:
         raise ValueError('explicit owner authorization required')
     pins = json.loads(args.pins.read_bytes())
     approval = json.loads(args.approval.read_bytes())
+    # Supplied only by the trusted host, never reconstructed from packet fields.
+    if credential_binding is not None:
+        if (type(credential_binding) is not RenewableCredentialBinding
+                or args.execution_profile is None
+                or pins.get('credential_source') != credential_binding.source_pin):
+            raise ValueError('trusted renewable credential binding differs from pinned inputs')
+    elif pins.get('credential_source') != 'env:FACTORY_OPENAI_API_KEY':
+        raise ValueError('explicit renewable credential binding required')
     head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], text=True)
     if head != pins['source_commit'] or dirty or args.attempt_directory.name != pins['attempt_id']:
@@ -92,7 +101,8 @@ async def execute(args):
         task=task, contract_bytes=raw, snapshot=snapshot,
         pricing_source=PinnedPricing(json.loads(args.pricing.read_bytes())),
         clock=lambda: datetime.now(timezone.utc), owner_authorized=True,
-        **({'profile': profile} if profile is not None else {}))
+        **({'profile': profile, 'credential_binding': credential_binding}
+           if profile is not None else {}))
     return await host.tick()
 
 

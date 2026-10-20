@@ -101,6 +101,14 @@ they do not qualify TLS access, real identity issuance or live provider behavior
 
 ## Qualifying renewal timing
 
+The attempt and schedule entrypoints accept a trusted Python
+`credential_binding` argument. The scheduler carries that same binding into
+each admitted attempt. A renewable source pin requires an exact binding match
+and a generic execution profile before any Git or Docker command runs; disabled
+entrypoints never consume it. Packets cannot construct a binding or select an
+exchange transport. The ordinary CLI still has no identity-source bootstrap:
+an operator-owned host must supply it after the separate live authorization.
+
 The renewal interval must fit inside the usable token window. For example, a
 300-second token with 20 seconds of exchange delay and a 210-second required
 remaining lifetime leaves 70 seconds from receipt before renewal is needed.
