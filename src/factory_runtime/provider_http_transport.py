@@ -40,7 +40,7 @@ class DirectOpenAITransport:
         return await self._run_request(headers, body, timeout_seconds, kind='responses')
 
     async def _run_request(self, headers, body, timeout_seconds, *, kind):
-        if kind not in ('responses', 'token-exchange'):
+        if kind not in ('responses', 'token-exchange', 'github-subject'):
             raise OpenAIProviderProtocolError('unsupported transport operation')
         payload = json.dumps({'headers': dict(headers), 'body': body.decode('utf-8'),
             'timeout': timeout_seconds, 'limit': self.max_response_bytes, 'kind': kind}).encode()
@@ -94,12 +94,19 @@ class DirectOpenAITransport:
         try:
             routes = {'responses': ('api.openai.com', '/v1/responses'),
                       'token-exchange': ('auth.openai.com', '/oauth/token')}
-            if kind not in routes:
+            method = 'POST'
+            if kind == 'github-subject':
+                from .github_subject_identity import request_target
+                request = json.loads(body)
+                host, path = request_target(request['url'], request['origin'], request['audience'])
+                method, body = 'GET', None
+            elif kind not in routes:
                 raise OpenAIProviderProtocolError('unsupported transport operation')
-            host, path = routes[kind]
+            else:
+                host, path = routes[kind]
             connection = http.client.HTTPSConnection(host, timeout=timeout,
                                                      context=ssl.create_default_context())
-            connection.request('POST', path, body=body, headers=headers)
+            connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
             # Never follow redirects, retry errors, or retain provider error bodies.
             if response.status != 200:
