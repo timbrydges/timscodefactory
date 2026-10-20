@@ -55,3 +55,15 @@ class CompositionTests(TestCase):
             with self.assertRaises(StateError):
                 compose_bonus_host('unused', owner_authorized=True, **self.options)
             self.pins[key] = original
+
+    def test_stage_output_limits_leave_review_input_room_without_raising_grants(self):
+        self.pins['max_output_tokens'] = 8192
+        with patch('factory_runtime.development_composition.compose_approved_host') as host:
+            compose_bonus_host('unused', owner_authorized=True, **self.options)
+            args = host.call_args.kwargs
+            self.assertEqual(args['builder'].policy.max_output_tokens, 8192)
+            self.assertEqual(args['reviewer'].policy.max_output_tokens, 4096)
+            self.assertEqual(str(args['builder_cap']), '0.25')
+            self.assertEqual(str(args['reviewer_cap']), '0.25')
+            self.assertEqual(str(args['total_cap']), '0.50')
+            self.assertEqual(args['reviewer'].policy.max_request_bytes, 42020)

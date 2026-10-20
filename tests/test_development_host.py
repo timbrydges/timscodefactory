@@ -99,3 +99,38 @@ class DevelopmentHostTests(unittest.TestCase):
         self.assertEqual(asyncio.run(host.tick())['result']['phase'], 'BINDING')
         self.assertEqual(self.f.requests, [])
         self.assertEqual(asyncio.run(host.tick())['status'], 'IDLE_OR_PAUSED')
+
+    def test_test_receipt_is_durable_before_review_failure(self):
+        host = DevelopmentHost(self.path, enabled=True, **self.options)
+        async def fail_review(turn):
+            evidence = json.loads((self.path / 'tests.json').read_text())
+            self.assertEqual(evidence['test_receipt']['exit_code'], 0)
+            self.assertEqual(evidence['test_observation']['status'], 'TESTS_PASSED_REVIEW_REQUIRED')
+            self.assertFalse(evidence['release_authorized'])
+            raise RuntimeError('private failure after durable tests')
+        host.runner.reviewer = fail_review
+        result = asyncio.run(host.tick())
+        self.assertEqual(result['result']['phase'], 'REVIEW')
+        self.assertTrue((self.path / 'tests.json').exists())
+        self.assertFalse((self.path / 'attempt.json').exists())
+        self.assertNotIn('private failure', json.dumps(result))
+        self.assertEqual(asyncio.run(host.tick())['status'], 'IDLE_OR_PAUSED')
+
+    def test_test_evidence_collision_preserves_prior_bytes_and_blocks_review(self):
+        host = DevelopmentHost(self.path, enabled=True, **self.options)
+        (self.path / 'tests.json').write_bytes(b'prior-evidence')
+        result = asyncio.run(host.tick())
+        self.assertEqual(result['result']['phase'], 'TEST_EVIDENCE')
+        self.assertEqual((self.path / 'tests.json').read_bytes(), b'prior-evidence')
+        self.assertEqual(len(self.f.requests), 1)
+        self.assertFalse((self.path / 'reviewer.started.json').exists())
+        self.assertEqual(asyncio.run(host.tick())['status'], 'IDLE_OR_PAUSED')
+
+    def test_failed_test_receipt_is_retained_without_review(self):
+        self.f.f.exit_code = 1
+        host = DevelopmentHost(self.path, enabled=True, **self.options)
+        self.assertEqual(asyncio.run(host.tick())['status'], 'REJECTED')
+        evidence = json.loads((self.path / 'tests.json').read_text())
+        self.assertEqual(evidence['test_receipt']['exit_code'], 1)
+        self.assertEqual(evidence['test_observation']['status'], 'TESTS_FAILED')
+        self.assertEqual(len(self.f.requests), 1)
