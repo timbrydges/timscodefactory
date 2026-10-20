@@ -59,3 +59,21 @@ qualification. Unexpected response fields, including refresh tokens, fail closed
 Protocol reference: [OpenAI workload identity token exchange](https://developers.openai.com/api/reference/workload-identity-federation).
 No network transport, identity configuration or executable host selection is
 included in this integration.
+
+## Generic host binding
+
+Trusted operator code may pass a `RenewableCredentialBinding` to
+`compose_task_host`. The exact `credential_source` approval pin must match its
+digest of the issuance authorization, absolute ledger path and fixed renewal
+limits. The identity target must match the host's model and selector version.
+Both builder and reviewer share that one credential source. Missing or changed
+bindings fail before consuming workflow approval; there is no environment-key
+fallback for a renewable pin. Changing the ledger path requires new pins.
+
+This pin prevents accidental substitution; it does not protect against a trusted
+operator deleting the ledger at the same path. Deployment must preserve and
+protect that file. Python callers supply the trusted exchange implementation;
+queue data cannot select a plugin, import path or callable. The command-line
+entrypoint still supports only the existing environment-key composition until
+an approved identity-source implementation is available. Construction does not
+read credentials, exchange tokens or unpause the ledger.

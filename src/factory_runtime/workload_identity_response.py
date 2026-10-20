@@ -7,6 +7,7 @@ does not verify a JWT signature or establish trust in arbitrary response bytes.
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
+import hashlib
 import re
 
 from .credential_issuance import CredentialIssuanceLedger, IssuanceAuthorization
@@ -19,6 +20,29 @@ from .renewable_credentials import RenewableProviderCredentialSource
 class ExchangeResponse:
     body: bytes
     subject_expires_at: datetime
+
+
+@dataclass(frozen=True, repr=False)
+class RenewableCredentialBinding:
+    """Trusted operator binding; never deserialize a transport from task data."""
+    ledger: CredentialIssuanceLedger
+    exchange: object
+
+    def __post_init__(self):
+        if type(self.ledger) is not CredentialIssuanceLedger or not callable(self.exchange):
+            raise ValueError("exact ledger and trusted exchange callback required")
+
+    @property
+    def source_pin(self):
+        document = dict(schema=1, authorization=json.loads(self.ledger.authorization.canonical()),
+                        ledger_path=str(self.ledger.path),
+                        minimum_remaining_seconds=210, maximum_lifetime_seconds=900)
+        encoded = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+        return "wif:sha256:" + hashlib.sha256(encoded).hexdigest()
+
+    def compose(self, *, clock):
+        return compose_exchange_credential_source(ledger=self.ledger, exchange=self.exchange,
+            clock=clock, enabled=True, minimum_remaining_seconds=210, maximum_lifetime_seconds=900)
 
 
 def _aware(value):
