@@ -98,3 +98,18 @@ ledger-bound credential source. Failure or cancellation requires reconciliation.
 The source interface and transport are implemented, but no AWS/GitHub identity
 source or CLI activation is configured. Tests mock sockets, processes and tokens;
 they do not qualify TLS access, real identity issuance or live provider behavior.
+
+## Qualifying renewal timing
+
+The renewal interval must fit inside the usable token window. For example, a
+300-second token with 20 seconds of exchange delay and a 210-second required
+remaining lifetime leaves 70 seconds from receipt before renewal is needed.
+The interval is measured from the durable claim, so a 90-second minimum interval
+fits this boundary; a 210-second interval does not. A shorter approved interval
+provides additional margin. The source
+rejects such an incompatible token before returning it to a model caller and
+marks the issuance uncertain for reconciliation. It never silently lowers the
+approved interval. Qualify the expected lifetime and worst-case exchange delay
+offline before requesting live exchanges; the runtime check verifies the actual
+remaining lifetime. Fake-time tests cover a 180-second builder stage followed by
+a fresh reviewer credential within the same two-exchange allowance.

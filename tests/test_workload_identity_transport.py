@@ -109,6 +109,47 @@ class IdentityTransportTests(unittest.IsolatedAsyncioTestCase):
             self.source.assert_awaited_once(); self.transport.post_json.assert_awaited_once()
             self.assertNotIn(self.subject.token.encode(), path.read_bytes())
 
+    async def test_short_tokens_renew_between_builder_and_reviewer(self):
+        self.auth = replace(self.auth, minimum_interval_seconds=90)
+        async def subject_source(auth):
+            return TrustedSubjectIdentity(self.subject.token, self.now+timedelta(seconds=300))
+        async def transport(**request):
+            issued = self.now
+            self.now += timedelta(seconds=20)
+            data = json.loads(self.body)
+            data.update(expires_at=int(issued.timestamp())+300, expires_in=300)
+            return ProviderHTTPResponse(200, json.dumps(data).encode())
+        self.source.side_effect = subject_source
+        self.transport.post_json.side_effect = transport
+        with tempfile.TemporaryDirectory() as folder:
+            ledger = CredentialIssuanceLedger(Path(folder)/'issuance.db', self.auth, operator_authorized=True)
+            ledger.pause(False)
+            credential = self.exchange().binding(ledger).compose(clock=lambda: self.now)
+            first = await credential.issue(target=self.target)
+            self.now += timedelta(seconds=180)  # Bounded builder-call duration.
+            second = await credential.issue(target=self.target)
+            self.assertGreater(second.expires_at, first.expires_at)
+            self.assertEqual(self.source.await_count, 2)
+            self.assertEqual(self.transport.post_json.await_count, 2)
+
+    async def test_impossible_renewal_interval_rejected_before_token_delivery(self):
+        self.auth = replace(self.auth, minimum_interval_seconds=210)
+        self.subject = replace(self.subject, expires_at=self.now+timedelta(seconds=300))
+        self.source.return_value = self.subject
+        data = json.loads(self.body)
+        data.update(expires_at=int(self.now.timestamp())+300, expires_in=300)
+        self.transport.post_json.return_value = ProviderHTTPResponse(200, json.dumps(data).encode())
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'issuance.db'
+            ledger = CredentialIssuanceLedger(path, self.auth, operator_authorized=True)
+            ledger.pause(False)
+            with self.assertRaises(ProviderCredentialLeaseError):
+                await self.exchange().binding(ledger).compose(clock=lambda: self.now).issue(target=self.target)
+            reopened = CredentialIssuanceLedger(path, self.auth, operator_authorized=True)
+            with self.assertRaises(ProviderCredentialLeaseError):
+                await self.exchange().binding(reopened).compose(clock=lambda: self.now).issue(target=self.target)
+            self.transport.post_json.assert_awaited_once()
+
     async def test_transport_activation_and_endpoint_checks(self):
         with patch.object(DirectTokenExchangeTransport, '_run_request', new_callable=AsyncMock) as send:
             with self.assertRaises(OpenAIProviderDisabledError):
