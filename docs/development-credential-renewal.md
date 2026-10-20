@@ -121,15 +121,46 @@ provider, mapping, GitHub permission, runner registration or workflow.
 References: [GitHub identity requests](https://docs.github.com/en/actions/reference/security/oidc)
 and [OpenAI GitHub federation](https://developers.openai.com/api/docs/guides/workload-identity-federation/github-actions).
 
-## Qualifying renewal timing
+## Trusted entrypoint handoff
 
 The attempt and schedule entrypoints accept a trusted Python
 `credential_binding` argument. The scheduler carries that same binding into
 each admitted attempt. A renewable source pin requires an exact binding match
 and a generic execution profile before any Git or Docker command runs; disabled
 entrypoints never consume it. Packets cannot construct a binding or select an
-exchange transport. The ordinary CLI still has no identity-source bootstrap:
-an operator-owned host must supply it after the separate live authorization.
+exchange transport.
+
+## Operator configuration and local admission
+
+Both entrypoints accept `--identity-config` and `--identity-config-sha256` from
+the trusted operator, alongside their existing owner/execution gates. The digest
+must be `sha256:` followed by the hash of the exact configuration bytes. It binds
+the entire identity policy and ledger location into the issuance authorization
+and therefore into the attempt's credential-source pin. This is a pinned local
+input, not a signature or remote authorization endpoint.
+
+The configuration is a strict JSON object (at most 32 KiB) with `schema: 1`,
+`ledger_path` (absolute), `policy`, and `authorization`. Policy contains exactly
+`request_origin`, `audience`, `repository`, `repository_id`, `workflow_ref` and
+`ref`. Authorization contains exactly `identity_provider_id`,
+`service_account_id`, `target` (`provider_family`, `model_id`, `selector_version`),
+`starts_at`, `expires_at` (timezone-aware ISO timestamps), `maximum_exchanges`,
+`scopes` (sorted unique list), and `minimum_interval_seconds`.
+
+`scripts/development_identity.py` defaults to disabled. Its explicit
+`initialize-paused` action exclusively creates a new local issuance ledger;
+`pause` and `resume` act only on an existing matching ledger. Each requires
+`--owner-authorized` and the same configuration/digest pair. These actions do
+not request a token. Attempt/scheduler startup requires that admitted ledger,
+never replaces an empty/unrelated one and never implicitly resumes it. Only
+the separately approved runtime exchange reads GitHub job credentials.
+
+Configuration files and ledgers belong outside candidate repositories and
+containers, with operator-controlled access. Creating a provider mapping,
+admitting/resuming real issuance, registering a host and live activation still
+require their specific approvals.
+
+## Qualifying renewal timing
 
 The renewal interval must fit inside the usable token window. For example, a
 300-second token with 20 seconds of exchange delay and a 210-second required

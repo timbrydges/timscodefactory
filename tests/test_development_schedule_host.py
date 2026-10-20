@@ -131,3 +131,20 @@ class HostTests(TestCase):
             self.assertIs(host.execute.func,execute)
             self.assertIs(host.execute.keywords['credential_binding'],binding)
             execute.assert_not_awaited()
+
+    def test_schedule_cli_bootstrap_requires_enabled_owner_run(self):
+        scripts=Path(__file__).resolve().parents[1]/'scripts'
+        with patch.object(sys,'path',[str(scripts)]+sys.path):
+            spec=importlib.util.spec_from_file_location('schedule_config_cli',scripts/'development_schedule.py')
+            module=importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        with patch.object(module,'binding_from_configuration',return_value=object()) as bind, \
+                patch.object(module,'poll_schedule',new_callable=AsyncMock,
+                             return_value={'outcomes':{}}) as poll:
+            identity=['--identity-config','operator.json','--identity-config-sha256','sha256:fake']
+            self.assertEqual(module.main(identity),0)
+            bind.assert_not_called()
+            self.assertEqual(module.main(['--enable','--owner-authorized','--action','run',
+                '--host-directory',str(self.base),'--repository-path',str(self.base/'repo')]+identity),0)
+            bind.assert_called_once()
+            self.assertIs(poll.call_args.args[1].execute.keywords['credential_binding'],bind.return_value)

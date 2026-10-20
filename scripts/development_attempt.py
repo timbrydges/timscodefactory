@@ -21,6 +21,7 @@ from factory_runtime.repository_snapshot import read_repository_snapshot
 from factory_runtime.task_queue import QueuedTask
 from factory_runtime.worker import digest
 from factory_runtime.workload_identity_response import RenewableCredentialBinding
+from factory_runtime.github_identity_bootstrap import binding_from_configuration
 
 
 class PinnedPricing:
@@ -47,6 +48,8 @@ def main(argv=None, *, credential_binding=None):
     for name in ('pins', 'approval', 'pricing', 'contract', 'repository-path', 'attempt-directory'):
         parser.add_argument('--'+name, type=Path)
     parser.add_argument('--execution-profile', type=Path)
+    parser.add_argument('--identity-config', type=Path)
+    parser.add_argument('--identity-config-sha256')
     args = parser.parse_args(argv)
     if not args.execute_approved_once:
         print(json.dumps({'status': 'DISABLED', 'credential_read': False, 'model_calls': 0}))
@@ -54,6 +57,11 @@ def main(argv=None, *, credential_binding=None):
     if not args.owner_authorized or any(getattr(args, name) is None for name in
             ('pins', 'approval', 'pricing', 'contract', 'repository_path', 'attempt_directory')):
         parser.error('explicit owner authorization and all pinned inputs required')
+    if args.identity_config is not None or args.identity_config_sha256 is not None:
+        if credential_binding is not None or args.identity_config is None or args.identity_config_sha256 is None:
+            parser.error('one complete operator identity binding required')
+        credential_binding = binding_from_configuration(args.identity_config, args.identity_config_sha256,
+            clock=lambda:datetime.now(timezone.utc), owner_authorized=True, enabled=True)
     return report_result(asyncio.run(execute(args, credential_binding=credential_binding)))
 
 
