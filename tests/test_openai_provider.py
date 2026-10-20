@@ -4,6 +4,7 @@ import asyncio
 import json
 import sys
 import unittest
+from jsonschema import Draft202012Validator
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -20,6 +21,8 @@ from factory_runtime.openai_provider import (  # noqa: E402
     ProviderCredentialLease,
     ProviderHTTPResponse,
     ProviderPricingQuote,
+    _decision_schema,
+    _extract_structured_output,
 )
 from factory_runtime.provider_broker_service import ResolvedProviderTarget  # noqa: E402
 
@@ -159,6 +162,67 @@ def make_invoker(
 
 
 class OpenAIProviderTests(unittest.TestCase):
+    def test_task_wire_schema_and_normalizer_agree_on_each_decision(self):
+        schema = _decision_schema('task_implementation')
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema)
+        self.assertEqual(schema['type'], 'object')
+        self.assertNotIn('anyOf', schema)
+        for decision in (
+            {'type': 'read_files', 'paths': ['app.py']},
+            {'type': 'apply_edits', 'summary': 'Add pagination', 'edits': [
+                {'path': 'new.py', 'old_text': '', 'new_text': 'content'}]},
+            {'type': 'escalate', 'reason': 'Missing context'},
+        ):
+            wire = {'decision': decision}
+            validator.validate(wire)
+            self.assertEqual(_extract_structured_output(provider_payload(wire), 'task_implementation'), decision)
+
+    def test_task_schema_rejects_contradictory_unknown_and_empty_decisions(self):
+        validator = Draft202012Validator(_decision_schema('task_implementation'))
+        for wire in (
+            {'decision': {'type': 'read_files', 'paths': ['app.py'], 'reason': 'explanation'}},
+            {'decision': {'type': 'read_files', 'paths': []}},
+            {'decision': {'type': 'apply_edits', 'summary': 'change', 'edits': []}},
+            {'decision': {'type': 'escalate', 'reason': ''}},
+            {'decision': {'type': ['escalate'], 'reason': 'stop'}},
+            {'decision': {'type': 'escalate', 'reason': 'stop'}, 'extra': 'ignored?'},
+        ):
+            with self.subTest(wire=wire):
+                self.assertFalse(validator.is_valid(wire))
+                with self.assertRaises(OpenAIProviderProtocolError):
+                    _extract_structured_output(provider_payload(wire), 'task_implementation')
+
+    def test_preexisting_wire_schema_gap_is_reproduced_offline(self):
+        contradictory = read_files_decision()
+        contradictory['reason'] = 'This explanation was allowed by the old wire schema'
+        Draft202012Validator(_decision_schema('ci_repair')).validate(contradictory)
+        with self.assertRaises(OpenAIProviderProtocolError) as caught:
+            _extract_structured_output(provider_payload(contradictory))
+        self.assertEqual(caught.exception.failure_code, 'decision_fields_contradictory')
+        self.assertFalse(Draft202012Validator(_decision_schema('task_implementation')).is_valid(
+            {'decision': contradictory}))
+
+    def test_safe_diagnostics_distinguish_json_text_and_envelope_failures(self):
+        for change, code in (
+            ({'output': []}, 'output_text_count_invalid'),
+            ({'output': [{'type': 'message', 'content': [{'type': 'output_text', 'text': 'not JSON'}]}]}, 'output_json_invalid'),
+            ({'error': {'message': 'private'}}, 'response_failure_details'),
+        ):
+            payload = provider_payload({'decision': {'type': 'escalate', 'reason': 'stop'}})
+            payload.update(change)
+            with self.assertRaises(OpenAIProviderProtocolError) as caught:
+                _extract_structured_output(payload, 'task_implementation')
+            self.assertEqual(caught.exception.failure_code, code)
+
+    def test_task_edit_shape_failures_have_exact_safe_codes(self):
+        for edit, code in (({'path': 'x'}, 'edit_keys_invalid'),
+                           ({'path': 'x', 'old_text': '', 'new_text': 1}, 'edit_fields_invalid')):
+            wire = {'decision': {'type': 'apply_edits', 'summary': 'change', 'edits': [edit]}}
+            with self.assertRaises(OpenAIProviderProtocolError) as caught:
+                _extract_structured_output(provider_payload(wire), 'task_implementation')
+            self.assertEqual(caught.exception.failure_code, code)
+
     def test_failure_evidence_is_bounded_redacted_and_reset(self):
         payload = provider_payload(read_files_decision(), output_tokens=4096)
         payload.update(status='incomplete', incomplete_details={'reason': 'max_output_tokens'},

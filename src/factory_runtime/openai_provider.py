@@ -39,6 +39,10 @@ PROVIDER_FAILURE_CODES = frozenset({
     'timeout', 'transport_failure', 'http_error', 'protocol_failure',
     'output_token_limit', 'response_incomplete', 'model_mismatch', 'refusal',
     'structured_output_invalid', 'usage_invalid',
+    'decision_shape_invalid', 'decision_fields_contradictory', 'output_json_invalid',
+    'output_text_count_invalid', 'output_content_invalid', 'response_failure_details',
+    'decision_paths_invalid', 'decision_fields_invalid', 'edit_keys_invalid',
+    'edit_fields_invalid', 'decision_type_invalid', 'review_fields_invalid',
 })
 
 
@@ -258,6 +262,22 @@ def _validate_pricing(
 
 
 def _decision_schema(workload="ci_repair") -> dict[str, Any]:
+    if workload == 'task_implementation':
+        # Root remains an object; the nested union admits only fields belonging
+        # to that decision. No undocumented empty-field convention is needed.
+        legacy = _decision_schema('ci_repair')['properties']
+        variants = []
+        for kind, fields in (('read_files', ('paths',)),
+                             ('apply_edits', ('summary', 'edits')),
+                             ('escalate', ('reason',))):
+            properties = {'type': {'type': 'string', 'enum': [kind]}}
+            for field in fields:
+                properties[field] = dict(legacy[field])
+                properties[field]['minItems' if field in ('paths', 'edits') else 'minLength'] = 1
+            variants.append({'type': 'object', 'additionalProperties': False,
+                             'required': ['type', *fields], 'properties': properties})
+        return {'type': 'object', 'additionalProperties': False, 'required': ['decision'],
+                'properties': {'decision': {'anyOf': variants}}}
     if workload == "task_review":
         return {"type": "object", "additionalProperties": False,
             "required": ["review_input_digest", "verdict", "findings"], "properties": {
@@ -309,6 +329,7 @@ def _instructions(workload="ci_repair") -> str:
             "context, apply_edits for exact replacements in supplied files, or escalate. "
             "Only paths explicitly listed in missing_paths may be created, using empty old_text "
             "and nonempty new_text. Never use empty old_text for an existing file. "
+            "Return an object containing decision, with only the fields for its selected type. "
             "Do not claim that proposed changes were applied or tested."
         )
     return (
@@ -323,37 +344,37 @@ def _instructions(workload="ci_repair") -> str:
 
 def _normalize_decision(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict) or set(value) != {"type", "paths", "summary", "edits", "reason"}:
-        raise OpenAIProviderProtocolError("structured decision has invalid keys")
+        raise OpenAIProviderProtocolError("structured decision has invalid keys", failure_code='decision_shape_invalid')
     decision_type = value.get("type")
     paths = value.get("paths")
     summary = value.get("summary")
     edits = value.get("edits")
     reason = value.get("reason")
     if not isinstance(paths, list) or not all(isinstance(item, str) for item in paths):
-        raise OpenAIProviderProtocolError("structured decision paths are invalid")
+        raise OpenAIProviderProtocolError("structured decision paths are invalid", failure_code='decision_paths_invalid')
     if not isinstance(summary, str) or not isinstance(reason, str) or not isinstance(edits, list):
-        raise OpenAIProviderProtocolError("structured decision fields are invalid")
+        raise OpenAIProviderProtocolError("structured decision fields are invalid", failure_code='decision_fields_invalid')
 
     if decision_type == "read_files":
         if not paths or summary or edits or reason:
-            raise OpenAIProviderProtocolError("read_files decision contains contradictory fields")
+            raise OpenAIProviderProtocolError("read_files decision contains contradictory fields", failure_code='decision_fields_contradictory')
         return {"type": "read_files", "paths": paths}
     if decision_type == "apply_edits":
         if paths or not summary.strip() or not edits or reason:
-            raise OpenAIProviderProtocolError("apply_edits decision contains contradictory fields")
+            raise OpenAIProviderProtocolError("apply_edits decision contains contradictory fields", failure_code='decision_fields_contradictory')
         normalized_edits: list[dict[str, str]] = []
         for edit in edits:
             if not isinstance(edit, dict) or set(edit) != {"path", "old_text", "new_text"}:
-                raise OpenAIProviderProtocolError("apply_edits item is invalid")
+                raise OpenAIProviderProtocolError("apply_edits item is invalid", failure_code='edit_keys_invalid')
             if not all(isinstance(edit[key], str) for key in ("path", "old_text", "new_text")):
-                raise OpenAIProviderProtocolError("apply_edits item fields must be strings")
+                raise OpenAIProviderProtocolError("apply_edits item fields must be strings", failure_code='edit_fields_invalid')
             normalized_edits.append(dict(edit))
         return {"type": "apply_edits", "summary": summary, "edits": normalized_edits}
     if decision_type == "escalate":
         if paths or summary or edits or not reason.strip():
-            raise OpenAIProviderProtocolError("escalate decision contains contradictory fields")
+            raise OpenAIProviderProtocolError("escalate decision contains contradictory fields", failure_code='decision_fields_contradictory')
         return {"type": "escalate", "reason": reason}
-    raise OpenAIProviderProtocolError("structured decision type is unsupported")
+    raise OpenAIProviderProtocolError("structured decision type is unsupported", failure_code='decision_type_invalid')
 
 
 def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") -> dict[str, Any]:
@@ -364,10 +385,10 @@ def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") ->
         raise OpenAIProviderProtocolError("OpenAI response did not complete",
             failure_code='output_token_limit' if limited else 'response_incomplete')
     if payload.get("error") is not None or payload.get("incomplete_details") is not None:
-        raise OpenAIProviderProtocolError("OpenAI response contains failure/incomplete details")
+        raise OpenAIProviderProtocolError("OpenAI response contains failure/incomplete details", failure_code='response_failure_details')
     output = payload.get("output")
     if not isinstance(output, list):
-        raise OpenAIProviderProtocolError("OpenAI response output is invalid")
+        raise OpenAIProviderProtocolError("OpenAI response output is invalid", failure_code='output_content_invalid')
 
     texts: list[str] = []
     for item in output:
@@ -377,31 +398,42 @@ def _extract_structured_output(payload: dict[str, Any], workload="ci_repair") ->
             continue
         content = item.get("content")
         if not isinstance(content, list):
-            raise OpenAIProviderProtocolError("OpenAI message content is invalid")
+            raise OpenAIProviderProtocolError("OpenAI message content is invalid", failure_code='output_content_invalid')
         for part in content:
             if not isinstance(part, dict):
-                raise OpenAIProviderProtocolError("OpenAI message content item is invalid")
+                raise OpenAIProviderProtocolError("OpenAI message content item is invalid", failure_code='output_content_invalid')
             part_type = part.get("type")
             if part_type == "refusal":
                 raise OpenAIProviderProtocolError("OpenAI model refused the structured repair request", failure_code='refusal')
             if part_type == "output_text":
                 text = part.get("text")
                 if not isinstance(text, str):
-                    raise OpenAIProviderProtocolError("OpenAI output_text is invalid")
+                    raise OpenAIProviderProtocolError("OpenAI output_text is invalid", failure_code='output_content_invalid')
                 texts.append(text)
     if len(texts) != 1:
-        raise OpenAIProviderProtocolError("OpenAI response must contain exactly one output_text")
+        raise OpenAIProviderProtocolError("OpenAI response must contain exactly one output_text", failure_code='output_text_count_invalid')
     try:
         parsed = json.loads(texts[0])
     except json.JSONDecodeError as exc:
-        raise OpenAIProviderProtocolError("OpenAI structured output is not valid JSON") from exc
+        raise OpenAIProviderProtocolError("OpenAI structured output is not valid JSON", failure_code='output_json_invalid') from exc
+    if workload == 'task_implementation':
+        if not isinstance(parsed, dict) or set(parsed) != {'decision'} or not isinstance(parsed['decision'], dict):
+            raise OpenAIProviderProtocolError('invalid task decision envelope', failure_code='decision_shape_invalid')
+        decision = parsed['decision']
+        kind = decision.get('type')
+        fields = {'read_files': {'type', 'paths'}, 'apply_edits': {'type', 'summary', 'edits'},
+                  'escalate': {'type', 'reason'}}
+        if not isinstance(kind, str) or kind not in fields or set(decision) != fields[kind]:
+            raise OpenAIProviderProtocolError('invalid task decision fields', failure_code='decision_shape_invalid')
+        # Add only absent, inapplicable fields before reusing the strict validator.
+        return _normalize_decision({'paths': [], 'summary': '', 'edits': [], 'reason': '', **decision})
     if workload == "task_review":
         if (not isinstance(parsed, dict) or set(parsed) != {"review_input_digest", "verdict", "findings"}
                 or not isinstance(parsed['review_input_digest'], str)
                 or parsed['verdict'] not in ("APPROVE", "REJECT")
                 or not isinstance(parsed['findings'], list)
                 or any(not isinstance(v, str) for v in parsed['findings'])):
-            raise OpenAIProviderProtocolError("structured review has invalid fields")
+            raise OpenAIProviderProtocolError("structured review has invalid fields", failure_code='review_fields_invalid')
         return parsed
     return _normalize_decision(parsed)
 

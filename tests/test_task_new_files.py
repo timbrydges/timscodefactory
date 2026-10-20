@@ -96,7 +96,7 @@ class TaskNewFileTests(unittest.TestCase):
         from decimal import Decimal
         from test_openai_provider import (CountingCredentialSource, StaticPricingSource,
             RecordingTransport, provider_payload, TARGET)
-        wire = {**self.decision,'paths':[],'reason':''}
+        wire = {'decision': self.decision}
         transport = RecordingTransport(ProviderHTTPResponse(200,json.dumps(provider_payload(wire)).encode()))
         invoker = OpenAIResponsesProviderInvoker(CountingCredentialSource(),StaticPricingSource(),transport,
             policy=OpenAIProviderPolicy(live_enabled=True,workload='task_implementation',max_output_tokens=512))
