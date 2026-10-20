@@ -64,7 +64,7 @@ class RenewableProviderCredentialSource:
         self._last_now = now
         return now
 
-    def _validate(self, lease: ProviderCredentialLease, now: datetime) -> None:
+    def _validate(self, lease: ProviderCredentialLease, now: datetime, *, renewal_started_at=None) -> None:
         if not isinstance(lease, ProviderCredentialLease):
             raise ValueError("invalid issuer result")
         if lease.provider_family != "openai" or lease.audience != "api.openai.com":
@@ -78,6 +78,10 @@ class RenewableProviderCredentialSource:
         if (lease.issued_at > now or lease.expires_at - lease.issued_at > self._maximum
                 or lease.expires_at - now <= self._minimum):
             raise ValueError("credential lifetime unavailable")
+        if (self._ledger is not None and
+                timedelta(seconds=self._ledger.authorization.minimum_interval_seconds)
+                > lease.expires_at - renewal_started_at - self._minimum):
+            raise ValueError("renewal interval exceeds usable credential window")
 
     async def issue(self, *, target: ResolvedProviderTarget) -> ProviderCredentialLease:
         if not self._enabled or target != self._target:
@@ -97,7 +101,7 @@ class RenewableProviderCredentialSource:
                     claim = self._ledger.claim(now=now, target=target)
                 lease = await self._issuer()
                 completed_at = self._now()
-                self._validate(lease, completed_at)
+                self._validate(lease, completed_at, renewal_started_at=now)
                 if self._ledger is not None:
                     self._ledger.finish(claim, succeeded=True, now=completed_at)
                     claim = None
