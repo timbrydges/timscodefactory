@@ -11,6 +11,22 @@ from factory_state.scope import canonical
 from .worker import digest
 
 
+TASK_VALIDATION_FAILURES = {
+    'task file path must be repository relative': 'invalid_path',
+    'invalid implementation decision': 'invalid_decision',
+    'bounded read scope required': 'invalid_read_scope',
+    'provider requested out-of-scope file': 'read_outside_available_scope',
+    'invalid proposed edits': 'invalid_edit_count_or_summary',
+    'invalid proposed edit fields': 'invalid_edit_fields',
+    'edit fields or duplicate path invalid': 'invalid_edit_values_or_duplicate_path',
+    'new file requires empty old text and nonempty content': 'invalid_new_file_edit',
+    'edit requires one exact source match in supplied file': 'source_match_not_unique',
+    'escalation requires a reason': 'invalid_escalation',
+    'unsupported implementation decision': 'unsupported_decision',
+    'implementation proposal exceeds byte limit': 'proposal_byte_limit',
+}
+
+
 def _path(path):
     if (not isinstance(path, str) or not path or '\\' in path or ':' in path
             or PurePosixPath(path).is_absolute() or any(p in {'', '.', '..'} for p in path.split('/'))):
