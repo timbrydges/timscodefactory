@@ -1,5 +1,5 @@
 {
-  "status": "OFFLINE_IMPLEMENTED_ACCESS_NOT_AUTHORIZED",
+  "status": "OFFLINE_IMPLEMENTED_APP_ACCESS_CONFIGURED_FETCH_NOT_AUTHORIZED",
   "implementation": "src/factory_runtime/private_source.py",
   "tests": "tests/test_private_source.py",
   "binding": {
@@ -20,7 +20,7 @@
   "remaining_before_live_source_fetch": [
     "Review and merge the offline implementation through repository CI",
     "Approve and configure the selected-repository GitHub App and protected bootstrap key",
-    "Implement and qualify the concrete issuance/revocation adapter; no default issuer currently exists",
+    "Qualify source_token_transport.py in Linux CI and wire separately authorized JWT production; no key-loading or signing implementation is active",
     "Approve a disk-quota or equivalent storage bound for the temporary Git object store; post-fetch snapshot size limits do not bound download disk use",
     "Pin an actual task commit and independent expected content manifest",
     "Authorize one source fetch separately; app setup alone is not fetch or workflow approval"
