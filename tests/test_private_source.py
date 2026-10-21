@@ -45,6 +45,13 @@ class PrivateSourceTests(unittest.TestCase):
             with self.assertRaises(StateError): self.execute(**change)
         self.issue.assert_not_called(); self.assertFalse(self.root.exists())
 
+    def test_interrupted_fetch_is_never_recorded_as_verified(self):
+        self.fetch.side_effect = KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt): self.execute()
+        self.revoke.assert_called_once_with(self.token)
+        self.assertEqual(self.receipt()['status'], 'STOPPED_NEEDS_RECONCILIATION')
+        self.assertTrue(self.receipt()['object_cleanup'])
+
     def test_verified_snapshot_is_usable_by_existing_candidate_contract(self):
         from factory_runtime.task_candidate import candidate_workspace
         from factory_runtime.task_provider import TaskImplementationProtocol

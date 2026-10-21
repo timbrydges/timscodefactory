@@ -4,7 +4,7 @@ The trusted host injects issuance/revocation and invokes this before candidate
 execution. Construction/import never reads credentials or makes requests.
 """
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 import base64
 import hashlib
 import json
@@ -180,6 +180,9 @@ def fetch_private_snapshot(directory, *, binding, issue_token, revoke_token,
             raise StateError('fetched source differs from binding')
     except Exception:
         failed = True
+    except BaseException:
+        failed = True
+        raise
     finally:
         response = None
         if token is not None:
