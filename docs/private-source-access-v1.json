@@ -1,0 +1,58 @@
+{
+  "status": "OFFLINE_IMPLEMENTED_APP_ACCESS_CONFIGURED_FETCH_NOT_AUTHORIZED",
+  "implementation": "src/factory_runtime/private_source.py",
+  "tests": "tests/test_private_source.py",
+  "binding": {
+    "repository": "timbrydges/bonus-library",
+    "repository_id": 1375052827,
+    "commit": "Required from a separately approved task; never default to a branch tip",
+    "manifest": "SHA256 of canonical sorted path/content-SHA256/executable records"
+  },
+  "integration": {
+    "result": "Existing RepositorySnapshot consumed by candidate_workspace and development host composition",
+    "activation": "Both enabled=True and owner_authorized=True are required; imports do nothing",
+    "issuance": "Trusted injected issuer must request exactly repository_ids=[1375052827] and contents/metadata read; validate returned repository scope and expiry before fetch",
+    "fetch": "Fresh Git object store, one HTTPS fetch of the exact commit, no checkout, submodule, hook, persistent remote or credential helper",
+    "credential_transport": "Only the fetch child environment carries the authorization header; child environment is allowlisted and cleared afterward",
+    "release": "Return snapshot only after expected content digest matches, revocation is confirmed and temporary object-store cleanup succeeds",
+    "failure": "Retain an exclusive receipt directory, redact underlying exception details, stop without retry on uncertain issuance, fetch, revoke or cleanup"
+  },
+  "remaining_before_live_source_fetch": [
+    "Review and merge the offline implementation through repository CI",
+    "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
+    "Qualify source_token_transport.py in Linux CI and wire separately authorized JWT production; no key-loading or signing implementation is active",
+    "Approve a disk-quota or equivalent storage bound for the temporary Git object store; post-fetch snapshot size limits do not bound download disk use",
+    "Pin an actual task commit and independent expected content manifest",
+    "Authorize one source fetch separately; app setup alone is not fetch or workflow approval"
+  ],
+  "access_proposal": {
+    "approval_id": "factory-bonus-source-access-v1",
+    "owner": "timbrydges",
+    "app_name": "timbrydges-factory-bonus-source",
+    "name_check": "Exact private app created and installed under factory-bonus-source-access-v1; no tokens requested",
+    "visibility": "Private; installable only on the owner account",
+    "homepage": "https://github.com/timbrydges/factory-runner-control",
+    "repository_permissions": {"contents": "read", "metadata": "read"},
+    "account_permissions": {},
+    "organization_permissions": {},
+    "webhooks": false,
+    "oauth_callbacks": [],
+    "installation": "Selected repositories: only timbrydges/bonus-library, ID 1375052827",
+    "key_generation": "One key, one download; no automatic retry",
+    "key_destination": "C:\\FactoryRunner\\credentials\\bonus-source\\github-app.pem",
+    "key_access": "Inherit and verify only FactoryRunner, Administrators and SYSTEM from C:\\FactoryRunner; never broaden ACLs",
+    "key_verification": "Derive public-key SHA256 fingerprint locally and compare with GitHub; never print or copy private-key contents into chat or repository",
+    "key_cleanup": "After verified protected storage, delete only the exact temporary download copy; retain the protected key for future separately authorized issuance",
+    "revocation": "If setup is uncertain, stop and report app/installation/key identifiers without retries. Owner can suspend or uninstall this selected-repository app to remove repository access. Do not assume the sole key can be deleted without GitHub-specific prerequisites.",
+    "cost": "Existing no-cost access only; stop before any paid feature or upgrade",
+    "maximum_mutations": "One app registration, one selected-repository installation, one key generation/download, protected local key storage and exact temporary-copy cleanup",
+    "excluded": ["Installation token requests", "JWT signing", "Source fetch", "Model calls", "Actions enablement", "Runner listener", "Docker", "Workflow execution", "Writes to Bonus Library", "Deployment", "Spending"]
+  },
+  "credential_rotation_limit": "Installation tokens expire after one hour; the GitHub App private key does not expire automatically. This is not a claim of automatic bootstrap-key rotation.",
+  "references": [
+    "https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app",
+    "https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps"
+  ],
+  "holds_preserved": true,
+  "production_changes": 0
+}
