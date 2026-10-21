@@ -19,7 +19,7 @@
   },
   "remaining_before_live_source_fetch": [
     "Review and merge the offline implementation through repository CI",
-    "Approve and configure the selected-repository GitHub App and protected bootstrap key",
+    "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
     "Qualify source_token_transport.py in Linux CI and wire separately authorized JWT production; no key-loading or signing implementation is active",
     "Approve a disk-quota or equivalent storage bound for the temporary Git object store; post-fetch snapshot size limits do not bound download disk use",
     "Pin an actual task commit and independent expected content manifest",
@@ -29,7 +29,7 @@
     "approval_id": "factory-bonus-source-access-v1",
     "owner": "timbrydges",
     "app_name": "timbrydges-factory-bonus-source",
-    "name_check": "Read-only GET /apps/timbrydges-factory-bonus-source returned 404; availability must still be confirmed by the creation form",
+    "name_check": "Exact private app created and installed under factory-bonus-source-access-v1; no tokens requested",
     "visibility": "Private; installable only on the owner account",
     "homepage": "https://github.com/timbrydges/factory-runner-control",
     "repository_permissions": {"contents": "read", "metadata": "read"},
