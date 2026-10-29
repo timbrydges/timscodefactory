@@ -109,6 +109,43 @@ class IdentityTransportTests(unittest.IsolatedAsyncioTestCase):
             self.source.assert_awaited_once(); self.transport.post_json.assert_awaited_once()
             self.assertNotIn(self.subject.token.encode(), path.read_bytes())
 
+    async def test_safe_stage_survives_ledger_and_renewal_wrappers(self):
+        from factory_runtime.identity_diagnostics import IdentityFailure, failure_receipt
+        cases = [
+            ('subject', IdentityFailure('github_claims', 'validation'), 'github_claims', 'validation'),
+            ('transport', TimeoutError('private-token'), 'exchange_transport', 'timeout'),
+            ('http', None, 'exchange_http', 'http_error'),
+            ('response', None, 'exchange_response', 'validation'),
+        ]
+        for kind, error, stage, reason in cases:
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as folder:
+                self.source.reset_mock(side_effect=True)
+                self.source.return_value = self.subject
+                self.transport.reset_mock(side_effect=True)
+                self.transport.post_json.return_value = ProviderHTTPResponse(200, self.body)
+                if kind == 'subject':
+                    self.source.side_effect = error
+                elif kind == 'transport':
+                    self.transport.post_json.side_effect = error
+                elif kind == 'http':
+                    self.transport.post_json.return_value = ProviderHTTPResponse(401, b'private-token')
+                else:
+                    self.transport.post_json.return_value = ProviderHTTPResponse(200, b'private-token')
+                ledger = CredentialIssuanceLedger(Path(folder)/'issuance.db', self.auth, operator_authorized=True)
+                ledger.pause(False)
+                source = self.exchange().binding(ledger).compose(clock=lambda: self.now)
+                with self.assertRaises(IdentityFailure) as caught:
+                    await source.issue(target=self.target)
+                receipt = failure_receipt(caught.exception)
+                self.assertEqual(receipt, dict(failure_stage=stage, failure_reason=reason))
+                self.assertNotIn('private', str(caught.exception))
+                calls = self.source.await_count
+                with self.assertRaises(ProviderCredentialLeaseError):
+                    await source.issue(target=self.target)
+                self.assertEqual(self.source.await_count, calls)
+                self.source.assert_awaited_once()
+                self.assertEqual(self.transport.post_json.await_count, 0 if kind == 'subject' else 1)
+
     async def test_short_tokens_renew_between_builder_and_reviewer(self):
         self.auth = replace(self.auth, minimum_interval_seconds=90)
         async def subject_source(auth):

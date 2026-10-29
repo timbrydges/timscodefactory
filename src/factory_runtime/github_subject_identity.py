@@ -7,6 +7,7 @@ import json
 import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from .identity_diagnostics import IdentityFailure, identity_failure
 from .credential_issuance import IssuanceAuthorization
 from .openai_provider import OpenAIProviderDisabledError
 from .provider_credentials import ProviderCredentialLeaseError
@@ -111,6 +112,7 @@ class GitHubSubjectSource:
     async def __call__(self, authorization):
         if not self._enabled:
             raise ProviderCredentialLeaseError('GitHub identity source disabled')
+        stage = 'github_authorization'
         try:
             if (type(authorization) is not IssuanceAuthorization
                     or authorization.canonical() != self._authorization):
@@ -121,20 +123,27 @@ class GitHubSubjectSource:
                     or not authorization.starts_at <= now < authorization.expires_at):
                 raise ValueError()
             async with asyncio.timeout(10):
+                stage = 'github_environment'
                 # These are job-owned values, not packet fields or candidate env.
                 url = self._environment('ACTIONS_ID_TOKEN_REQUEST_URL')
                 request_target(url, self._policy.request_origin, self._policy.audience)
                 bearer = self._environment('ACTIONS_ID_TOKEN_REQUEST_TOKEN')
+                stage = 'github_transport'
                 response = await self._transport.request(url=url, bearer=bearer, policy=self._policy)
-                if response.status_code != 200 or type(response.body) is not bytes or not 1 <= len(response.body) <= 65536:
+                if response.status_code != 200:
+                    raise IdentityFailure('github_http', 'http_error')
+                stage = 'github_payload'
+                if type(response.body) is not bytes or not 1 <= len(response.body) <= 65536:
                     raise ValueError()
                 data = json.loads(response.body.decode('utf-8'), object_pairs_hook=_unique)
                 if type(data) is not dict or 'value' not in data:
                     raise ValueError()
                 token = data['value']
                 claims = _decode_claims(token)
+                stage = 'github_claims'
                 if any(claims.get(key) != value for key, value in self._claims.items()):
                     raise ValueError()
+                stage = 'github_lifetime'
                 issued, expires = claims.get('iat'), claims.get('exp')
                 received = self._clock()
                 if (not isinstance(received, datetime) or received.tzinfo is None
@@ -147,5 +156,5 @@ class GitHubSubjectSource:
                 return TrustedSubjectIdentity(token, datetime.fromtimestamp(expires, timezone.utc))
         except asyncio.CancelledError:
             raise
-        except Exception:
-            raise ProviderCredentialLeaseError('GitHub identity acquisition failed; reconcile issuance') from None
+        except Exception as error:
+            raise identity_failure(error, stage) from None

@@ -11,6 +11,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable
 
+from .identity_diagnostics import identity_failure
 from .openai_provider import ProviderCredentialLease
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import ProviderCredentialLeaseError
@@ -117,4 +118,4 @@ class RenewableProviderCredentialSource:
                         pass  # STARTED is already durable and blocks all future claims.
                 if isinstance(error, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
                     raise
-                raise ProviderCredentialLeaseError("credential renewal failed; reconciliation required") from None
+                raise identity_failure(error, "renewal_validation") from None
