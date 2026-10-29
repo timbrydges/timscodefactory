@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import json
 import re
 
+from .identity_diagnostics import IdentityFailure, identity_failure
 from .credential_issuance import IssuanceAuthorization
 from .openai_provider import OpenAIProviderDisabledError, OpenAIProviderProtocolError
 from .provider_credentials import ProviderCredentialLeaseError
@@ -76,6 +77,7 @@ class JWTTokenExchange:
     async def __call__(self, authorization):
         if not self._enabled:
             raise ProviderCredentialLeaseError('JWT exchange disabled')
+        stage = 'exchange_authorization'
         try:
             if type(authorization) is not IssuanceAuthorization or authorization.canonical() != self._authorization:
                 raise ValueError()
@@ -84,6 +86,7 @@ class JWTTokenExchange:
                     or not authorization.starts_at <= started < authorization.expires_at):
                 raise ValueError()
             async with asyncio.timeout(30):
+                stage = 'exchange_subject'
                 subject = await self._source(authorization)
                 if type(subject) is not TrustedSubjectIdentity:
                     raise ValueError()
@@ -100,13 +103,14 @@ class JWTTokenExchange:
                     subject_token_type='urn:ietf:params:oauth:token-type:jwt', subject_token=subject.token,
                     identity_provider_id=authorization.identity_provider_id,
                     service_account_id=authorization.service_account_id), separators=(',', ':')).encode()
+                stage = 'exchange_transport'
                 response = await self._transport.post_json(endpoint='https://auth.openai.com/oauth/token',
                     headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
                     body=body, timeout_seconds=20)
                 if response.status_code != 200:
-                    raise ValueError()
+                    raise IdentityFailure('exchange_http', 'http_error')
                 return ExchangeResponse(response.body, subject.expires_at.astimezone(timezone.utc))
         except asyncio.CancelledError:
             raise
-        except Exception:
-            raise ProviderCredentialLeaseError('JWT exchange failed; reconciliation required') from None
+        except Exception as error:
+            raise identity_failure(error, stage) from None

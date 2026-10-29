@@ -10,6 +10,7 @@ import json
 import hashlib
 import re
 
+from .identity_diagnostics import identity_failure
 from .credential_issuance import CredentialIssuanceLedger, IssuanceAuthorization
 from .openai_provider import ProviderCredentialLease
 from .provider_credentials import ProviderCredentialLeaseError
@@ -102,8 +103,8 @@ def parse_exchange_response(response, *, requested_at, received_at, expected_sco
                 or expires_at <= end or expires_at > subject_end):
             raise ValueError("exchange lifetime mismatch")
         return ProviderCredentialLease(token, "openai", "api.openai.com", issued_at, expires_at)
-    except Exception:
-        raise ProviderCredentialLeaseError("invalid workload identity response") from None
+    except Exception as error:
+        raise identity_failure(error, "exchange_response") from None
 
 
 def compose_exchange_credential_source(*, ledger, exchange, clock, enabled=False,

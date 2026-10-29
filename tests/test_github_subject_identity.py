@@ -45,6 +45,24 @@ class GitHubSubjectTests(IsolatedAsyncioTestCase):
             environment=self.environment, clock=lambda:self.now,
             transport=self.transport, **kwargs)
 
+    async def test_failure_stages_are_safe_and_single_call(self):
+        from factory_runtime.identity_diagnostics import IdentityFailure, failure_receipt
+        cases = [
+            (ProviderHTTPResponse(403, b'secret-token'), 'github_http'),
+            (ProviderHTTPResponse(200, b'secret-token'), 'github_payload'),
+            (self.response(repository='other/private'), 'github_claims'),
+            (self.response(exp=int(self.now.timestamp())+100), 'github_lifetime'),
+        ]
+        for response, stage in cases:
+            with self.subTest(stage=stage):
+                self.transport.request.reset_mock()
+                self.transport.request.return_value = response
+                with self.assertRaises(IdentityFailure) as caught:
+                    await self.source(enabled=True)(self.auth)
+                self.assertEqual(failure_receipt(caught.exception)['failure_stage'], stage)
+                self.assertNotIn('secret-token', str(caught.exception))
+                self.transport.request.assert_awaited_once()
+
     async def test_default_never_reads_environment_or_sends(self):
         with self.assertRaises(ProviderCredentialLeaseError):
             await self.source()(self.auth)
