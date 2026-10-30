@@ -7,7 +7,13 @@ STAGES = frozenset({
     'exchange_authorization', 'exchange_subject', 'exchange_transport',
     'exchange_http', 'exchange_response', 'renewal_validation', 'unknown',
 })
-REASONS = frozenset({'validation', 'timeout', 'transport_failure', 'http_error', 'unknown'})
+REASONS = frozenset({
+    'validation', 'timeout', 'transport_failure', 'http_error', 'unknown',
+    'response_boundary', 'response_clock', 'expected_scopes', 'response_json',
+    'response_fields', 'token_type', 'token_encoding', 'scope_format',
+    'scope_mismatch', 'lifetime_format', 'issuance_clock', 'expired',
+    'subject_expiry',
+})
 
 class IdentityFailure(ProviderCredentialLeaseError):
     def __init__(self, stage='unknown', reason='unknown'):

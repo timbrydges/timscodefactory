@@ -10,7 +10,7 @@ import json
 import hashlib
 import re
 
-from .identity_diagnostics import identity_failure
+from .identity_diagnostics import IdentityFailure
 from .credential_issuance import CredentialIssuanceLedger, IssuanceAuthorization
 from .openai_provider import ProviderCredentialLease
 from .provider_credentials import ProviderCredentialLeaseError
@@ -63,48 +63,66 @@ def _unique(pairs):
 
 def parse_exchange_response(response, *, requested_at, received_at, expected_scopes):
     """Require exact scoped access and retain the provider's absolute expiry."""
+    # Only fixed labels may escape; never derive diagnostics from response data.
+    reason = 'response_boundary'
     try:
         if not isinstance(response, ExchangeResponse) or type(response.body) is not bytes:
             raise ValueError("bounded response required")
         if not 1 <= len(response.body) <= 65536:
             raise ValueError("bounded response required")
+        reason = 'response_clock'
         start, end = _aware(requested_at), _aware(received_at)
         subject_end = _aware(response.subject_expires_at)
         if end < start:
             raise ValueError("exchange clock reversed")
+        reason = 'expected_scopes'
         if (type(expected_scopes) is not tuple or not 1 <= len(expected_scopes) <= 32
                 or any(not isinstance(scope, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", scope)
                        for scope in expected_scopes)
                 or tuple(sorted(set(expected_scopes))) != expected_scopes):
             raise ValueError("exact scopes required")
+        reason = 'response_json'
         data = json.loads(response.body.decode("utf-8"), object_pairs_hook=_unique)
+        reason = 'response_fields'
         fields = {"access_token", "issued_token_type", "token_type", "expires_in", "expires_at", "scope"}
         if type(data) is not dict or set(data) != fields:
             raise ValueError("unsupported exchange response")
+        reason = 'token_type'
         if (data["token_type"] != "Bearer" or
                 data["issued_token_type"] != "urn:ietf:params:oauth:token-type:access_token"):
             raise ValueError("unsupported exchange token type")
+        reason = 'token_encoding'
         token = data["access_token"]
         if (not isinstance(token, str) or not 16 <= len(token) <= 32768
                 or any(ord(c) < 33 or ord(c) > 126 for c in token)):
             raise ValueError("invalid exchange token")
+        reason = 'scope_format'
         scopes = data["scope"]
         if not isinstance(scopes, str) or len(scopes) > 4127:
             raise ValueError("invalid exchange scope")
+        reason = 'scope_mismatch'
         if tuple(sorted(scopes.split(" "))) != expected_scopes:
             raise ValueError("exchange scope mismatch")
+        reason = 'lifetime_format'
         ttl, expiry = data["expires_in"], data["expires_at"]
         if type(ttl) is not int or not 1 <= ttl <= 3600 or type(expiry) is not int:
             raise ValueError("invalid exchange lifetime")
         expires_at = datetime.fromtimestamp(expiry, timezone.utc)
         issued_at = expires_at - timedelta(seconds=ttl)
         # Provider times are whole seconds; allow only timestamp rounding.
-        if (issued_at < start - timedelta(seconds=1) or issued_at > end
-                or expires_at <= end or expires_at > subject_end):
+        reason = 'issuance_clock'
+        if issued_at < start - timedelta(seconds=1) or issued_at > end:
             raise ValueError("exchange lifetime mismatch")
+        reason = 'expired'
+        if expires_at <= end:
+            raise ValueError("exchange lifetime mismatch")
+        reason = 'subject_expiry'
+        if expires_at > subject_end:
+            raise ValueError("exchange lifetime mismatch")
+        reason = 'validation'
         return ProviderCredentialLease(token, "openai", "api.openai.com", issued_at, expires_at)
-    except Exception as error:
-        raise identity_failure(error, "exchange_response") from None
+    except Exception:
+        raise IdentityFailure('exchange_response', reason) from None
 
 
 def compose_exchange_credential_source(*, ledger, exchange, clock, enabled=False,
