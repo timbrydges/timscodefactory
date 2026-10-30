@@ -115,7 +115,7 @@ class IdentityTransportTests(unittest.IsolatedAsyncioTestCase):
             ('subject', IdentityFailure('github_claims', 'validation'), 'github_claims', 'validation'),
             ('transport', TimeoutError('private-token'), 'exchange_transport', 'timeout'),
             ('http', None, 'exchange_http', 'http_error'),
-            ('response', None, 'exchange_response', 'validation'),
+            ('response', None, 'exchange_response', 'response_json'),
         ]
         for kind, error, stage, reason in cases:
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as folder:

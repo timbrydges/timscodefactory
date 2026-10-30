@@ -7,6 +7,7 @@ import traceback
 import unittest
 
 from factory_runtime.credential_issuance import CredentialIssuanceLedger, IssuanceAuthorization
+from factory_runtime.identity_diagnostics import IdentityFailure, failure_receipt
 from factory_runtime.provider_broker_service import ResolvedProviderTarget
 from factory_runtime.provider_credentials import ProviderCredentialLeaseError
 from factory_runtime.workload_identity_response import (
@@ -108,6 +109,54 @@ class ExchangeResponseTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ProviderCredentialLeaseError):
             self.parse()
 
+    def test_response_failure_categories_and_redaction(self):
+        original = self.data.copy()
+        cases = (
+            ({'unexpected-secret-field': 'secret-value'}, 'response_fields'),
+            ({'token_type': 'secret-value'}, 'token_type'),
+            ({'issued_token_type': 'secret-value'}, 'token_type'),
+            ({'access_token': 'secret\nvalue'}, 'token_encoding'),
+            ({'scope': None}, 'scope_format'),
+            ({'scope': 'secret-value'}, 'scope_mismatch'),
+            ({'expires_in': True}, 'lifetime_format'),
+            ({'expires_at': 10**100}, 'lifetime_format'),
+            ({'expires_at': int(self.now.timestamp()) + 700}, 'issuance_clock'),
+        )
+        for change, reason in cases:
+            with self.subTest(reason=reason, fields=list(change)):
+                self.data = original | change
+                with self.assertRaises(IdentityFailure) as caught:
+                    self.parse()
+                self.assertEqual(failure_receipt(caught.exception),
+                    {'failure_stage': 'exchange_response', 'failure_reason': reason})
+                rendered = ''.join(traceback.format_exception(caught.exception))
+                self.assertNotIn('secret-value', rendered)
+                self.assertNotIn('unexpected-secret-field', rendered)
+                self.assertNotIn(original['access_token'], rendered)
+
+    def test_boundary_json_clock_and_expiry_categories(self):
+        cases = (
+            (ExchangeResponse(b'x'*65537, self.now), {}, 'response_boundary'),
+            (ExchangeResponse(b'{"secret-value": invalid}', self.now), {}, 'response_json'),
+            (ExchangeResponse(b'{"x":1,"x":2}', self.now), {}, 'response_json'),
+            (ExchangeResponse(b'[]', self.now), {}, 'response_fields'),
+            (replace(self.response(), subject_expires_at=self.now), {}, 'subject_expiry'),
+            (self.response(), {'scopes': ('secret value',)}, 'expected_scopes'),
+        )
+        for response, kwargs, reason in cases:
+            with self.subTest(reason=reason):
+                with self.assertRaises(IdentityFailure) as caught:
+                    self.parse(response, **kwargs)
+                self.assertEqual(failure_receipt(caught.exception)['failure_reason'], reason)
+        self.now = self.start - timedelta(seconds=1)
+        with self.assertRaises(IdentityFailure) as caught:
+            self.parse()
+        self.assertEqual(caught.exception.reason, 'response_clock')
+        self.now = self.start + timedelta(seconds=600)
+        with self.assertRaises(IdentityFailure) as caught:
+            self.parse()
+        self.assertEqual(caught.exception.reason, 'expired')
+
     async def test_disabled_and_paused_never_exchange(self):
         ledger = self.ledger()
         for enabled in (False, True):
@@ -126,8 +175,10 @@ class ExchangeResponseTests(unittest.IsolatedAsyncioTestCase):
     async def test_scope_failure_survives_restart_without_retry(self):
         ledger = self.ledger(); ledger.pause(False)
         self.data['scope'] += ' admin'
-        with self.assertRaises(ProviderCredentialLeaseError):
+        with self.assertRaises(IdentityFailure) as caught:
             await self.source(ledger).issue(target=self.target)
+        self.assertEqual(failure_receipt(caught.exception),
+            {'failure_stage': 'exchange_response', 'failure_reason': 'scope_mismatch'})
         self.data['scope'] = ' '.join(self.scopes)
         with self.assertRaises(ProviderCredentialLeaseError):
             await self.source(self.ledger()).issue(target=self.target)
