@@ -157,6 +157,23 @@ class ExchangeResponseTests(unittest.IsolatedAsyncioTestCase):
             self.parse()
         self.assertEqual(caught.exception.reason, 'expired')
 
+    def test_scope_diagnostics_reject_every_mismatch_without_values(self):
+        expected = ('api.model.request',)
+        for value, reason in (
+            ('api.model.read api.model.request', 'scope_read_extra'),
+            ('api.model.request secret-extra', 'scope_extra'),
+            ('api.model.read', 'scope_mismatch'),
+            ('', 'scope_missing'),
+            ('api.model.request api.model.request', 'scope_mismatch'),
+        ):
+            with self.subTest(reason=reason, value=value):
+                self.data['scope'] = value
+                with self.assertRaises(IdentityFailure) as caught:
+                    self.parse(scopes=expected)
+                self.assertEqual(failure_receipt(caught.exception),
+                    {'failure_stage': 'exchange_response', 'failure_reason': reason})
+                self.assertNotIn('secret-extra', ''.join(traceback.format_exception(caught.exception)))
+
     async def test_disabled_and_paused_never_exchange(self):
         ledger = self.ledger()
         for enabled in (False, True):
@@ -178,7 +195,7 @@ class ExchangeResponseTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(IdentityFailure) as caught:
             await self.source(ledger).issue(target=self.target)
         self.assertEqual(failure_receipt(caught.exception),
-            {'failure_stage': 'exchange_response', 'failure_reason': 'scope_mismatch'})
+            {'failure_stage': 'exchange_response', 'failure_reason': 'scope_extra'})
         self.data['scope'] = ' '.join(self.scopes)
         with self.assertRaises(ProviderCredentialLeaseError):
             await self.source(self.ledger()).issue(target=self.target)
