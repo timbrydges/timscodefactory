@@ -101,7 +101,15 @@ def parse_exchange_response(response, *, requested_at, received_at, expected_sco
         if not isinstance(scopes, str) or len(scopes) > 4127:
             raise ValueError("invalid exchange scope")
         reason = 'scope_mismatch'
-        if tuple(sorted(scopes.split(" "))) != expected_scopes:
+        returned_scopes = tuple(sorted(scopes.split(" ")))
+        if returned_scopes != expected_scopes:
+            # Fixed diagnostics only: never export arbitrary scope names.
+            if returned_scopes == tuple(sorted((*expected_scopes, 'api.model.read'))):
+                reason = 'scope_read_extra'
+            elif set(expected_scopes) < set(returned_scopes):
+                reason = 'scope_extra'
+            elif not scopes or set(returned_scopes) < set(expected_scopes):
+                reason = 'scope_missing'
             raise ValueError("exchange scope mismatch")
         reason = 'lifetime_format'
         ttl, expiry = data["expires_in"], data["expires_at"]

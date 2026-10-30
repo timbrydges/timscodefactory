@@ -11,7 +11,8 @@ REASONS = frozenset({
     'validation', 'timeout', 'transport_failure', 'http_error', 'unknown',
     'response_boundary', 'response_clock', 'expected_scopes', 'response_json',
     'response_fields', 'token_type', 'token_encoding', 'scope_format',
-    'scope_mismatch', 'lifetime_format', 'issuance_clock', 'expired',
+    'scope_mismatch', 'scope_read_extra', 'scope_extra', 'scope_missing',
+    'lifetime_format', 'issuance_clock', 'expired',
     'subject_expiry',
 })
 
