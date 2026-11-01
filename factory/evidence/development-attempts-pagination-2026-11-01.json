@@ -137,8 +137,45 @@
         },
         "app_tests_detail": "75 tests passed, tsc --noEmit passed, eslint failed with 3 errors: no-explicit-any at src/app/dashboard/page.tsx:39 and src/lib/library-pagination.ts:94, prefer-const at src/lib/library-pagination.ts:95",
         "merged": false,
-        "follow_up": "Factory test gate extended to the repository's typegen, tsc and eslint checks, with failing check output feeding the bounded repair round"
+        "follow_up": "Factory test gate extended to the repository's typegen, tsc and eslint checks, with failing check output feeding the bounded repair round",
+        "outcome": "Owner instructed to close bonus-library#36 unmerged after eslint failure"
       }
+    },
+    {
+      "attempt_id": "pagination-006",
+      "approval": "Owner ran scripts/run_owner_attempt.py --owner-authorized (US$1.50 cap, one repair round)",
+      "factory_source_commit": "fc04354 (PR #574)",
+      "check_image": "factory-bonus-checks:ef88df95bc3f = sha256:1c0d28a580d025aa234296c45eb1202b8dafa9d819d329d1f98b3fce765fec10",
+      "result": {
+        "status": "REJECTED",
+        "authoritative": false,
+        "release_authorized": false
+      },
+      "pipeline": "Builder proposal failed the repository checks in the sandbox (no first-round review), the redacted check output drove the single repair, the repaired proposal passed the checks, and the repair reviewer rejected it",
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.11179600"
+        },
+        "repair_builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.12949600"
+        },
+        "repair_reviewer": {
+          "state": "COMPLETED",
+          "verdict": "REJECT",
+          "cost_usd": "0.03796000",
+          "findings": [
+            "Bidirectional navigation is incorrect: for a newer cursor, hasMore describes newer rows but also decides whether the Older items link renders, so returning from the second page to the first loses the Older link",
+            "paginateLibraryItems truncates newer candidates with slice(-boundedSize) before computing hasMore, so hasMore is always false for that direction; the tests only compare returned rows"
+          ]
+        }
+      },
+      "total_cost_usd": "0.27925200",
+      "writes_to_bonus_library": 0,
+      "observation": "Repository checks now gate review and feed repair as designed; the remaining defect is functional and was not covered by builder-authored tests"
     }
   ],
   "incident": {
