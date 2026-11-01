@@ -18,7 +18,7 @@
     "failure": "Retain an exclusive receipt directory, redact underlying exception details, stop without retry on uncertain issuance, fetch, revoke or cleanup"
   },
   "remaining_before_live_source_fetch": [
-    "Set up and verify the approved 256 MiB attempt volume on the runner host (size and ACL output), and confirm Python resolves C:\\FactoryRunner\\source-attempts to itself; until then acquisition refuses to start",
+    "Reattach the attempt volume after every host reboot (manual today; an automatic startup task needs its own approval)",
     "Review and merge the offline implementation through repository CI",
     "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
     "Pin an actual task commit and independent expected content manifest",
@@ -92,6 +92,19 @@
       "Spending"
     ],
     "enforcement": "acquire_private_source refuses to start unless attempt_parent is an existing non-link directory whose volume total is between 1 byte and 268435456 bytes, so an unattached volume (ordinary folder on C:) fails closed",
-    "host_setup_verified": false
+    "host_setup_verified": true,
+    "host_verification": {
+      "observed_on": "2026-11-01",
+      "source": "Owner-supplied PowerShell screenshots from host ASUSTUF; transcribed, not machine-collected",
+      "diskpart": "Created, attached, partitioned, formatted (NTFS, label FactorySrc) and mounted at C:\\FactoryRunner\\source-attempts",
+      "volume_size_gb": 0.25,
+      "acl": [
+        "NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)",
+        "BUILTIN\\Administrators:(I)(OI)(CI)(F)",
+        "AsusTUF\\FactoryRunner:(I)(OI)(CI)(F)"
+      ],
+      "python_path_resolves_to_itself": true,
+      "not_verified": "Persistence across reboot; the code check fails closed if the volume is detached"
+    }
   }
 }
