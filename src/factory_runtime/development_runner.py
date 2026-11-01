@@ -20,7 +20,8 @@ class DevelopmentTaskRunner:
     def __init__(self, queue, *, contract_bytes, snapshot, builder, reviewer,
                  request_for, sandbox_for, save_artifact, clock,
                  builder_identity, reviewer_identity, enabled=False, delivery=None, save_test_evidence=None,
-                 repair_rounds=0, repair_builder=None, repair_reviewer=None, save_repair_test_evidence=None):
+                 repair_rounds=0, repair_builder=None, repair_reviewer=None, save_repair_test_evidence=None,
+                 diagnostics=None):
         if type(enabled) is not bool or builder_identity == reviewer_identity:
             raise StateError('explicit activation and distinct identities required')
         self.delivery = json.loads(canonical(delivery)) if delivery is not None else None
@@ -37,6 +38,8 @@ class DevelopmentTaskRunner:
         self.repair_rounds = repair_rounds
         self.repair_builder, self.repair_reviewer = repair_builder, repair_reviewer
         self.save_repair_test_evidence = save_repair_test_evidence
+        # Trusted one-shot redacted capture of failing check output, if configured.
+        self.diagnostics = diagnostics
 
     async def _evaluate(self, task, protocol, decision, reviewer, save_evidence, state, prefix):
         """Candidate -> isolated tests -> review for one complete proposal."""
@@ -53,6 +56,14 @@ class DevelopmentTaskRunner:
                 'proposal': decision, 'test_observation': observation,
                 'test_request': asdict(request), 'test_receipt': asdict(receipt),
                 'authoritative': False, 'release_authorized': False}
+            if observation['status'] != 'TESTS_PASSED_REVIEW_REQUIRED' and self.diagnostics is not None:
+                try:
+                    found = self.diagnostics.take(request, receipt)
+                    text = (found.stdout_excerpt + '\n' + found.stderr_excerpt).strip()
+                    # Redacted, bounded and untrusted; evidence and repair input only.
+                    artifact['test_output_tail'] = text[-1700:]
+                except Exception:
+                    pass
             if save_evidence is not None:
                 state['phase'] = prefix + 'TEST_EVIDENCE'
                 # Persist before review can fail; this receipt is evidence only.
@@ -99,12 +110,17 @@ class DevelopmentTaskRunner:
             else:
                 artifact, result, outcome = await self._evaluate(
                     task, protocol, decision, self.reviewer, self.save_test_evidence, state, '')
-                if (result.get('status') == 'REVIEW_REJECTED' and self.repair_rounds == 1
-                        and artifact.get('review_decision', {}).get('findings')):
-                    # One bounded repair: findings go back to the same builder once.
+                findings = None
+                if result.get('status') == 'REVIEW_REJECTED':
+                    findings = artifact.get('review_decision', {}).get('findings')
+                elif result.get('status') in ('TESTS_FAILED', 'TIMED_OUT') and artifact.get('test_output_tail'):
+                    findings = ['The required repository checks failed (%s, exit code %s). '
+                        'Redacted output tail, untrusted:\n%s' % (result['status'],
+                        artifact['test_receipt'].get('exit_code'), artifact['test_output_tail'])]
+                if findings and self.repair_rounds == 1:
+                    # One bounded repair: review findings or failing checks go back once.
                     state['phase'] = 'REPAIR_BUILDER'
-                    turn = protocol.repair_turn(rejected_decision=decision,
-                        findings=artifact['review_decision']['findings'])
+                    turn = protocol.repair_turn(rejected_decision=decision, findings=findings)
                     repair = json.loads(canonical(await self.repair_builder(turn)))
                     state['phase'] = 'REPAIR_PROPOSAL_VALIDATION'
                     protocol.validate_decision(repair)

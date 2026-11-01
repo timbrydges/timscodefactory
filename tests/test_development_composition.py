@@ -39,8 +39,13 @@ class CompositionTests(TestCase):
                 self.assertEqual(adapter.policy.max_request_bytes, 42020)
             candidate = Mock()
             args['request_for'](candidate)
-            self.assertEqual(candidate.request.call_args.kwargs['command'],
-                ('node', '--experimental-strip-types', '--test', 'tests/library-pagination.test.mjs'))
+            from factory_runtime.development_composition import BONUS_REPOSITORY_CHECKS
+            self.assertEqual(candidate.request.call_args.kwargs['command'], BONUS_REPOSITORY_CHECKS)
+            # The repository's own CI gates run before the task tests.
+            script = BONUS_REPOSITORY_CHECKS[2]
+            self.assertLess(script.index('tsc --noEmit'), script.index('eslint'))
+            self.assertLess(script.index('eslint'), script.index('--test tests/library-pagination.test.mjs'))
+            self.assertIs(args['diagnostics'], args['sandbox_for'](Mock(workspace='w')).diagnostic_capture)
             self.assertEqual(args['delivery']['test_command'],
                              list(candidate.request.call_args.kwargs['command']))
             self.assertEqual(args['delivery']['required_changed_paths'],

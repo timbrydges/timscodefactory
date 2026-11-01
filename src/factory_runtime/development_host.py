@@ -18,7 +18,7 @@ class DevelopmentHost:
     def __init__(self, directory, *, task, contract_bytes, snapshot, builder,
                  reviewer, target, builder_cap, reviewer_cap, total_cap,
                  request_for, sandbox_for, clock, enabled=False, delivery=None,
-                 repair_rounds=0):
+                 repair_rounds=0, diagnostics=None):
         if type(enabled) is not bool:
             raise StateError('explicit boolean activation required')
         task.validate()
@@ -61,7 +61,8 @@ class DevelopmentHost:
             reviewer_identity='development-reviewer', enabled=enabled, delivery=delivery,
             repair_rounds=repair_rounds, repair_builder=session.repair_build,
             repair_reviewer=session.repair_review,
-            save_repair_test_evidence=lambda entry, raw: save_named('repair-tests.json', entry, raw))
+            save_repair_test_evidence=lambda entry, raw: save_named('repair-tests.json', entry, raw),
+            diagnostics=diagnostics)
         # Only this new attempt's local queue can be enabled by the trusted host.
         self.queue.pause(not enabled)
 
