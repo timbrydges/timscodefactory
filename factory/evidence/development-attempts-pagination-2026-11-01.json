@@ -210,6 +210,45 @@
       "total_cost_usd": "0.31912800",
       "writes_to_bonus_library": 0,
       "observation": "First attempt to pass the Factory-owned acceptance tests; the remaining rejection concerns consistency between the helper and the dashboard query, required by the task's same-semantics clause"
+    },
+    {
+      "attempt_id": "pagination-008",
+      "approval": "Owner ran scripts/run_owner_attempt.py --owner-authorized (US$2.25 cap, two repair rounds)",
+      "factory_source_commit": "32216eb (PR #578)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "authoritative": false,
+        "release_authorized": false
+      },
+      "pipeline": "Builder proposal passed typegen, tsc, eslint and the Factory acceptance tests; reviewer rejected; first repair passed the checks again and the repair reviewer approved",
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.11572800"
+        },
+        "reviewer": {
+          "state": "COMPLETED",
+          "verdict": "REJECT",
+          "cost_usd": "0.03798400",
+          "findings": [
+            "paginateLibraryItems orders created_at using localeCompare rather than chronological timestamp values, so equivalent valid timestamps with different offsets or textual forms can be ordered incorrectly"
+          ]
+        },
+        "repair_builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.12847200"
+        },
+        "repair_reviewer": {
+          "state": "COMPLETED",
+          "verdict": "APPROVE",
+          "cost_usd": "0.04061200"
+        }
+      },
+      "total_cost_usd": "0.32279600",
+      "writes_to_bonus_library": 0,
+      "publication": "Pending owner-run scripts/publish_approved_attempt.py --attempt-id pagination-008"
     }
   ],
   "incident": {
