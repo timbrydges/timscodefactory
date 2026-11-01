@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 import tempfile
 import unittest
@@ -224,3 +225,30 @@ class DockerSandboxTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DisposableDirectoryTests(unittest.TestCase):
+    def test_windows_directory_inherits_acl_and_is_removed(self):
+        from unittest import mock
+        from factory_runtime import docker_sandbox
+        calls = []
+        real = docker_sandbox.os.mkdir
+        def record(path, *args, **kwargs):
+            calls.append((args, kwargs)); return real(path)
+        with mock.patch.object(docker_sandbox.os, 'mkdir', side_effect=record):
+            with docker_sandbox._disposable_directory(windows=True) as directory:
+                path = Path(directory)
+                self.assertTrue(path.is_dir())
+                self.assertTrue(path.name.startswith('factory-sandbox-'))
+                (path / 'file').write_text('x')
+                (path / 'file').chmod(0o444)
+        self.assertEqual(calls, [((), {})])
+        self.assertFalse(path.exists())
+
+    def test_posix_keeps_private_temporary_directory(self):
+        from factory_runtime import docker_sandbox
+        with docker_sandbox._disposable_directory(windows=False) as directory:
+            path = Path(directory)
+            if os.name != 'nt':
+                self.assertEqual(path.stat().st_mode & 0o777, 0o700)
+        self.assertFalse(path.exists())
