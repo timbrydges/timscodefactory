@@ -38,6 +38,7 @@ STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
 
 class HostOps:
     """Real host effects; tests replace these with offline fakes."""
+    runner_root = r'C:\FactoryRunner'
     def docker_image_digest(self, image):
         # Registry images have a repo digest; locally built check images use their image ID.
         out = subprocess.run(['docker', 'image', 'inspect', image, '--format',
@@ -64,6 +65,16 @@ class HostOps:
     def clear_clipboard(self):
         subprocess.run(['powershell', '-NoProfile', '-Command', 'Set-Clipboard -Value " "'],
                        check=False, capture_output=True, timeout=15)
+
+    def publish(self, attempt_id):
+        import tempfile
+        spec = importlib.util.spec_from_file_location('publish_approved_attempt',
+                                                      ROOT/'scripts'/'publish_approved_attempt.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        root = Path(self.runner_root)
+        with tempfile.TemporaryDirectory(prefix='factory-publish-') as workdir:
+            return module.publish(attempt_dir=root/'dev-attempts'/attempt_id, attempt_id=attempt_id,
+                                  results_file=root/'dev-results'/f'{attempt_id}.json', workdir=workdir)
 
     def run_attempt(self, args, env):
         return subprocess.run([sys.executable, str(ROOT/'scripts'/'development_attempt.py'), *args],
@@ -114,8 +125,19 @@ def summarize(directory):
     return summary
 
 
+def load_key(ops):
+    key = os.environ.get('FACTORY_OPENAI_API_KEY', '').strip()
+    if not key:
+        ops.wait_for_key_copy()
+        key = ops.read_clipboard().strip()
+        ops.clear_clipboard()
+    if not KEY.fullmatch(key):
+        raise ValueError('clipboard did not hold an OpenAI key (expected sk-...); nothing was run')
+    return key
+
+
 def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pricing_source,
-        image, manifest, hours, ops, out=print, now=None):
+        image, manifest, hours, ops, out=print, now=None, key=None, task='bonus-library-pagination'):
     root = Path(runner_root)
     config_path = root/'bonus-source-fetch.json'
     raw = config_path.read_bytes()
@@ -131,23 +153,19 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     inputs, attempts, results = root/'dev-inputs', root/'dev-attempts', root/'dev-results'
     for folder in (inputs, attempts, results):
         folder.mkdir(exist_ok=True)
-    attempt_id = attempt_id or next_attempt_id(attempts, inputs)
+    task_file = prepare_module.task_path(task)
+    attempt_id = attempt_id or next_attempt_id(attempts, inputs, task.removeprefix('bonus-library-'))
     prepared = prepare_module.prepare(output=inputs/attempt_id, attempt_id=attempt_id,
         image_ref=image_ref, source_config_sha256=config_digest, manifest=manifest,
         input_price=input_price, output_price=output_price, pricing_source=pricing_source,
         now=now or datetime.now(timezone.utc), hours=hours, source_commit=head,
-        repair_rounds=repair_rounds)
-    out(f"Prepared {attempt_id}: cap US${prepared['total_cap_usd']}, "
+        repair_rounds=repair_rounds, task=task_file)
+    out(f"Prepared {attempt_id} ({task}): cap US${prepared['total_cap_usd']}, "
         f"repair rounds {repair_rounds}, approval valid until {prepared['approval_expires_at']}")
-    key = os.environ.get('FACTORY_OPENAI_API_KEY', '').strip()
-    if not key:
-        ops.wait_for_key_copy()
-        key = ops.read_clipboard().strip()
-        ops.clear_clipboard()
-    if not KEY.fullmatch(key):
-        key = None
-        raise ValueError('clipboard did not hold an OpenAI key (expected sk-...); nothing was run')
-    out('Key loaded (not shown). Running; this can take several minutes...')
+    if key is None:
+        key = load_key(ops)
+        out('Key loaded (not shown).')
+    out('Running; this can take several minutes...')
     folder = inputs/attempt_id
     args = ['--execute-approved-once', '--owner-authorized',
             '--pins', str(folder/'pins.json'), '--approval', str(folder/'approval.json'),
@@ -178,6 +196,59 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     return summary
 
 
+CONTINUE_AFTER = {'REJECTED', 'STOPPED'}  # Definite, non-approved outcomes only.
+
+
+def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, **options):
+    """Owner-bounded sequence of attempts; stops at approval, a limit or any uncertainty."""
+    if type(max_attempts) is not int or not 1 <= max_attempts <= 5:
+        raise ValueError('between 1 and 5 attempts required')
+    budget = Decimal(str(max_total_usd))
+    per_attempt = ((Decimal(prepare_module.FIXED['builder_cap']) + Decimal(prepare_module.FIXED['reviewer_cap']))
+                   * (1 + options['repair_rounds']))
+    if not budget.is_finite() or not per_attempt <= budget <= Decimal('20'):
+        raise ValueError(f'total budget must cover at least one attempt cap (US${per_attempt}) and be at most US$20')
+    key = load_key(ops)
+    out(f'Key loaded (not shown). Batch: up to {max_attempts} attempt(s), US${budget} total, '
+        f'publish approved: {"yes" if publish_approved else "no"}.')
+    spent, records, status = Decimal(0), [], 'LIMIT_REACHED'
+    try:
+        for number in range(1, max_attempts + 1):
+            if spent + per_attempt > budget:
+                status = 'BUDGET_REACHED'
+                break
+            out(f'--- Attempt {number} of {max_attempts} (spent so far US${spent}) ---')
+            summary = run(ops=ops, out=out, key=key, attempt_id=None, **options)
+            spent += Decimal(summary['total_cost_usd'])
+            outcome = summary['outcome'].get('status')
+            uncertain = any(entry['state'] == 'FAILED' for entry in summary['stages'].values())
+            record = {'attempt_id': summary['attempt_id'], 'status': outcome,
+                      'cost_usd': summary['total_cost_usd']}
+            records.append(record)
+            if outcome == 'TICK_COMPLETED':
+                status = 'APPROVED'
+                if publish_approved:
+                    record['publication'] = ops.publish(summary['attempt_id'])
+                    status = 'APPROVED_AND_PUBLISHED'
+                break
+            if outcome not in CONTINUE_AFTER or uncertain:
+                status = 'STOPPED_FOR_RECONCILIATION'
+                break
+    finally:
+        key = None
+    batch = {'status': status, 'attempts': records, 'spent_usd': str(spent),
+             'max_attempts': max_attempts, 'max_total_usd': str(budget)}
+    results = Path(options['runner_root'])/'dev-results'
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    path = results/f'batch-{stamp}.json'
+    path.write_text(json.dumps(batch, indent=2, sort_keys=True), encoding='utf-8')
+    out(f'Batch finished: {status}; spent US${spent}. Summary: {path}')
+    for record in records:
+        link = record.get('publication', {}).get('url', '')
+        out(f"  {record['attempt_id']}: {record['status']} US${record['cost_usd']} {link}")
+    return batch
+
+
 def main(argv=None, ops=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner-authorized', action='store_true')
@@ -189,16 +260,29 @@ def main(argv=None, ops=None):
     parser.add_argument('--pricing-source')
     # Built by scripts/build_bonus_check_image.py: Node plus the pinned npm dependencies.
     parser.add_argument('--image', default='factory-bonus-checks:ef88df95bc3f')
-    parser.add_argument('--manifest', default=PINNED_MANIFEST)
+    parser.add_argument('--manifest')  # Default: the task contract's pinned manifest.
+    parser.add_argument('--task', default='bonus-library-pagination')
     parser.add_argument('--hours', type=int, default=12)
+    parser.add_argument('--max-attempts', type=int, default=1)
+    parser.add_argument('--max-total-usd')
+    parser.add_argument('--publish-approved', action='store_true')
     args = parser.parse_args(argv)
     if not args.owner_authorized:
         parser.error('explicit owner authorization required')
     source = args.pricing_source or f"openai-pricing-{datetime.now(timezone.utc):%Y-%m-%d}-owner-checked"
-    summary = run(runner_root=args.runner_root, attempt_id=args.attempt_id,
-        repair_rounds=args.repair_rounds, input_price=args.input_price,
-        output_price=args.output_price, pricing_source=source, image=args.image,
-        manifest=args.manifest, hours=args.hours, ops=ops or HostOps())
+    options = dict(runner_root=args.runner_root, repair_rounds=args.repair_rounds,
+        input_price=args.input_price, output_price=args.output_price, pricing_source=source,
+        image=args.image, manifest=args.manifest, hours=args.hours, task=args.task)
+    if ops is None:
+        ops = HostOps()
+        ops.runner_root = args.runner_root
+    if args.max_attempts > 1 or args.max_total_usd is not None or args.publish_approved:
+        if args.attempt_id is not None or args.max_total_usd is None:
+            parser.error('a batch needs --max-total-usd and picks attempt ids itself')
+        batch = run_batch(max_attempts=args.max_attempts, max_total_usd=args.max_total_usd,
+                          publish_approved=args.publish_approved, ops=ops, **options)
+        return 0 if batch['status'].startswith('APPROVED') else 1
+    summary = run(attempt_id=args.attempt_id, ops=ops, **options)
     return 0 if summary['outcome'].get('status') == 'TICK_COMPLETED' else 1
 
 

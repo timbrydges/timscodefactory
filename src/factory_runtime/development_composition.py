@@ -4,6 +4,7 @@ Only the operator supplies approval and source pins. No dynamic plugins, command
 credential lookup names or cloud adapters are accepted from the task queue.
 """
 from decimal import Decimal
+import json
 from .development_profile import TaskExecutionProfile
 from factory_state.model import StateError
 from .development_approval import compose_approved_host
@@ -17,14 +18,32 @@ from .workload_identity_response import RenewableCredentialBinding
 
 
 # The repository's own CI gates, run offline against dependencies baked into the
-# pinned check image at /deps (scripts/build_bonus_check_image.py).
-BONUS_REPOSITORY_CHECKS = ('sh', '-c',
-    'ln -s /deps/node_modules node_modules'
-    ' && NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next typegen'
-    ' && ./node_modules/.bin/tsc --noEmit'
-    ' && ./node_modules/.bin/eslint'
-    ' && node --experimental-strip-types --test tests/library-pagination.test.mjs'
-    ' tests/factory-acceptance/library-pagination.acceptance.test.mjs')
+# pinned check image at /deps (scripts/build_bonus_check_image.py), followed by the
+# builder's tests and the contract-owned acceptance tests. Paths are fixed here.
+def bonus_repository_checks(builder_test, acceptance_tests):
+    return ('sh', '-c',
+        'ln -s /deps/node_modules node_modules'
+        ' && NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next typegen'
+        ' && ./node_modules/.bin/tsc --noEmit'
+        ' && ./node_modules/.bin/eslint'
+        ' && node --experimental-strip-types --test ' + ' '.join((builder_test, *acceptance_tests)))
+
+
+BONUS_REPOSITORY_CHECKS = bonus_repository_checks('tests/library-pagination.test.mjs',
+    ('tests/factory-acceptance/library-pagination.acceptance.test.mjs',))
+
+# Trusted per-task profiles: required changed paths and the exact sandbox command.
+BONUS_TASKS = {
+    'bonus-library-pagination': (
+        ('src/app/dashboard/page.tsx', 'src/lib/library-pagination.ts',
+         'tests/library-pagination.test.mjs'),
+        BONUS_REPOSITORY_CHECKS),
+    'bonus-library-search': (
+        ('src/app/dashboard/page.tsx', 'src/lib/library-search.ts',
+         'tests/library-search.test.mjs'),
+        bonus_repository_checks('tests/library-search.test.mjs',
+            ('tests/factory-acceptance/library-search.acceptance.test.mjs',))),
+}
 
 
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
@@ -36,15 +55,18 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
     if (pins['credential_source'] != 'env:FACTORY_OPENAI_API_KEY'
             or pins['model_id'] != 'gpt-5.6-sol'
             or pins['repository'] != 'timbrydges/bonus-library'
-            or task.task_id != 'bonus-library-pagination'):
+            or task.task_id not in BONUS_TASKS):
         raise StateError('unsupported acceptance composition')
+    required, command = BONUS_TASKS[task.task_id]
+    spec = json.loads(contract_bytes)
+    # The fixed command must run exactly the contract's acceptance tests.
+    if any(item['path'] not in command[2] for item in spec.get('acceptance_tests', [])):
+        raise StateError('contract acceptance tests differ from the trusted profile')
     return _compose_host(directory, approval=approval, expected_pins=pins,
         receipt_path=receipt_path, task=task, contract_bytes=contract_bytes,
         snapshot=snapshot, pricing_source=pricing_source, clock=clock,
-        profile=TaskExecutionProfile('timbrydges/bonus-library', 'bonus-library-pagination',
-            ('src/app/dashboard/page.tsx', 'src/lib/library-pagination.ts',
-             'tests/library-pagination.test.mjs'),
-            BONUS_REPOSITORY_CHECKS, timeout_seconds=60),
+        profile=TaskExecutionProfile('timbrydges/bonus-library', task.task_id, required,
+                                     command, timeout_seconds=60),
         bind_profile=False)
 
 

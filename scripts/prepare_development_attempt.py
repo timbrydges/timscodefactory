@@ -17,7 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from factory_runtime.worker import digest
 
-TASK = ROOT/'factory'/'projects'/'bonus-library-pagination'/'task.json'
+PROJECTS = ROOT/'factory'/'projects'
+TASK = PROJECTS/'bonus-library-pagination'/'task.json'
+TASK_NAME = re.compile(r'bonus-library-[a-z0-9-]{1,40}')
+
+
+def task_path(name):
+    if not TASK_NAME.fullmatch(name) or not (PROJECTS/name/'task.json').is_file():
+        raise ValueError('known Factory task name required')
+    return PROJECTS/name/'task.json'
 FIXED = dict(model_id='gpt-5.6-sol', credential_source='env:FACTORY_OPENAI_API_KEY',
              builder_cap='0.50', reviewer_cap='0.25',
              # Builder worst case: 42020 B x $4/M + 16384 x $20/M = $0.4958 <= $0.50.
@@ -38,12 +46,21 @@ def _price(value):
     return str(price)
 
 
-def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
+def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=None,
             input_price, output_price, pricing_source, now, hours, source_commit,
-            repair_rounds=2):
+            repair_rounds=2, task=TASK):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
-    if not DIGEST.fullmatch(source_config_sha256) or not DIGEST.fullmatch(manifest):
+    contract = Path(task).read_bytes()
+    spec = json.loads(contract)
+    # The task contract pins its expected source content; a caller may only restate it.
+    pinned = spec.get('source_manifest_digest')
+    if manifest is None:
+        manifest = pinned
+    if pinned is not None and manifest != pinned:
+        raise ValueError('manifest differs from the task contract pin')
+    if (type(manifest) is not str or not DIGEST.fullmatch(source_config_sha256)
+            or not DIGEST.fullmatch(manifest)):
         raise ValueError('exact source config and manifest digests required')
     if type(repair_rounds) is not int or repair_rounds not in (0, 1, 2):
         raise ValueError('repair rounds must be 0, 1 or 2')
@@ -54,8 +71,6 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
     output = Path(output)
     if not output.is_absolute() or ROOT.resolve() in (output.resolve(), *output.resolve().parents):
         raise ValueError('absolute output directory outside the Factory checkout required')
-    contract = TASK.read_bytes()
-    spec = json.loads(contract)
     # Each round may spend both stage caps: 0.75 per round.
     total = str((Decimal(FIXED['builder_cap']) + Decimal(FIXED['reviewer_cap'])) * (1 + repair_rounds))
     pins = dict(FIXED, total_cap=total, source_commit=source_commit, contract_digest=digest(contract),
@@ -83,9 +98,11 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner-authorized', action='store_true')
-    for name in ('output', 'attempt-id', 'image-ref', 'source-config-sha256', 'manifest',
+    for name in ('output', 'attempt-id', 'image-ref', 'source-config-sha256',
                  'input-price', 'output-price', 'pricing-source'):
         parser.add_argument('--'+name, required=True)
+    parser.add_argument('--manifest')
+    parser.add_argument('--task', default='bonus-library-pagination')
     parser.add_argument('--hours', type=int, default=12)
     parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
     args = parser.parse_args(argv)
@@ -98,7 +115,8 @@ def main(argv=None):
         image_ref=args.image_ref, source_config_sha256=args.source_config_sha256,
         manifest=args.manifest, input_price=args.input_price, output_price=args.output_price,
         pricing_source=args.pricing_source, now=datetime.now(timezone.utc),
-        hours=args.hours, source_commit=head, repair_rounds=args.repair_rounds)))
+        hours=args.hours, source_commit=head, repair_rounds=args.repair_rounds,
+        task=task_path(args.task))))
     return 0
 
 

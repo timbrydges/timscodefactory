@@ -42,5 +42,6 @@
     "src/lib/library-pagination.ts",
     "tests/library-pagination.test.mjs"
   ],
-  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks; the builder cannot edit them and must make them pass."
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks; the builder cannot edit them and must make them pass.",
+  "source_manifest_digest": "sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3"
 }

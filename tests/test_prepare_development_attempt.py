@@ -22,7 +22,8 @@ class PrepareTests(unittest.TestCase):
         self.now = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
         self.kw = dict(output=self.out, attempt_id='pagination-001',
             image_ref='docker.io/library/node@sha256:'+'a'*64,
-            source_config_sha256='sha256:'+'b'*64, manifest='sha256:'+'c'*64,
+            source_config_sha256='sha256:'+'b'*64,
+            manifest='sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3',
             input_price='4.00', output_price='20.00', pricing_source='openai-pricing-2026-11-01',
             now=self.now, hours=12, source_commit='d'*40)
 
@@ -67,6 +68,23 @@ class PrepareTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 prep.prepare(**dict(self.kw, **change))
         self.assertFalse(self.out.exists())
+
+    def test_manifest_must_match_the_task_pin(self):
+        with self.assertRaises(ValueError):
+            prep.prepare(**dict(self.kw, manifest='sha256:'+'c'*64))
+        self.assertFalse(self.out.exists())
+
+    def test_search_task_uses_its_own_contract_commit_and_manifest(self):
+        task = prep.task_path('bonus-library-search')
+        prep.prepare(**dict(self.kw, manifest=None, task=task))
+        pins = json.loads((self.out/'pins.json').read_text())
+        spec = json.loads(task.read_text())
+        self.assertEqual((pins['target_commit'], pins['source_manifest_digest']),
+                         (spec['target_commit'], spec['source_manifest_digest']))
+        self.assertEqual((self.out/'contract.json').read_bytes(), task.read_bytes())
+        for bad in ('../x', 'bonus-library-missing', 'other'):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                prep.task_path(bad)
 
     def test_existing_output_is_never_overwritten(self):
         prep.prepare(**self.kw)

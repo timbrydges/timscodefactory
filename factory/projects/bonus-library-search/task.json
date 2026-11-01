@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-search",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Search the library by title from the dashboard.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Add a search form to the dashboard that submits a GET request with the parameter q and shows the current search in the input.",
+    "Create src/lib/library-search.ts exporting LIBRARY_SEARCH_MAX_LENGTH (100), normalizeLibrarySearch(raw), filterLibraryItemsByTitle(rows, query) and libraryPageHref({ q, cursor, direction }) exactly as specified in the acceptance test header.",
+    "The dashboard must normalize q with normalizeLibrarySearch, filter the owner's rows with filterLibraryItemsByTitle before calling the existing paginateLibraryItems, and build every Older and Newer link with libraryPageHref so paging keeps the active search.",
+    "An invalid search (normalizeLibrarySearch returns null) shows a clear invalid-search message instead of results; it is not reported as a library read error.",
+    "When a search matches nothing, show a no-matches message with a link that clears the search.",
+    "Preserve authenticated owner filtering, existing pagination behavior, the distinct read-error state, and existing upload and draft-review behavior.",
+    "Do not change src/lib/library-pagination.ts."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-search.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-search. The builder must make\n// these pass and cannot edit them. Contract: src/lib/library-search.ts exports\n//   LIBRARY_SEARCH_MAX_LENGTH (100)\n//   normalizeLibrarySearch(raw: string | string[] | undefined): string | null\n//     undefined -> \"\"; trims and collapses runs of spaces; null for arrays, other\n//     control characters (including tabs and newlines) or more than 100 characters.\n//   filterLibraryItemsByTitle(rows, query): rows whose string title contains the\n//     query case-insensitively, in input order, without mutating rows; \"\" keeps all.\n//   libraryPageHref({ q, cursor, direction }): \"/dashboard\" plus only the non-empty\n//     parameters, so paging links keep the active search.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {\n  LIBRARY_SEARCH_MAX_LENGTH,\n  filterLibraryItemsByTitle,\n  libraryPageHref,\n  normalizeLibrarySearch,\n} from '../../src/lib/library-search.ts';\nimport { paginateLibraryItems } from '../../src/lib/library-pagination.ts';\n\nconst OWNER = 'owner-a';\n\nfunction uuid(n) {\n  return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;\n}\n\nfunction item(n, title) {\n  return { id: uuid(n), created_at: new Date(Date.UTC(2026, 0, 1, 0, 0, n)).toISOString(), owner_id: OWNER, title };\n}\n\ntest('search length limit is 100 characters', () => {\n  assert.equal(LIBRARY_SEARCH_MAX_LENGTH, 100);\n  assert.equal(normalizeLibrarySearch('x'.repeat(100)), 'x'.repeat(100));\n  assert.equal(normalizeLibrarySearch('x'.repeat(101)), null);\n});\n\ntest('search input is normalized or rejected', () => {\n  assert.equal(normalizeLibrarySearch(undefined), '');\n  assert.equal(normalizeLibrarySearch(''), '');\n  assert.equal(normalizeLibrarySearch('   '), '');\n  assert.equal(normalizeLibrarySearch('  Space   Odyssey '), 'Space Odyssey');\n  for (const bad of [['a', 'b'], 'a\\tb', 'a\\nb', 'a\\u0000b', 'a\\u007fb']) {\n    assert.equal(normalizeLibrarySearch(bad), null, JSON.stringify(bad));\n  }\n});\n\ntest('titles match case-insensitively and literally, in input order', () => {\n  const rows = [item(1, 'Dragon Tales'), item(2, 'Sea Stories'), item(3, 'DRAGONS of Ice'),\n    item(4, null), item(5, 'C++ (2nd) Guide'), item(6, 'the dragon')];\n  const snapshot = JSON.stringify(rows);\n  assert.deepEqual(filterLibraryItemsByTitle(rows, 'dragon').map((row) => row.id),\n    [uuid(1), uuid(3), uuid(6)]);\n  assert.deepEqual(filterLibraryItemsByTitle(rows, 'c++ (2nd)').map((row) => row.id), [uuid(5)]);\n  assert.deepEqual(filterLibraryItemsByTitle(rows, 'missing'), []);\n  assert.deepEqual(filterLibraryItemsByTitle(rows, '').map((row) => row.id), rows.map((row) => row.id));\n  assert.equal(JSON.stringify(rows), snapshot, 'input rows are not mutated');\n});\n\ntest('search results page with Older and Newer navigation', () => {\n  const rows = [];\n  for (let n = 1; n <= 40; n += 1) rows.push(item(n, n % 4 === 0 ? `Atlas ${n}` : `Dragon ${n}`));\n  const matches = filterLibraryItemsByTitle(rows, 'dragon');\n  assert.equal(matches.length, 30);\n  const first = paginateLibraryItems(matches, OWNER, { cursor: null, direction: null });\n  const second = paginateLibraryItems(matches, OWNER, { cursor: first.olderCursor, direction: 'older' });\n  const third = paginateLibraryItems(matches, OWNER, { cursor: second.olderCursor, direction: 'older' });\n  const all = [...first.items, ...second.items, ...third.items];\n  assert.equal(all.length, 30);\n  assert.ok(all.every((row) => row.title.startsWith('Dragon')));\n  assert.equal(third.olderCursor, null);\n  const back = paginateLibraryItems(matches, OWNER, { cursor: third.newerCursor, direction: 'newer' });\n  assert.deepEqual(back.items.map((row) => row.id), second.items.map((row) => row.id));\n});\n\ntest('page links keep the search and omit empty parameters', () => {\n  assert.equal(libraryPageHref({ q: '', cursor: null, direction: null }), '/dashboard');\n  const href = new URL(libraryPageHref({ q: 'dragon & sea', cursor: 'abc_-1', direction: 'older' }), 'http://local');\n  assert.equal(href.pathname, '/dashboard');\n  assert.equal(href.searchParams.get('q'), 'dragon & sea');\n  assert.equal(href.searchParams.get('cursor'), 'abc_-1');\n  assert.equal(href.searchParams.get('direction'), 'older');\n  const plain = new URL(libraryPageHref({ q: '', cursor: 'abc', direction: 'newer' }), 'http://local');\n  assert.equal(plain.searchParams.has('q'), false);\n  const searchOnly = new URL(libraryPageHref({ q: 'atlas', cursor: null, direction: null }), 'http://local');\n  assert.deepEqual([...searchOnly.searchParams.keys()], ['q']);\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "93faee762cb13b3a8368ca635d883614b16da3c8",
+  "source_manifest_digest": "sha256:b0427a7b5d8a19075f53199659545feafb83b2d2f9874baff8eec44051dce8ed",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (104 files, 669861 bytes); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/page.tsx",
+    "src/lib/library-search.ts",
+    "tests/library-search.test.mjs"
+  ]
+}
