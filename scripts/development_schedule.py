@@ -22,6 +22,8 @@ def main(argv=None, *, credential_binding=None):
     parser.add_argument('--action',choices=('initialize','admit','pause','resume','run'))
     parser.add_argument('--host-directory',type=Path)
     parser.add_argument('--repository-path',type=Path)
+    parser.add_argument('--source-config',type=Path)
+    parser.add_argument('--source-config-sha256')
     parser.add_argument('--packet',type=Path)
     parser.add_argument('--due-at')
     parser.add_argument('--max-ticks',type=int,default=1)
@@ -49,8 +51,9 @@ def main(argv=None, *, credential_binding=None):
         schedule.pause(args.action=='pause')
         print(json.dumps({'status':'PAUSED' if args.action=='pause' else 'RESUMED'}))
         return 0
-    if args.repository_path is None:
-        parser.error('operator-owned repository path required')
+    if ((args.repository_path is None) == (args.source_config is None)
+            or (args.source_config is None) != (args.source_config_sha256 is None)):
+        parser.error('exactly one operator source: --repository-path or a hash-pinned --source-config')
     if args.action == 'run' and (args.identity_config is not None or args.identity_config_sha256 is not None):
         if credential_binding is not None or args.identity_config is None or args.identity_config_sha256 is None:
             parser.error('one complete operator identity binding required')
@@ -58,6 +61,7 @@ def main(argv=None, *, credential_binding=None):
             clock=lambda:datetime.now(timezone.utc), owner_authorized=True, enabled=True)
     host=ScheduledPacketHost(packet_directory=base/'packets',
         attempt_directory=base/'attempts',repository_path=args.repository_path,
+        source_config=args.source_config,source_config_sha256=args.source_config_sha256,
         execute=partial(execute, credential_binding=credential_binding),owner_authorized=True)
     if args.action=='admit':
         if args.packet is None or args.due_at is None:

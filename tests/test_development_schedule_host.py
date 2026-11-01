@@ -148,3 +148,36 @@ class HostTests(TestCase):
                 '--host-directory',str(self.base),'--repository-path',str(self.base/'repo')]+identity),0)
             bind.assert_called_once()
             self.assertIs(poll.call_args.args[1].execute.keywords['credential_binding'],bind.return_value)
+
+
+class PrivateSourceScheduleTests(TestCase):
+    def setUp(self):
+        base = HostTests('test_disabled_does_not_touch_schedule_or_host')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        (base.base/'source.json').write_text('{}')
+
+    def make(self, **kw):
+        args = dict(packet_directory=self.base.base/'packets', attempt_directory=self.base.base/'attempts',
+                    execute=self.base.execute, owner_authorized=True)
+        args.update(kw)
+        return ScheduledPacketHost(**args)
+
+    def test_dispatch_passes_pinned_source_and_no_local_path(self):
+        host = self.make(source_config=self.base.base/'source.json', source_config_sha256='sha256:'+'a'*64)
+        self.base.host = host
+        host.admit(self.base.schedule, self.base.raw, due_at=self.base.now)
+        self.base.schedule.pause(False)
+        self.base.poll()
+        args = self.base.execute.call_args.args[0]
+        self.assertIsNone(args.repository_path)
+        self.assertEqual((args.source_config, args.source_config_sha256),
+                         (self.base.base/'source.json', 'sha256:'+'a'*64))
+
+    def test_exactly_one_complete_source_required(self):
+        for kw in ({}, {'repository_path': self.base.base/'repo', 'source_config': self.base.base/'source.json',
+                        'source_config_sha256': 'sha256:'+'a'*64},
+                   {'source_config': self.base.base/'source.json'},
+                   {'source_config': self.base.base/'missing.json', 'source_config_sha256': 'sha256:'+'a'*64}):
+            with self.subTest(kw=kw), self.assertRaises(StateError):
+                self.make(**kw)
