@@ -349,5 +349,21 @@
         "merged_at": "2026-11-01T22:18Z"
       }
     }
+  ],
+  "ai_cover_attempts": [
+    {
+      "attempt_id": "ai-cover-prompt-001",
+      "approval": "Owner ran run_owner_attempt.py --task bonus-library-ai-cover-prompt --max-attempts 3 --max-total-usd 3.00 --publish-approved",
+      "factory_source_commit": "9c16404 (PR #582)",
+      "result": {
+        "status": "NEEDS_RECONCILIATION",
+        "batch": "STOPPED_FOR_RECONCILIATION"
+      },
+      "cause": "TaskImplementationProtocol rejected a task whose allowed paths are all new files ('bounded source snapshot required') during BINDING, before any provider call; reproduced offline with the exact contract",
+      "model_calls": 0,
+      "cost_usd": "0",
+      "source_fetch": "Performed under attempt name ai-cover-prompt-001 before binding",
+      "follow_up": "Protocol accepts tasks that only create files, while still requiring at least one path to change"
+    }
   ]
 }

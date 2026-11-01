@@ -114,3 +114,29 @@ class TaskProviderTests(unittest.TestCase):
 
 
 if __name__=='__main__': unittest.main()
+
+
+class NewFilesOnlyTaskTests(unittest.TestCase):
+    """A task that only creates files (e.g. bonus-library-ai-cover-prompt) reaches the builder."""
+    def setUp(self):
+        root = Path(__file__).resolve().parents[1]
+        self.raw = (root/'factory/projects/bonus-library-ai-cover-prompt/task.json').read_bytes()
+        self.spec = json.loads(self.raw)
+        self.task = QueuedTask('ai-cover-prompt-001', 'development-local', self.spec['task_id'],
+            'ai-cover-prompt-001', 'a'*40, digest(self.raw), 'IMPLEMENTATION')
+
+    def protocol(self, files, missing):
+        return TaskImplementationProtocol(self.task, repository=self.spec['repository'],
+            target_commit=self.spec['target_commit'], contract_bytes=self.raw,
+            files=files, missing_paths=missing)
+
+    def test_only_missing_paths_is_accepted_and_new_files_validate(self):
+        protocol = self.protocol({}, self.spec['allowed_paths'])
+        self.assertEqual(protocol.turn['files'], {})
+        decision = {'type': 'apply_edits', 'summary': 'Add cover core', 'edits': [
+            {'path': p, 'old_text': '', 'new_text': 'export {};\n'} for p in self.spec['allowed_paths']]}
+        protocol.validate_decision(decision)
+
+    def test_nothing_to_change_is_still_rejected(self):
+        with self.assertRaises(StateError):
+            self.protocol({}, [])
