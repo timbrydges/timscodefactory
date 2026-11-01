@@ -75,6 +75,13 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(run(self.origin, 'rev-parse', 'main').strip(), self.commit)
         self.assertIn('reviewer verdict APPROVE', run(self.origin, 'log', '-1', '--format=%B', 'factory/pagination-005'))
 
+    def test_contract_acceptance_tests_are_published_unchanged(self):
+        content = "import test from 'node:test';\n"
+        self.write(packet={'specification': {'objective': 'Browse', 'acceptance_tests': [
+            {'path': 'tests/factory-acceptance/a.test.mjs', 'content': content}]}})
+        self.publish()
+        self.assertEqual(run(self.origin, 'show', 'factory/pagination-005:tests/factory-acceptance/a.test.mjs'), content)
+
     def test_existing_branch_is_never_overwritten(self):
         self.publish()
         with self.assertRaises(ValueError):
