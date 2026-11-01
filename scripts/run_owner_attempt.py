@@ -32,7 +32,8 @@ _spec.loader.exec_module(prepare_module)
 
 PINNED_MANIFEST = 'sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3'
 KEY = re.compile(r'sk-[A-Za-z0-9_\-]{16,512}')
-STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer')
+STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
+          'repair2_builder', 'repair2_reviewer')
 
 
 class HostOps:
@@ -105,7 +106,7 @@ def summarize(directory):
                 entry['failure_code'] = data.get('failure_code')
             summary['stages'][stage] = entry
     summary['total_cost_usd'] = str(total)
-    for name in ('tests.json', 'repair-tests.json'):
+    for name in ('tests.json', 'repair-tests.json', 'repair2-tests.json'):
         path = directory/name
         if path.is_file():
             observation = json.loads(path.read_text(encoding='utf-8')).get('test_observation', {})
@@ -182,7 +183,7 @@ def main(argv=None, ops=None):
     parser.add_argument('--owner-authorized', action='store_true')
     parser.add_argument('--runner-root', default=r'C:\FactoryRunner')
     parser.add_argument('--attempt-id')
-    parser.add_argument('--repair-rounds', type=int, choices=(0, 1), default=1)
+    parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
     parser.add_argument('--input-price', required=True)
     parser.add_argument('--output-price', required=True)
     parser.add_argument('--pricing-source')

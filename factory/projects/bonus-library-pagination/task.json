@@ -12,7 +12,7 @@
     "Bound page size and reject malformed pagination inputs.",
     "Provide Older and Newer navigation, empty-state messaging and a distinct read-error state.",
     "Preserve existing upload and draft-review behavior.",
-    "Export LIBRARY_PAGE_SIZE (10) and paginateLibraryItems(rows, ownerId, { cursor, direction }) from src/lib/library-pagination.ts: rows are { id, created_at, owner_id } in any order; return { items, olderCursor, newerCursor } newest first (created_at desc, then id desc), filtered to ownerId, with each cursor an opaque string that is non-null exactly when more rows exist in that direction; return null for malformed input, including a cursor without a direction or a direction without a cursor. The dashboard must use the same pagination semantics."
+    "Export LIBRARY_PAGE_SIZE (10) and paginateLibraryItems(rows, ownerId, { cursor, direction }) from src/lib/library-pagination.ts: rows are { id, created_at, owner_id } in any order; return { items, olderCursor, newerCursor } newest first (created_at desc, then id desc), filtered to ownerId, with each cursor an opaque string that is non-null exactly when more rows exist in that direction; return null for malformed input, including a cursor without a direction or a direction without a cursor. The dashboard must obtain its items, olderCursor and newerCursor by calling paginateLibraryItems with the authenticated owner's rows (owner-filtered in the query); it must not reimplement cursor or range logic. Loading the owner's rows for this is acceptable for this library's size, and adds no schema migration or service."
   ],
   "acceptance_tests": [
     {

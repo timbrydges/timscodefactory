@@ -124,7 +124,8 @@ class RepairApprovalTests(ApprovalTests):
         self.assertEqual(host.call_args.kwargs['repair_rounds'], 1)
 
     def test_more_rounds_or_insufficient_total_never_consumes(self):
-        for change in ({'repair_rounds': 2}, {'repair_rounds': True}, {'total_cap': '0.99'}):
+        for change in ({'repair_rounds': 3}, {'repair_rounds': True}, {'total_cap': '0.99'},
+                       {"repair_rounds": 2}):  # two rounds need a 1.50 total
             with self.subTest(change=change):
                 pins = {**self.pins, **change}
                 self.approval['pins'] = dict(pins)
