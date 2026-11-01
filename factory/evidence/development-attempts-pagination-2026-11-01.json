@@ -336,7 +336,18 @@
       "total_cost_usd": "0.27066000",
       "publication": "Automatically pushed factory/search-002 (3 approved files plus the Factory acceptance test) by the owner-bounded batch",
       "assistant_verification": "Read-only clone of factory/search-002: next typegen, tsc --noEmit and eslint pass; 92 of 94 tests pass with 2 skipped and 0 failures, including the Factory acceptance tests",
-      "first_unattended_delivery": true
+      "first_unattended_delivery": true,
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#38",
+        "bonus_library_ci": {
+          "app-tests": "success",
+          "offline-tests": "success",
+          "vercel-preview": "success"
+        },
+        "merged": true,
+        "merged_by": "owner",
+        "merged_at": "2026-11-01T22:18Z"
+      }
     }
   ]
 }
