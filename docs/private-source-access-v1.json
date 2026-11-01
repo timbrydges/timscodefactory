@@ -22,8 +22,7 @@
     "Review and merge the offline implementation through repository CI",
     "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
     "Authorize one source fetch separately; app setup alone is not fetch or workflow approval",
-    "Linux CI qualification of the composed path; it is offline-tested with fake OpenSSL, Git and HTTPS only",
-    "Connect the composition to a trusted host entrypoint under a separate approval"
+    "Linux CI qualification of the composed path; it is offline-tested with fake OpenSSL, Git and HTTPS only"
   ],
   "access_proposal": {
     "approval_id": "factory-bonus-source-access-v1",
@@ -76,7 +75,8 @@
     "configuration": "Strict hash-pinned operator JSON (schema 1, at most 8 KiB): app client ID, installation ID, repository name/ID, absolute Git/OpenSSL/key paths, public-key fingerprint and attempt parent. No secrets; the digest is a local pin, not a signature",
     "sequence": "Exclusive attempt directory and STARTED receipt -> fingerprint check -> one RS256 app JWT -> one scoped installation-token POST -> one exact-commit fetch -> content-digest check -> token revocation -> object cleanup",
     "no_retry": "The issuer closure is single use; an attempt directory can never be reused; uncertain signing, issuance, fetch, revocation or cleanup stops as STOPPED_NEEDS_RECONCILIATION",
-    "activation": "enabled=True and owner_authorized=True are required; no entrypoint, schedule or workflow invokes it"
+    "activation": "enabled=True and owner_authorized=True are required; no entrypoint, schedule or workflow invokes it",
+    "entrypoint": "scripts/private_source_fetch.py: DISABLED by default; --fetch-once requires --owner-authorized, the hash-pinned config, commit, manifest and a fresh attempt name; prints status metadata only and never retries"
   },
   "storage_approval": {
     "approval_id": "factory-bonus-source-storage-v1",
