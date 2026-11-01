@@ -19,6 +19,7 @@ import shutil
 import stat
 import tempfile
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -219,6 +220,31 @@ def _make_copy_writable(root: Path) -> None:
     root.chmod(0o777)
 
 
+@contextmanager
+def _disposable_directory(*, windows: bool | None = None):
+    """Disposable sandbox parent that the Docker engine can read.
+
+    On Windows, mkdtemp's 0o700 mode applies an owner-only ACL. When the
+    runner is elevated the owner is Administrators, so Docker Desktop's
+    unelevated backend is denied the bind mount. There the directory inherits
+    the user temp directory's ACL instead. POSIX behavior is unchanged.
+    """
+    windows = os.name == "nt" if windows is None else windows
+    if not windows:
+        with tempfile.TemporaryDirectory(prefix="factory-sandbox-") as temp_dir:
+            yield temp_dir
+        return
+    path = Path(tempfile.gettempdir()) / f"factory-sandbox-{uuid.uuid4().hex[:12]}"
+    os.mkdir(path)  # No mode: inherit the parent ACL; exclusive by unique name.
+    try:
+        yield str(path)
+    finally:
+        def writable(function, target, _error):
+            os.chmod(target, stat.S_IWRITE)
+            function(target)
+        shutil.rmtree(path, onerror=writable)
+
+
 def _digest_bytes(value: bytes) -> str:
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
@@ -256,7 +282,7 @@ class DockerSandboxAdapter:
         if image_check.returncode != 0:
             raise SandboxExecutionError("content-addressed sandbox image is not available locally")
 
-        with tempfile.TemporaryDirectory(prefix="factory-sandbox-") as temp_dir:
+        with _disposable_directory() as temp_dir:
             copied_workspace = Path(temp_dir) / "workspace"
             _copy_workspace(self.workspace, copied_workspace)
             if workspace_tree_digest(copied_workspace) != request.workspace_digest:
