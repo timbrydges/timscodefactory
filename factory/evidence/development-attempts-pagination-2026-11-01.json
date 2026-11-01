@@ -248,7 +248,18 @@
       },
       "total_cost_usd": "0.32279600",
       "writes_to_bonus_library": 0,
-      "publication": "Pending owner-run scripts/publish_approved_attempt.py --attempt-id pagination-008"
+      "publication": {
+        "method": "scripts/publish_approved_attempt.py (owner-run) pushed factory/pagination-008 with the 3 approved files and the Factory acceptance test",
+        "pull_request": "timbrydges/bonus-library#37",
+        "bonus_library_ci": {
+          "app-tests": "success",
+          "offline-tests": "success",
+          "vercel-preview": "success"
+        },
+        "merged": true,
+        "merged_by": "owner",
+        "merged_at": "2026-11-01T13:56Z"
+      }
     }
   ],
   "incident": {
@@ -264,5 +275,6 @@
     "Exact provider charge; OpenAI usage dashboard is the authority"
   ],
   "credential_exposure_followup": "pagination-003 used a new project key loaded without echo",
-  "provider_usage_observed": "Owner-reported factory-pilot project usage USD 0.20 of USD 1.00 before pagination-004"
+  "provider_usage_observed": "Owner-reported factory-pilot project usage USD 0.20 of USD 1.00 before pagination-004",
+  "first_end_to_end_delivery": "pagination-008: private source fetch, builder, repository checks and Factory acceptance tests, review, bounded repair, approval, owner-run publication, green repository CI and owner merge (bonus-library#37)"
 }
