@@ -137,7 +137,7 @@ def load_key(ops):
 
 
 def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pricing_source,
-        image, manifest, hours, ops, out=print, now=None, key=None):
+        image, manifest, hours, ops, out=print, now=None, key=None, task='bonus-library-pagination'):
     root = Path(runner_root)
     config_path = root/'bonus-source-fetch.json'
     raw = config_path.read_bytes()
@@ -153,13 +153,14 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     inputs, attempts, results = root/'dev-inputs', root/'dev-attempts', root/'dev-results'
     for folder in (inputs, attempts, results):
         folder.mkdir(exist_ok=True)
-    attempt_id = attempt_id or next_attempt_id(attempts, inputs)
+    task_file = prepare_module.task_path(task)
+    attempt_id = attempt_id or next_attempt_id(attempts, inputs, task.removeprefix('bonus-library-'))
     prepared = prepare_module.prepare(output=inputs/attempt_id, attempt_id=attempt_id,
         image_ref=image_ref, source_config_sha256=config_digest, manifest=manifest,
         input_price=input_price, output_price=output_price, pricing_source=pricing_source,
         now=now or datetime.now(timezone.utc), hours=hours, source_commit=head,
-        repair_rounds=repair_rounds)
-    out(f"Prepared {attempt_id}: cap US${prepared['total_cap_usd']}, "
+        repair_rounds=repair_rounds, task=task_file)
+    out(f"Prepared {attempt_id} ({task}): cap US${prepared['total_cap_usd']}, "
         f"repair rounds {repair_rounds}, approval valid until {prepared['approval_expires_at']}")
     if key is None:
         key = load_key(ops)
@@ -259,7 +260,8 @@ def main(argv=None, ops=None):
     parser.add_argument('--pricing-source')
     # Built by scripts/build_bonus_check_image.py: Node plus the pinned npm dependencies.
     parser.add_argument('--image', default='factory-bonus-checks:ef88df95bc3f')
-    parser.add_argument('--manifest', default=PINNED_MANIFEST)
+    parser.add_argument('--manifest')  # Default: the task contract's pinned manifest.
+    parser.add_argument('--task', default='bonus-library-pagination')
     parser.add_argument('--hours', type=int, default=12)
     parser.add_argument('--max-attempts', type=int, default=1)
     parser.add_argument('--max-total-usd')
@@ -270,7 +272,7 @@ def main(argv=None, ops=None):
     source = args.pricing_source or f"openai-pricing-{datetime.now(timezone.utc):%Y-%m-%d}-owner-checked"
     options = dict(runner_root=args.runner_root, repair_rounds=args.repair_rounds,
         input_price=args.input_price, output_price=args.output_price, pricing_source=source,
-        image=args.image, manifest=args.manifest, hours=args.hours)
+        image=args.image, manifest=args.manifest, hours=args.hours, task=args.task)
     if ops is None:
         ops = HostOps()
         ops.runner_root = args.runner_root

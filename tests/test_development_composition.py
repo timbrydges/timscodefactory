@@ -72,3 +72,22 @@ class CompositionTests(TestCase):
             self.assertEqual(str(args['reviewer_cap']), '0.25')
             self.assertEqual(str(args['total_cap']), '0.50')
             self.assertEqual(args['reviewer'].policy.max_request_bytes, 42020)
+
+
+class BonusTaskProfileTests(TestCase):
+    def test_each_task_command_runs_its_contract_acceptance_tests(self):
+        import json
+        from pathlib import Path
+        from factory_runtime.development_composition import BONUS_TASKS, BONUS_REPOSITORY_CHECKS
+        root = Path(__file__).resolve().parents[1]
+        for task_id, (required, command) in BONUS_TASKS.items():
+            with self.subTest(task=task_id):
+                spec = json.loads((root/'factory/projects'/task_id/'task.json').read_text())
+                self.assertEqual(spec['task_id'], task_id)
+                self.assertEqual(set(required), set(spec['allowed_paths']))
+                for item in spec['acceptance_tests']:
+                    self.assertIn(item['path'], command[2])
+                    source = root/'factory/projects'/task_id/'acceptance'/Path(item['path']).name
+                    self.assertEqual(item['content'], source.read_text())
+                self.assertTrue(command[2].startswith('ln -s /deps/node_modules node_modules'))
+        self.assertIs(BONUS_TASKS['bonus-library-pagination'][1], BONUS_REPOSITORY_CHECKS)
