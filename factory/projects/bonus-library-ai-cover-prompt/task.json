@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-ai-cover-prompt",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Build the request and response core for AI-generated covers (eBook cover or software box) from a product title.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Create src/lib/ai-cover.ts exactly as specified in the acceptance test header: pinned model stability.stable-image-core-v1:1 in us-west-2, the two styles with their labels, buildCoverRequest(title, style) and parseCoverResponse(body).",
+    "This module is pure: it must not import AWS SDKs, Supabase, React, server-only modules or perform network, file or environment access. It must be importable by both server and client code.",
+    "The prompt must describe original artwork for the given title only; it must not ask for logos, brand names, real people or copyrighted characters.",
+    "Do not change any existing file. Later tasks add the generation endpoint, the budget and the dashboard dropdown."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/ai-cover.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-ai-cover-prompt. The builder must\n// make these pass and cannot edit them. Contract: src/lib/ai-cover.ts exports\n//   AI_COVER_MODEL (\"stability.stable-image-core-v1:1\"), AI_COVER_REGION (\"us-west-2\"),\n//   AI_COVER_STYLES ([\"ebook\", \"software_box\"]), AI_COVER_MAX_IMAGE_BYTES (5 MiB),\n//   AI_COVER_STYLE_LABELS ({ ebook: \"eBook cover\", software_box: \"Software box\" })\n//   buildCoverRequest(title, style): null for an invalid style or a title that is\n//     empty after trimming, longer than 120 characters, or contains control characters;\n//     otherwise { prompt, negative_prompt, aspect_ratio, output_format: \"png\" } where\n//     aspect_ratio is \"2:3\" for ebook and \"4:5\" for software_box, the prompt names the\n//     style and contains the trimmed title exactly once, and the prompt is at most 1000\n//     characters. Double quotes in the title are replaced by single quotes.\n//   parseCoverResponse(body): for a Stable Image Core response object\n//     { images: [base64], finish_reasons: [null], seeds: [n] } returns\n//     { bytes: Uint8Array, mediaType: \"image/png\" } only when there is exactly one image,\n//     its finish reason is null, it decodes from strict base64 to a PNG signature and is\n//     at most AI_COVER_MAX_IMAGE_BYTES; otherwise null.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {\n  AI_COVER_MAX_IMAGE_BYTES,\n  AI_COVER_MODEL,\n  AI_COVER_REGION,\n  AI_COVER_STYLES,\n  AI_COVER_STYLE_LABELS,\n  buildCoverRequest,\n  parseCoverResponse,\n} from '../../src/lib/ai-cover.ts';\n\nconst PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73, 72, 68, 82]);\nconst b64 = (bytes) => Buffer.from(bytes).toString('base64');\n\ntest('pinned model, region, styles and limits', () => {\n  assert.equal(AI_COVER_MODEL, 'stability.stable-image-core-v1:1');\n  assert.equal(AI_COVER_REGION, 'us-west-2');\n  assert.deepEqual([...AI_COVER_STYLES], ['ebook', 'software_box']);\n  assert.deepEqual({ ...AI_COVER_STYLE_LABELS }, { ebook: 'eBook cover', software_box: 'Software box' });\n  assert.equal(AI_COVER_MAX_IMAGE_BYTES, 5 * 1024 * 1024);\n});\n\ntest('ebook and software box requests use the title and fixed formats', () => {\n  const ebook = buildCoverRequest('  The Dragon Atlas  ', 'ebook');\n  assert.equal(ebook.aspect_ratio, '2:3');\n  assert.equal(ebook.output_format, 'png');\n  assert.equal(ebook.prompt.split('The Dragon Atlas').length - 1, 1);\n  assert.match(ebook.prompt, /ebook|e-book|book cover/i);\n  assert.ok(ebook.prompt.length <= 1000);\n  assert.equal(typeof ebook.negative_prompt, 'string');\n  const box = buildCoverRequest('Pixel Studio Pro', 'software_box');\n  assert.equal(box.aspect_ratio, '4:5');\n  assert.match(box.prompt, /software/i);\n  assert.match(box.prompt, /box/i);\n  assert.equal(box.prompt.split('Pixel Studio Pro').length - 1, 1);\n  assert.deepEqual(Object.keys(box).sort(), ['aspect_ratio', 'negative_prompt', 'output_format', 'prompt']);\n});\n\ntest('quotes are neutralized and invalid titles or styles are rejected', () => {\n  const quoted = buildCoverRequest('Say \"Hello\" World', 'ebook');\n  assert.ok(!quoted.prompt.includes('\"Hello\"'));\n  assert.ok(quoted.prompt.includes(\"Say 'Hello' World\"));\n  for (const [title, style] of [['', 'ebook'], ['   ', 'ebook'], ['x'.repeat(121), 'ebook'],\n    ['bad\\ntitle', 'ebook'], ['bad\\u0000title', 'software_box'], ['Fine', 'poster'], ['Fine', undefined],\n    [null, 'ebook']]) {\n    assert.equal(buildCoverRequest(title, style), null, JSON.stringify([title, style]));\n  }\n  assert.notEqual(buildCoverRequest('x'.repeat(120), 'ebook'), null);\n});\n\ntest('a single safe PNG response is accepted', () => {\n  const result = parseCoverResponse({ images: [b64(PNG)], finish_reasons: [null], seeds: [42] });\n  assert.equal(result.mediaType, 'image/png');\n  assert.ok(result.bytes instanceof Uint8Array);\n  assert.deepEqual([...result.bytes], [...PNG]);\n});\n\ntest('filtered, malformed, oversized or non-PNG responses are rejected', () => {\n  const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);\n  const big = new Uint8Array(AI_COVER_MAX_IMAGE_BYTES + 1); big.set(PNG);\n  for (const body of [\n    null, {}, { images: [], finish_reasons: [] },\n    { images: [b64(PNG), b64(PNG)], finish_reasons: [null, null] },\n    { images: [b64(PNG)], finish_reasons: ['Filter reason: prompt'] },\n    { images: [b64(jpeg)], finish_reasons: [null] },\n    { images: ['not base64!!'], finish_reasons: [null] },\n    { images: [b64(big)], finish_reasons: [null] },\n    { images: [42], finish_reasons: [null] },\n  ]) {\n    assert.equal(parseCoverResponse(body), null, JSON.stringify(body)?.slice(0, 80));\n  }\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "8ff41851731babb17d4f896f69d631df943490cb",
+  "source_manifest_digest": "sha256:c2b1368f758e03ce488055de799eddcbe3312713dafda142f0f9a1e01da96ed4",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (107 files, 679216 bytes); the Factory fetch verifies it independently before use.",
+  "owner_decisions": {
+    "provider": "AWS Bedrock Stable Image Core v1.1 in us-west-2 (owner console check 2026-11-01)",
+    "style_selection": "dropdown: eBook cover or Software box",
+    "budget_usd": "2.00 total, one generation per item and style",
+    "saving": "owner approves each image before it becomes the cover"
+  },
+  "allowed_paths": [
+    "src/lib/ai-cover.ts",
+    "tests/ai-cover.test.mjs"
+  ]
+}
