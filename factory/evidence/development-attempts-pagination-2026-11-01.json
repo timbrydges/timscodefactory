@@ -176,6 +176,40 @@
       "total_cost_usd": "0.27925200",
       "writes_to_bonus_library": 0,
       "observation": "Repository checks now gate review and feed repair as designed; the remaining defect is functional and was not covered by builder-authored tests"
+    },
+    {
+      "attempt_id": "pagination-007",
+      "approval": "Owner ran scripts/run_owner_attempt.py --owner-authorized (US$1.50 cap, one repair round)",
+      "factory_source_commit": "ec9ad62 (PR #576)",
+      "result": {
+        "status": "REJECTED",
+        "authoritative": false,
+        "release_authorized": false
+      },
+      "pipeline": "Builder proposal failed the sandbox checks (repository checks or Factory-owned acceptance tests); the redacted output drove the single repair; the repaired proposal passed typegen, tsc, eslint, its own tests and the Factory acceptance tests; the repair reviewer rejected it",
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.12879200"
+        },
+        "repair_builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.14398000"
+        },
+        "repair_reviewer": {
+          "state": "COMPLETED",
+          "verdict": "REJECT",
+          "cost_usd": "0.04635600",
+          "findings": [
+            "The dashboard does not use the same cursor semantics as paginateLibraryItems: the helper rejects a cursor whose (created_at, id) anchor is absent from the owner-filtered rows, but DashboardPage only structurally decodes the cursor and applies range predicates without verifying the anchor"
+          ]
+        }
+      },
+      "total_cost_usd": "0.31912800",
+      "writes_to_bonus_library": 0,
+      "observation": "First attempt to pass the Factory-owned acceptance tests; the remaining rejection concerns consistency between the helper and the dashboard query, required by the task's same-semantics clause"
     }
   ],
   "incident": {
