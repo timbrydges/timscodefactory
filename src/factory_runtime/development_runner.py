@@ -13,6 +13,7 @@ from .task_candidate import candidate_workspace
 from .task_provider import TaskImplementationProtocol, TASK_VALIDATION_FAILURES
 from .task_review import TaskReviewProtocol
 from .worker import digest
+from .repository_snapshot import RepositoryFile, RepositorySnapshot
 from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 
 
@@ -41,10 +42,34 @@ class DevelopmentTaskRunner:
         # Trusted one-shot redacted capture of failing check output, if configured.
         self.diagnostics = diagnostics
 
+    def _with_acceptance_tests(self, spec):
+        """Add contract-owned acceptance tests to the pinned tree; the builder cannot edit them."""
+        tests = spec.get('acceptance_tests')
+        if tests is None:
+            return self.snapshot
+        existing = {f.path for f in self.snapshot.files}
+        allowed = set(spec.get('allowed_paths', []))
+        if type(tests) is not list or not 1 <= len(tests) <= 10:
+            raise StateError('bounded acceptance tests required')
+        extra = []
+        for item in tests:
+            path = item.get('path') if type(item) is dict else None
+            if (type(item) is not dict or set(item) != {'path', 'content'}
+                    or type(path) is not str or not path.startswith('tests/factory-acceptance/')
+                    or '..' in path.split('/') or not path.endswith('.test.mjs')
+                    or path in existing or path in allowed or type(item['content']) is not str
+                    or not item['content'] or len(item['content'].encode('utf-8')) > 32768):
+                raise StateError('acceptance test must be a new contract-owned path')
+            existing.add(path)
+            extra.append(RepositoryFile(path, item['content'].encode('utf-8'), False))
+        return RepositorySnapshot(self.snapshot.repository, self.snapshot.commit,
+                                  tuple(self.snapshot.files) + tuple(extra))
+
     async def _evaluate(self, task, protocol, decision, reviewer, save_evidence, state, prefix):
         """Candidate -> isolated tests -> review for one complete proposal."""
         state['phase'] = prefix + 'CANDIDATE'
-        with candidate_workspace(protocol, decision, repository_snapshot=self.snapshot) as candidate:
+        snapshot = self._with_acceptance_tests(json.loads(self.contract_bytes))
+        with candidate_workspace(protocol, decision, repository_snapshot=snapshot) as candidate:
             request = self.request_for(candidate)
             delivery = protocol.turn.get('delivery')
             if delivery and list(request.command) != delivery['test_command']:

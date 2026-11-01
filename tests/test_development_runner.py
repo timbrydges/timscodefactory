@@ -305,3 +305,46 @@ class FailedChecksRepairTests(unittest.TestCase):
         self.base.runner.diagnostics = None
         self.assertEqual(self.base.tick()['status'], 'REJECTED')
         self.assertNotIn('repair_builder', self.base.calls)
+
+
+class AcceptanceTestInjectionTests(unittest.TestCase):
+    def setUp(self):
+        base = DevelopmentRunnerTests('test_disabled_and_paused_do_no_work')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        self.seen = {}
+        outer = self
+        class Sandbox:
+            async def execute(self, request):
+                outer.seen = {p.relative_to(self.workspace).as_posix(): p.read_text()
+                              for p in self.workspace.rglob('*') if p.is_file()}
+                return base.f.receipt(request, exit_code=0)
+        def sandbox_for(candidate):
+            sandbox = Sandbox(); sandbox.workspace = candidate.workspace; return sandbox
+        base.runner.sandbox_for = sandbox_for
+        base.runner.enabled = True
+
+    def test_contract_acceptance_tests_are_in_the_tested_workspace(self):
+        spec = json.loads(self.base.f.raw)
+        self.assertEqual(self.base.tick()['status'], 'TICK_COMPLETED')
+        test = spec['acceptance_tests'][0]
+        self.assertEqual(self.seen[test['path']], test['content'])
+        self.assertNotIn(test['path'], spec['allowed_paths'])
+
+    def test_acceptance_paths_must_be_new_and_contract_owned(self):
+        spec = json.loads(self.base.f.raw)
+        for item in ({'path': 'src/app/dashboard/page.tsx', 'content': 'x'},
+                     {'path': 'tests/factory-acceptance/../x.test.mjs', 'content': 'x'},
+                     {'path': 'tests/other.test.mjs', 'content': 'x'},
+                     {'path': 'tests/factory-acceptance/a.test.mjs', 'content': ''},
+                     {'path': 'tests/factory-acceptance/a.test.mjs', 'content': 'x', 'extra': 1}):
+            with self.subTest(item=item), self.assertRaises(StateError):
+                self.base.runner._with_acceptance_tests({**spec, 'acceptance_tests': [item]})
+
+    def test_task_contract_embeds_the_reviewed_acceptance_file(self):
+        root = Path(__file__).resolve().parents[1]
+        spec = json.loads(self.base.f.raw)
+        source = (root/'factory/projects/bonus-library-pagination/acceptance/library-pagination.acceptance.test.mjs').read_text()
+        self.assertEqual(spec['acceptance_tests'][0]['content'], source)
+        from factory_runtime.development_composition import BONUS_REPOSITORY_CHECKS
+        self.assertIn(spec['acceptance_tests'][0]['path'], BONUS_REPOSITORY_CHECKS[2])

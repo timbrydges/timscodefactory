@@ -23,7 +23,8 @@ BONUS_REPOSITORY_CHECKS = ('sh', '-c',
     ' && NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next typegen'
     ' && ./node_modules/.bin/tsc --noEmit'
     ' && ./node_modules/.bin/eslint'
-    ' && node --experimental-strip-types --test tests/library-pagination.test.mjs')
+    ' && node --experimental-strip-types --test tests/library-pagination.test.mjs'
+    ' tests/factory-acceptance/library-pagination.acceptance.test.mjs')
 
 
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,

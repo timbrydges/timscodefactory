@@ -108,6 +108,15 @@ def publish(*, attempt_dir, attempt_id, results_file=None, workdir, git_factory=
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(change['after'].encode('utf-8'))
         git('add', '--', change['path'])
+    # Contract-owned acceptance tests ran in the sandbox; publish them unchanged too.
+    for item in packet['specification'].get('acceptance_tests', []):
+        path = _path(item['path'])
+        target = clone/path
+        if not path.startswith('tests/factory-acceptance/') or target.exists():
+            raise ValueError(f'acceptance test {path} is not a new contract-owned file; nothing was pushed')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(item['content'].encode('utf-8'))
+        git('add', '--', path)
     message = (f"{packet['specification'].get('objective', 'Factory change')}\n\n"
                f"Factory attempt {attempt_id}; reviewer verdict APPROVE.\n"
                f"Artifact: {digest(raw)}\nReview input: {packet['review_input_digest']}\n"
