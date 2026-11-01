@@ -94,8 +94,8 @@ def next_attempt_id(attempts, inputs, prefix='pagination'):
 
 def summarize(directory):
     """Bounded, key-free summary of the attempt journal and artifact."""
-    summary = {'stages': {}, 'total_cost_usd': '0'}
-    total = Decimal(0)
+    summary = {'stages': {}, 'total_cost_usd': '0', 'uncertain_max_usd': '0'}
+    total, uncertain = Decimal(0), Decimal(0)
     for stage in STAGES:
         for state in ('completed', 'failed'):
             path = directory/f'{stage}.{state}.json'
@@ -114,9 +114,13 @@ def summarize(directory):
                     entry['decision_type'] = proposal.get('type')
                     entry['summary'] = str(proposal.get('summary', proposal.get('reason', '')))[:500]
             else:
+                # A failed call may still have been billed, up to its stage cap.
                 entry['failure_code'] = data.get('failure_code')
+                entry['max_cost_usd'] = data.get('max_cost_usd')
+                uncertain += Decimal(data.get('max_cost_usd') or '0')
             summary['stages'][stage] = entry
     summary['total_cost_usd'] = str(total)
+    summary['uncertain_max_usd'] = str(uncertain)
     for name in ('tests.json', 'repair-tests.json', 'repair2-tests.json'):
         path = directory/name
         if path.is_file():
@@ -186,7 +190,9 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
                **summarize(attempts/attempt_id)}
     path = results/f'{attempt_id}.json'
     path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding='utf-8')
-    out(f"Result: {outcome.get('status')}  total cost US${summary['total_cost_usd']}")
+    extra = (f" (plus up to US${summary['uncertain_max_usd']} for failed calls; check OpenAI usage)"
+             if Decimal(summary['uncertain_max_usd']) else '')
+    out(f"Result: {outcome.get('status')}  total cost US${summary['total_cost_usd']}{extra}")
     for stage, entry in summary['stages'].items():
         detail = entry.get('verdict') or entry.get('decision_type') or entry.get('failure_code') or ''
         out(f"  {stage}: {entry['state']} {detail} US${entry.get('cost_usd') or '0'}")

@@ -113,7 +113,8 @@ class DirectOpenAITransport:
                 return ProviderHTTPResponse(response.status, b'')
             raw = response.read(self.max_response_bytes + 1)
             if len(raw) > self.max_response_bytes:
-                raise OpenAIProviderProtocolError('provider response exceeds byte limit')
+                raise OpenAIProviderProtocolError('provider response exceeds byte limit',
+                                                  failure_code='response_byte_limit')
             return ProviderHTTPResponse(response.status, raw)
         except TimeoutError:
             raise OpenAIProviderProtocolError('provider socket deadline exceeded; attempt consumed',

@@ -276,5 +276,36 @@
   ],
   "credential_exposure_followup": "pagination-003 used a new project key loaded without echo",
   "provider_usage_observed": "Owner-reported factory-pilot project usage USD 0.20 of USD 1.00 before pagination-004",
-  "first_end_to_end_delivery": "pagination-008: private source fetch, builder, repository checks and Factory acceptance tests, review, bounded repair, approval, owner-run publication, green repository CI and owner merge (bonus-library#37)"
+  "first_end_to_end_delivery": "pagination-008: private source fetch, builder, repository checks and Factory acceptance tests, review, bounded repair, approval, owner-run publication, green repository CI and owner merge (bonus-library#37)",
+  "search_attempts": [
+    {
+      "attempt_id": "search-001",
+      "approval": "Owner ran run_owner_attempt.py --task bonus-library-search --max-attempts 3 --max-total-usd 3.00 --publish-approved",
+      "factory_source_commit": "9d7de15 (PR #579)",
+      "result": {
+        "status": "NEEDS_RECONCILIATION",
+        "batch": "STOPPED_FOR_RECONCILIATION"
+      },
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.11002400"
+        },
+        "checks": "TESTS_FAILED: tsc TS18047 'page' is possibly 'null' at src/app/dashboard/page.tsx lines 158-162",
+        "repair_builder": {
+          "state": "FAILED",
+          "failure_code": "protocol_failure",
+          "response_evidence": {},
+          "billing_reconciled": false,
+          "max_cost_usd": "0.50"
+        }
+      },
+      "diagnosis": "Empty response evidence with a generic protocol_failure after an offline reproduction showed the repair request passes the size and cost checks; the transport worker's 256 KiB response limit raised an uncoded error, so the most likely cause is an oversized (already billed) complete-file response. Not confirmed from provider data.",
+      "follow_up": "Response limit raised to 1 MiB (spend remains bounded by output tokens), byte-limit failures reported as response_byte_limit, and summaries show the possible cost of failed calls",
+      "cost_usd_lower_bound": "0.11002400",
+      "cost_usd_upper_bound": "0.61002400",
+      "writes_to_bonus_library": 0
+    }
+  ]
 }
