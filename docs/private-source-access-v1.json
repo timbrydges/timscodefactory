@@ -20,10 +20,11 @@
   "remaining_before_live_source_fetch": [
     "Review and merge the offline implementation through repository CI",
     "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
-    "Qualify source_token_transport.py in Linux CI and wire separately authorized JWT production; no key-loading or signing implementation is active",
     "Approve a disk-quota or equivalent storage bound for the temporary Git object store; post-fetch snapshot size limits do not bound download disk use",
     "Pin an actual task commit and independent expected content manifest",
-    "Authorize one source fetch separately; app setup alone is not fetch or workflow approval"
+    "Authorize one source fetch separately; app setup alone is not fetch or workflow approval",
+    "Linux CI qualification of the composed path; it is offline-tested with fake OpenSSL, Git and HTTPS only",
+    "Connect the composition to a trusted host entrypoint under a separate approval"
   ],
   "access_proposal": {
     "approval_id": "factory-bonus-source-access-v1",
@@ -32,7 +33,10 @@
     "name_check": "Exact private app created and installed under factory-bonus-source-access-v1; no tokens requested",
     "visibility": "Private; installable only on the owner account",
     "homepage": "https://github.com/timbrydges/factory-runner-control",
-    "repository_permissions": {"contents": "read", "metadata": "read"},
+    "repository_permissions": {
+      "contents": "read",
+      "metadata": "read"
+    },
     "account_permissions": {},
     "organization_permissions": {},
     "webhooks": false,
@@ -46,7 +50,19 @@
     "revocation": "If setup is uncertain, stop and report app/installation/key identifiers without retries. Owner can suspend or uninstall this selected-repository app to remove repository access. Do not assume the sole key can be deleted without GitHub-specific prerequisites.",
     "cost": "Existing no-cost access only; stop before any paid feature or upgrade",
     "maximum_mutations": "One app registration, one selected-repository installation, one key generation/download, protected local key storage and exact temporary-copy cleanup",
-    "excluded": ["Installation token requests", "JWT signing", "Source fetch", "Model calls", "Actions enablement", "Runner listener", "Docker", "Workflow execution", "Writes to Bonus Library", "Deployment", "Spending"]
+    "excluded": [
+      "Installation token requests",
+      "JWT signing",
+      "Source fetch",
+      "Model calls",
+      "Actions enablement",
+      "Runner listener",
+      "Docker",
+      "Workflow execution",
+      "Writes to Bonus Library",
+      "Deployment",
+      "Spending"
+    ]
   },
   "credential_rotation_limit": "Installation tokens expire after one hour; the GitHub App private key does not expire automatically. This is not a claim of automatic bootstrap-key rotation.",
   "references": [
@@ -54,5 +70,13 @@
     "https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps"
   ],
   "holds_preserved": true,
-  "production_changes": 0
+  "production_changes": 0,
+  "composition": {
+    "implementation": "src/factory_runtime/private_source_composition.py",
+    "tests": "tests/test_private_source_composition.py",
+    "configuration": "Strict hash-pinned operator JSON (schema 1, at most 8 KiB): app client ID, installation ID, repository name/ID, absolute Git/OpenSSL/key paths, public-key fingerprint and attempt parent. No secrets; the digest is a local pin, not a signature",
+    "sequence": "Exclusive attempt directory and STARTED receipt -> fingerprint check -> one RS256 app JWT -> one scoped installation-token POST -> one exact-commit fetch -> content-digest check -> token revocation -> object cleanup",
+    "no_retry": "The issuer closure is single use; an attempt directory can never be reused; uncertain signing, issuance, fetch, revocation or cleanup stops as STOPPED_NEEDS_RECONCILIATION",
+    "activation": "enabled=True and owner_authorized=True are required; no entrypoint, schedule or workflow invokes it"
+  }
 }
