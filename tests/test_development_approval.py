@@ -76,3 +76,35 @@ class ApprovalTests(TestCase):
                 owner_authorized=True, execution_profile=profile, **self.f.options)
             host.assert_called_once()
         self.assertTrue(self.receipt.exists())
+
+
+class PrivateSourceApprovalTests(ApprovalTests):
+    def setUp(self):
+        super().setUp()
+        from factory_runtime.private_source import snapshot_manifest_digest
+        self.pins.update(source_config_digest='sha256:'+'c'*64,
+                         source_manifest_digest=snapshot_manifest_digest(self.f.options['snapshot']))
+        self.approval['pins'] = dict(self.pins)
+
+    def test_source_pins_are_accepted_as_pair_and_content_checked(self):
+        with patch('factory_runtime.development_approval.DevelopmentHost') as host:
+            self.compose()
+            host.assert_called_once()
+
+    def test_single_source_pin_rejected(self):
+        for key in ('source_config_digest', 'source_manifest_digest'):
+            with self.subTest(key=key):
+                pins = dict(self.pins); del pins[key]
+                self.pins, saved = pins, self.pins
+                self.approval['pins'] = dict(pins)
+                with self.assertRaises(StateError): self.compose()
+                self.pins = saved; self.approval['pins'] = dict(saved)
+        self.assertFalse(self.receipt.exists())
+
+    def test_snapshot_differing_from_manifest_pin_never_consumes(self):
+        self.pins['source_manifest_digest'] = 'sha256:'+'0'*64
+        self.approval['pins'] = dict(self.pins)
+        with patch('factory_runtime.development_approval.DevelopmentHost') as host:
+            with self.assertRaises(StateError): self.compose()
+            host.assert_not_called()
+        self.assertFalse(self.receipt.exists())
