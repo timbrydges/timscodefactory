@@ -165,3 +165,66 @@ class DevelopmentProviderTests(unittest.TestCase):
             DevelopmentProviderSession(builder=self.builder, reviewer=self.reviewer,
                 target=provider_fixtures.TARGET, builder_cap=Decimal('1'),
                 reviewer_cap=Decimal('1'), total_cap=Decimal('1'), journal=lambda *a: None)
+
+
+class DevelopmentRepairSessionTests(unittest.TestCase):
+    def setUp(self):
+        base = DevelopmentProviderTests('test_disabled_session_has_no_provider_io')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        self.verdicts = ['REJECT', 'APPROVE']
+        outer = self
+        class Transport:
+            async def post_json(self, *, endpoint, headers, body, timeout_seconds):
+                turn = json.loads(json.loads(body)['input'])
+                base.requests.append(turn)
+                if turn['kind'] == 'factory_task_implementation_v1':
+                    decision = {'decision': base.f.f.decision}
+                else:
+                    verdict = outer.verdicts.pop(0)
+                    decision = {'review_input_digest': turn['review_input_digest'], 'verdict': verdict,
+                                'findings': [] if verdict == 'APPROVE' else ['Generic type is not inferred']}
+                return ProviderHTTPResponse(200, json.dumps(provider_fixtures.provider_payload(decision)).encode())
+        def adapter(workload):
+            return OpenAIResponsesProviderInvoker(provider_fixtures.CountingCredentialSource(),
+                provider_fixtures.StaticPricingSource(), Transport(),
+                policy=OpenAIProviderPolicy(live_enabled=True, workload=workload))
+        def journal(name, evidence):
+            if name in base.events: raise FileExistsError('consumed stage')
+            base.events[name] = evidence
+        self.session = DevelopmentProviderSession(builder=adapter('task_implementation'),
+            reviewer=adapter('task_review'), target=provider_fixtures.TARGET,
+            builder_cap=Decimal('1'), reviewer_cap=Decimal('1'), total_cap=Decimal('4'),
+            journal=journal, enabled=True, repair_rounds=1)
+        r = base.f.runner
+        r.builder, r.reviewer = self.session.build, self.session.review
+        r.repair_rounds, r.repair_builder, r.repair_reviewer = 1, self.session.repair_build, self.session.repair_review
+        r.save_repair_test_evidence = None
+        r.enabled = True
+
+    def test_repair_round_journals_each_stage_once_with_bound_digests(self):
+        self.assertEqual(self.base.f.tick()['status'], 'TICK_COMPLETED')
+        self.assertEqual([e for e in self.base.events if e.endswith('.started')],
+            ['builder.started', 'reviewer.started', 'repair_builder.started', 'repair_reviewer.started'])
+        repair_turn = self.base.requests[2]
+        self.assertEqual(repair_turn['repair']['review_findings'], ['Generic type is not inferred'])
+        self.assertEqual(repair_turn['repair']['rejected_decision_digest'],
+                         self.base.events['builder.completed']['decision_digest'])
+
+    def test_repair_requires_approved_round_and_total_budget(self):
+        kw = dict(builder=self.session.adapters['builder'], reviewer=self.session.adapters['reviewer'],
+                  target=provider_fixtures.TARGET, builder_cap=Decimal('1'), reviewer_cap=Decimal('1'),
+                  journal=lambda *a: None, enabled=True)
+        with self.assertRaises(StateError):
+            DevelopmentProviderSession(total_cap=Decimal('3.99'), repair_rounds=1, **kw)
+        with self.assertRaises(StateError):
+            DevelopmentProviderSession(total_cap=Decimal('9'), repair_rounds=2, **kw)
+        single = DevelopmentProviderSession(total_cap=Decimal('2'), **kw)
+        with self.assertRaises(StateError):
+            asyncio.run(single.repair_build({'kind': 'factory_task_implementation_v1', 'repair': {}}))
+
+    def test_repair_cannot_run_before_review_or_with_unbound_rejection(self):
+        with self.assertRaises(StateError):
+            asyncio.run(self.session.repair_build({'kind': 'factory_task_implementation_v1',
+                                                  'repair': {'rejected_decision_digest': 'x'}}))
+        self.assertEqual(self.base.events, {})

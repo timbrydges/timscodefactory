@@ -19,7 +19,8 @@ from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 class DevelopmentTaskRunner:
     def __init__(self, queue, *, contract_bytes, snapshot, builder, reviewer,
                  request_for, sandbox_for, save_artifact, clock,
-                 builder_identity, reviewer_identity, enabled=False, delivery=None, save_test_evidence=None):
+                 builder_identity, reviewer_identity, enabled=False, delivery=None, save_test_evidence=None,
+                 repair_rounds=0, repair_builder=None, repair_reviewer=None, save_repair_test_evidence=None):
         if type(enabled) is not bool or builder_identity == reviewer_identity:
             raise StateError('explicit activation and distinct identities required')
         self.delivery = json.loads(canonical(delivery)) if delivery is not None else None
@@ -30,6 +31,48 @@ class DevelopmentTaskRunner:
         self.save_artifact, self.clock = save_artifact, clock
         self.save_test_evidence = save_test_evidence
         self.builder_identity, self.reviewer_identity = builder_identity, reviewer_identity
+        if type(repair_rounds) is not int or repair_rounds not in (0, 1) or (
+                repair_rounds and (repair_builder is None or repair_reviewer is None)):
+            raise StateError('at most one bounded repair round with trusted callbacks')
+        self.repair_rounds = repair_rounds
+        self.repair_builder, self.repair_reviewer = repair_builder, repair_reviewer
+        self.save_repair_test_evidence = save_repair_test_evidence
+
+    async def _evaluate(self, task, protocol, decision, reviewer, save_evidence, state, prefix):
+        """Candidate -> isolated tests -> review for one complete proposal."""
+        state['phase'] = prefix + 'CANDIDATE'
+        with candidate_workspace(protocol, decision, repository_snapshot=self.snapshot) as candidate:
+            request = self.request_for(candidate)
+            delivery = protocol.turn.get('delivery')
+            if delivery and list(request.command) != delivery['test_command']:
+                raise StateError('test command differs from delivery contract')
+            state['phase'] = prefix + 'TESTS'
+            receipt = await self.sandbox_for(candidate).execute(request)
+            observation = candidate.evaluate(request, receipt, now=self.clock())
+            artifact = {'kind': 'development_attempt_v1', 'entry_id': task.entry_id,
+                'proposal': decision, 'test_observation': observation,
+                'test_request': asdict(request), 'test_receipt': asdict(receipt),
+                'authoritative': False, 'release_authorized': False}
+            if save_evidence is not None:
+                state['phase'] = prefix + 'TEST_EVIDENCE'
+                # Persist before review can fail; this receipt is evidence only.
+                raw = json.dumps(artifact, sort_keys=True,
+                    default=lambda v: v.isoformat()).encode('utf-8')
+                save_evidence(task.entry_id, raw)
+            result = observation
+            outcome = 'REJECTED'
+            if observation['status'] == 'TESTS_PASSED_REVIEW_REQUIRED':
+                state['phase'] = prefix + 'REVIEW'
+                review = TaskReviewProtocol(protocol, decision, candidate, request, receipt,
+                    builder_identity=self.builder_identity, reviewer_identity=self.reviewer_identity,
+                    now=self.clock())
+                review_decision = json.loads(canonical(await reviewer(review.turn)))
+                result = review.validate_decision(review_decision, reviewer_identity=self.reviewer_identity)
+                # Reject adapters that mutate the source while reviewing.
+                candidate.evaluate(request, receipt, now=self.clock())
+                artifact.update(review_packet=review.turn, review_decision=review_decision)
+                outcome = 'TICK_COMPLETED' if result['status'] == 'REVIEW_ACCEPTED' else 'REJECTED'
+        return artifact, result, outcome
 
     async def tick(self):
         if not self.enabled:
@@ -37,7 +80,7 @@ class DevelopmentTaskRunner:
         task = self.queue.claim()  # Durable before any external work. Never reclaim.
         if task is None:
             return {'status': 'IDLE_OR_PAUSED'}
-        phase = 'BINDING'
+        state = {'phase': 'BINDING'}
         try:
             spec = json.loads(self.contract_bytes)
             source = {f.path: f.content for f in self.snapshot.files}
@@ -46,60 +89,52 @@ class DevelopmentTaskRunner:
             protocol = TaskImplementationProtocol(task, repository=self.snapshot.repository,
                 target_commit=self.snapshot.commit, contract_bytes=self.contract_bytes,
                 files=files, missing_paths=missing, delivery=self.delivery)
-            phase = 'BUILDER'
+            state['phase'] = 'BUILDER'
             decision = json.loads(canonical(await self.builder(protocol.turn)))
-            phase = 'PROPOSAL_VALIDATION'
+            state['phase'] = 'PROPOSAL_VALIDATION'
             protocol.validate_decision(decision)
             if decision['type'] != 'apply_edits':
                 result = {'status': 'NEEDS_INPUT', 'decision_type': decision['type']}
                 outcome = 'STOPPED'
             else:
-                phase = 'CANDIDATE'
-                with candidate_workspace(protocol, decision, repository_snapshot=self.snapshot) as candidate:
-                    request = self.request_for(candidate)
-                    delivery = protocol.turn.get('delivery')
-                    if delivery and list(request.command) != delivery['test_command']:
-                        raise StateError('test command differs from delivery contract')
-                    phase = 'TESTS'
-                    receipt = await self.sandbox_for(candidate).execute(request)
-                    observation = candidate.evaluate(request, receipt, now=self.clock())
-                    artifact = {'kind': 'development_attempt_v1', 'entry_id': task.entry_id,
-                        'proposal': decision, 'test_observation': observation,
-                        'test_request': asdict(request), 'test_receipt': asdict(receipt),
-                        'authoritative': False, 'release_authorized': False}
-                    if self.save_test_evidence is not None:
-                        phase = 'TEST_EVIDENCE'
-                        # Persist before review can fail; this receipt is evidence only.
-                        raw = json.dumps(artifact, sort_keys=True,
-                            default=lambda v: v.isoformat()).encode('utf-8')
-                        self.save_test_evidence(task.entry_id, raw)
-                    result = observation
-                    outcome = 'REJECTED'
-                    if observation['status'] == 'TESTS_PASSED_REVIEW_REQUIRED':
-                        phase = 'REVIEW'
-                        review = TaskReviewProtocol(protocol, decision, candidate, request, receipt,
-                            builder_identity=self.builder_identity, reviewer_identity=self.reviewer_identity,
-                            now=self.clock())
-                        review_decision = json.loads(canonical(await self.reviewer(review.turn)))
-                        result = review.validate_decision(review_decision, reviewer_identity=self.reviewer_identity)
-                        # Reject adapters that mutate the source while reviewing.
-                        candidate.evaluate(request, receipt, now=self.clock())
-                        artifact.update(review_packet=review.turn, review_decision=review_decision)
-                        outcome = 'TICK_COMPLETED' if result['status'] == 'REVIEW_ACCEPTED' else 'REJECTED'
-                    artifact['result'] = result
-                    phase = 'ARTIFACT'
-                    # Sink must persist exclusively; failure leaves an uncertain consumed attempt.
-                    raw = json.dumps(artifact, sort_keys=True, default=lambda v: v.isoformat()).encode('utf-8')
-                    self.save_artifact(task.entry_id, raw)
-                    result = {**result, 'artifact_digest': digest(raw)}
+                artifact, result, outcome = await self._evaluate(
+                    task, protocol, decision, self.reviewer, self.save_test_evidence, state, '')
+                if (result.get('status') == 'REVIEW_REJECTED' and self.repair_rounds == 1
+                        and artifact.get('review_decision', {}).get('findings')):
+                    # One bounded repair: findings go back to the same builder once.
+                    state['phase'] = 'REPAIR_BUILDER'
+                    turn = protocol.repair_turn(rejected_decision=decision,
+                        findings=artifact['review_decision']['findings'])
+                    repair = json.loads(canonical(await self.repair_builder(turn)))
+                    state['phase'] = 'REPAIR_PROPOSAL_VALIDATION'
+                    protocol.validate_decision(repair)
+                    first = {'proposal': decision, 'result': result,
+                             'review_decision': artifact.get('review_decision')}
+                    if repair['type'] != 'apply_edits':
+                        artifact['repair'] = {'proposal': repair, 'first_round': first}
+                        result = {'status': 'REPAIR_NEEDS_INPUT', 'decision_type': repair['type']}
+                        outcome = 'STOPPED'
+                    else:
+                        artifact, result, outcome = await self._evaluate(
+                            task, protocol, repair, self.repair_reviewer,
+                            self.save_repair_test_evidence, state, 'REPAIR_')
+                        artifact['repair_round'] = 1
+                        artifact['first_round'] = first
+                artifact['result'] = result
+                state['phase'] = 'ARTIFACT'
+                # Sink must persist exclusively; failure leaves an uncertain consumed attempt.
+                raw = json.dumps(artifact, sort_keys=True, default=lambda v: v.isoformat()).encode('utf-8')
+                self.save_artifact(task.entry_id, raw)
+                result = {**result, 'artifact_digest': digest(raw)}
             result = {**result, 'authoritative': False, 'release_authorized': False}
         except Exception as error:
+            phase = state['phase']
             outcome = 'NEEDS_RECONCILIATION'
             result = {'status': outcome, 'phase': phase, 'error_type': type(error).__name__}
             if isinstance(error, OpenAIProviderProtocolError):
                 # Never persist exception text, provider bodies or credentials.
                 result['failure_code'] = error.failure_code if error.failure_code in PROVIDER_FAILURE_CODES else 'protocol_failure'
-            elif phase == 'PROPOSAL_VALIDATION' and isinstance(error, StateError):
+            elif phase in ('PROPOSAL_VALIDATION', 'REPAIR_PROPOSAL_VALIDATION') and isinstance(error, StateError):
                 result['failure_code'] = TASK_VALIDATION_FAILURES.get(str(error), 'task_validation_failure')
         self.queue.finish(task.entry_id, outcome, result)
         return {'entry_id': task.entry_id, 'status': outcome, 'result': result}
