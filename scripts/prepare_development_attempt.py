@@ -19,7 +19,7 @@ from factory_runtime.worker import digest
 
 TASK = ROOT/'factory'/'projects'/'bonus-library-pagination'/'task.json'
 FIXED = dict(model_id='gpt-5.6-sol', credential_source='env:FACTORY_OPENAI_API_KEY',
-             builder_cap='0.50', reviewer_cap='0.25', total_cap='0.75',
+             builder_cap='0.50', reviewer_cap='0.25',
              # Builder worst case: 42020 B x $4/M + 16384 x $20/M = $0.4958 <= $0.50.
              # The reviewer is clamped to 4096 output tokens by the host ($0.25).
              max_request_bytes=42020, max_output_tokens=16384)
@@ -39,11 +39,14 @@ def _price(value):
 
 
 def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
-            input_price, output_price, pricing_source, now, hours, source_commit):
+            input_price, output_price, pricing_source, now, hours, source_commit,
+            repair_rounds=1):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
     if not DIGEST.fullmatch(source_config_sha256) or not DIGEST.fullmatch(manifest):
         raise ValueError('exact source config and manifest digests required')
+    if type(repair_rounds) is not int or repair_rounds not in (0, 1):
+        raise ValueError('repair rounds must be 0 or 1')
     if type(hours) is not int or not 1 <= hours <= 24:
         raise ValueError('approval lifetime must be 1 to 24 hours')
     if not isinstance(pricing_source, str) or not 1 <= len(pricing_source) <= 128:
@@ -53,10 +56,13 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
         raise ValueError('absolute output directory outside the Factory checkout required')
     contract = TASK.read_bytes()
     spec = json.loads(contract)
-    pins = dict(FIXED, source_commit=source_commit, contract_digest=digest(contract),
+    # Each round may spend both stage caps: 0.75 per round.
+    total = str((Decimal(FIXED['builder_cap']) + Decimal(FIXED['reviewer_cap'])) * (1 + repair_rounds))
+    pins = dict(FIXED, total_cap=total, source_commit=source_commit, contract_digest=digest(contract),
                 repository=spec['repository'], target_commit=spec['target_commit'],
                 image_ref=image_ref, attempt_id=attempt_id,
-                source_config_digest=source_config_sha256, source_manifest_digest=manifest)
+                source_config_digest=source_config_sha256, source_manifest_digest=manifest,
+                **({'repair_rounds': repair_rounds} if repair_rounds else {}))
     pricing = dict(model_id=FIXED['model_id'], input_usd_per_million_tokens=_price(input_price),
                    output_usd_per_million_tokens=_price(output_price),
                    effective_at=now.isoformat(), expires_at=(now+timedelta(hours=24)).isoformat(),
@@ -68,7 +74,8 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
         (output/f'{name}.json').write_text(json.dumps(value, sort_keys=True, indent=2))
     (output/'contract.json').write_bytes(contract)
     return dict(status='PREPARED', output=str(output), attempt_id=attempt_id,
-                approval_expires_at=approval['expires_at'], total_cap_usd=FIXED['total_cap'],
+                approval_expires_at=approval['expires_at'], total_cap_usd=total,
+                repair_rounds=repair_rounds,
                 contract_digest=pins['contract_digest'], source_commit=source_commit,
                 model_calls=0)
 
@@ -80,6 +87,7 @@ def main(argv=None):
                  'input-price', 'output-price', 'pricing-source'):
         parser.add_argument('--'+name, required=True)
     parser.add_argument('--hours', type=int, default=12)
+    parser.add_argument('--repair-rounds', type=int, choices=(0, 1), default=1)
     args = parser.parse_args(argv)
     if not args.owner_authorized:
         parser.error('explicit owner authorization required')
@@ -90,7 +98,7 @@ def main(argv=None):
         image_ref=args.image_ref, source_config_sha256=args.source_config_sha256,
         manifest=args.manifest, input_price=args.input_price, output_price=args.output_price,
         pricing_source=args.pricing_source, now=datetime.now(timezone.utc),
-        hours=args.hours, source_commit=head)))
+        hours=args.hours, source_commit=head, repair_rounds=args.repair_rounds)))
     return 0
 
 

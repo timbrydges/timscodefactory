@@ -177,3 +177,87 @@ class DevelopmentRunnerTests(unittest.TestCase):
         self.assertEqual(result['result']['phase'], 'CANDIDATE')
         self.assertEqual(self.calls, ['builder'])
         self.assertEqual(self.tick()['status'], 'IDLE_OR_PAUSED')
+
+
+class DevelopmentRepairRoundTests(DevelopmentRunnerTests):
+    def setUp(self):
+        super().setUp()
+        self.verdicts = ['REJECT', 'APPROVE']
+        self.repair_turns, self.repair_evidence = [], []
+        async def reviewer(turn):
+            self.calls.append('reviewer')
+            verdict = self.verdicts.pop(0)
+            return {'review_input_digest': turn['review_input_digest'], 'verdict': verdict,
+                    'findings': [] if verdict == 'APPROVE' else ['Type of readLibraryPage is not inferred']}
+        async def repair_builder(turn):
+            self.calls.append('repair_builder'); self.repair_turns.append(turn)
+            if self.fail == 'repair': raise RuntimeError('private detail')
+            return self.repair_decision
+        self.repair_decision = self.f.decision
+        r = self.runner
+        self.runner = DevelopmentTaskRunner(self.queue, contract_bytes=r.contract_bytes,
+            snapshot=r.snapshot, builder=r.builder, reviewer=reviewer, request_for=r.request_for,
+            sandbox_for=r.sandbox_for, save_artifact=r.save_artifact, clock=r.clock,
+            builder_identity='builder', reviewer_identity='reviewer', enabled=True,
+            repair_rounds=1, repair_builder=repair_builder, repair_reviewer=reviewer,
+            save_repair_test_evidence=lambda entry, raw: self.repair_evidence.append(json.loads(raw)))
+
+    def test_rejection_gets_exactly_one_repair_and_rereview(self):
+        result = self.tick()
+        self.assertEqual(result['status'], 'TICK_COMPLETED')
+        self.assertEqual(self.calls, ['builder', 'tests', 'reviewer', 'repair_builder', 'tests', 'reviewer'])
+        repair = self.repair_turns[0]['repair']
+        self.assertEqual(repair['review_findings'], ['Type of readLibraryPage is not inferred'])
+        self.assertEqual(repair['rejected_decision_digest'], digest(
+            json.dumps(self.f.decision, sort_keys=True, separators=(',', ':')).encode()))
+        artifact = self.artifacts[0]
+        self.assertEqual(artifact['repair_round'], 1)
+        self.assertEqual(artifact['first_round']['review_decision']['verdict'], 'REJECT')
+        self.assertEqual(artifact['review_decision']['verdict'], 'APPROVE')
+        self.assertEqual(len(self.repair_evidence), 1)
+        self.assertFalse(artifact['release_authorized'])
+
+    def test_second_rejection_stops_without_another_repair(self):
+        self.verdicts = ['REJECT', 'REJECT']
+        self.assertEqual(self.tick()['status'], 'REJECTED')
+        self.assertEqual(self.calls.count('repair_builder'), 1)
+        self.assertEqual(self.calls.count('reviewer'), 2)
+
+    def test_repair_failure_is_uncertain_and_never_retried(self):
+        self.fail = 'repair'
+        result = self.tick()
+        self.assertEqual((result['status'], result['result']['phase']),
+                         ('NEEDS_RECONCILIATION', 'REPAIR_BUILDER'))
+        self.assertEqual(self.calls.count('repair_builder'), 1)
+        self.assertEqual(self.artifacts, [])
+
+    def test_repair_escalation_stops_with_first_round_retained(self):
+        self.repair_decision = {'type': 'escalate', 'reason': 'Needs a schema change'}
+        result = self.tick()
+        self.assertEqual(result['status'], 'STOPPED')
+        self.assertEqual(result['result']['status'], 'REPAIR_NEEDS_INPUT')
+        self.assertEqual(self.artifacts[0]['repair']['first_round']['review_decision']['verdict'], 'REJECT')
+
+    def test_without_approved_repair_rejection_is_final(self):
+        self.runner.repair_rounds = 0
+        self.verdicts = ['REJECT']
+        self.assertEqual(self.tick()['status'], 'REJECTED')
+        self.assertNotIn('repair_builder', self.calls)
+
+    def test_invalid_repair_configuration_rejected(self):
+        for kw in ({'repair_rounds': 2}, {'repair_rounds': 1, 'repair_builder': None}, {'repair_rounds': True}):
+            with self.subTest(kw=kw), self.assertRaises(StateError):
+                DevelopmentTaskRunner(self.queue, contract_bytes=self.f.raw, snapshot=self.runner.snapshot,
+                    builder=self.runner.builder, reviewer=self.runner.reviewer,
+                    request_for=self.f.request, sandbox_for=self.runner.sandbox_for,
+                    save_artifact=self.runner.save_artifact, clock=self.runner.clock,
+                    builder_identity='builder', reviewer_identity='reviewer',
+                    **{'repair_builder': self.runner.repair_builder,
+                       'repair_reviewer': self.runner.repair_reviewer, **kw})
+
+
+
+# Inherited single-round tests do not apply to the repair fixture.
+for _name in dir(DevelopmentRunnerTests):
+    if _name.startswith('test_') and _name not in DevelopmentRepairRoundTests.__dict__:
+        setattr(DevelopmentRepairRoundTests, _name, None)

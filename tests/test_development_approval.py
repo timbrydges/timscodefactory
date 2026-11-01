@@ -108,3 +108,35 @@ class PrivateSourceApprovalTests(ApprovalTests):
             with self.assertRaises(StateError): self.compose()
             host.assert_not_called()
         self.assertFalse(self.receipt.exists())
+
+
+class RepairApprovalTests(ApprovalTests):
+    def setUp(self):
+        super().setUp()
+        from decimal import Decimal
+        self.pins.update(repair_rounds=1, total_cap='1.00')
+        self.f.options['total_cap'] = Decimal('1.00')
+        self.approval['pins'] = dict(self.pins)
+
+    def test_repair_round_is_passed_to_the_host(self):
+        with patch('factory_runtime.development_approval.DevelopmentHost') as host:
+            self.compose()
+        self.assertEqual(host.call_args.kwargs['repair_rounds'], 1)
+
+    def test_more_rounds_or_insufficient_total_never_consumes(self):
+        for change in ({'repair_rounds': 2}, {'repair_rounds': True}, {'total_cap': '0.99'}):
+            with self.subTest(change=change):
+                pins = {**self.pins, **change}
+                self.approval['pins'] = dict(pins)
+                saved, self.pins = self.pins, pins
+                with patch('factory_runtime.development_approval.DevelopmentHost') as host:
+                    with self.assertRaises(StateError): self.compose()
+                    host.assert_not_called()
+                self.pins = saved
+        self.assertFalse(self.receipt.exists())
+
+    def test_real_host_wires_repair_callbacks(self):
+        host = self.compose()
+        self.assertEqual(host.runner.repair_rounds, 1)
+        self.assertIsNotNone(host.runner.repair_builder)
+        self.assertIsNotNone(host.runner.save_repair_test_evidence)

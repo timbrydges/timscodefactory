@@ -47,14 +47,23 @@ def decode_packet(raw):
 
 
 class ScheduledPacketHost:
-    def __init__(self, *, packet_directory, attempt_directory, repository_path,
-                 execute, owner_authorized=False):
-        # Operator-owned directories and fixed execute function, never packet fields.
+    def __init__(self, *, packet_directory, attempt_directory, repository_path=None,
+                 execute, owner_authorized=False, source_config=None, source_config_sha256=None):
+        # Operator-owned directories, source and fixed execute function, never packet fields.
         self.packets = Path(packet_directory)
         self.attempts = Path(attempt_directory)
-        self.repository = Path(repository_path)
-        if any(not p.is_dir() or p.is_symlink() for p in (self.packets,self.attempts,self.repository)):
+        if ((repository_path is None) == (source_config is None)
+                or (source_config is None) != (source_config_sha256 is None)):
+            raise StateError('exactly one operator source: repository path or pinned source config')
+        self.repository = None if repository_path is None else Path(repository_path)
+        self.source_config = None if source_config is None else Path(source_config)
+        self.source_config_sha256 = source_config_sha256
+        directories = [self.packets, self.attempts] + ([self.repository] if self.repository else [])
+        if any(not p.is_dir() or p.is_symlink() for p in directories):
             raise StateError('existing regular host directories required')
+        if self.source_config is not None and (self.source_config.is_symlink()
+                                               or not self.source_config.is_file()):
+            raise StateError('regular operator source configuration required')
         self.execute = execute
         self.owner_authorized = owner_authorized
 
@@ -102,7 +111,9 @@ class ScheduledPacketHost:
             pins=inputs/'pins.json',approval=inputs/'approval.json',
             pricing=inputs/'pricing.json',contract=inputs/'contract.json',
             execution_profile=inputs/'execution_profile.json',
-            repository_path=self.repository,attempt_directory=self.attempts/job)
+            repository_path=self.repository,attempt_directory=self.attempts/job,
+            # Each attempt acquires its own pinned private source exactly once.
+            source_config=self.source_config,source_config_sha256=self.source_config_sha256)
         # execute rechecks clean source, exact approval, pricing, profile and receipt.
         result = await self.execute(args)
         return result.get('status') if type(result) is dict else 'NEEDS_RECONCILIATION'

@@ -17,7 +17,8 @@ from .worker import digest
 class DevelopmentHost:
     def __init__(self, directory, *, task, contract_bytes, snapshot, builder,
                  reviewer, target, builder_cap, reviewer_cap, total_cap,
-                 request_for, sandbox_for, clock, enabled=False, delivery=None):
+                 request_for, sandbox_for, clock, enabled=False, delivery=None,
+                 repair_rounds=0):
         if type(enabled) is not bool:
             raise StateError('explicit boolean activation required')
         task.validate()
@@ -34,7 +35,7 @@ class DevelopmentHost:
         # Validate adapters and caps before consuming the fresh directory.
         session = DevelopmentProviderSession(builder=builder, reviewer=reviewer,
             target=target, builder_cap=builder_cap, reviewer_cap=reviewer_cap,
-            total_cap=total_cap, journal=None, enabled=enabled)
+            total_cap=total_cap, journal=None, enabled=enabled, repair_rounds=repair_rounds)
         self.directory = Path(directory)
         if not self.directory.parent.is_dir() or self.directory.parent.is_symlink():
             raise StateError('existing regular attempt parent required')
@@ -57,7 +58,10 @@ class DevelopmentHost:
             save_artifact=lambda entry, raw: save_named('attempt.json', entry, raw),
             save_test_evidence=lambda entry, raw: save_named('tests.json', entry, raw), clock=clock,
             builder_identity='development-builder',
-            reviewer_identity='development-reviewer', enabled=enabled, delivery=delivery)
+            reviewer_identity='development-reviewer', enabled=enabled, delivery=delivery,
+            repair_rounds=repair_rounds, repair_builder=session.repair_build,
+            repair_reviewer=session.repair_review,
+            save_repair_test_evidence=lambda entry, raw: save_named('repair-tests.json', entry, raw))
         # Only this new attempt's local queue can be enabled by the trusted host.
         self.queue.pause(not enabled)
 
