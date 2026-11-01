@@ -1,0 +1,37 @@
+{
+  "evidence_id": "private-source-fetch-2026-11-01",
+  "approval_id": "factory-bonus-source-fetch-v1",
+  "approved_by": "timbrydges",
+  "host": "ASUSTUF (Windows, Administrator PowerShell, owner account)",
+  "source": "Owner-supplied screenshot transcribed by a coding assistant; not machine-collected or signed",
+  "entrypoint": "scripts/private_source_fetch.py --fetch-once, attempt name first-fetch",
+  "config_digest": "sha256:93ad1084eef4c86b96f1ce4e56c68d7bfa0dca5df4c3c6fab1db7b4b9008d0dc",
+  "offline_precheck": {"config": "CONFIG OK", "key_fingerprint": "FINGERPRINT MATCH", "volume": "VOLUME OK"},
+  "result": {
+    "status": "VERIFIED",
+    "repository": "timbrydges/bonus-library",
+    "commit": "ef88df95bc3f046d080af51e3654d2259759072b",
+    "files": 101,
+    "bytes": 655314,
+    "manifest": "sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3",
+    "manifest_matches_owner_pin": true,
+    "receipt": "C:\\FactoryRunner\\source-attempts\\first-fetch\\source-fetch.json"
+  },
+  "implied_by_verified_status": [
+    "One app signature after public-key fingerprint match",
+    "One installation token scoped to repository 1375052827 with contents/metadata read, validated before fetch",
+    "Token revocation confirmed",
+    "Temporary object store removed"
+  ],
+  "attempts_used": 1,
+  "retries": 0,
+  "model_calls": 0,
+  "spend_usd": 0,
+  "writes_to_bonus_library": 0,
+  "not_established": [
+    "Automatic or scheduled source acquisition",
+    "Use of the fetched snapshot by a Builder, Inspector or QA role",
+    "Volume reattachment after reboot",
+    "Authorization for any further fetch"
+  ]
+}

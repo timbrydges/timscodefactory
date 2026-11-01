@@ -135,7 +135,7 @@ d07c858ed6380557e50736bdba396beb27fa9f22f36daf5f1ae2f1724a0b35f3  docs/pilot-002
 53dcf907a537d5411ed25a903b751e2a54e9a8e7a510ca0dee6c94a1045925e3  docs/pilot-002-shared-capacity-review.md
 d8f20fcdaa7c0e0147ea3c0ce7c6198c98d61fc1ba7b99e0acbf6b428c254ca0  docs/pilot-002-signed-allowances.md
 f60d641a9e61ec8039c911a361774ec90b8b7d7d98541e5035f961ffd48d973d  docs/pilot-002-transports.md
-ed092ff2819e23b1a0a09949069c1746f387f0df1a5455eb9da00bed7324d50a  docs/private-source-access-v1.json
+1da7eba744f5d9e4a997d7cb84a725541097775c23bf43258463b6a1d4602f0a  docs/private-source-access-v1.json
 dac06117998dc641d560837ec60994246000497d87ac9c988d3b8129dccdff01  docs/qa-execution-attestation.md
 9fc19b7a70640fd5f4180f889d5413de2e5ff2ad6f7a46f415de5c2054aaf1b4  docs/qa-gate-001.md
 772fd6d13266644182a52301e962396b1ba1ff1f0561e396957d6fc2c347d7e8  docs/qa-role-transport.md
@@ -489,6 +489,7 @@ e4cfe99a1593ca9879b06c61c8e077ffc6e98d6c726bdcd9af599af2edd7c0aa  factory/eviden
 e1e0a2e2aaab020281583ce5e40c16efc21a292287f072673fe0c68034ba376b  factory/evidence/pilot-closeout-2026-09-17.json
 2eb3a11706e61651806ef95adddbb44c27ca41eca0a597655b4f061920299b45  factory/evidence/pilot-identity-canary-2026-09-13.json
 9ca9b1f03f90f6813c2624957274bdfd8eff9d3f489b1af22409e461af1b1b5b  factory/evidence/private-pilot-repository-controls-2026-09-13.json
+6d52cbe09bef9b7b63eed4e85cd0b095f04b8d32d2d37f8bb454681278404e32  factory/evidence/private-source-fetch-2026-11-01.json
 08b70e6c9ac7eca6eedfbb059d8f0e027c10d5cd7a2ebf479134a7ed3310ef52  factory/evidence/provider-credential-path-preparation-2026-09-23.json
 9a0574d33be6508aff06a96d1636fc3df5d2e5da61beef024131d47634f420b1  factory/evidence/provider-target-authorization-preparation-2026-09-23.json
 f17374be2c1b9b68ab84ec112777b1d261c24266234fb9b12d3d367fc294627d  factory/evidence/qa-execution-live-proof-2026-10-03.json
