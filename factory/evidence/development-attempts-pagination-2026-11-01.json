@@ -306,6 +306,37 @@
       "cost_usd_lower_bound": "0.11002400",
       "cost_usd_upper_bound": "0.61002400",
       "writes_to_bonus_library": 0
+    },
+    {
+      "attempt_id": "search-002",
+      "approval": "Owner ran run_owner_attempt.py --task bonus-library-search --max-attempts 3 --max-total-usd 3.00 --publish-approved",
+      "factory_source_commit": "ddad795 (PR #580)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.11713200"
+        },
+        "checks": "First proposal did not pass the sandbox checks (no first-round review recorded); its output drove the first repair",
+        "repair_builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.12020400"
+        },
+        "repair_reviewer": {
+          "state": "COMPLETED",
+          "verdict": "APPROVE",
+          "cost_usd": "0.03332400"
+        }
+      },
+      "total_cost_usd": "0.27066000",
+      "publication": "Automatically pushed factory/search-002 (3 approved files plus the Factory acceptance test) by the owner-bounded batch",
+      "assistant_verification": "Read-only clone of factory/search-002: next typegen, tsc --noEmit and eslint pass; 92 of 94 tests pass with 2 skipped and 0 failures, including the Factory acceptance tests",
+      "first_unattended_delivery": true
     }
   ]
 }
