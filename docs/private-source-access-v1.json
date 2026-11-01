@@ -18,9 +18,9 @@
     "failure": "Retain an exclusive receipt directory, redact underlying exception details, stop without retry on uncertain issuance, fetch, revoke or cleanup"
   },
   "remaining_before_live_source_fetch": [
+    "Set up and verify the approved 256 MiB attempt volume on the runner host (size and ACL output), and confirm Python resolves C:\\FactoryRunner\\source-attempts to itself; until then acquisition refuses to start",
     "Review and merge the offline implementation through repository CI",
     "Completed access setup: app 5404433, installation 173585570; key fingerprint verified; using it remains unauthorized",
-    "Approve a disk-quota or equivalent storage bound for the temporary Git object store; post-fetch snapshot size limits do not bound download disk use",
     "Pin an actual task commit and independent expected content manifest",
     "Authorize one source fetch separately; app setup alone is not fetch or workflow approval",
     "Linux CI qualification of the composed path; it is offline-tested with fake OpenSSL, Git and HTTPS only",
@@ -78,5 +78,20 @@
     "sequence": "Exclusive attempt directory and STARTED receipt -> fingerprint check -> one RS256 app JWT -> one scoped installation-token POST -> one exact-commit fetch -> content-digest check -> token revocation -> object cleanup",
     "no_retry": "The issuer closure is single use; an attempt directory can never be reused; uncertain signing, issuance, fetch, revocation or cleanup stops as STOPPED_NEEDS_RECONCILIATION",
     "activation": "enabled=True and owner_authorized=True are required; no entrypoint, schedule or workflow invokes it"
+  },
+  "storage_approval": {
+    "approval_id": "factory-bonus-source-storage-v1",
+    "approved_by": "timbrydges",
+    "approved_on": "2026-11-01",
+    "scope": "One fixed-size 256 MiB NTFS virtual disk at C:\\FactoryRunner\\volumes\\source-attempts.vhdx, mounted at C:\\FactoryRunner\\source-attempts; access limited to FactoryRunner, Administrators and SYSTEM; used only as attempt_parent for private-source fetches",
+    "excluded": [
+      "Source fetch",
+      "Token requests",
+      "Signing",
+      "Model calls",
+      "Spending"
+    ],
+    "enforcement": "acquire_private_source refuses to start unless attempt_parent is an existing non-link directory whose volume total is between 1 byte and 268435456 bytes, so an unattached volume (ordinary folder on C:) fails closed",
+    "host_setup_verified": false
   }
 }

@@ -11,7 +11,7 @@ import unittest
 
 from factory_runtime.private_source import SourceBinding, snapshot_manifest_digest
 from factory_runtime.private_source_composition import (
-    acquire_private_source, read_private_source_configuration)
+    ATTEMPT_VOLUME_MAX_BYTES, acquire_private_source, read_private_source_configuration)
 from factory_runtime.repository_snapshot import read_repository_snapshot
 from factory_state.model import StateError
 
@@ -102,7 +102,8 @@ class CompositionTests(unittest.TestCase):
 
     def acquire(self, config=None, name='attempt-1', **changes):
         args = dict(clock=lambda: self.now, enabled=True, owner_authorized=True,
-                    run=self.fake_run, connection=FakeConnection(self.log, self))
+                    run=self.fake_run, connection=FakeConnection(self.log, self),
+                    disk_usage=lambda path: shutil._ntuple_diskusage(250*1024*1024, 0, 250*1024*1024))
         args.update(changes)
         return acquire_private_source(config or self.config(), self.binding, name, **args)
 
@@ -192,6 +193,22 @@ class CompositionTests(unittest.TestCase):
         receipt = self.receipt()
         self.assertEqual((receipt['status'], receipt['revocation_confirmed'], receipt['object_cleanup']),
                          ('STOPPED_NEEDS_RECONCILIATION', True, True))
+
+    def test_unbounded_or_missing_attempt_volume_has_no_effect(self):
+        usage = lambda total: (lambda path: shutil._ntuple_diskusage(total, 0, total))
+        def failing(path): raise OSError('not mounted')
+        for disk_usage in (usage(ATTEMPT_VOLUME_MAX_BYTES+1), usage(500*1024**3), usage(0),
+                           failing, shutil.disk_usage):
+            with self.subTest(disk_usage=disk_usage), self.assertRaises(StateError):
+                self.acquire(disk_usage=disk_usage)
+        config = self.config(attempt_parent=str(self.base/'absent'))
+        with self.assertRaises(StateError): self.acquire(config)
+        self.assertEqual(self.log, [])
+        self.assertEqual(list((self.base/'attempts').iterdir()), [])
+
+    def test_volume_at_exact_bound_is_accepted(self):
+        exact = lambda path: shutil._ntuple_diskusage(ATTEMPT_VOLUME_MAX_BYTES, 0, ATTEMPT_VOLUME_MAX_BYTES)
+        self.assertEqual(self.acquire(disk_usage=exact), self.expected)
 
 
 if __name__ == '__main__':

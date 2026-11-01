@@ -12,6 +12,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 
 from factory_state.model import StateError
 from .private_source import GitHubObjectFetch, SourceBinding, fetch_private_snapshot
@@ -24,6 +25,9 @@ _FIELDS = {'schema', 'app_client_id', 'installation_id', 'repository', 'reposito
            'git_executable', 'signer_executable', 'key_path', 'public_fingerprint',
            'attempt_parent'}
 _PERMISSIONS = {'contents': 'read', 'metadata': 'read'}
+# factory-bonus-source-storage-v1: the attempt parent must be a dedicated
+# fixed-size volume, so Git cannot write more than this before size checks.
+ATTEMPT_VOLUME_MAX_BYTES = 256 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -89,7 +93,7 @@ def read_private_source_configuration(path, expected_digest, *, owner_authorized
 
 def acquire_private_source(config, binding, attempt_name, *, clock, enabled=False,
                            owner_authorized=False, run=None, connection=None,
-                           acquire=fetch_private_snapshot):
+                           acquire=fetch_private_snapshot, disk_usage=shutil.disk_usage):
     """Run at most one bounded acquisition; any failure stops for reconciliation.
 
     ``clock`` returns an aware datetime. ``run``/``connection`` exist only for
@@ -105,6 +109,14 @@ def acquire_private_source(config, binding, attempt_name, *, clock, enabled=Fals
         raise StateError('task binding differs from approved repository')
     if type(attempt_name) is not str or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,62}', attempt_name):
         raise StateError('bounded attempt name required')
+    parent = config.attempt_parent
+    try:
+        total = disk_usage(parent).total if parent.is_dir() and not parent.is_symlink() else None
+    except OSError:
+        total = None
+    if type(total) is not int or not 0 < total <= ATTEMPT_VOLUME_MAX_BYTES:
+        # An unattached volume leaves an ordinary folder on the system drive.
+        raise StateError('attempt parent is not the approved bounded volume')
     extra = {} if run is None else {'run': run}
     signer = SourceKeySigner(config.signer_executable, config.key_path, config.public_fingerprint,
                              enabled=True, owner_authorized=True, **extra)
