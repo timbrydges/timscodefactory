@@ -388,3 +388,36 @@ class TwoRepairRoundsTests(unittest.TestCase):
         self.base.verdicts = ['REJECT', 'APPROVE']
         self.assertEqual(self.base.tick()['status'], 'TICK_COMPLETED')
         self.assertEqual(self.base.calls.count('repair_builder'), 1)
+
+
+class NewFilesOnlyRunnerTests(unittest.TestCase):
+    def test_new_file_task_reaches_builder_tests_and_review(self):
+        root = Path(__file__).resolve().parents[1]
+        raw = (root/'factory/projects/bonus-library-ai-cover-prompt/task.json').read_bytes()
+        spec = json.loads(raw)
+        tmp = TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        queue = LocalTaskQueue(Path(tmp.name)/'queue.db')
+        task = QueuedTask('entry', 'factory', spec['task_id'], 'activation', 'a'*40, digest(raw), 'IMPLEMENTATION')
+        queue.enqueue(task); queue.pause(False)
+        snapshot = RepositorySnapshot(spec['repository'], spec['target_commit'],
+            (RepositoryFile('README.md', b'# bonus\n', False),))
+        calls, seen = [], {}
+        decision = {'type': 'apply_edits', 'summary': 'Add cover core', 'edits': [
+            {'path': p, 'old_text': '', 'new_text': 'export {};\n'} for p in spec['allowed_paths']]}
+        async def builder(turn):
+            calls.append('builder'); seen['files'] = turn['files']; return decision
+        async def reviewer(turn):
+            calls.append('reviewer')
+            return {'review_input_digest': turn['review_input_digest'], 'verdict': 'APPROVE', 'findings': []}
+        f = fixtures.TaskCandidateTests('test_edits_only_disposable_copy_and_cleanup_on_success'); f.setUp()
+        class Sandbox:
+            async def execute(self, request):
+                calls.append('tests'); return f.receipt(request, exit_code=0)
+        runner = DevelopmentTaskRunner(queue, contract_bytes=raw, snapshot=snapshot, builder=builder,
+            reviewer=reviewer, request_for=f.request, sandbox_for=lambda c: Sandbox(),
+            save_artifact=lambda e, r: None, clock=lambda: datetime.now(timezone.utc),
+            builder_identity='builder', reviewer_identity='reviewer', enabled=True)
+        result = asyncio.run(runner.tick())
+        self.assertEqual(result['status'], 'TICK_COMPLETED', result)
+        self.assertEqual(calls, ['builder', 'tests', 'reviewer'])
+        self.assertEqual(seen['files'], {})

@@ -52,7 +52,9 @@ class TaskImplementationProtocol:
         if not isinstance(allowed, list) or not allowed or len(allowed) > 50:
             raise StateError('exact file scope required')
         self.allowed = frozenset(_path(p) for p in allowed)
-        if type(files) is not dict or not files or len(files) > 50:
+        # A task may consist only of new files; it still needs at least one path to change.
+        if (type(files) is not dict or len(files) > 50
+                or (not files and (type(missing_paths) not in {tuple, list} or not missing_paths))):
             raise StateError('bounded source snapshot required')
         self.files = dict(files)
         if any(_path(p) not in self.allowed or type(text) is not str for p, text in self.files.items()):
