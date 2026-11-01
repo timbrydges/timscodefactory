@@ -40,13 +40,13 @@ def _price(value):
 
 def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest,
             input_price, output_price, pricing_source, now, hours, source_commit,
-            repair_rounds=1):
+            repair_rounds=2):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
     if not DIGEST.fullmatch(source_config_sha256) or not DIGEST.fullmatch(manifest):
         raise ValueError('exact source config and manifest digests required')
-    if type(repair_rounds) is not int or repair_rounds not in (0, 1):
-        raise ValueError('repair rounds must be 0 or 1')
+    if type(repair_rounds) is not int or repair_rounds not in (0, 1, 2):
+        raise ValueError('repair rounds must be 0, 1 or 2')
     if type(hours) is not int or not 1 <= hours <= 24:
         raise ValueError('approval lifetime must be 1 to 24 hours')
     if not isinstance(pricing_source, str) or not 1 <= len(pricing_source) <= 128:
@@ -87,7 +87,7 @@ def main(argv=None):
                  'input-price', 'output-price', 'pricing-source'):
         parser.add_argument('--'+name, required=True)
     parser.add_argument('--hours', type=int, default=12)
-    parser.add_argument('--repair-rounds', type=int, choices=(0, 1), default=1)
+    parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
     args = parser.parse_args(argv)
     if not args.owner_authorized:
         parser.error('explicit owner authorization required')

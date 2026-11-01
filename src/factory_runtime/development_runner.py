@@ -33,9 +33,9 @@ class DevelopmentTaskRunner:
         self.save_artifact, self.clock = save_artifact, clock
         self.save_test_evidence = save_test_evidence
         self.builder_identity, self.reviewer_identity = builder_identity, reviewer_identity
-        if type(repair_rounds) is not int or repair_rounds not in (0, 1) or (
+        if type(repair_rounds) is not int or repair_rounds not in (0, 1, 2) or (
                 repair_rounds and (repair_builder is None or repair_reviewer is None)):
-            raise StateError('at most one bounded repair round with trusted callbacks')
+            raise StateError('at most two bounded repair rounds with trusted callbacks')
         self.repair_rounds = repair_rounds
         self.repair_builder, self.repair_reviewer = repair_builder, repair_reviewer
         self.save_repair_test_evidence = save_repair_test_evidence
@@ -135,32 +135,48 @@ class DevelopmentTaskRunner:
             else:
                 artifact, result, outcome = await self._evaluate(
                     task, protocol, decision, self.reviewer, self.save_test_evidence, state, '')
-                findings = None
-                if result.get('status') == 'REVIEW_REJECTED':
-                    findings = artifact.get('review_decision', {}).get('findings')
-                elif result.get('status') in ('TESTS_FAILED', 'TIMED_OUT') and artifact.get('test_output_tail'):
-                    findings = ['The required repository checks failed (%s, exit code %s). '
-                        'Redacted output tail, untrusted:\n%s' % (result['status'],
-                        artifact['test_receipt'].get('exit_code'), artifact['test_output_tail'])]
-                if findings and self.repair_rounds == 1:
-                    # One bounded repair: review findings or failing checks go back once.
-                    state['phase'] = 'REPAIR_BUILDER'
-                    turn = protocol.repair_turn(rejected_decision=decision, findings=findings)
+                first, history, current = None, [], decision
+                for round_number in range(1, self.repair_rounds + 1):
+                    findings = None
+                    if result.get('status') == 'REVIEW_REJECTED':
+                        findings = artifact.get('review_decision', {}).get('findings')
+                    elif result.get('status') in ('TESTS_FAILED', 'TIMED_OUT') and artifact.get('test_output_tail'):
+                        findings = ['The required repository checks failed (%s, exit code %s). '
+                            'Redacted output tail, untrusted:\n%s' % (result['status'],
+                            artifact['test_receipt'].get('exit_code'), artifact['test_output_tail'])]
+                    if not findings:
+                        break
+                    # Bounded repair: findings or failing checks go back; each round runs once.
+                    prefix = 'REPAIR_' if round_number == 1 else 'REPAIR%d_' % round_number
+                    state['phase'] = prefix + 'BUILDER'
+                    turn = protocol.repair_turn(rejected_decision=current, findings=findings,
+                                                round_number=round_number, rounds=self.repair_rounds)
                     repair = json.loads(canonical(await self.repair_builder(turn)))
-                    state['phase'] = 'REPAIR_PROPOSAL_VALIDATION'
+                    state['phase'] = prefix + 'PROPOSAL_VALIDATION'
                     protocol.validate_decision(repair)
-                    first = {'proposal': decision, 'result': result,
-                             'review_decision': artifact.get('review_decision')}
+                    round_record = {'proposal': current, 'result': result,
+                                    'review_decision': artifact.get('review_decision')}
+                    first = first or round_record
+                    history.append(round_record)
                     if repair['type'] != 'apply_edits':
-                        artifact['repair'] = {'proposal': repair, 'first_round': first}
+                        artifact['repair'] = {'proposal': repair, 'first_round': first,
+                                              'previous_rounds': history}
                         result = {'status': 'REPAIR_NEEDS_INPUT', 'decision_type': repair['type']}
                         outcome = 'STOPPED'
+                        break
+                    if round_number == 1:
+                        reviewer, save = self.repair_reviewer, self.save_repair_test_evidence
                     else:
-                        artifact, result, outcome = await self._evaluate(
-                            task, protocol, repair, self.repair_reviewer,
-                            self.save_repair_test_evidence, state, 'REPAIR_')
-                        artifact['repair_round'] = 1
-                        artifact['first_round'] = first
+                        reviewer = lambda review_turn, n=round_number: self.repair_reviewer(review_turn, round=n)
+                        save = (None if self.save_repair_test_evidence is None else
+                                lambda entry, raw, n=round_number: self.save_repair_test_evidence(entry, raw, round=n))
+                    artifact, result, outcome = await self._evaluate(
+                        task, protocol, repair, reviewer, save, state, prefix)
+                    artifact['repair_round'] = round_number
+                    artifact['first_round'] = first
+                    if round_number > 1:
+                        artifact['previous_rounds'] = history
+                    current = repair
                 artifact['result'] = result
                 state['phase'] = 'ARTIFACT'
                 # Sink must persist exclusively; failure leaves an uncertain consumed attempt.

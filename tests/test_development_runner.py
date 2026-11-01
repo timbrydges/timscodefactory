@@ -245,7 +245,7 @@ class DevelopmentRepairRoundTests(DevelopmentRunnerTests):
         self.assertNotIn('repair_builder', self.calls)
 
     def test_invalid_repair_configuration_rejected(self):
-        for kw in ({'repair_rounds': 2}, {'repair_rounds': 1, 'repair_builder': None}, {'repair_rounds': True}):
+        for kw in ({'repair_rounds': 3}, {'repair_rounds': 1, 'repair_builder': None}, {'repair_rounds': True}):
             with self.subTest(kw=kw), self.assertRaises(StateError):
                 DevelopmentTaskRunner(self.queue, contract_bytes=self.f.raw, snapshot=self.runner.snapshot,
                     builder=self.runner.builder, reviewer=self.runner.reviewer,
@@ -348,3 +348,43 @@ class AcceptanceTestInjectionTests(unittest.TestCase):
         self.assertEqual(spec['acceptance_tests'][0]['content'], source)
         from factory_runtime.development_composition import BONUS_REPOSITORY_CHECKS
         self.assertIn(spec['acceptance_tests'][0]['path'], BONUS_REPOSITORY_CHECKS[2])
+
+
+class TwoRepairRoundsTests(unittest.TestCase):
+    def setUp(self):
+        base = DevelopmentRepairRoundTests('test_rejection_gets_exactly_one_repair_and_rereview')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        self.rounds_seen, self.evidence_rounds = [], []
+        async def reviewer(turn, round=1):
+            base.calls.append('reviewer'); self.rounds_seen.append(round)
+            verdict = base.verdicts.pop(0)
+            return {'review_input_digest': turn['review_input_digest'], 'verdict': verdict,
+                    'findings': [] if verdict == 'APPROVE' else [f'Defect {len(base.verdicts)}']}
+        r = base.runner
+        r.reviewer, r.repair_reviewer, r.repair_rounds = reviewer, reviewer, 2
+        r.save_repair_test_evidence = lambda entry, raw, round=1: self.evidence_rounds.append(round)
+
+    def test_second_repair_follows_a_second_rejection_then_approval(self):
+        self.base.verdicts = ['REJECT', 'REJECT', 'APPROVE']
+        self.assertEqual(self.base.tick()['status'], 'TICK_COMPLETED')
+        self.assertEqual(self.base.calls, ['builder', 'tests', 'reviewer', 'repair_builder', 'tests',
+                                           'reviewer', 'repair_builder', 'tests', 'reviewer'])
+        turns = self.base.repair_turns
+        self.assertEqual([t['repair']['round'] for t in turns], [1, 2])
+        self.assertIn('repair 2 of 2', turns[1]['repair']['instruction'])
+        self.assertEqual(self.rounds_seen, [1, 1, 2])
+        self.assertEqual(self.evidence_rounds, [1, 2])
+        artifact = self.base.artifacts[0]
+        self.assertEqual(artifact['repair_round'], 2)
+        self.assertEqual(len(artifact['previous_rounds']), 2)
+
+    def test_no_third_repair(self):
+        self.base.verdicts = ['REJECT', 'REJECT', 'REJECT']
+        self.assertEqual(self.base.tick()['status'], 'REJECTED')
+        self.assertEqual(self.base.calls.count('repair_builder'), 2)
+
+    def test_approval_after_first_repair_skips_second(self):
+        self.base.verdicts = ['REJECT', 'APPROVE']
+        self.assertEqual(self.base.tick()['status'], 'TICK_COMPLETED')
+        self.assertEqual(self.base.calls.count('repair_builder'), 1)

@@ -38,8 +38,8 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual((pins['repository'], pins['target_commit']),
                          ('timbrydges/bonus-library', 'ef88df95bc3f046d080af51e3654d2259759072b'))
         self.assertEqual((pins['builder_cap'], pins['reviewer_cap'], pins['total_cap']),
-                         ('0.50', '0.25', '1.50'))
-        self.assertEqual(pins['repair_rounds'], 1)
+                         ('0.50', '0.25', '2.25'))
+        self.assertEqual(pins['repair_rounds'], 2)
         from decimal import Decimal
         worst = lambda tokens: (Decimal(pins['max_request_bytes'])*Decimal(pricing['input_usd_per_million_tokens'])
             + Decimal(tokens)*Decimal(pricing['output_usd_per_million_tokens']))/Decimal(1_000_000)
@@ -63,7 +63,7 @@ class PrepareTests(unittest.TestCase):
         for change in (dict(attempt_id='Bad_ID'), dict(image_ref='node:22'),
                        dict(manifest='sha256:short'), dict(input_price='0'),
                        dict(output_price='abc'), dict(hours=25), dict(hours=0),
-                       dict(output=Path('relative')), dict(repair_rounds=2), dict(output=prep.ROOT/'out')):
+                       dict(output=Path('relative')), dict(repair_rounds=3), dict(output=prep.ROOT/'out')):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 prep.prepare(**dict(self.kw, **change))
         self.assertFalse(self.out.exists())

@@ -218,7 +218,9 @@ class DevelopmentRepairSessionTests(unittest.TestCase):
         with self.assertRaises(StateError):
             DevelopmentProviderSession(total_cap=Decimal('3.99'), repair_rounds=1, **kw)
         with self.assertRaises(StateError):
-            DevelopmentProviderSession(total_cap=Decimal('9'), repair_rounds=2, **kw)
+            DevelopmentProviderSession(total_cap=Decimal('9'), repair_rounds=3, **kw)
+        with self.assertRaises(StateError):
+            DevelopmentProviderSession(total_cap=Decimal('5.99'), repair_rounds=2, **kw)
         single = DevelopmentProviderSession(total_cap=Decimal('2'), **kw)
         with self.assertRaises(StateError):
             asyncio.run(single.repair_build({'kind': 'factory_task_implementation_v1', 'repair': {}}))
@@ -228,3 +230,32 @@ class DevelopmentRepairSessionTests(unittest.TestCase):
             asyncio.run(self.session.repair_build({'kind': 'factory_task_implementation_v1',
                                                   'repair': {'rejected_decision_digest': 'x'}}))
         self.assertEqual(self.base.events, {})
+
+
+class TwoRoundSessionTests(unittest.TestCase):
+    def setUp(self):
+        base = DevelopmentRepairSessionTests('test_repair_round_journals_each_stage_once_with_bound_digests')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        base.verdicts[:] = ['REJECT', 'REJECT', 'APPROVE']
+        session = base.session
+        session.repair_rounds = 2
+        r = base.base.f.runner
+        r.repair_rounds = 2
+
+    def test_second_round_has_its_own_stages_and_bindings(self):
+        from decimal import Decimal
+        self.base.session.caps  # unchanged per-stage caps
+        self.assertEqual(self.base.base.f.tick()['status'], 'TICK_COMPLETED')
+        started = [e for e in self.base.base.events if e.endswith('.started')]
+        self.assertEqual(started, ['builder.started', 'reviewer.started', 'repair_builder.started',
+            'repair_reviewer.started', 'repair2_builder.started', 'repair2_reviewer.started'])
+        second = [t for t in self.base.base.requests if t.get('repair', {}).get('round') == 2][0]
+        self.assertEqual(second['repair']['rejected_decision_digest'],
+                         self.base.base.events['repair_builder.completed']['decision_digest'])
+
+    def test_second_round_requires_two_approved_rounds(self):
+        self.base.session.repair_rounds = 1
+        with self.assertRaises(StateError):
+            asyncio.run(self.base.session.repair_build({'kind': 'factory_task_implementation_v1',
+                                                        'repair': {'round': 2}}))
