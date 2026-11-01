@@ -261,3 +261,47 @@ class DevelopmentRepairRoundTests(DevelopmentRunnerTests):
 for _name in dir(DevelopmentRunnerTests):
     if _name.startswith('test_') and _name not in DevelopmentRepairRoundTests.__dict__:
         setattr(DevelopmentRepairRoundTests, _name, None)
+
+
+class FailedChecksRepairTests(unittest.TestCase):
+    def setUp(self):
+        base = DevelopmentRepairRoundTests('test_rejection_gets_exactly_one_repair_and_rereview')
+        base.setUp(); self.addCleanup(base.doCleanups)
+        self.base = base
+        self.exit_codes = [1, 0]
+        outer = self
+        class Sandbox:
+            async def execute(self, request):
+                base.calls.append('tests')
+                return base.f.receipt(request, exit_code=outer.exit_codes.pop(0))
+        class Diagnostics:
+            def __init__(self): self.taken = []
+            def take(self, request, receipt):
+                self.taken.append(receipt.exit_code)
+                from types import SimpleNamespace
+                return SimpleNamespace(stdout_excerpt='page.tsx 39:15 error Unexpected any', stderr_excerpt='')
+        self.diagnostics = Diagnostics()
+        base.verdicts = ['APPROVE']
+        r = base.runner
+        r.sandbox_for = lambda candidate: Sandbox()
+        r.diagnostics = self.diagnostics
+
+    def test_failed_checks_feed_one_repair_then_review(self):
+        result = self.base.tick()
+        self.assertEqual(result['status'], 'TICK_COMPLETED')
+        self.assertEqual(self.base.calls, ['builder', 'tests', 'repair_builder', 'tests', 'reviewer'])
+        finding = self.base.repair_turns[0]['repair']['review_findings'][0]
+        self.assertIn('TESTS_FAILED, exit code 1', finding)
+        self.assertIn('Unexpected any', finding)
+        self.assertEqual(self.base.artifacts[0]['first_round']['result']['status'], 'TESTS_FAILED')
+
+    def test_checks_failing_again_stop_without_second_repair(self):
+        self.exit_codes = [1, 1]
+        self.assertEqual(self.base.tick()['status'], 'REJECTED')
+        self.assertEqual(self.base.calls.count('repair_builder'), 1)
+        self.assertNotIn('reviewer', self.base.calls)
+
+    def test_without_output_no_repair_is_attempted(self):
+        self.base.runner.diagnostics = None
+        self.assertEqual(self.base.tick()['status'], 'REJECTED')
+        self.assertNotIn('repair_builder', self.base.calls)

@@ -77,7 +77,8 @@ class DevelopmentProviderSession:
     async def _call(self, stage, kind, turn):
         if not self.enabled:
             raise StateError('development provider session disabled')
-        prerequisite = {'builder': None, 'reviewer': 'builder', 'repair_builder': 'reviewer',
+        # A repair may follow a review rejection or failed checks; it still binds the builder result.
+        prerequisite = {'builder': None, 'reviewer': 'builder', 'repair_builder': 'builder',
                         'repair_reviewer': 'repair_builder'}[stage]
         if (stage in self.started or (prerequisite and prerequisite not in self.completed)
                 or (stage.startswith('repair') and self.repair_rounds != 1)):

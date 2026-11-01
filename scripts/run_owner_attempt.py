@@ -38,9 +38,10 @@ STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer')
 class HostOps:
     """Real host effects; tests replace these with offline fakes."""
     def docker_image_digest(self, image):
+        # Registry images have a repo digest; locally built check images use their image ID.
         out = subprocess.run(['docker', 'image', 'inspect', image, '--format',
-                              '{{index .RepoDigests 0}}'], check=True, capture_output=True,
-                             text=True, timeout=30).stdout.strip()
+                              '{{if .RepoDigests}}{{index .RepoDigests 0}}{{else}}{{.Id}}{{end}}'],
+                             check=True, capture_output=True, text=True, timeout=30).stdout.strip()
         return out
 
     def volume_total(self, path):
@@ -185,7 +186,8 @@ def main(argv=None, ops=None):
     parser.add_argument('--input-price', required=True)
     parser.add_argument('--output-price', required=True)
     parser.add_argument('--pricing-source')
-    parser.add_argument('--image', default='node:22-slim')
+    # Built by scripts/build_bonus_check_image.py: Node plus the pinned npm dependencies.
+    parser.add_argument('--image', default='factory-bonus-checks:ef88df95bc3f')
     parser.add_argument('--manifest', default=PINNED_MANIFEST)
     parser.add_argument('--hours', type=int, default=12)
     args = parser.parse_args(argv)

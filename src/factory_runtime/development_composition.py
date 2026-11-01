@@ -7,12 +7,23 @@ from decimal import Decimal
 from .development_profile import TaskExecutionProfile
 from factory_state.model import StateError
 from .development_approval import compose_approved_host
+from .diagnostics import RedactedDiagnosticCapture
 from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderPolicy
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import EnvironmentProviderCredentialLeaseSource
 from .provider_http_transport import DirectOpenAITransport
 from .workload_identity_response import RenewableCredentialBinding
+
+
+# The repository's own CI gates, run offline against dependencies baked into the
+# pinned check image at /deps (scripts/build_bonus_check_image.py).
+BONUS_REPOSITORY_CHECKS = ('sh', '-c',
+    'ln -s /deps/node_modules node_modules'
+    ' && NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next typegen'
+    ' && ./node_modules/.bin/tsc --noEmit'
+    ' && ./node_modules/.bin/eslint'
+    ' && node --experimental-strip-types --test tests/library-pagination.test.mjs')
 
 
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
@@ -32,7 +43,7 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
         profile=TaskExecutionProfile('timbrydges/bonus-library', 'bonus-library-pagination',
             ('src/app/dashboard/page.tsx', 'src/lib/library-pagination.ts',
              'tests/library-pagination.test.mjs'),
-            ('node', '--experimental-strip-types', '--test', 'tests/library-pagination.test.mjs')),
+            BONUS_REPOSITORY_CHECKS, timeout_seconds=60),
         bind_profile=False)
 
 
@@ -91,6 +102,7 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
             role_id='isolated-tests', command=command,
             environment_digest=policy.environment_digest, timeout_seconds=profile.timeout_seconds,
             expected_runner_identity=policy.runner_identity)
+    capture = RedactedDiagnosticCapture()
     return compose_approved_host(directory, approval=approval, expected_pins=pins,
         receipt_path=receipt_path, now=clock(), owner_authorized=True,
         task=task, contract_bytes=contract_bytes, snapshot=snapshot,
@@ -99,6 +111,8 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
                                       selector_version='development-pinned-v1'),
         builder_cap=Decimal(pins['builder_cap']), reviewer_cap=Decimal(pins['reviewer_cap']),
         total_cap=Decimal(pins['total_cap']), request_for=request,
-        sandbox_for=lambda candidate: DockerSandboxAdapter(candidate.workspace, policy),
+        sandbox_for=lambda candidate: DockerSandboxAdapter(candidate.workspace, policy,
+                                                           diagnostic_capture=capture),
+        diagnostics=capture,
         clock=clock, delivery=delivery,
         **({'execution_profile': profile} if bind_profile else {}))

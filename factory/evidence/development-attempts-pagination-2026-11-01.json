@@ -128,7 +128,17 @@
         "Independent review (builder and reviewer share one provider and model)",
         "TypeScript type checking (tests strip types)",
         "Publication of the approved candidate to Bonus Library; requires separate owner approval"
-      ]
+      ],
+      "publication": {
+        "method": "scripts/publish_approved_attempt.py (owner-run) pushed branch factory/pagination-005; owner opened timbrydges/bonus-library#36",
+        "bonus_library_ci": {
+          "offline-tests": "success",
+          "app-tests": "failure"
+        },
+        "app_tests_detail": "75 tests passed, tsc --noEmit passed, eslint failed with 3 errors: no-explicit-any at src/app/dashboard/page.tsx:39 and src/lib/library-pagination.ts:94, prefer-const at src/lib/library-pagination.ts:95",
+        "merged": false,
+        "follow_up": "Factory test gate extended to the repository's typegen, tsc and eslint checks, with failing check output feeding the bounded repair round"
+      }
     }
   ],
   "incident": {
