@@ -84,6 +84,51 @@
         "total": "0.17078800"
       },
       "writes_to_bonus_library": 0
+    },
+    {
+      "attempt_id": "pagination-005",
+      "approval": "Owner ran scripts/run_owner_attempt.py --owner-authorized (US$1.50 cap, one repair round) after raising the project hard limit to US$2.00",
+      "factory_source_commit": "66c7845 (PR #571)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "authoritative": false,
+        "release_authorized": false
+      },
+      "pipeline": "Private source fetch, builder, isolated tests, reviewer REJECT, one automatic repair, isolated re-tests, repair reviewer APPROVE; no owner intervention between rounds",
+      "stages": {
+        "builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.12514000"
+        },
+        "reviewer": {
+          "state": "COMPLETED",
+          "verdict": "REJECT",
+          "cost_usd": "0.03655200",
+          "findings": [
+            "Malformed pagination directions are not rejected: any direction other than 'newer' is treated as 'older'",
+            "Cursor decoding is not strict: Buffer.from(value, 'base64url') ignores some non-base64url characters; validate the alphabet/canonical encoding before decoding"
+          ]
+        },
+        "repair_builder": {
+          "state": "COMPLETED",
+          "decision": "apply_edits",
+          "cost_usd": "0.13616800"
+        },
+        "repair_reviewer": {
+          "state": "COMPLETED",
+          "verdict": "APPROVE",
+          "cost_usd": "0.03763600"
+        }
+      },
+      "total_cost_usd": "0.33549600",
+      "results_file": "C:\\FactoryRunner\\dev-results\\pagination-005.json",
+      "writes_to_bonus_library": 0,
+      "not_established": [
+        "Independent review (builder and reviewer share one provider and model)",
+        "TypeScript type checking (tests strip types)",
+        "Publication of the approved candidate to Bonus Library; requires separate owner approval"
+      ]
     }
   ],
   "incident": {
