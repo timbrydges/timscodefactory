@@ -43,6 +43,7 @@ PROVIDER_FAILURE_CODES = frozenset({
     'output_text_count_invalid', 'output_content_invalid', 'response_failure_details',
     'decision_paths_invalid', 'decision_fields_invalid', 'edit_keys_invalid',
     'edit_fields_invalid', 'decision_type_invalid', 'review_fields_invalid', 'request_byte_limit',
+    'response_byte_limit',
 })
 
 
@@ -586,7 +587,8 @@ class OpenAIResponsesProviderInvoker(ProviderInvoker):
         if response.status_code != 200:
             raise OpenAIProviderProtocolError(f"OpenAI provider returned HTTP {response.status_code}", failure_code='http_error')
         if not isinstance(response.body, bytes) or len(response.body) > self.policy.max_response_bytes:
-            raise OpenAIProviderProtocolError("OpenAI response body is invalid or exceeds byte cap")
+            raise OpenAIProviderProtocolError("OpenAI response body is invalid or exceeds byte cap",
+                                              failure_code='response_byte_limit')
         try:
             payload = json.loads(response.body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:

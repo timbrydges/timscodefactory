@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch, Mock
-from factory_runtime.development_composition import compose_bonus_host
+from factory_runtime.development_composition import compose_bonus_host, RESPONSE_LIMIT
 from factory_state.model import StateError
 
 
@@ -36,10 +36,12 @@ class CompositionTests(TestCase):
             for adapter in (builder, reviewer):
                 self.assertEqual(adapter.policy.reasoning_effort, 'low')
                 self.assertEqual(adapter.policy.max_output_tokens, 4096)
+                self.assertEqual(adapter.policy.max_response_bytes, RESPONSE_LIMIT)
                 self.assertEqual(adapter.policy.max_request_bytes, 42020)
             candidate = Mock()
             args['request_for'](candidate)
             from factory_runtime.development_composition import BONUS_REPOSITORY_CHECKS
+            self.assertEqual(RESPONSE_LIMIT, 1024 * 1024)
             self.assertEqual(candidate.request.call_args.kwargs['command'], BONUS_REPOSITORY_CHECKS)
             # The repository's own CI gates run before the task tests.
             script = BONUS_REPOSITORY_CHECKS[2]

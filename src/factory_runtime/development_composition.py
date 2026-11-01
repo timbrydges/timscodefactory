@@ -20,6 +20,9 @@ from .workload_identity_response import RenewableCredentialBinding
 # The repository's own CI gates, run offline against dependencies baked into the
 # pinned check image at /deps (scripts/build_bonus_check_image.py), followed by the
 # builder's tests and the contract-owned acceptance tests. Paths are fixed here.
+RESPONSE_LIMIT = 1024 * 1024
+
+
 def bonus_repository_checks(builder_test, acceptance_tests):
     return ('sh', '-c',
         'ln -s /deps/node_modules node_modules'
@@ -103,12 +106,14 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
     policy = DockerSandboxPolicy(image_ref=pins['image_ref'])
     if credential is None:
         credential = EnvironmentProviderCredentialLeaseSource()
+    # Response size does not change spend (output tokens are capped); a larger limit
+    # keeps an already-billed complete-file proposal parseable and reconcilable.
     transport = DirectOpenAITransport(enabled=True,
-        max_request_bytes=pins['max_request_bytes'])
+        max_request_bytes=pins['max_request_bytes'], max_response_bytes=RESPONSE_LIMIT)
     def adapter(workload):
         return OpenAIResponsesProviderInvoker(credential, pricing_source, transport,
             policy=OpenAIProviderPolicy(live_enabled=True, workload=workload,
-                max_request_bytes=pins['max_request_bytes'],
+                max_request_bytes=pins['max_request_bytes'], max_response_bytes=RESPONSE_LIMIT,
                 timeout_seconds=180,
                 # Bounded acceptance attempt: reserve more of the unchanged
                 # output allowance for the structured decision rather than reasoning.

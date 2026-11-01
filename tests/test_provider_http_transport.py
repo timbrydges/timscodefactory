@@ -68,6 +68,7 @@ class TransportTests(TestCase):
     def test_response_limit_stops(self, connect):
         response = connect.return_value.getresponse.return_value
         response.status, response.read.return_value = 200, b'x'*4097
-        with self.assertRaises(OpenAIProviderProtocolError):
+        with self.assertRaises(OpenAIProviderProtocolError) as error:
             self.call(enabled=True, max_response_bytes=4096)
+        self.assertEqual(error.exception.failure_code, 'response_byte_limit')
         connect.return_value.request.assert_called_once()

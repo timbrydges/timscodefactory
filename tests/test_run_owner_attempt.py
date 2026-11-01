@@ -183,3 +183,14 @@ class BatchTests(OwnerAttemptTests):
 
     for _name in [n for n in dir(OwnerAttemptTests) if n.startswith('test_')]:
         locals()[_name] = None
+
+
+class UncertainCostTests(unittest.TestCase):
+    def test_failed_calls_report_their_possible_cost(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            (folder/'builder.completed.json').write_text(json.dumps({'cost_usd': '0.11', 'proposal': {'type': 'apply_edits'}}))
+            (folder/'repair_builder.failed.json').write_text(json.dumps({'failure_code': 'response_byte_limit', 'max_cost_usd': '0.50'}))
+            summary = owner.summarize(folder)
+        self.assertEqual((summary['total_cost_usd'], summary['uncertain_max_usd']), ('0.11', '0.50'))
+        self.assertEqual(summary['stages']['repair_builder']['failure_code'], 'response_byte_limit')
