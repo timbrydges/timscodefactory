@@ -138,3 +138,101 @@ class EntrypointTests(TestCase):
                             asyncio.run(entry.execute(args, credential_binding=binding))
                         self.assertEqual(process.mock_calls, [])
                     exchange.assert_not_awaited()
+
+
+class PrivateSourceEntrypointTests(TestCase):
+    def setUp(self):
+        import hashlib
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        root = self.root = Path(tmp.name).resolve()
+        raw = json.dumps(dict(schema=1, app_client_id='Iv23offlineOnly', installation_id=77,
+            repository='owner/private', repository_id=123, git_executable=str(root/'git'),
+            signer_executable=str(root/'openssl'), key_path=str(root/'k.pem'),
+            public_fingerprint='SHA256:'+'A'*43+'=', attempt_parent=str(root/'attempts'))).encode()
+        (root/'source.json').write_bytes(raw)
+        self.source_digest = 'sha256:'+hashlib.sha256(raw).hexdigest()
+        contract = b'{"task_id":"task"}'
+        (root/'contract.json').write_bytes(contract)
+        self.pins = dict(credential_source='env:FACTORY_OPENAI_API_KEY', source_commit='c'*40,
+            attempt_id='attempt-1', contract_digest=entry.digest(contract), repository='owner/private',
+            target_commit='a'*40, image_ref='image@sha256:'+'b'*64,
+            source_config_digest=self.source_digest, source_manifest_digest='sha256:'+'d'*64)
+        for name, value in (('approval', {}), ('pricing', {})):
+            (root/f'{name}.json').write_text(json.dumps(value))
+        self.events = []
+
+    def args(self, **changes):
+        (self.root/'pins.json').write_text(json.dumps(dict(self.pins, **changes.pop('pins', {}))))
+        values = dict(owner_authorized=True, pins=self.root/'pins.json',
+            approval=self.root/'approval.json', pricing=self.root/'pricing.json',
+            contract=self.root/'contract.json', attempt_directory=self.root/'attempt-1',
+            execution_profile=None, repository_path=None, source_config=self.root/'source.json',
+            source_config_sha256=self.source_digest)
+        values.update(changes)
+        return SimpleNamespace(**values)
+
+    def execute(self, args, docker_error=None):
+        process = Mock()
+        process.check_output.side_effect = lambda command, **kw: 'c'*40 if 'rev-parse' in command else ''
+        def docker(*a, **kw):
+            self.events.append('docker')
+            if docker_error: raise docker_error
+        process.run.side_effect = docker
+        def acquire(*a, **kw):
+            self.events.append('acquire'); return 'snapshot'
+        host = SimpleNamespace(tick=AsyncMock(return_value={'status': 'TICK_COMPLETED'}))
+        with patch.object(entry, 'subprocess', process), \
+                patch.object(entry, 'PinnedPricing'), \
+                patch.object(entry.private_source, 'acquire_private_source', side_effect=acquire) as acq, \
+                patch.object(entry, 'read_repository_snapshot') as local, \
+                patch.object(entry, 'compose_bonus_host', return_value=host) as compose:
+            try:
+                return asyncio.run(entry.execute(args)), acq, compose, local
+            except Exception as error:
+                return error, acq, compose, local
+
+    def test_cli_requires_exactly_one_pinned_source(self):
+        base = ['--execute-approved-once', '--owner-authorized']
+        for flag in ('pins', 'approval', 'pricing', 'contract', 'attempt-directory'):
+            base += ['--'+flag, 'unused']
+        source = ['--source-config', 'source.json', '--source-config-sha256', 'sha256:x']
+        for argv in (base, base+['--repository-path', 'r']+source, base+source[:2],
+                     base+['--repository-path', 'r', '--source-config-sha256', 'sha256:x']):
+            with self.subTest(argv=argv), patch.object(entry, 'execute', new_callable=AsyncMock) as run, \
+                    patch('sys.stderr'), self.assertRaises(SystemExit):
+                entry.main(argv)
+            run.assert_not_awaited()
+
+    def test_acquires_once_after_local_checks_with_pinned_binding(self):
+        result, acquire, compose, local = self.execute(self.args())
+        self.assertEqual(result, {'status': 'TICK_COMPLETED'})
+        self.assertEqual(self.events, ['docker', 'acquire'])
+        config, binding, name = acquire.call_args.args
+        self.assertEqual((binding.repository, binding.repository_id, binding.commit,
+                          binding.manifest_digest), ('owner/private', 123, 'a'*40, 'sha256:'+'d'*64))
+        self.assertEqual(name, 'attempt-1')
+        self.assertIs(acquire.call_args.kwargs['enabled'], True)
+        self.assertEqual(compose.call_args.kwargs['snapshot'], 'snapshot')
+        local.assert_not_called()
+
+    def test_unpinned_or_mismatched_source_never_acquires(self):
+        cases = (dict(pins={'source_config_digest': 'sha256:'+'0'*64}),
+                 dict(pins={'source_manifest_digest': None}),
+                 dict(source_config_sha256='sha256:'+'0'*64),
+                 dict(pins={'repository': 'owner/other'}),
+                 dict(repository_path=self.root))
+        for change in cases:
+            with self.subTest(change=change):
+                pins = dict(self.pins, **change.get('pins', {}))
+                pins = {k: v for k, v in pins.items() if v is not None}
+                self.pins, saved = pins, self.pins
+                result, acquire, compose, _ = self.execute(self.args(**{k: v for k, v in change.items() if k != 'pins'}))
+                self.pins = saved
+                self.assertIsInstance(result, Exception)
+                acquire.assert_not_called(); compose.assert_not_called()
+                self.assertNotIn('docker', self.events)
+
+    def test_failed_image_check_prevents_acquisition(self):
+        result, acquire, compose, _ = self.execute(self.args(), docker_error=OSError('no image'))
+        self.assertIsInstance(result, OSError)
+        acquire.assert_not_called(); compose.assert_not_called()

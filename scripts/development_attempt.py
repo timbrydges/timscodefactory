@@ -18,6 +18,8 @@ from factory_runtime.development_composition import compose_bonus_host, compose_
 from factory_runtime.openai_provider import ProviderPricingQuote
 from factory_runtime.development_profile import read_execution_profile
 from factory_runtime.repository_snapshot import read_repository_snapshot
+from factory_runtime.private_source import SourceBinding
+from factory_runtime import private_source_composition as private_source
 from factory_runtime.task_queue import QueuedTask
 from factory_runtime.worker import digest
 from factory_runtime.workload_identity_response import RenewableCredentialBinding
@@ -50,13 +52,18 @@ def main(argv=None, *, credential_binding=None):
     parser.add_argument('--execution-profile', type=Path)
     parser.add_argument('--identity-config', type=Path)
     parser.add_argument('--identity-config-sha256')
+    parser.add_argument('--source-config', type=Path)
+    parser.add_argument('--source-config-sha256')
     args = parser.parse_args(argv)
     if not args.execute_approved_once:
         print(json.dumps({'status': 'DISABLED', 'credential_read': False, 'model_calls': 0}))
         return 0
     if not args.owner_authorized or any(getattr(args, name) is None for name in
-            ('pins', 'approval', 'pricing', 'contract', 'repository_path', 'attempt_directory')):
+            ('pins', 'approval', 'pricing', 'contract', 'attempt_directory')):
         parser.error('explicit owner authorization and all pinned inputs required')
+    if ((args.repository_path is None) == (args.source_config is None)
+            or (args.source_config is None) != (args.source_config_sha256 is None)):
+        parser.error('exactly one source: --repository-path or a hash-pinned --source-config')
     if args.identity_config is not None or args.identity_config_sha256 is not None:
         if credential_binding is not None or args.identity_config is None or args.identity_config_sha256 is None:
             parser.error('one complete operator identity binding required')
@@ -87,8 +94,25 @@ async def execute(args, *, credential_binding=None):
     if len(raw) > 65536 or digest(raw) != pins['contract_digest']:
         raise ValueError('contract differs from approved digest')
     spec = json.loads(raw)
-    snapshot = read_repository_snapshot(args.repository_path,
-        repository=pins['repository'], commit=pins['target_commit'])
+    source_config = getattr(args, 'source_config', None)
+    if (getattr(args, 'repository_path', None) is None) == (source_config is None):
+        raise ValueError('exactly one source required')
+    if source_config is None:
+        snapshot = read_repository_snapshot(args.repository_path,
+            repository=pins['repository'], commit=pins['target_commit'])
+    else:
+        # The approved pins, not the CLI, select the config and expected content.
+        if (args.source_config_sha256 != pins.get('source_config_digest')
+                or 'source_manifest_digest' not in pins):
+            raise ValueError('private source must match approved pins')
+        source = private_source.read_private_source_configuration(
+            source_config, args.source_config_sha256, owner_authorized=True)
+        if pins['repository'] != source.repository:
+            raise ValueError('private source must match approved pins')
+        source_binding = SourceBinding(pins['repository'], source.repository_id,
+                                       pins['target_commit'], pins['source_manifest_digest'])
+        source_binding.validate()
+        snapshot = None
     task = QueuedTask(pins['attempt_id'], 'development-local', spec['task_id'],
         pins['attempt_id'], head, digest(raw), 'IMPLEMENTATION')
     profile = None
@@ -103,6 +127,10 @@ async def execute(args, *, credential_binding=None):
     # Inspect only: never pull an image or provision dependencies.
     subprocess.run(['docker', 'image', 'inspect', pins['image_ref']], check=True,
                    capture_output=True, timeout=15)
+    if snapshot is None:
+        # Last local check passed; one live, never-retried acquisition per attempt.
+        snapshot = private_source.acquire_private_source(source, source_binding, pins['attempt_id'],
+            clock=lambda: datetime.now(timezone.utc), enabled=True, owner_authorized=True)
     composer = compose_task_host if profile is not None else compose_bonus_host
     host = composer(args.attempt_directory, approval=approval, expected_pins=pins,
         receipt_path=args.attempt_directory.with_name(args.attempt_directory.name+'.consumed.json'),
