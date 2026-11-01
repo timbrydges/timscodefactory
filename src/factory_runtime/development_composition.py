@@ -46,6 +46,10 @@ BONUS_TASKS = {
          'tests/library-search.test.mjs'),
         bonus_repository_checks('tests/library-search.test.mjs',
             ('tests/factory-acceptance/library-search.acceptance.test.mjs',))),
+    'bonus-library-ai-cover-prompt': (
+        ('src/lib/ai-cover.ts', 'tests/ai-cover.test.mjs'),
+        bonus_repository_checks('tests/ai-cover.test.mjs',
+            ('tests/factory-acceptance/ai-cover.acceptance.test.mjs',))),
 }
 
 
