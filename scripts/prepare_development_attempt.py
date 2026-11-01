@@ -19,8 +19,10 @@ from factory_runtime.worker import digest
 
 TASK = ROOT/'factory'/'projects'/'bonus-library-pagination'/'task.json'
 FIXED = dict(model_id='gpt-5.6-sol', credential_source='env:FACTORY_OPENAI_API_KEY',
-             builder_cap='0.25', reviewer_cap='0.25', total_cap='0.50',
-             max_request_bytes=42020, max_output_tokens=4096)
+             builder_cap='0.50', reviewer_cap='0.25', total_cap='0.75',
+             # Builder worst case: 42020 B x $4/M + 16384 x $20/M = $0.4958 <= $0.50.
+             # The reviewer is clamped to 4096 output tokens by the host ($0.25).
+             max_request_bytes=42020, max_output_tokens=16384)
 IMAGE = re.compile(r'[^\s@]+@sha256:[0-9a-f]{64}')
 ATTEMPT = re.compile(r'[a-z0-9][a-z0-9-]{0,62}')
 DIGEST = re.compile(r'sha256:[0-9a-f]{64}')

@@ -1,0 +1,43 @@
+{
+  "evidence_id": "development-attempts-pagination-2026-11-01",
+  "source": "Owner-supplied PowerShell screenshots from host ASUSTUF, transcribed by a coding assistant; not machine-collected or signed",
+  "task": "factory/projects/bonus-library-pagination/task.json",
+  "factory_source_commit": "d3c89e4cb633b5ea8b62a68edb6b328bffe586ce",
+  "image_ref": "node@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da",
+  "model_id": "gpt-5.6-sol",
+  "pricing": {"input_usd_per_million_tokens": "4.00", "output_usd_per_million_tokens": "20.00", "source": "Owner-checked OpenAI pricing page 2026-11-01"},
+  "provider_spend_limit": "Dedicated OpenAI project with a USD 1.00 enforced hard monthly limit",
+  "attempts": [
+    {
+      "attempt_id": "pagination-001",
+      "approval": "Owner approval of a USD 0.50 pipeline-test run (0.25 builder, 0.25 reviewer)",
+      "result": {"status": "NEEDS_RECONCILIATION", "phase": "BUILDER", "error_type": "ProviderCredentialLeaseError"},
+      "cause": "Credential entry received one character; the lease source rejects keys shorter than 16 characters before any request",
+      "model_calls": 0,
+      "spend_usd": "0",
+      "source_fetch": "Performed under the attempt name pagination-001 before composition"
+    },
+    {
+      "attempt_id": "pagination-002",
+      "approval": "Owner approval 'Approve pagination-002: same task, same $0.50 cap'",
+      "result": {"status": "NEEDS_RECONCILIATION", "phase": "BUILDER", "error_type": "OpenAIProviderProtocolError", "failure_code": "output_token_limit"},
+      "cause": "The builder response reached the 4096 max_output_tokens bound before completing its structured decision",
+      "model_calls": 1,
+      "spend_usd_upper_bound": "0.25",
+      "reviewer_called": false,
+      "writes_to_bonus_library": 0
+    }
+  ],
+  "incident": {
+    "type": "credential_exposure",
+    "description": "The OpenAI project key was echoed to the console and appeared in an owner screenshot shared with the coding assistant",
+    "containment": "Owner revoked the key on 2026-11-01; the project carries a USD 1.00 hard limit",
+    "prevention": "Load the key without echo and never screenshot a window that has displayed it"
+  },
+  "retries": 0,
+  "not_established": [
+    "A completed Builder decision, isolated test result or reviewer verdict",
+    "Independent review (builder and reviewer share one provider and model)",
+    "Exact provider charge; OpenAI usage dashboard is the authority"
+  ]
+}
