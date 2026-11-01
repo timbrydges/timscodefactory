@@ -55,6 +55,35 @@
       "spend_usd_upper_bound": "0.50",
       "reviewer_called": false,
       "writes_to_bonus_library": 0
+    },
+    {
+      "attempt_id": "pagination-004",
+      "approval": "Owner approval 'Approve pagination-004: same task, $0.75 cap.'",
+      "factory_source_commit": "96fc939970ccd1a699a87af683ee70a138924612",
+      "result": {
+        "status": "REJECTED",
+        "detail": "REVIEW_REJECTED",
+        "authoritative": false,
+        "progression_authorized": false,
+        "release_authorized": false
+      },
+      "artifact_digest": "sha256:08e622c7db84bdf9b61f07366d76ed53bc4197aa9464a3c7803a35eb2c8764d0",
+      "workspace_digest": "sha256:6085f5dbd9ceba0344ce00569c88f7b6c362c20dacd308ea88cea37c151c6750",
+      "review_input_digest": "sha256:1fa7e478dea86fe67bd459bd162b8be31f6e71bb0e66416d20830d46846b212f",
+      "review_decision_digest": "sha256:02cce0f4b79bcdfb22c15296576489d902eeb1ef16fbc2d8b63a5d60dda5e30e",
+      "pipeline": "Private source fetch, builder decision, isolated Docker test execution and reviewer verdict all completed",
+      "reviewer_verdict": "REJECT",
+      "reviewer_findings": [
+        "readLibraryPage's generic item type cannot be inferred (supabase is any; T appears only in the return type), so page.tsx field accesses such as title, source_size_bytes, status and metadata_sha256 should fail TypeScript checking"
+      ],
+      "observation": "The isolated test command uses node --experimental-strip-types, which strips types without type-checking, so a type error can pass tests and is caught only by review",
+      "model_calls": 2,
+      "cost_usd": {
+        "builder": "0.13590800",
+        "reviewer": "0.03488000",
+        "total": "0.17078800"
+      },
+      "writes_to_bonus_library": 0
     }
   ],
   "incident": {
@@ -69,5 +98,6 @@
     "Independent review (builder and reviewer share one provider and model)",
     "Exact provider charge; OpenAI usage dashboard is the authority"
   ],
-  "credential_exposure_followup": "pagination-003 used a new project key loaded without echo"
+  "credential_exposure_followup": "pagination-003 used a new project key loaded without echo",
+  "provider_usage_observed": "Owner-reported factory-pilot project usage USD 0.20 of USD 1.00 before pagination-004"
 }
