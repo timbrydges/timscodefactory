@@ -38,7 +38,12 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual((pins['repository'], pins['target_commit']),
                          ('timbrydges/bonus-library', 'ef88df95bc3f046d080af51e3654d2259759072b'))
         self.assertEqual((pins['builder_cap'], pins['reviewer_cap'], pins['total_cap']),
-                         ('0.25', '0.25', '0.50'))
+                         ('0.50', '0.25', '0.75'))
+        from decimal import Decimal
+        worst = lambda tokens: (Decimal(pins['max_request_bytes'])*Decimal(pricing['input_usd_per_million_tokens'])
+            + Decimal(tokens)*Decimal(pricing['output_usd_per_million_tokens']))/Decimal(1_000_000)
+        self.assertLessEqual(worst(pins['max_output_tokens']), Decimal(pins['builder_cap']))
+        self.assertLessEqual(worst(min(pins['max_output_tokens'], 4096)), Decimal(pins['reviewer_cap']))
         QueuedTask(pins['attempt_id'], 'development-local', json.loads(contract)['task_id'],
                    pins['attempt_id'], pins['source_commit'], pins['contract_digest'],
                    'IMPLEMENTATION').validate()
