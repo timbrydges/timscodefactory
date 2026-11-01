@@ -157,12 +157,17 @@ class PrivateSourceEntrypointTests(TestCase):
             attempt_id='attempt-1', contract_digest=entry.digest(contract), repository='owner/private',
             target_commit='a'*40, image_ref='image@sha256:'+'b'*64,
             source_config_digest=self.source_digest, source_manifest_digest='sha256:'+'d'*64)
-        for name, value in (('approval', {}), ('pricing', {})):
-            (root/f'{name}.json').write_text(json.dumps(value))
+        self.pins.update(model_id='gpt-5.6-sol', builder_cap='0.25', reviewer_cap='0.25',
+                         total_cap='0.50', max_request_bytes=42020, max_output_tokens=4096)
+        (root/'pricing.json').write_text('{}')
         self.events = []
 
     def args(self, **changes):
-        (self.root/'pins.json').write_text(json.dumps(dict(self.pins, **changes.pop('pins', {}))))
+        pins = dict(self.pins, **changes.pop('pins', {}))
+        (self.root/'pins.json').write_text(json.dumps(pins))
+        approval = changes.pop('approval_pins', pins)
+        (self.root/'approval.json').write_text(json.dumps({'pins': approval,
+            'expires_at': '2099-01-01T00:00:00+00:00'}))
         values = dict(owner_authorized=True, pins=self.root/'pins.json',
             approval=self.root/'approval.json', pricing=self.root/'pricing.json',
             contract=self.root/'contract.json', attempt_directory=self.root/'attempt-1',
@@ -220,7 +225,9 @@ class PrivateSourceEntrypointTests(TestCase):
                  dict(pins={'source_manifest_digest': None}),
                  dict(source_config_sha256='sha256:'+'0'*64),
                  dict(pins={'repository': 'owner/other'}),
-                 dict(repository_path=self.root))
+                 dict(repository_path=self.root),
+                 dict(approval_pins={**self.pins, 'source_manifest_digest': 'sha256:'+'e'*64}),
+                 dict(pins={'source_manifest_digest': None}, approval_pins=self.pins))
         for change in cases:
             with self.subTest(change=change):
                 pins = dict(self.pins, **change.get('pins', {}))

@@ -14,20 +14,29 @@ from .development_host import DevelopmentHost
 from .worker import digest
 
 
-def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
-                          now, owner_authorized=False, execution_profile=None, **options):
-    if owner_authorized is not True:
-        raise StateError('explicit human authorization required')
+def approval_pins_match(approval, expected_pins, *, execution_profile=None):
+    """Exact pin-set and approval equality; safe to call before any external action."""
     keys = {'source_commit', 'contract_digest', 'repository', 'target_commit',
             'image_ref', 'model_id', 'attempt_id', 'credential_source',
             'builder_cap', 'reviewer_cap', 'total_cap', 'max_request_bytes',
             'max_output_tokens'}
     if execution_profile is not None:
         keys.add('execution_profile_digest')
+    if type(expected_pins) is dict and 'source_config_digest' in expected_pins:
+        # Private-source attempts bind the acquisition config and expected content as a pair.
+        keys |= {'source_config_digest', 'source_manifest_digest'}
     if (type(approval) is not dict or set(approval) != {'pins', 'expires_at'}
             or type(expected_pins) is not dict or set(expected_pins) != keys
             or canonical(approval['pins']) != canonical(expected_pins)):
         raise StateError('approval differs from trusted exact attempt pins')
+    return True
+
+
+def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
+                          now, owner_authorized=False, execution_profile=None, **options):
+    if owner_authorized is not True:
+        raise StateError('explicit human authorization required')
+    approval_pins_match(approval, expected_pins, execution_profile=execution_profile)
     try:
         expiry = datetime.fromisoformat(approval['expires_at'])
         if now.tzinfo is None or expiry.tzinfo is None or not now < expiry <= now + timedelta(hours=24):
@@ -55,6 +64,10 @@ def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
             or options['target'].model_id != pins['model_id']
             or 'enabled' in options):
         raise StateError('runtime differs from approved attempt')
+    if 'source_manifest_digest' in pins:
+        from .private_source import snapshot_manifest_digest
+        if snapshot_manifest_digest(snapshot) != pins['source_manifest_digest']:
+            raise StateError('source content differs from approved manifest')
     for adapter in (options['builder'], options['reviewer']):
         if (adapter.policy.max_request_bytes > pins['max_request_bytes']
                 or adapter.policy.max_output_tokens > pins['max_output_tokens']):

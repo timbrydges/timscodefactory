@@ -15,6 +15,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 from factory_runtime.development_composition import compose_bonus_host, compose_task_host
+from factory_runtime.development_approval import approval_pins_match
 from factory_runtime.openai_provider import ProviderPricingQuote
 from factory_runtime.development_profile import read_execution_profile
 from factory_runtime.repository_snapshot import read_repository_snapshot
@@ -124,6 +125,9 @@ async def execute(args, *, credential_binding=None):
             contract_bytes=raw)
     elif 'execution_profile_digest' in pins:
         raise ValueError('approved execution profile file required')
+    if snapshot is None:
+        # Reject an approval the host would refuse before spending the one fetch.
+        approval_pins_match(approval, pins, execution_profile=profile)
     # Inspect only: never pull an image or provision dependencies.
     subprocess.run(['docker', 'image', 'inspect', pins['image_ref']], check=True,
                    capture_output=True, timeout=15)
