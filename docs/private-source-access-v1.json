@@ -74,7 +74,8 @@
     "sequence": "Exclusive attempt directory and STARTED receipt -> fingerprint check -> one RS256 app JWT -> one scoped installation-token POST -> one exact-commit fetch -> content-digest check -> token revocation -> object cleanup",
     "no_retry": "The issuer closure is single use; an attempt directory can never be reused; uncertain signing, issuance, fetch, revocation or cleanup stops as STOPPED_NEEDS_RECONCILIATION",
     "activation": "enabled=True and owner_authorized=True are required; no entrypoint, schedule or workflow invokes it",
-    "entrypoint": "scripts/private_source_fetch.py: DISABLED by default; --fetch-once requires --owner-authorized, the hash-pinned config, commit, manifest and a fresh attempt name; prints status metadata only and never retries"
+    "entrypoint": "scripts/private_source_fetch.py: DISABLED by default; --fetch-once requires --owner-authorized, the hash-pinned config, commit, manifest and a fresh attempt name; prints status metadata only and never retries",
+    "development_attempt": "scripts/development_attempt.py accepts exactly one source: --repository-path (local) or --source-config/--source-config-sha256. The private path requires pins source_config_digest, source_manifest_digest and a matching repository; it acquires once, named by attempt_id, only after pins, contract, profile and image checks pass. The scheduler still uses the local path. Running it calls paid models and needs its own approval and budget"
   },
   "storage_approval": {
     "approval_id": "factory-bonus-source-storage-v1",
