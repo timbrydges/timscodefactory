@@ -535,5 +535,39 @@
         "merge_commit": "4cbb28fba97db6bf4491f6cec65fa324fb8cd269"
       }
     }
-  ]
+  ],
+  "ai_cover_wiring_attempts": [
+    {
+      "attempt_id": "ai-cover-wiring-001",
+      "factory_source_commit": "7ddf185 (PR #588)",
+      "result": {
+        "status": "STOPPED",
+        "decision_type": "escalate"
+      },
+      "cost_usd": "0.02888000"
+    },
+    {
+      "attempt_id": "ai-cover-wiring-002",
+      "factory_source_commit": "7ddf185 (PR #588)",
+      "result": {
+        "status": "STOPPED",
+        "decision_type": "escalate"
+      },
+      "cost_usd": "0.02152000"
+    },
+    {
+      "attempt_id": "ai-cover-wiring-003",
+      "factory_source_commit": "7ddf185 (PR #588)",
+      "result": {
+        "status": "STOPPED",
+        "decision_type": "escalate"
+      },
+      "cost_usd": "0.02142000"
+    }
+  ],
+  "ai_cover_wiring_escalation": {
+    "batch_total_usd": "0.07182000",
+    "builder_reason": "The implementation depends on exact exported types and signatures in ai-cover-backend.ts, ai-cover-service.ts and ai-cover.ts, which were not provided; guessing risked failing the mandatory TypeScript and acceptance checks.",
+    "follow_up": "Contract now shows all three modules as reference-only files; measured builder request 36082 bytes and worst-case repair request 37981 bytes, under the 42020-byte cap."
+  }
 }
