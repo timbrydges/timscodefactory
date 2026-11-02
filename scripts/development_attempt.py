@@ -146,10 +146,18 @@ async def execute(args, *, credential_binding=None):
     return await host.tick()
 
 
+def stopped_report(error):
+    stopped = {'status': 'STOPPED', 'error_type': type(error).__name__}
+    if type(error).__name__ == 'StateError':
+        # Fixed Factory reasons only; never exception chains or provider text.
+        stopped['reason'] = str(error)[:160]
+    return stopped
+
+
 if __name__ == '__main__':
     try:
         raise SystemExit(main())
     except Exception as error:
         # Never print credential-bearing exception chains or raw provider bodies.
-        print(json.dumps({'status': 'STOPPED', 'error_type': type(error).__name__}))
+        print(json.dumps(stopped_report(error)))
         raise SystemExit(1)

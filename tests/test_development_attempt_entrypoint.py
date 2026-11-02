@@ -243,3 +243,13 @@ class PrivateSourceEntrypointTests(TestCase):
         result, acquire, compose, _ = self.execute(self.args(), docker_error=OSError('no image'))
         self.assertIsInstance(result, OSError)
         acquire.assert_not_called(); compose.assert_not_called()
+
+
+class StoppedReportTests(TestCase):
+    def test_only_fixed_factory_reasons_are_reported(self):
+        from factory_state.model import StateError
+        self.assertEqual(entry.stopped_report(StateError('lease expired before fetch')),
+            {'status': 'STOPPED', 'error_type': 'StateError', 'reason': 'lease expired before fetch'})
+        self.assertEqual(entry.stopped_report(RuntimeError('sk-secret body')),
+            {'status': 'STOPPED', 'error_type': 'RuntimeError'})
+

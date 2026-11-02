@@ -203,6 +203,15 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
 
 
 CONTINUE_AFTER = {'REJECTED', 'STOPPED'}  # Definite, non-approved outcomes only.
+# A complete provider response that ran out of output tokens: the outcome is known
+# (no proposal), only its exact charge is not, so it is counted at its full stage cap.
+DEFINITE_FAILURES = {'output_token_limit'}
+
+
+def definite_failure(summary):
+    failed = [e for e in summary['stages'].values() if e['state'] == 'FAILED']
+    return (summary['outcome'].get('status') == 'NEEDS_RECONCILIATION' and bool(failed)
+            and all(e.get('failure_code') in DEFINITE_FAILURES for e in failed))
 
 
 def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, **options):
@@ -225,9 +234,11 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                 break
             out(f'--- Attempt {number} of {max_attempts} (spent so far US${spent}) ---')
             summary = run(ops=ops, out=out, key=key, attempt_id=None, **options)
-            spent += Decimal(summary['total_cost_usd'])
+            # Failed calls count at their cap so the batch limit stays a hard ceiling.
+            spent += Decimal(summary['total_cost_usd']) + Decimal(summary['uncertain_max_usd'])
             outcome = summary['outcome'].get('status')
-            uncertain = any(entry['state'] == 'FAILED' for entry in summary['stages'].values())
+            definite = definite_failure(summary)
+            uncertain = not definite and any(entry['state'] == 'FAILED' for entry in summary['stages'].values())
             record = {'attempt_id': summary['attempt_id'], 'status': outcome,
                       'cost_usd': summary['total_cost_usd']}
             records.append(record)
@@ -237,7 +248,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                     record['publication'] = ops.publish(summary['attempt_id'])
                     status = 'APPROVED_AND_PUBLISHED'
                 break
-            if outcome not in CONTINUE_AFTER or uncertain:
+            if (outcome not in CONTINUE_AFTER and not definite) or uncertain:
                 status = 'STOPPED_FOR_RECONCILIATION'
                 break
     finally:
