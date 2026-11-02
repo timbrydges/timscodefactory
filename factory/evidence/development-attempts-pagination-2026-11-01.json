@@ -475,5 +475,37 @@
         "merge_commit": "0e51bb650f7f02052cbc70ac045f59effff48316"
       }
     }
+  ],
+  "ai_cover_service_attempts": [
+    {
+      "attempt_id": "ai-cover-service-001",
+      "factory_source_commit": "85c5c6f (PR #586)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.09742000"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.03563600"
+        }
+      },
+      "total_cost_usd": "0.13305600",
+      "batch_total_usd": "0.13305600",
+      "assistant_verification": "typegen, tsc and eslint pass; 121 of 123 tests pass, 2 skipped, 0 failed",
+      "assistant_notes": [
+        "POST while paused returns 409 rather than a saved cover (GET returns it)",
+        "GET backend failures surface as a generic 500 rather than 409"
+      ],
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#41",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "4a40ab797e77486f4c49e4ce1351fa3debb16f1d"
+      }
+    }
   ]
 }

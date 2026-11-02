@@ -63,6 +63,13 @@ BONUS_TASKS = {
             ('tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
+    'bonus-library-ai-cover-backend': (
+        ('src/lib/ai-cover-backend.ts', 'tests/ai-cover-backend.test.mjs'),
+        bonus_repository_checks('tests/ai-cover-backend.test.mjs',
+            ('tests/factory-acceptance/ai-cover-backend.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
 }
 
 
