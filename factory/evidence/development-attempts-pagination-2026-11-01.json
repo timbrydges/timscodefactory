@@ -507,5 +507,33 @@
         "merge_commit": "4a40ab797e77486f4c49e4ce1351fa3debb16f1d"
       }
     }
+  ],
+  "ai_cover_backend_attempts": [
+    {
+      "attempt_id": "ai-cover-backend-001",
+      "factory_source_commit": "3ae4e41 (PR #587)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.07299200"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.02472800"
+        }
+      },
+      "total_cost_usd": "0.09772000",
+      "batch_total_usd": "0.09772000",
+      "assistant_verification": "typegen, tsc and eslint pass; 130 of 132 tests pass, 2 skipped, 0 failed",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#42",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "4cbb28fba97db6bf4491f6cec65fa324fb8cd269"
+      }
+    }
   ]
 }
