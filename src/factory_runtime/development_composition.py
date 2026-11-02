@@ -50,6 +50,12 @@ BONUS_TASKS = {
         ('src/lib/ai-cover.ts', 'tests/ai-cover.test.mjs'),
         bonus_repository_checks('tests/ai-cover.test.mjs',
             ('tests/factory-acceptance/ai-cover.acceptance.test.mjs',))),
+    # ai-cover.ts is visible for reference; its existing acceptance tests must still pass.
+    'bonus-library-ai-cover-budget': (
+        ('src/lib/ai-cover-budget.ts', 'tests/ai-cover-budget.test.mjs'),
+        bonus_repository_checks('tests/ai-cover-budget.test.mjs',
+            ('tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
 }
 
 

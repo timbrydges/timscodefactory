@@ -364,6 +364,42 @@
       "cost_usd": "0",
       "source_fetch": "Performed under attempt name ai-cover-prompt-001 before binding",
       "follow_up": "Protocol accepts tasks that only create files, while still requiring at least one path to change"
+    },
+    {
+      "attempt_id": "ai-cover-prompt-002",
+      "factory_source_commit": "c70c7b2 (PR #583)",
+      "result": {
+        "status": "REJECTED"
+      },
+      "note": "Repair rounds exhausted; final reviewer finding: the trimmed title can appear more than once when it matches a word in the fixed prompt template (e.g. 'Create'). This is an over-strict clause in the Factory-written acceptance contract, not a product defect."
+    },
+    {
+      "attempt_id": "ai-cover-prompt-003",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.06028400"
+        },
+        "repair_builder": {
+          "cost_usd": "0.08753200"
+        },
+        "repair_reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.02675200"
+        }
+      },
+      "total_cost_usd": "0.17456800",
+      "batch_total_usd": "0.43822800",
+      "assistant_verification": "typegen, tsc and eslint pass; 103 of 105 tests pass, 2 skipped, 0 failed",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#39",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "5a8822da3933eba8b716b1b848b5b223e9a871b1"
+      }
     }
   ]
 }

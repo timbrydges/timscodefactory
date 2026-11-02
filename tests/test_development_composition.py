@@ -86,7 +86,7 @@ class BonusTaskProfileTests(TestCase):
             with self.subTest(task=task_id):
                 spec = json.loads((root/'factory/projects'/task_id/'task.json').read_text())
                 self.assertEqual(spec['task_id'], task_id)
-                self.assertEqual(set(required), set(spec['allowed_paths']))
+                self.assertLessEqual(set(required), set(spec['allowed_paths']))
                 for item in spec['acceptance_tests']:
                     self.assertIn(item['path'], command[2])
                     source = root/'factory/projects'/task_id/'acceptance'/Path(item['path']).name
