@@ -11,7 +11,9 @@
     "Import from the existing module with an explicit extension (import ... from \"./ai-cover.ts\") so Node tests can load it, as src/lib/description-http.ts does. Use node:crypto for SHA-256.",
     "This module only builds data structures: it must not import AWS SDKs, Supabase or React, and must not perform network, file or environment access.",
     "src/lib/ai-cover.ts is provided for reference and must not be changed; its existing acceptance tests must keep passing.",
-    "Owner budget: US$2.00 total with a US$0.05 reservation per image (list price US$0.04), at most 40 generations."
+    "Owner budget: US$2.00 total with a US$0.05 reservation per image (list price US$0.04), at most 40 generations.",
+    "Division of checks: coverBudgetAvailability validates value types (safe integers, ranges) of the stored record; the DynamoDB ConditionExpression enforces the same rules as comparisons (app_enabled = true, exact app_version, app_commit and limit_micro_usd, reserved_micro_usd <= limit minus one reservation, dispatches < app_dispatch_limit, app_dispatch_limit <= AI_COVER_MAX_DISPATCHES, app_expires_at > now). DynamoDB conditions cannot test whether a number is an integer; the owner writes the budget record with integers, so fractional stored values are out of scope for the condition and not a defect.",
+    "Keep the change small: one module and one focused test file; a repair should change only what its findings require."
   ],
   "acceptance_tests": [
     {

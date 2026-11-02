@@ -168,6 +168,22 @@ class BatchTests(OwnerAttemptTests):
         self.assertEqual(self.batch()['status'], 'STOPPED_FOR_RECONCILIATION')
         self.assertEqual(self.published, [])
 
+    def test_output_token_limit_is_definite_and_counted_at_its_cap(self):
+        self.statuses = ['NEEDS_RECONCILIATION', 'TICK_COMPLETED']
+        ops, original = self.ops, self.ops.run_attempt
+        def run_attempt(args, env):
+            if self.statuses[0] == 'NEEDS_RECONCILIATION':
+                ops.journal = {k: v for k, v in ops.journal.items() if not k.startswith('repair_')}
+                ops.journal['repair_builder.failed.json'] = {'failure_code': 'output_token_limit', 'max_cost_usd': '0.50'}
+            else:
+                ops.journal = dict(FakeOps(self.root).journal)
+            return original(args, env)
+        ops.run_attempt = run_attempt
+        batch = self.batch()
+        self.assertEqual(batch['status'], 'APPROVED_AND_PUBLISHED')
+        self.assertEqual(batch['spent_usd'], '0.97')  # 0.16 + 0.50 failed-call cap + 0.31
+        self.assertEqual(len(batch['attempts']), 2)
+
     def test_limits_are_validated_before_the_key(self):
         for kw in ({'max_attempts': 0}, {'max_attempts': 6}, {'max_total_usd': '1.00'}, {'max_total_usd': '50'}):
             with self.subTest(kw=kw), self.assertRaises(ValueError):
