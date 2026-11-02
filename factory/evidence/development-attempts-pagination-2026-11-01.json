@@ -401,5 +401,79 @@
         "merge_commit": "5a8822da3933eba8b716b1b848b5b223e9a871b1"
       }
     }
+  ],
+  "ai_cover_budget_attempts": [
+    {
+      "attempt_id": "ai-cover-budget-001",
+      "factory_source_commit": "3f442ae (PR #584)",
+      "result": {
+        "status": "STOPPED",
+        "error_type": "StateError"
+      },
+      "model_calls": 0,
+      "cost_usd": "0",
+      "note": "Stopped before any model call; the reason was not printed at the time. Follow-up: StateError stops now report their fixed reason (PR #585)."
+    },
+    {
+      "attempt_id": "ai-cover-budget-002",
+      "factory_source_commit": "3f442ae (PR #584)",
+      "result": {
+        "status": "NEEDS_RECONCILIATION",
+        "failure_code": "output_token_limit",
+        "phase": "REPAIR_BUILDER",
+        "batch": "STOPPED_FOR_RECONCILIATION"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.09360000"
+        },
+        "reviewer": {
+          "verdict": "REJECT",
+          "cost_usd": "0.04424400"
+        },
+        "repair_builder": {
+          "failure_code": "output_token_limit",
+          "max_cost_usd": "0.50"
+        }
+      },
+      "total_cost_usd": "0.13784400",
+      "uncertain_max_usd": "0.50",
+      "note": "Reviewer asked the DynamoDB condition to reject fractional stored numbers, which a condition cannot express. Follow-up (PR #585): contract states the division of checks; batches continue after output_token_limit, counting the call at its cap."
+    },
+    {
+      "attempt_id": "ai-cover-budget-003",
+      "factory_source_commit": "c3730df (PR #585)",
+      "result": {
+        "status": "REJECTED"
+      },
+      "total_cost_usd": "0.34188000",
+      "note": "Both repair rounds used; final findings asked for looser validation (negative expiry, uppercase commit) than the contract requires."
+    },
+    {
+      "attempt_id": "ai-cover-budget-004",
+      "factory_source_commit": "c3730df (PR #585)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.08529200"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.03652400"
+        }
+      },
+      "total_cost_usd": "0.12181600",
+      "batch_total_usd": "0.46369600",
+      "assistant_verification": "typegen, tsc and eslint pass; 111 of 113 tests pass, 2 skipped, 0 failed",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#40",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "0e51bb650f7f02052cbc70ac045f59effff48316"
+      }
+    }
   ]
 }
