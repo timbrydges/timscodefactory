@@ -70,6 +70,15 @@ BONUS_TASKS = {
              'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
+    # Server wiring cannot run under Node tests; its Factory test pins the source and
+    # tsc/eslint check types, with the earlier AI-cover acceptance tests alongside.
+    'bonus-library-ai-cover-wiring': (
+        ('src/lib/ai-cover-aws.ts', 'src/app/api/cover/route.ts'),
+        bonus_repository_checks('tests/factory-acceptance/ai-cover-wiring.acceptance.test.mjs',
+            ('tests/factory-acceptance/ai-cover-backend.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
 }
 
 

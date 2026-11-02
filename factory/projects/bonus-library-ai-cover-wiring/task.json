@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-ai-cover-wiring",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Connect the AI cover backend to real AWS clients and expose it at /api/cover.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Create src/lib/ai-cover-aws.ts and src/app/api/cover/route.ts exactly as specified in the acceptance test header, following src/lib/description-aws.ts and src/app/api/description/route.ts (both shown).",
+    "ai-cover-aws.ts: aiCoverBackend(upload: (path: string, bytes: Uint8Array, contentType: string) => Promise<void>) returns createCoverBackend({ commit, now, getItem, updateItem, transactWrite, invokeModel, upload }) from ./ai-cover-backend (not shown). now() returns Unix seconds. getItem/updateItem/transactWrite each send one GetItemCommand/UpdateItemCommand/TransactWriteItemsCommand with the given input; invokeModel({ modelId, contentType, accept, body: string }) sends one InvokeModelCommand with body as bytes and returns response.body (Uint8Array). The deps parameter types are narrower than the SDK types, so cast inputs and the GetItem output through unknown. AI_COVER_REGION comes from ./ai-cover.",
+    "route.ts: GET and POST call coverRequest(request, { authorize, backend, env }) from @/lib/ai-cover-service (not shown). authorize(id) returns { owner: user.id, title } or null. backend is () => aiCoverBackend(upload) where upload stores to the bonus-generated bucket with the request's server Supabase client (@/lib/supabase/server, as the description route does), contentType as given and upsert: false, throwing a fixed error on failure. env must be a plain object with exactly VERCEL_ENV, VERCEL_GIT_COMMIT_SHA, BONUS_AI_COVER_ACTIVATION_SHA and BONUS_AI_COVER_ROLE_ARN copied from process.env (passing process.env itself does not type-check).",
+    "No other files change; no UI in this task. Never add retries, service-role keys or long-lived AWS credentials.",
+    "Keep the change small: two new files; a repair should change only what its findings require."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/ai-cover-wiring.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-ai-cover-wiring. The builder must\n// make these pass and cannot edit them. These files need real AWS, Supabase and Next.js,\n// so tsc, eslint and the independent reviewer check behaviour; these tests pin the\n// security-relevant choices in the source.\n//   src/lib/ai-cover-aws.ts: imports \"server-only\"; exports AI_COVER_ROLE_ARN\n//     (\"arn:aws:iam::666730517561:role/tims-software-factory-bonus-ai-cover-web\") and\n//     aiCoverBackend(upload) returning createCoverBackend(...) from ./ai-cover-backend.\n//     Throws \"Not configured\" unless VERCEL_ENV is \"production\", VERCEL_GIT_COMMIT_SHA is\n//     40 lowercase hex and BONUS_AI_COVER_ROLE_ARN equals AI_COVER_ROLE_ARN. Credentials\n//     come only from awsCredentialsProvider({ roleArn: AI_COVER_ROLE_ARN })\n//     (@vercel/oidc-aws-credentials-provider). DynamoDB uses region \"ca-central-1\",\n//     Bedrock uses AI_COVER_REGION; both clients use maxAttempts: 1.\n//   src/app/api/cover/route.ts: runtime \"nodejs\"; GET and POST both call coverRequest.\n//     authorize requires a signed-in user listed in bonus_library_owners and a\n//     library_items row with that id, owner_id = the user and status \"draft\" with a\n//     non-empty title. Uploads go to the \"bonus-generated\" bucket with upsert: false\n//     using the signed-in user's server Supabase client (no service-role key).\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');\nconst aws = read('src/lib/ai-cover-aws.ts');\nconst route = read('src/app/api/cover/route.ts');\n\ntest('AWS backend is server-only, pinned to one role and never retries', () => {\n  assert.match(aws, /^import [\"']server-only[\"'];?/m);\n  assert.ok(aws.includes('arn:aws:iam::666730517561:role/tims-software-factory-bonus-ai-cover-web'));\n  assert.match(aws, /export const AI_COVER_ROLE_ARN\\b/);\n  assert.match(aws, /export function aiCoverBackend\\b/);\n  assert.match(aws, /awsCredentialsProvider\\(\\s*\\{\\s*roleArn:\\s*AI_COVER_ROLE_ARN\\s*\\}\\s*\\)/);\n  assert.match(aws, /BONUS_AI_COVER_ROLE_ARN\\s*!==\\s*AI_COVER_ROLE_ARN|AI_COVER_ROLE_ARN\\s*!==\\s*process\\.env\\.BONUS_AI_COVER_ROLE_ARN/);\n  assert.match(aws, /VERCEL_ENV\\s*!==\\s*[\"']production[\"']/);\n  assert.ok(aws.includes('Not configured'));\n  assert.ok(aws.includes('\"ca-central-1\"') || aws.includes(\"'ca-central-1'\"));\n  assert.match(aws, /region:\\s*AI_COVER_REGION/);\n  assert.equal((aws.match(/maxAttempts:\\s*1\\b/g) ?? []).length >= 1, true);\n  assert.doesNotMatch(aws, /maxAttempts:\\s*[2-9]/);\n  assert.match(aws, /createCoverBackend\\(/);\n  assert.doesNotMatch(aws, /accessKeyId|secretAccessKey|SERVICE_ROLE/i);\n});\n\ntest('route authorizes the owner and draft item and uploads with the user session', () => {\n  assert.match(route, /export const runtime\\s*=\\s*[\"']nodejs[\"']/);\n  assert.match(route, /export async function GET\\b/);\n  assert.match(route, /export async function POST\\b/);\n  assert.equal((route.match(/coverRequest\\(/g) ?? []).length >= 2, true);\n  assert.match(route, /\\.eq\\(\\s*[\"']status[\"']\\s*,\\s*[\"']draft[\"']\\s*\\)/);\n  assert.match(route, /\\.eq\\(\\s*[\"']owner_id[\"']\\s*,/);\n  for (const term of ['bonus_library_owners', 'library_items', 'auth.getUser()',\n    '\"bonus-generated\"', 'upsert: false', '@/lib/supabase/server']) {\n    assert.ok(route.replaceAll(\"'\", '\"').includes(term), term);\n  }\n  assert.doesNotMatch(route, /SERVICE_ROLE|service_role|supabase-js/i);\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "4cbb28fba97db6bf4491f6cec65fa324fb8cd269",
+  "source_manifest_digest": "sha256:b53abe600e37faf191c0509ab27d83ca97cd758b2e24174d97b7ebf789ef3aaf",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (119 files, 742610 bytes); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/lib/description-aws.ts",
+    "src/app/api/description/route.ts",
+    "src/lib/ai-cover-aws.ts",
+    "src/app/api/cover/route.ts"
+  ]
+}
