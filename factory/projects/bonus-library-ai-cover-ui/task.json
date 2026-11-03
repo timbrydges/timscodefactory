@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-ai-cover-ui",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Let the owner pick eBook cover or Software box, preview an AI cover and choose Use this image on a draft.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Create src/app/dashboard/ai-cover-generator.tsx and change src/app/dashboard/draft-review.tsx exactly as specified in the acceptance test header, following the existing DescriptionGenerator component in src/app/dashboard/description-generator.tsx (shown) and how draft-review.tsx renders it.",
+    "Exports used from @/lib/ai-cover (not shown, must not change): export const AI_COVER_STYLES = [\"ebook\", \"software_box\"] as const; export type AiCoverStyle = (typeof AI_COVER_STYLES)[number]; export const AI_COVER_STYLE_LABELS: Readonly<Record<AiCoverStyle, string>> (\"eBook cover\", \"Software box\").",
+    "/api/cover replies (all JSON): GET ?item=<id>&style=<style> returns { enabled, reason, saved } where reason is ready, paused, expired, limit or saved; POST { item_id, style } returns { saved } or { error } with status 409. saved is { status, style, object_path?, sha256? }; only status \"generated\" with object_path has an image. A saved \"reserved\" attempt has no image and must never be retried automatically.",
+    "Preview with next/image (unoptimized) from an object URL of the downloaded private image, revoked when replaced or unmounted. In draft-review.tsx, use the existing sha256Hex helper and the saved title and description (not unsaved edits) for the new metadata hash; disable the generator while the review has unsaved edits or a transition is pending.",
+    "No server, API, database schema or storage policy changes; the browser never uploads images. Keep the change small: one new component and a focused edit to draft-review.tsx."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-ai-cover-ui. The builder must make\n// these pass and cannot edit them. React components cannot run under Node tests, so\n// tsc, eslint and the independent reviewer check behaviour; these tests pin the\n// required interface in the source.\n//   src/app/dashboard/ai-cover-generator.tsx: a \"use client\" component exported as\n//     AiCoverGenerator({ id, disabled, onUse }) where onUse(objectPath) returns a Promise.\n//     A <select> lists every AI_COVER_STYLES value labelled with AI_COVER_STYLE_LABELS\n//     (from @/lib/ai-cover). A \"Generate AI cover\" button first GETs\n//     /api/cover?item=<id>&style=<style> (cache: \"no-store\"); a saved result is shown\n//     without a POST; when enabled it POSTs JSON { item_id, style } to /api/cover. A\n//     generated result is previewed by downloading object_path from the private\n//     \"bonus-generated\" bucket with the browser Supabase client. A \"Use this image\" button\n//     calls onUse(object_path). Paused, expired, limit and error states show a message.\n//   src/app/dashboard/draft-review.tsx renders AiCoverGenerator for editable drafts and\n//     implements onUse by updating library_items.cover_object_path and metadata_sha256\n//     (the version 2 hash over sourceSha256, the saved title and description and the new\n//     coverObjectPath) for this id, owner_id and status \"draft\", then refreshing.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst ui = read('src/app/dashboard/ai-cover-generator.tsx');\nconst review = read('src/app/dashboard/draft-review.tsx');\n\ntest('generator offers both styles, checks for a saved cover, then generates', () => {\n  assert.match(ui, /^\"use client\";?/);\n  assert.match(ui, /export function AiCoverGenerator\\b/);\n  assert.match(ui, /<select\\b/);\n  assert.ok(ui.includes('AI_COVER_STYLES') && ui.includes('AI_COVER_STYLE_LABELS'));\n  assert.ok(ui.includes('@/lib/ai-cover\"'));\n  assert.ok(ui.includes('Generate AI cover'));\n  assert.ok(ui.includes('Use this image'));\n  assert.ok(ui.includes('/api/cover?') && ui.includes('item=') && ui.includes('style='));\n  assert.ok(ui.includes('no-store'));\n  assert.match(ui, /method:\\s*\"POST\"/);\n  assert.match(ui, /item_id/);\n  assert.ok(ui.includes('\"bonus-generated\"'));\n  assert.match(ui, /\\.download\\(/);\n  assert.match(ui, /onUse\\(/);\n  assert.match(ui, /if\\s*\\(\\s*\\w+\\.saved\\s*\\)/, 'a saved result is shown without generating');\n  assert.ok(ui.indexOf('/api/cover?') < ui.indexOf('method: \"POST\"'), 'GET before POST');\n  assert.doesNotMatch(ui, /upload\\(|service_role|SERVICE_ROLE/);\n});\n\ntest('draft review saves the chosen cover with a fresh metadata hash', () => {\n  assert.match(review, /import \\{ AiCoverGenerator \\} from \"\\.\\/ai-cover-generator\"/);\n  assert.match(review, /editable\\s*&&\\s*<AiCoverGenerator\\b/);\n  assert.match(review, /cover_object_path:\\s*\\w+/);\n  assert.match(review, /version:\\s*2/);\n  assert.ok((review.match(/metadata_sha256/g) ?? []).length >= 3);\n  assert.ok((review.match(/\\.eq\\(\"status\", \"draft\"\\)/g) ?? []).length >= 2);\n  assert.ok((review.match(/\\.eq\\(\"owner_id\", props\\.ownerId\\)/g) ?? []).length >= 2);\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "3504ddf33530df7020d8b78effe4f6f7555f20d7",
+  "source_manifest_digest": "sha256:470852bcc300c05cf008421e48830f0db93c3965675e261e380b37984519309a",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (122 files, 750325 bytes); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/description-generator.tsx",
+    "src/app/dashboard/draft-review.tsx",
+    "src/app/dashboard/ai-cover-generator.tsx"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/description-generator.tsx": 4067,
+    "src/app/dashboard/draft-review.tsx": 7996
+  }
+}
