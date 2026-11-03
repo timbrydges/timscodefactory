@@ -83,7 +83,8 @@ class TaskImplementationProtocol:
                 raise StateError('invalid trusted delivery contract')
             self._turn['delivery'] = json.loads(canonical(delivery))
         self._raw = canonical(self._turn)
-        if len(self._raw) > 32000:
+        # The approved per-attempt request cap is the binding cost limit; this is a sanity bound.
+        if len(self._raw) > 60000:
             raise StateError('implementation input exceeds byte limit')
 
     @property
@@ -120,7 +121,7 @@ class TaskImplementationProtocol:
                 'original files that resolves every finding, or escalate. '
                 'This is repair %d of %d.' % (round_number, rounds)),
         }
-        if len(canonical(turn)) > 40000:
+        if len(canonical(turn)) > 72000:
             raise StateError('repair input exceeds byte limit')
         return turn
 

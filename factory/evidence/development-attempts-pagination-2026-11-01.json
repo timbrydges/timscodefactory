@@ -620,5 +620,52 @@
   "ai_cover_wiring_binding_failure": {
     "cause": "Reproduced offline: with the trusted delivery contract (required paths and the 507-byte check command) the implementation turn exceeded the 32000-byte protocol limit; the earlier measurement omitted the delivery block.",
     "follow_up": "ai-cover.ts is no longer shown (its single needed export is quoted in the contract): turn 27317 bytes, builder request 31263 bytes, worst-case repair request 33162 bytes. BINDING StateErrors now report their fixed reason."
+  },
+  "ai_cover_ui_attempts": {
+    "escalations": {
+      "attempts": [
+        "ai-cover-ui-001",
+        "002",
+        "003",
+        "004",
+        "005",
+        "006"
+      ],
+      "cost_usd": "0.28303200",
+      "cause": "Protocol allowed one edit per file; 004-006 ran on the pre-#594 checkout because the owner's runner had not yet pulled the self-update code."
+    },
+    "integrity_stop": {
+      "cause": "Working-tree hash check failed on Windows line endings; fixed in PR #595; nothing spent."
+    },
+    "ai-cover-ui-007": {
+      "result": "REJECTED",
+      "cost_usd": "0.25829600",
+      "finding": "stale preview after a failed private download"
+    },
+    "ai-cover-ui-008": {
+      "result": "REJECTED",
+      "cost_usd": "0.25889600"
+    },
+    "ai-cover-ui-009": {
+      "result": "TICK_COMPLETED",
+      "cost_usd": "0.18395200",
+      "batch_total_usd": "0.70114400",
+      "assistant_verification": "next build, tsc and eslint pass; 134 of 136 tests pass, 2 skipped",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#44",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "8fdc5b893c7539a6636531f6ebd9beb2d880514a"
+      }
+    }
+  },
+  "bonus_library_release_2026_11_03": {
+    "authorization": "Owner: 'Release 8fdc5b8 to production'",
+    "deployment": "dpl_FYYg6sJaTRSiC5SadueATYBtXgV5 (fresh production build of 8fdc5b8, aliased to bonus-library.vercel.app)",
+    "previous_production": "dpl_8pGyHCVvcNfD6pDqrAgm838dxpeN (1103e81), kept as rollback candidate",
+    "aws_activation": "Owner CloudShell: role tims-software-factory-bonus-ai-cover-web (Bedrock Stable Image Core InvokeModel + DynamoDB leading key BONUS_LIBRARY#AI_COVER#20261101) and budget record (US$2, 40 dispatches, 30 days, app_commit 8fdc5b8)",
+    "vercel_env": "BONUS_AI_COVER_ROLE_ARN and BONUS_AI_COVER_ACTIVATION_SHA set for production with owner approval",
+    "live_check": "Owner generated one eBook cover end to end (reservation, Bedrock call, private storage, preview)",
+    "owner_feedback": "Image did not look like a book and contained misspelled text; owner rejected a canvas overlay and chose OpenAI gpt-image-2 after a test (two mockups with the exact title; US$0.189 for three images)"
   }
 }

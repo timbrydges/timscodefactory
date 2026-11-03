@@ -108,6 +108,12 @@ def publish(*, attempt_dir, attempt_id, results_file=None, workdir, git_factory=
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(change['after'].encode('utf-8'))
         git('add', '--', change['path'])
+    # Acceptance tests the contract retires were absent from the sandbox; delete them.
+    for path in packet['specification'].get('superseded_acceptance_tests', []):
+        path = _path(path)
+        if not path.startswith('tests/factory-acceptance/') or not (clone/path).is_file():
+            raise ValueError(f'superseded acceptance test {path} is not an existing contract-owned file; nothing was pushed')
+        git('rm', '--quiet', '--', path)
     # Contract-owned acceptance tests ran in the sandbox; publish them unchanged too.
     for item in packet['specification'].get('acceptance_tests', []):
         path = _path(item['path'])

@@ -53,6 +53,24 @@ FIXED = dict(model_id='gpt-5.6-sol', credential_source='env:FACTORY_OPENAI_API_K
              # Builder worst case: 42020 B x $4/M + 16384 x $20/M = $0.4958 <= $0.50.
              # The reviewer is clamped to 4096 output tokens by the host ($0.25).
              max_request_bytes=42020, max_output_tokens=16384)
+# Owner-approved large-task class: more context per request, with caps scaled to match.
+# Builder worst case: 96000 B x $4/M + 16384 x $20/M = $0.7117 <= $0.75.
+# Reviewer (clamped to 4096 output tokens): $0.384 + $0.0819 = $0.466 <= $0.50.
+LARGE = dict(builder_cap='0.75', reviewer_cap='0.50', max_request_bytes=96000)
+
+
+def limits_for(spec):
+    size = spec.get('input_class', 'standard')
+    if size not in ('standard', 'large'):
+        raise ValueError('input_class must be standard or large')
+    return dict(FIXED, **(LARGE if size == 'large' else {}))
+
+
+def attempt_cap(spec, repair_rounds):
+    limits = limits_for(spec)
+    return (Decimal(limits['builder_cap']) + Decimal(limits['reviewer_cap'])) * (1 + repair_rounds)
+
+
 IMAGE = re.compile(r'[^\s@]+@sha256:[0-9a-f]{64}')
 ATTEMPT = re.compile(r'[a-z0-9][a-z0-9-]{0,62}')
 DIGEST = re.compile(r'sha256:[0-9a-f]{64}')
@@ -94,8 +112,9 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
     if not output.is_absolute() or ROOT.resolve() in (output.resolve(), *output.resolve().parents):
         raise ValueError('absolute output directory outside the Factory checkout required')
     # Each round may spend both stage caps: 0.75 per round.
-    total = str((Decimal(FIXED['builder_cap']) + Decimal(FIXED['reviewer_cap'])) * (1 + repair_rounds))
-    pins = dict(FIXED, total_cap=total, source_commit=source_commit, contract_digest=digest(contract),
+    limits = limits_for(spec)
+    total = str(attempt_cap(spec, repair_rounds))
+    pins = dict(limits, total_cap=total, source_commit=source_commit, contract_digest=digest(contract),
                 repository=spec['repository'], target_commit=spec['target_commit'],
                 image_ref=image_ref, attempt_id=attempt_id,
                 source_config_digest=source_config_sha256, source_manifest_digest=manifest,

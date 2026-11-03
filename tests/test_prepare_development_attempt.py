@@ -89,6 +89,22 @@ class PrepareTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 prep.task_path(bad)
 
+    def test_large_task_class_scales_request_and_caps_together(self):
+        import tempfile as tf
+        spec = json.loads(prep.TASK.read_text()); spec['input_class'] = 'large'
+        with tf.TemporaryDirectory() as d:
+            task = Path(d)/'task.json'; task.write_text(json.dumps(spec))
+            prep.prepare(**dict(self.kw, manifest=None, task=task))
+        pins = json.loads((self.out/'pins.json').read_text())
+        self.assertEqual((pins['max_request_bytes'], pins['builder_cap'], pins['reviewer_cap'], pins['total_cap']),
+                         (96000, '0.75', '0.50', '3.75'))
+        from decimal import Decimal
+        price = lambda b, t: (Decimal(b) * 4 + Decimal(t) * 20) / Decimal(1_000_000)
+        self.assertLessEqual(price(96000, 16384), Decimal('0.75'))
+        self.assertLessEqual(price(96000, 4096), Decimal('0.50'))
+        with self.assertRaises(ValueError):
+            prep.limits_for({'input_class': 'huge'})
+
     def test_existing_output_is_never_overwritten(self):
         prep.prepare(**self.kw)
         with self.assertRaises(FileExistsError):

@@ -24,7 +24,7 @@ prep = importlib.util.module_from_spec(spec_); spec_.loader.exec_module(prep)
 # the ai-cover-wiring, search and backend sources: at most 4.3% of file bytes in the
 # turn and 10% in the provider request; these margins add headroom.
 TURN_ESCAPING, REQUEST_ESCAPING = 0.06, 0.13
-TURN_LIMIT, REPAIR_LIMIT, REQUEST_LIMIT = 32000, 40000, 42020
+TURN_LIMIT, REPAIR_LIMIT = 60000, 72000
 
 
 def request_bytes(turn):
@@ -43,6 +43,7 @@ class TaskFitTests(unittest.TestCase):
             with self.subTest(task=task_id):
                 raw = prep.contract_with_lessons((ROOT/'factory/projects'/task_id/'task.json').read_bytes())
                 spec = json.loads(raw)
+                request_limit = prep.limits_for(spec)['max_request_bytes']
                 sizes = spec.get('source_file_bytes')
                 self.assertIsInstance(sizes, dict, 'record source_file_bytes for allowed paths present at target')
                 self.assertLessEqual(set(sizes), set(spec['allowed_paths']))
@@ -60,8 +61,16 @@ class TaskFitTests(unittest.TestCase):
                                            findings=['f' * 1990] * 4, round_number=2, rounds=2)
                 repair_raw = len(json.dumps(repair, sort_keys=True, separators=(',', ':')).encode())
                 self.assertLessEqual(repair_raw + total * TURN_ESCAPING, REPAIR_LIMIT, 'repair turn')
-                self.assertLessEqual(request_bytes(repair) + total * REQUEST_ESCAPING, REQUEST_LIMIT,
+                self.assertLessEqual(request_bytes(repair) + total * REQUEST_ESCAPING, request_limit,
                                      'worst-case repair provider request')
+                # Review packet estimate: specification plus each required file before and after
+                # (existing files growing 30%, about 4000 bytes per new file; calibrated on the
+                # pagination, search, wiring and UI reviews that ran), then the instructions.
+                changed = sum(sizes.get(p, 0) * 2.3 + (0 if p in sizes else 4000) for p in required)
+                review = (len(json.dumps(spec, separators=(',', ':'))) + changed * (1 + REQUEST_ESCAPING)
+                          + 2000) * 1.08 + len(op._instructions('task_review')) \
+                          + len(json.dumps(op._decision_schema('task_review')))
+                self.assertLessEqual(review, request_limit, 'review provider request')
 
 
 if __name__ == '__main__':

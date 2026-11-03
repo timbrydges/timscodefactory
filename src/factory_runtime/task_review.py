@@ -43,7 +43,7 @@ class TaskReviewProtocol:
             'stdout_digest': receipt.stdout_digest, 'stderr_digest': receipt.stderr_digest,
             'changes': changes}
         self._raw = canonical(packet)
-        if len(self._raw) > 64000:
+        if len(self._raw) > 128000:
             raise StateError('review packet exceeds byte limit')
 
     @property
