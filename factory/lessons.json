@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "note": "Reviewed lessons from past Factory attempts. Builder and reviewer lessons are added to every task contract at preparation; author lessons guide whoever writes task contracts. New lessons are proposed from attempt evidence and merged only through owner-approved pull requests.",
+  "lessons": [
+    {"id": "L001", "audience": ["builder"], "evidence": "ai-cover-wiring-001..003",
+     "text": "If an exported type or signature you need is shown in the supplied files or quoted in the requirements, use it exactly; escalate only when something you must use is neither shown nor quoted."},
+    {"id": "L002", "audience": ["builder"], "evidence": "ai-cover-prompt-003, bonus-library#39",
+     "text": "Import local TypeScript modules that Node tests load with the explicit .ts extension (for example ./ai-cover.ts)."},
+    {"id": "L003", "audience": ["builder"], "evidence": "ai-cover-budget-002 output_token_limit",
+     "text": "Keep repairs minimal: change only what the findings or failing checks require and return complete files only for paths you change."},
+    {"id": "L004", "audience": ["builder"], "evidence": "ai-cover-wiring reference implementation",
+     "text": "Do not pass process.env directly where a narrow typed environment object is expected; copy the named variables into a plain object."},
+    {"id": "L005", "audience": ["builder", "reviewer"], "evidence": "ai-cover-budget-002",
+     "text": "DynamoDB condition expressions cannot test whether a number is an integer; value-type checks belong in the pure availability function, and the condition enforces the comparisons."},
+    {"id": "L006", "audience": ["reviewer"], "evidence": "ai-cover-budget-003, ai-cover-prompt-002",
+     "text": "Judge the proposal against the stated contract and acceptance tests. Do not reject for validation that is stricter or looser than the contract specifies; report a contract ambiguity as a finding only when it makes the specified behaviour unsafe."},
+    {"id": "L007", "audience": ["builder", "reviewer"], "evidence": "factory policy",
+     "text": "Reference-only files (allowed but not required to change) must not be modified."},
+    {"id": "A001", "audience": ["author"], "evidence": "ai-cover-wiring-004..005",
+     "text": "Measure the implementation turn with the delivery block and lessons included; tests/test_task_fit.py enforces the limits from recorded source sizes."},
+    {"id": "A002", "audience": ["author"], "evidence": "ai-cover-wiring-001..003",
+     "text": "Show every module whose exports the new code uses, or quote the exact signatures in the requirements."},
+    {"id": "A003", "audience": ["author"], "evidence": "ai-cover-prompt-002",
+     "text": "Every acceptance clause must be satisfiable for all valid inputs (a title can legitimately appear more than once in a prompt)."},
+    {"id": "A004", "audience": ["author"], "evidence": "ai-cover-backend acceptance",
+     "text": "Check acceptance tests with deliberate mutants; a mutant that survives means a missing assertion."}
+  ]
+}

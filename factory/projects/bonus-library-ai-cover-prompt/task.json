@@ -42,5 +42,6 @@
   "allowed_paths": [
     "src/lib/ai-cover.ts",
     "tests/ai-cover.test.mjs"
-  ]
+  ],
+  "source_file_bytes": {}
 }
