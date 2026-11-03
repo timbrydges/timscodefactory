@@ -297,3 +297,27 @@ class EscalationReasonTests(OwnerAttemptTests):
 
     for _name in [n for n in dir(OwnerAttemptTests) if n.startswith('test_')]:
         locals()[_name] = None
+
+
+class CommittedManifestTests(unittest.TestCase):
+    def test_repository_head_matches_its_manifest_and_tampering_is_caught(self):
+        import subprocess
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        repo = Path(tmp.name)
+        g = lambda *a: subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', *a], cwd=repo,
+                                      check=True, capture_output=True)
+        g('init', '-q')
+        (repo/'a.py').write_bytes(b'print(1)\n'); (repo/'sub').mkdir(); (repo/'sub'/'b.txt').write_bytes(b'x')
+        manifest = ''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {n}\n"
+                           for p, n in ((repo/'a.py', 'a.py'), (repo/'sub'/'b.txt', 'sub/b.txt')))
+        (repo/'MANIFEST.sha256').write_text(manifest)
+        g('add', '.'); g('commit', '-qm', 'one')
+        self.assertTrue(owner.committed_manifest_matches(repo))
+        # Working-tree line endings do not matter: Git's stored content is hashed.
+        (repo/'a.py').write_bytes(b'print(1)\r\n')
+        self.assertTrue(owner.committed_manifest_matches(repo))
+        (repo/'a.py').write_bytes(b'print(2)\n'); g('commit', '-qam', 'tampered')
+        self.assertFalse(owner.committed_manifest_matches(repo))
+
+    def test_real_factory_checkout_matches(self):
+        self.assertTrue(owner.committed_manifest_matches(ROOT))
