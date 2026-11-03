@@ -24,12 +24,16 @@ class TaskReviewProtocol:
         if observation['status'] != 'TESTS_PASSED_REVIEW_REQUIRED':
             raise StateError('review requires a bound successful test observation')
         turn = protocol.turn
-        changes = []
+        # One change per path: several edits to a file apply in order, as in the candidate.
+        after, order = {}, []
         for edit in decision['edits']:
-            before = turn['files'].get(edit['path'])
-            after = (edit['new_text'] if before is None else
-                     before.replace(edit['old_text'], edit['new_text'], 1))
-            changes.append({'path': edit['path'], 'before': before, 'after': after})
+            path, before = edit['path'], turn['files'].get(edit['path'])
+            if path not in after:
+                order.append(path)
+            current = after.get(path, before)
+            after[path] = (edit['new_text'] if before is None else
+                           current.replace(edit['old_text'], edit['new_text'], 1))
+        changes = [{'path': p, 'before': turn['files'].get(p), 'after': after[p]} for p in order]
         packet = {'kind': 'factory_task_review_v1', 'repository': turn['repository'],
             'target_commit': turn['target_commit'], 'task_id': turn['task_id'],
             'specification': turn['specification'], 'builder_identity': builder_identity,
