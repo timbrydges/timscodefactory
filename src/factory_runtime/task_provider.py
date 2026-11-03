@@ -142,26 +142,33 @@ class TaskImplementationProtocol:
             if (not isinstance(decision['summary'], str) or not decision['summary'].strip()
                     or not isinstance(edits, list) or not 1 <= len(edits) <= 50):
                 raise StateError('invalid proposed edits')
-            seen = set()
+            seen, working = set(), {}
             for edit in edits:
                 if type(edit) is not dict or set(edit) != {'path', 'old_text', 'new_text'}:
                     raise StateError('invalid proposed edit fields')
                 path = _path(edit['path'])
-                if (path in seen or type(edit['old_text']) is not str
-                        or type(edit['new_text']) is not str):
+                if (type(edit['old_text']) is not str or type(edit['new_text']) is not str
+                        or (path in missing and path in seen)):
                     raise StateError('edit fields or duplicate path invalid')
                 if path in missing:
                     if edit['old_text'] != '' or not edit['new_text']:
                         raise StateError('new file requires empty old text and nonempty content')
-                elif (path not in files or not edit['old_text']
-                      or files[path].count(edit['old_text']) != 1):
-                    raise StateError('edit requires one exact source match in supplied file')
+                else:
+                    # Several edits to one existing file apply in order; each must match
+                    # exactly once in the file as changed by the earlier edits.
+                    current = working.get(path, files.get(path))
+                    if (current is None or not edit['old_text']
+                            or current.count(edit['old_text']) != 1):
+                        raise StateError('edit requires one exact source match in supplied file')
+                    working[path] = current.replace(edit['old_text'], edit['new_text'], 1)
                 seen.add(path)
             delivery = turn.get('delivery')
             if delivery and (not set(delivery['required_changed_paths']) <= seen
                     or any(edit['path'] in delivery['required_changed_paths']
                            and (edit['old_text'] == edit['new_text'] or not edit['new_text'].strip())
-                           for edit in edits)):
+                           for edit in edits)
+                    or any(working.get(p, None) == files.get(p) and p in files
+                           for p in delivery['required_changed_paths'])):
                 raise StateError('proposal omits required delivery changes')
         elif kind == 'escalate' and set(decision) == {'type', 'reason'}:
             if not isinstance(decision['reason'], str) or not decision['reason'].strip():

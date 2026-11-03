@@ -228,6 +228,8 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
         out(f"  {stage}: {entry['state']} {detail} US${entry.get('cost_usd') or '0'}")
         for finding in entry.get('findings', []):
             out(f"    - {finding[:300]}")
+        if entry.get('decision_type') == 'escalate' and entry.get('summary'):
+            out(f"    reason: {entry['summary'][:300]}")
     out(f'Full summary: {path}  (no secrets; safe to share). Do not rerun; a new attempt needs a new approval.')
     return summary
 

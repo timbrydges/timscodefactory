@@ -339,7 +339,9 @@ def _instructions(workload="ci_repair") -> str:
             "Return an object containing decision, with only the fields for its selected type. "
             "Read requests must name only supplied existing files, never missing_paths or paths "
             "outside specification.allowed_paths. Escalate if other context is necessary. "
-            "Use at most one edit per path and an old_text that occurs exactly once in that file. "
+            "Several edits to one existing file are allowed; they apply in order, and each "
+            "old_text must occur exactly once in the file as changed by the earlier edits. "
+            "Prefer small anchored edits to replacing large blocks. "
             "Do not claim that proposed changes were applied or tested."
         )
     return (

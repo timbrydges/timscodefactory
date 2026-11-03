@@ -285,3 +285,15 @@ class RealGitSelfUpdateTests(unittest.TestCase):
             self.assertEqual((base/'runner'/'a.txt').read_text(), '2')
             (base/'runner'/'b.txt').write_text('x'); g(base/'runner', 'add', '.'); g(base/'runner', 'commit', '-qm', 'local')
             self.assertEqual(ops.self_update(), 'diverged')
+
+
+class EscalationReasonTests(OwnerAttemptTests):
+    def test_escalation_reason_is_printed(self):
+        self.ops.journal = {'builder.completed.json': {'cost_usd': '0.07',
+            'proposal': {'type': 'escalate', 'reason': 'Needs a smaller edit'}}}
+        self.ops.status = 'STOPPED'
+        self.run_owner()
+        self.assertIn('    reason: Needs a smaller edit', self.lines)
+
+    for _name in [n for n in dir(OwnerAttemptTests) if n.startswith('test_')]:
+        locals()[_name] = None
