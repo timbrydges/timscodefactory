@@ -563,11 +563,37 @@
         "decision_type": "escalate"
       },
       "cost_usd": "0.02142000"
+    },
+    {
+      "attempt_id": "ai-cover-wiring-004",
+      "factory_source_commit": "c563872 (PR #589)",
+      "result": {
+        "status": "NEEDS_RECONCILIATION",
+        "phase": "BINDING",
+        "error_type": "StateError"
+      },
+      "model_calls": 0,
+      "cost_usd": "0"
+    },
+    {
+      "attempt_id": "ai-cover-wiring-005",
+      "factory_source_commit": "c563872 (PR #589)",
+      "result": {
+        "status": "NEEDS_RECONCILIATION",
+        "phase": "BINDING",
+        "error_type": "StateError"
+      },
+      "model_calls": 0,
+      "cost_usd": "0"
     }
   ],
   "ai_cover_wiring_escalation": {
     "batch_total_usd": "0.07182000",
     "builder_reason": "The implementation depends on exact exported types and signatures in ai-cover-backend.ts, ai-cover-service.ts and ai-cover.ts, which were not provided; guessing risked failing the mandatory TypeScript and acceptance checks.",
     "follow_up": "Contract now shows all three modules as reference-only files; measured builder request 36082 bytes and worst-case repair request 37981 bytes, under the 42020-byte cap."
+  },
+  "ai_cover_wiring_binding_failure": {
+    "cause": "Reproduced offline: with the trusted delivery contract (required paths and the 507-byte check command) the implementation turn exceeded the 32000-byte protocol limit; the earlier measurement omitted the delivery block.",
+    "follow_up": "ai-cover.ts is no longer shown (its single needed export is quoted in the contract): turn 27317 bytes, builder request 31263 bytes, worst-case repair request 33162 bytes. BINDING StateErrors now report their fixed reason."
   }
 }

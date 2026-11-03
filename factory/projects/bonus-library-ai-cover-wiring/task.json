@@ -7,8 +7,8 @@
   "provider_strategy": "single_provider_separate_builder_and_reviewer",
   "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
   "requirements": [
-    "Create src/lib/ai-cover-aws.ts and src/app/api/cover/route.ts exactly as specified in the acceptance test header, following src/lib/description-aws.ts and src/app/api/description/route.ts. All files the new code depends on are shown: src/lib/ai-cover.ts, src/lib/ai-cover-backend.ts and src/lib/ai-cover-service.ts are reference-only and must not change.",
-    "ai-cover-aws.ts: aiCoverBackend(upload: (path: string, bytes: Uint8Array, contentType: string) => Promise<void>) returns createCoverBackend({ commit, now, getItem, updateItem, transactWrite, invokeModel, upload }) from ./ai-cover-backend. now() returns Unix seconds. getItem/updateItem/transactWrite each send one GetItemCommand/UpdateItemCommand/TransactWriteItemsCommand with the given input; invokeModel({ modelId, contentType, accept, body: string }) sends one InvokeModelCommand with body as bytes and returns response.body (Uint8Array). The deps parameter types are narrower than the SDK types, so cast inputs and the GetItem output through unknown. AI_COVER_REGION comes from ./ai-cover.",
+    "Create src/lib/ai-cover-aws.ts and src/app/api/cover/route.ts exactly as specified in the acceptance test header, following src/lib/description-aws.ts and src/app/api/description/route.ts. src/lib/ai-cover-backend.ts and src/lib/ai-cover-service.ts are shown and are reference-only (must not change). The only export needed from src/lib/ai-cover.ts (not shown, must not change) is: export const AI_COVER_REGION = \"us-west-2\";",
+    "ai-cover-aws.ts: aiCoverBackend(upload: (path: string, bytes: Uint8Array, contentType: string) => Promise<void>) returns createCoverBackend({ commit, now, getItem, updateItem, transactWrite, invokeModel, upload }) from ./ai-cover-backend. now() returns Unix seconds. getItem/updateItem/transactWrite each send one GetItemCommand/UpdateItemCommand/TransactWriteItemsCommand with the given input; invokeModel({ modelId, contentType, accept, body: string }) sends one InvokeModelCommand with body as bytes and returns response.body (Uint8Array). The deps parameter types are narrower than the SDK types, so cast inputs and the GetItem output through unknown. Import AI_COVER_REGION from ./ai-cover.",
     "route.ts: GET and POST call coverRequest(request, { authorize, backend, env }) from @/lib/ai-cover-service. authorize(id) returns { owner: user.id, title } or null. backend is () => aiCoverBackend(upload) where upload stores to the bonus-generated bucket with the request's server Supabase client (@/lib/supabase/server, as the description route does), contentType as given and upsert: false, throwing a fixed error on failure. env must be a plain object with exactly VERCEL_ENV, VERCEL_GIT_COMMIT_SHA, BONUS_AI_COVER_ACTIVATION_SHA and BONUS_AI_COVER_ROLE_ARN copied from process.env (passing process.env itself does not type-check).",
     "No other files change; no UI in this task. Never add retries, service-role keys or long-lived AWS credentials.",
     "Keep the change small: two new files; a repair should change only what its findings require."
@@ -37,7 +37,6 @@
   "allowed_paths": [
     "src/lib/description-aws.ts",
     "src/app/api/description/route.ts",
-    "src/lib/ai-cover.ts",
     "src/lib/ai-cover-backend.ts",
     "src/lib/ai-cover-service.ts",
     "src/lib/ai-cover-aws.ts",
