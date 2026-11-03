@@ -301,9 +301,21 @@ def main(argv=None, ops=None):
             parser.error('a batch needs --max-total-usd and picks attempt ids itself')
         batch = run_batch(max_attempts=args.max_attempts, max_total_usd=args.max_total_usd,
                           publish_approved=args.publish_approved, ops=ops, **options)
+        update_report(args.runner_root)
         return 0 if batch['status'].startswith('APPROVED') else 1
     summary = run(attempt_id=args.attempt_id, ops=ops, **options)
+    update_report(args.runner_root)
     return 0 if summary['outcome'].get('status') == 'TICK_COMPLETED' else 1
+
+
+def update_report(runner_root, out=print):
+    """Refresh the learning report and cost dashboard; never affects the attempt result."""
+    try:
+        spec = importlib.util.spec_from_file_location('factory_report', ROOT/'scripts'/'factory_report.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        module.write_report(runner_root, out=out)
+    except Exception as error:
+        out(f'Factory report not updated: {type(error).__name__}')
 
 
 if __name__ == '__main__':
