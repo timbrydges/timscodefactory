@@ -606,7 +606,9 @@
       "assistant_verification": "typegen, tsc and eslint pass; 132 of 134 tests pass, 2 skipped, 0 failed",
       "delivery": {
         "pull_request": "timbrydges/bonus-library#43",
-        "merged": false
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "3504ddf33530df7020d8b78effe4f6f7555f20d7"
       }
     }
   ],
