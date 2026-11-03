@@ -36,6 +36,38 @@ STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
           'repair2_builder', 'repair2_reviewer')
 
 
+def committed_manifest_matches(root):
+    git = ['git', '-C', str(root)]
+    manifest = subprocess.run(git + ['show', 'HEAD:MANIFEST.sha256'], check=True,
+                              capture_output=True, timeout=60).stdout.decode('utf-8')
+    expected = {}
+    for line in manifest.splitlines():
+        digest, _, path = line.partition('  ')
+        if not re.fullmatch(r'[0-9a-f]{64}', digest) or not path:
+            return False
+        expected[path] = digest
+    listing = subprocess.run(git + ['ls-tree', '-r', '-z', 'HEAD'], check=True,
+                             capture_output=True, timeout=60).stdout.split(b'\0')
+    blobs = {}
+    for record in filter(None, listing):
+        meta, path = record.split(b'\t', 1)
+        blobs[path.decode('utf-8')] = meta.split()[2].decode()
+    if not expected or any(path not in blobs for path in expected):
+        return False
+    names = list(expected)
+    batch = subprocess.run(git + ['cat-file', '--batch'], input=''.join(blobs[p] + '\n' for p in names).encode(),
+                           check=True, capture_output=True, timeout=120).stdout
+    offset = 0
+    for path in names:
+        header_end = batch.index(b'\n', offset)
+        size = int(batch[offset:header_end].split()[2])
+        content = batch[header_end + 1:header_end + 1 + size]
+        offset = header_end + 1 + size + 1
+        if hashlib.sha256(content).hexdigest() != expected[path]:
+            return False
+    return True
+
+
 class HostOps:
     """Real host effects; tests replace these with offline fakes."""
     runner_root = r'C:\FactoryRunner'
@@ -71,9 +103,12 @@ class HostOps:
         return 'updated'
 
     def verify_integrity(self):
-        """Every tracked Factory file must match the reviewed MANIFEST.sha256."""
-        return subprocess.run([sys.executable, str(ROOT/'scripts'/'build_manifest.py'), '--check'],
-                              cwd=ROOT, capture_output=True, timeout=120).returncode == 0
+        """The committed Factory files must match the reviewed MANIFEST.sha256.
+
+        Hashes Git's stored content, so Windows line-ending conversion does not matter;
+        local edits are caught separately by the clean-checkout check (git status).
+        """
+        return committed_manifest_matches(ROOT)
 
     def restart(self, argv):
         env = {**os.environ, 'FACTORY_SELF_UPDATED': '1'}
@@ -176,7 +211,7 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     if dirty:
         raise ValueError('Factory checkout has local changes; run git status in factory-src')
     if not ops.verify_integrity():
-        raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run. Run git status in factory-src')
+        raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run')
     total = ops.volume_total(config.attempt_parent)
     if not 0 < total <= ATTEMPT_VOLUME_MAX_BYTES:
         raise ValueError('source volume is not attached; reattach source-attempts.vhdx')
@@ -255,6 +290,8 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                    * (1 + options['repair_rounds']))
     if not budget.is_finite() or not per_attempt <= budget <= Decimal('20'):
         raise ValueError(f'total budget must cover at least one attempt cap (US${per_attempt}) and be at most US$20')
+    if not ops.verify_integrity():
+        raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run')
     key = load_key(ops)
     out(f'Key loaded (not shown). Batch: up to {max_attempts} attempt(s), US${budget} total, '
         f'publish approved: {"yes" if publish_approved else "no"}.')
