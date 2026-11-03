@@ -50,6 +50,20 @@ class TaskProviderTests(unittest.TestCase):
         self.assertEqual(transport.calls,1)
         self.assertEqual(self.files['src/app/dashboard/page.tsx'],'const pageSize = 10;\n')
 
+    def test_several_edits_to_one_file_apply_in_order(self):
+        path = 'src/app/dashboard/page.tsx'
+        protocol = TaskImplementationProtocol(self.task, **{**self.args,
+            'files': {path: 'import a;\nconst pageSize = 10;\nexport {};\n'}})
+        edits = [{'path': path, 'old_text': 'import a;\n', 'new_text': 'import a;\nimport b;\n'},
+                 {'path': path, 'old_text': 'import b;\n', 'new_text': 'import b;\nimport c;\n'},
+                 {'path': path, 'old_text': 'export {};', 'new_text': 'export { pageSize };'}]
+        decision = {'type': 'apply_edits', 'summary': 'Three anchored edits', 'edits': edits}
+        self.assertEqual(protocol.validate_decision(decision)['status'], 'PROPOSAL_ONLY')
+        for bad in ([edits[0], {'path': path, 'old_text': 'import ', 'new_text': 'x'}],   # ambiguous after edit 1
+                    [edits[1]]):                                                         # needs edit 1 first
+            with self.subTest(bad=bad), self.assertRaises(StateError):
+                protocol.validate_decision({'type': 'apply_edits', 'summary': 's', 'edits': bad})
+
     def test_changed_pins_and_out_of_scope_source_are_rejected(self):
         for changes in [dict(target_commit='b'*40),dict(repository='other/repo'),
                         dict(contract_bytes=self.raw+b' '),dict(files={'.env':'secret'})]:

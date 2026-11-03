@@ -86,3 +86,21 @@ class TaskReviewTests(unittest.TestCase):
 
 
 if __name__=='__main__': unittest.main()
+
+
+class MultiEditReviewTests(unittest.TestCase):
+    def test_several_edits_to_one_file_give_one_change_matching_the_candidate(self):
+        fixture = candidate_fixtures.TaskCandidateTests(); fixture.setUp()
+        path = 'src/app/dashboard/page.tsx'
+        decision = {'type': 'apply_edits', 'summary': 'Two anchored edits', 'edits': [
+            {'path': path, 'old_text': '10', 'new_text': '20'},
+            {'path': path, 'old_text': 'const ', 'new_text': 'let '}]}
+        with candidate_workspace(fixture.protocol, decision) as candidate:
+            request = fixture.request(candidate)
+            receipt = fixture.receipt(request)
+            review = TaskReviewProtocol(fixture.protocol, decision, candidate, request, receipt,
+                builder_identity='builder', reviewer_identity='reviewer', now=fixture.now)
+            changes = review.turn['changes']
+            self.assertEqual(len(changes), 1)
+            self.assertEqual(changes[0]['after'], 'let pageSize = 20;\n')
+            self.assertEqual((candidate.workspace/path).read_text(), changes[0]['after'])
