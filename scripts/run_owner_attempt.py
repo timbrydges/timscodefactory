@@ -193,6 +193,9 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     extra = (f" (plus up to US${summary['uncertain_max_usd']} for failed calls; check OpenAI usage)"
              if Decimal(summary['uncertain_max_usd']) else '')
     out(f"Result: {outcome.get('status')}  total cost US${summary['total_cost_usd']}{extra}")
+    reason = (outcome.get('result') or {}).get('reason') or outcome.get('reason')
+    if reason:
+        out(f"  reason: {str(reason)[:160]}")
     for stage, entry in summary['stages'].items():
         detail = entry.get('verdict') or entry.get('decision_type') or entry.get('failure_code') or ''
         out(f"  {stage}: {entry['state']} {detail} US${entry.get('cost_usd') or '0'}")

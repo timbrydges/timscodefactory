@@ -421,3 +421,24 @@ class NewFilesOnlyRunnerTests(unittest.TestCase):
         self.assertEqual(result['status'], 'TICK_COMPLETED', result)
         self.assertEqual(calls, ['builder', 'tests', 'reviewer'])
         self.assertEqual(seen['files'], {})
+
+    def test_binding_failure_reports_its_fixed_reason_before_any_call(self):
+        root = Path(__file__).resolve().parents[1]
+        raw = (root/'factory/projects/bonus-library-ai-cover-prompt/task.json').read_bytes()
+        spec = json.loads(raw)
+        tmp = TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        queue = LocalTaskQueue(Path(tmp.name)/'queue.db')
+        task = QueuedTask('entry', 'factory', spec['task_id'], 'activation', 'a'*40, digest(raw), 'IMPLEMENTATION')
+        queue.enqueue(task); queue.pause(False)
+        snapshot = RepositorySnapshot(spec['repository'], spec['target_commit'],
+            (RepositoryFile(spec['allowed_paths'][0], b'x' * 40000, False),))
+        calls = []
+        async def builder(turn):
+            calls.append('builder')
+        runner = DevelopmentTaskRunner(queue, contract_bytes=raw, snapshot=snapshot, builder=builder,
+            reviewer=builder, request_for=None, sandbox_for=None, save_artifact=lambda e, r: None,
+            clock=lambda: datetime.now(timezone.utc), builder_identity='builder',
+            reviewer_identity='reviewer', enabled=True)
+        result = asyncio.run(runner.tick())['result']
+        self.assertEqual((result['phase'], result['reason']), ('BINDING', 'implementation input exceeds byte limit'))
+        self.assertEqual(calls, [])

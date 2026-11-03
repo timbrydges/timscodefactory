@@ -193,5 +193,8 @@ class DevelopmentTaskRunner:
                 result['failure_code'] = error.failure_code if error.failure_code in PROVIDER_FAILURE_CODES else 'protocol_failure'
             elif phase in ('PROPOSAL_VALIDATION', 'REPAIR_PROPOSAL_VALIDATION') and isinstance(error, StateError):
                 result['failure_code'] = TASK_VALIDATION_FAILURES.get(str(error), 'task_validation_failure')
+            elif phase == 'BINDING' and isinstance(error, StateError):
+                # Before any provider call: report the fixed Factory reason (no untrusted text).
+                result['reason'] = str(error)[:160]
         self.queue.finish(task.entry_id, outcome, result)
         return {'entry_id': task.entry_id, 'status': outcome, 'result': result}
