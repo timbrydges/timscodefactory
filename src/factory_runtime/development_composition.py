@@ -79,6 +79,17 @@ BONUS_TASKS = {
              'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
+    # Large task (input_class "large"): retires the Stability-format acceptance tests.
+    'bonus-library-ai-cover-openai': (
+        ('src/lib/ai-cover.ts', 'src/lib/ai-cover-budget.ts', 'tests/ai-cover.test.mjs',
+         'tests/ai-cover-service.test.mjs'),
+        bonus_repository_checks('tests/ai-cover.test.mjs',
+            ('tests/ai-cover-service.test.mjs',
+             'tests/factory-acceptance/ai-cover-openai.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-service-openai.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-backend-openai.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-wiring.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs'))),
     'bonus-library-ai-cover-ui': (
         ('src/app/dashboard/ai-cover-generator.tsx', 'src/app/dashboard/draft-review.tsx'),
         bonus_repository_checks('tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs',

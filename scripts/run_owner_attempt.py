@@ -286,8 +286,8 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
     if type(max_attempts) is not int or not 1 <= max_attempts <= 5:
         raise ValueError('between 1 and 5 attempts required')
     budget = Decimal(str(max_total_usd))
-    per_attempt = ((Decimal(prepare_module.FIXED['builder_cap']) + Decimal(prepare_module.FIXED['reviewer_cap']))
-                   * (1 + options['repair_rounds']))
+    task_spec = json.loads(prepare_module.task_path(options.get('task', 'bonus-library-pagination')).read_bytes())
+    per_attempt = prepare_module.attempt_cap(task_spec, options['repair_rounds'])
     if not budget.is_finite() or not per_attempt <= budget <= Decimal('20'):
         raise ValueError(f'total budget must cover at least one attempt cap (US${per_attempt}) and be at most US$20')
     if not ops.verify_integrity():

@@ -17,6 +17,22 @@ from .repository_snapshot import RepositoryFile, RepositorySnapshot
 from .openai_provider import OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 
 
+def superseded_acceptance_tests(spec, existing):
+    """Earlier contract-owned acceptance tests that this owner-reviewed contract retires.
+
+    They are removed from the candidate tree and deleted on publication; the builder can
+    never edit them, and the reviewer sees the list in the specification.
+    """
+    retired = spec.get('superseded_acceptance_tests', [])
+    if (type(retired) is not list or len(retired) > 10
+            or any(type(p) is not str or not p.startswith('tests/factory-acceptance/')
+                   or not p.endswith('.test.mjs') or '..' in p.split('/') or p not in existing
+                   or p in spec.get('allowed_paths', []) for p in retired)
+            or len(set(retired)) != len(retired)):
+        raise StateError('superseded acceptance tests must be existing contract-owned paths')
+    return set(retired)
+
+
 class DevelopmentTaskRunner:
     def __init__(self, queue, *, contract_bytes, snapshot, builder, reviewer,
                  request_for, sandbox_for, save_artifact, clock,
@@ -49,6 +65,7 @@ class DevelopmentTaskRunner:
             return self.snapshot
         existing = {f.path for f in self.snapshot.files}
         allowed = set(spec.get('allowed_paths', []))
+        retired = superseded_acceptance_tests(spec, existing)
         if type(tests) is not list or not 1 <= len(tests) <= 10:
             raise StateError('bounded acceptance tests required')
         extra = []
@@ -62,8 +79,8 @@ class DevelopmentTaskRunner:
                 raise StateError('acceptance test must be a new contract-owned path')
             existing.add(path)
             extra.append(RepositoryFile(path, item['content'].encode('utf-8'), False))
-        return RepositorySnapshot(self.snapshot.repository, self.snapshot.commit,
-                                  tuple(self.snapshot.files) + tuple(extra))
+        kept = tuple(f for f in self.snapshot.files if f.path not in retired)
+        return RepositorySnapshot(self.snapshot.repository, self.snapshot.commit, kept + tuple(extra))
 
     async def _evaluate(self, task, protocol, decision, reviewer, save_evidence, state, prefix):
         """Candidate -> isolated tests -> review for one complete proposal."""

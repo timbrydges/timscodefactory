@@ -341,6 +341,23 @@ class AcceptanceTestInjectionTests(unittest.TestCase):
             with self.subTest(item=item), self.assertRaises(StateError):
                 self.base.runner._with_acceptance_tests({**spec, 'acceptance_tests': [item]})
 
+    def test_superseded_acceptance_tests_are_removed_from_the_candidate(self):
+        from factory_runtime.repository_snapshot import RepositoryFile, RepositorySnapshot
+        spec = json.loads(self.base.f.raw)
+        old = 'tests/factory-acceptance/old.acceptance.test.mjs'
+        snap = self.base.runner.snapshot
+        self.base.runner.snapshot = RepositorySnapshot(snap.repository, snap.commit,
+            tuple(snap.files) + (RepositoryFile(old, b'old', False),))
+        kept = {f.path for f in self.base.runner._with_acceptance_tests(spec).files}
+        self.assertIn(old, kept)
+        kept = {f.path for f in self.base.runner._with_acceptance_tests(
+            {**spec, 'superseded_acceptance_tests': [old]}).files}
+        self.assertNotIn(old, kept)
+        for bad in (['tests/factory-acceptance/missing.test.mjs'], ['src/app/dashboard/page.tsx'],
+                    [old, old], 'tests/factory-acceptance/old.acceptance.test.mjs'):
+            with self.subTest(bad=bad), self.assertRaises(StateError):
+                self.base.runner._with_acceptance_tests({**spec, 'superseded_acceptance_tests': bad})
+
     def test_task_contract_embeds_the_reviewed_acceptance_file(self):
         root = Path(__file__).resolve().parents[1]
         spec = json.loads(self.base.f.raw)
@@ -431,7 +448,7 @@ class NewFilesOnlyRunnerTests(unittest.TestCase):
         task = QueuedTask('entry', 'factory', spec['task_id'], 'activation', 'a'*40, digest(raw), 'IMPLEMENTATION')
         queue.enqueue(task); queue.pause(False)
         snapshot = RepositorySnapshot(spec['repository'], spec['target_commit'],
-            (RepositoryFile(spec['allowed_paths'][0], b'x' * 40000, False),))
+            (RepositoryFile(spec['allowed_paths'][0], b'x' * 70000, False),))
         calls = []
         async def builder(turn):
             calls.append('builder')

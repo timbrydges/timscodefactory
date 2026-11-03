@@ -25,6 +25,8 @@ class PublishTests(unittest.TestCase):
         seed = self.base/'seed'; seed.mkdir()
         run(seed, 'init', '-q', '-b', 'main')
         (seed/'src').mkdir(); (seed/'src'/'page.tsx').write_text('const size = 10;\n')
+        (seed/'tests'/'factory-acceptance').mkdir(parents=True)
+        (seed/'tests'/'factory-acceptance'/'old.test.mjs').write_text('old\n')
         run(seed, 'add', '.'); run(seed, 'commit', '-qm', 'base')
         self.commit = run(seed, 'rev-parse', 'HEAD').strip()
         self.origin = self.base/'origin.git'
@@ -81,6 +83,21 @@ class PublishTests(unittest.TestCase):
             {'path': 'tests/factory-acceptance/a.test.mjs', 'content': content}]}})
         self.publish()
         self.assertEqual(run(self.origin, 'show', 'factory/pagination-005:tests/factory-acceptance/a.test.mjs'), content)
+
+    def test_superseded_acceptance_tests_are_deleted(self):
+        old = 'tests/factory-acceptance/old.test.mjs'
+        self.write(packet={'specification': {'objective': 'Switch', 'superseded_acceptance_tests': [old]}})
+        self.publish()
+        files = run(self.origin, 'ls-tree', '-r', '--name-only', 'factory/pagination-005')
+        self.assertNotIn(old, files)
+        self.assertIn(old, run(self.origin, 'ls-tree', '-r', '--name-only', 'main'))
+
+    def test_superseded_path_must_exist(self):
+        self.write(packet={'specification': {'objective': 'Switch',
+            'superseded_acceptance_tests': ['tests/factory-acceptance/missing.test.mjs']}})
+        with self.assertRaises(ValueError):
+            self.publish()
+        self.assertNotIn('factory/', run(self.origin, 'branch', '--list'))
 
     def test_existing_branch_is_never_overwritten(self):
         self.publish()
