@@ -54,6 +54,31 @@ class HostOps:
         dirty = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], text=True)
         return head, bool(dirty)
 
+    def self_update(self):
+        """Fast-forward to the latest owner-merged main; never merges, rebases or discards."""
+        git = ['git', '-C', str(ROOT)]
+        try:
+            subprocess.run(git + ['fetch', '-q', 'origin', 'main'], check=True, capture_output=True, timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            return 'offline'
+        head = subprocess.check_output(git + ['rev-parse', 'HEAD'], text=True).strip()
+        latest = subprocess.check_output(git + ['rev-parse', 'origin/main'], text=True).strip()
+        if head == latest:
+            return 'current'
+        if subprocess.run(git + ['merge-base', '--is-ancestor', head, latest], capture_output=True).returncode:
+            return 'diverged'
+        subprocess.run(git + ['merge', '--ff-only', '-q', latest], check=True, capture_output=True, timeout=60)
+        return 'updated'
+
+    def verify_integrity(self):
+        """Every tracked Factory file must match the reviewed MANIFEST.sha256."""
+        return subprocess.run([sys.executable, str(ROOT/'scripts'/'build_manifest.py'), '--check'],
+                              cwd=ROOT, capture_output=True, timeout=120).returncode == 0
+
+    def restart(self, argv):
+        env = {**os.environ, 'FACTORY_SELF_UPDATED': '1'}
+        return subprocess.call([sys.executable, str(Path(__file__).resolve()), *argv], env=env)
+
     def wait_for_key_copy(self):
         # Hidden input: even an accidental paste here is never echoed.
         getpass.getpass('Copy the OpenAI key now, then press Enter (input is hidden): ')
@@ -150,6 +175,8 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     head, dirty = ops.factory_head()
     if dirty:
         raise ValueError('Factory checkout has local changes; run git status in factory-src')
+    if not ops.verify_integrity():
+        raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run. Run git status in factory-src')
     total = ops.volume_total(config.attempt_parent)
     if not 0 < total <= ATTEMPT_VOLUME_MAX_BYTES:
         raise ValueError('source volume is not attached; reattach source-attempts.vhdx')
@@ -286,6 +313,7 @@ def main(argv=None, ops=None):
     parser.add_argument('--max-attempts', type=int, default=1)
     parser.add_argument('--max-total-usd')
     parser.add_argument('--publish-approved', action='store_true')
+    parser.add_argument('--no-self-update', action='store_true')
     args = parser.parse_args(argv)
     if not args.owner_authorized:
         parser.error('explicit owner authorization required')
@@ -293,12 +321,22 @@ def main(argv=None, ops=None):
     options = dict(runner_root=args.runner_root, repair_rounds=args.repair_rounds,
         input_price=args.input_price, output_price=args.output_price, pricing_source=source,
         image=args.image, manifest=args.manifest, hours=args.hours, task=args.task)
+    batch_mode = args.max_attempts > 1 or args.max_total_usd is not None or args.publish_approved
+    if batch_mode and (args.attempt_id is not None or args.max_total_usd is None):
+        parser.error('a batch needs --max-total-usd and picks attempt ids itself')
     if ops is None:
         ops = HostOps()
         ops.runner_root = args.runner_root
-    if args.max_attempts > 1 or args.max_total_usd is not None or args.publish_approved:
-        if args.attempt_id is not None or args.max_total_usd is None:
-            parser.error('a batch needs --max-total-usd and picks attempt ids itself')
+    if not args.no_self_update and os.environ.get('FACTORY_SELF_UPDATED') != '1':
+        state = ops.self_update()
+        if state == 'updated':
+            print('Factory updated to the latest owner-merged version; restarting once.')
+            return ops.restart(sys.argv[1:] if argv is None else list(argv))
+        if state == 'diverged':
+            raise ValueError('Factory checkout differs from the owner-merged main; nothing was run')
+        if state == 'offline':
+            print('Could not check for Factory updates; continuing with the verified local version.')
+    if batch_mode:
         batch = run_batch(max_attempts=args.max_attempts, max_total_usd=args.max_total_usd,
                           publish_approved=args.publish_approved, ops=ops, **options)
         update_report(args.runner_root)
