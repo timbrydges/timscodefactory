@@ -24,6 +24,10 @@ class FakeOps:
         self.status = 'TICK_COMPLETED'
 
     def factory_head(self): self.events.append('head'); return 'f'*40, self.dirty
+    intact, update_state = True, 'current'
+    def verify_integrity(self): self.events.append('integrity'); return self.intact
+    def self_update(self): self.events.append('update'); return self.update_state
+    def restart(self, argv): self.events.append(('restart', tuple(argv))); return 7
     def volume_total(self, path): self.events.append('volume'); return self.total
     def docker_image_digest(self, image): self.events.append('docker'); return 'node@sha256:' + 'a'*64
     def wait_for_key_copy(self): self.events.append('prompt')
@@ -66,7 +70,7 @@ class OwnerAttemptTests(unittest.TestCase):
 
     def test_one_command_prepares_loads_key_runs_once_and_summarizes(self):
         summary = self.run_owner()
-        self.assertEqual(self.ops.events, ['head', 'volume', 'docker', 'prompt', 'clipboard', 'clear', 'run'])
+        self.assertEqual(self.ops.events, ['head', 'integrity', 'volume', 'docker', 'prompt', 'clipboard', 'clear', 'run'])
         self.assertEqual(self.ops.env_key, KEY)
         self.assertEqual(summary['attempt_id'], 'pagination-001')
         self.assertEqual(summary['total_cost_usd'], '0.31')
@@ -210,3 +214,74 @@ class UncertainCostTests(unittest.TestCase):
             summary = owner.summarize(folder)
         self.assertEqual((summary['total_cost_usd'], summary['uncertain_max_usd']), ('0.11', '0.50'))
         self.assertEqual(summary['stages']['repair_builder']['failure_code'], 'response_byte_limit')
+
+
+class SelfUpdateTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name).resolve()
+        (self.root/'source-attempts').mkdir()
+        (self.root/'bonus-source-fetch.json').write_text(json.dumps(dict(schema=1,
+            app_client_id='Iv23offlineOnly', installation_id=77, repository='timbrydges/bonus-library',
+            repository_id=1375052827, git_executable=str(self.root/'git'),
+            signer_executable=str(self.root/'openssl'), key_path=str(self.root/'k.pem'),
+            public_fingerprint='SHA256:'+'A'*43+'=', attempt_parent=str(self.root/'source-attempts'))))
+        self.ops = FakeOps(self.root)
+        owner.os.environ.pop('FACTORY_SELF_UPDATED', None)
+
+    def argv(self, *extra):
+        return ['--owner-authorized', '--runner-root', str(self.root), '--input-price', '4', '--output-price', '20', *extra]
+
+    def test_update_restarts_once_with_the_same_arguments(self):
+        self.ops.update_state = 'updated'
+        self.assertEqual(owner.main(self.argv(), ops=self.ops), 7)
+        self.assertEqual(self.ops.events, ['update', ('restart', tuple(self.argv()))])
+
+    def test_diverged_checkout_stops_before_anything(self):
+        self.ops.update_state = 'diverged'
+        with self.assertRaises(ValueError):
+            owner.main(self.argv(), ops=self.ops)
+        self.assertEqual(self.ops.events, ['update'])
+
+    def test_restarted_or_opted_out_runs_skip_the_update(self):
+        for env, extra in (({'FACTORY_SELF_UPDATED': '1'}, ()), ({}, ('--no-self-update',))):
+            with self.subTest(env=env):
+                ops = FakeOps(self.root); ops.dirty = True
+                owner.os.environ.update(env)
+                try:
+                    with self.assertRaises((ValueError, OSError)):
+                        owner.main(self.argv(*extra), ops=ops)
+                finally:
+                    owner.os.environ.pop('FACTORY_SELF_UPDATED', None)
+                self.assertNotIn('update', ops.events)
+
+    def test_tampered_files_stop_before_the_key(self):
+        self.ops.intact = False
+        with self.assertRaises(ValueError) as caught:
+            owner.main(self.argv('--no-self-update'), ops=self.ops)
+        self.assertIn('MANIFEST', str(caught.exception))
+        self.assertNotIn('prompt', self.ops.events)
+
+
+class RealGitSelfUpdateTests(unittest.TestCase):
+    def test_fast_forwards_only_to_origin_main(self):
+        import subprocess
+        from unittest import mock
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        g = lambda cwd, *a: subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', *a],
+                                           cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+        g(base, 'init', '-q', '--bare', '-b', 'main', 'origin.git')
+        g(base, 'clone', '-q', 'origin.git', 'author')
+        (base/'author'/'a.txt').write_text('1'); g(base/'author', 'add', '.'); g(base/'author', 'commit', '-qm', 'one')
+        g(base/'author', 'push', '-q', 'origin', 'HEAD:main')
+        g(base, 'clone', '-q', 'origin.git', 'runner')
+        ops = owner.HostOps()
+        with mock.patch.object(owner, 'ROOT', base/'runner'):
+            self.assertEqual(ops.self_update(), 'current')
+            (base/'author'/'a.txt').write_text('2'); g(base/'author', 'commit', '-qam', 'two')
+            g(base/'author', 'push', '-q', 'origin', 'HEAD:main')
+            self.assertEqual(ops.self_update(), 'updated')
+            self.assertEqual((base/'runner'/'a.txt').read_text(), '2')
+            (base/'runner'/'b.txt').write_text('x'); g(base/'runner', 'add', '.'); g(base/'runner', 'commit', '-qm', 'local')
+            self.assertEqual(ops.self_update(), 'diverged')
