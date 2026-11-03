@@ -79,6 +79,12 @@ BONUS_TASKS = {
              'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-budget.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
+    'bonus-library-ai-cover-ui': (
+        ('src/app/dashboard/ai-cover-generator.tsx', 'src/app/dashboard/draft-review.tsx'),
+        bonus_repository_checks('tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs',
+            ('tests/factory-acceptance/ai-cover-wiring.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-service.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover.acceptance.test.mjs'))),
 }
 
 
