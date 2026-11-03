@@ -34,7 +34,10 @@ class PrepareTests(unittest.TestCase):
         pins, approval, pricing = load('pins'), load('approval'), load('pricing')
         self.assertTrue(approval_pins_match(approval, pins))
         contract = (self.out/'contract.json').read_bytes()
-        self.assertEqual(contract, prep.TASK.read_bytes())
+        self.assertEqual(contract, prep.contract_with_lessons(prep.TASK.read_bytes()))
+        spec = json.loads(contract)
+        self.assertTrue(any(l.startswith('L005 ') for l in spec['factory_lessons']))
+        self.assertFalse(any(l.startswith('A0') for l in spec['factory_lessons']))
         self.assertEqual(pins['contract_digest'], attempt.digest(contract))
         self.assertEqual((pins['repository'], pins['target_commit']),
                          ('timbrydges/bonus-library', 'ef88df95bc3f046d080af51e3654d2259759072b'))
@@ -81,7 +84,7 @@ class PrepareTests(unittest.TestCase):
         spec = json.loads(task.read_text())
         self.assertEqual((pins['target_commit'], pins['source_manifest_digest']),
                          (spec['target_commit'], spec['source_manifest_digest']))
-        self.assertEqual((self.out/'contract.json').read_bytes(), task.read_bytes())
+        self.assertEqual((self.out/'contract.json').read_bytes(), prep.contract_with_lessons(task.read_bytes()))
         for bad in ('../x', 'bonus-library-missing', 'other'):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 prep.task_path(bad)

@@ -585,6 +585,29 @@
       },
       "model_calls": 0,
       "cost_usd": "0"
+    },
+    {
+      "attempt_id": "ai-cover-wiring-006",
+      "factory_source_commit": "(PR #590)",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.06439200"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.02841200"
+        }
+      },
+      "total_cost_usd": "0.09280400",
+      "assistant_verification": "typegen, tsc and eslint pass; 132 of 134 tests pass, 2 skipped, 0 failed",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#43",
+        "merged": false
+      }
     }
   ],
   "ai_cover_wiring_escalation": {

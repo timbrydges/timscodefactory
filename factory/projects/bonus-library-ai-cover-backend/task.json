@@ -37,5 +37,8 @@
     "src/lib/ai-cover-service.ts",
     "src/lib/ai-cover-backend.ts",
     "tests/ai-cover-backend.test.mjs"
-  ]
+  ],
+  "source_file_bytes": {
+    "src/lib/ai-cover-service.ts": 7315
+  }
 }

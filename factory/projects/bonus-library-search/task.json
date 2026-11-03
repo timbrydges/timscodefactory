@@ -39,5 +39,8 @@
     "src/app/dashboard/page.tsx",
     "src/lib/library-search.ts",
     "tests/library-search.test.mjs"
-  ]
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/page.tsx": 6627
+  }
 }

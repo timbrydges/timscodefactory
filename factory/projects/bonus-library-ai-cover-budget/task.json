@@ -41,5 +41,8 @@
     "src/lib/ai-cover.ts",
     "src/lib/ai-cover-budget.ts",
     "tests/ai-cover-budget.test.mjs"
-  ]
+  ],
+  "source_file_bytes": {
+    "src/lib/ai-cover.ts": 5076
+  }
 }

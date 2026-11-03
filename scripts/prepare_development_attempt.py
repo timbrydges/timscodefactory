@@ -18,8 +18,30 @@ sys.path.insert(0, str(ROOT/'src'))
 from factory_runtime.worker import digest
 
 PROJECTS = ROOT/'factory'/'projects'
+LESSONS = ROOT/'factory'/'lessons.json'
+LESSON_AUDIENCES = ('builder', 'reviewer')
 TASK = PROJECTS/'bonus-library-pagination'/'task.json'
 TASK_NAME = re.compile(r'bonus-library-[a-z0-9-]{1,40}')
+
+
+def contract_with_lessons(task_bytes, lessons_path=LESSONS):
+    """Add reviewed builder/reviewer lessons to the pinned contract; the digest covers them."""
+    spec = json.loads(task_bytes)
+    lessons = json.loads(Path(lessons_path).read_bytes())
+    if lessons.get('schema') != 1 or type(lessons.get('lessons')) is not list:
+        raise ValueError('reviewed lessons file required')
+    selected = []
+    for lesson in lessons['lessons']:
+        if (type(lesson) is not dict or type(lesson.get('id')) is not str
+                or type(lesson.get('text')) is not str or not 1 <= len(lesson['text']) <= 400
+                or type(lesson.get('audience')) is not list):
+            raise ValueError('invalid lesson')
+        if any(a in LESSON_AUDIENCES for a in lesson['audience']):
+            selected.append(f"{lesson['id']} ({'/'.join(lesson['audience'])}): {lesson['text']}")
+    if 'factory_lessons' in spec or len(selected) > 30:
+        raise ValueError('bounded lessons required')
+    spec['factory_lessons'] = selected
+    return (json.dumps(spec, indent=2) + '\n').encode('utf-8')
 
 
 def task_path(name):
@@ -51,7 +73,7 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
             repair_rounds=2, task=TASK):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
-    contract = Path(task).read_bytes()
+    contract = contract_with_lessons(Path(task).read_bytes())
     spec = json.loads(contract)
     # The task contract pins its expected source content; a caller may only restate it.
     pinned = spec.get('source_manifest_digest')
