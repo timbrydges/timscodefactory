@@ -667,5 +667,33 @@
     "vercel_env": "BONUS_AI_COVER_ROLE_ARN and BONUS_AI_COVER_ACTIVATION_SHA set for production with owner approval",
     "live_check": "Owner generated one eBook cover end to end (reservation, Bedrock call, private storage, preview)",
     "owner_feedback": "Image did not look like a book and contained misspelled text; owner rejected a canvas overlay and chose OpenAI gpt-image-2 after a test (two mockups with the exact title; US$0.189 for three images)"
-  }
+  },
+  "ai_cover_openai_attempts": [
+    {
+      "attempt_id": "ai-cover-openai-001",
+      "input_class": "large",
+      "result": {
+        "status": "TICK_COMPLETED",
+        "batch": "APPROVED_AND_PUBLISHED"
+      },
+      "stages": {
+        "builder": {
+          "cost_usd": "0.11952800"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.08809200"
+        }
+      },
+      "total_cost_usd": "0.20762000",
+      "assistant_verification": "tsc and eslint pass; 128 of 130 tests pass, 2 skipped",
+      "assistant_note": "Builder shortened the owner-tested prompt wording; the wiring task restores it exactly.",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#45",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "21594e0f8cd83ba12f4aaff0d8a26850327520eb"
+      }
+    }
+  ]
 }
