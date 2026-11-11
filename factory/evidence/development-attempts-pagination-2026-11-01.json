@@ -695,5 +695,28 @@
         "merge_commit": "21594e0f8cd83ba12f4aaff0d8a26850327520eb"
       }
     }
-  ]
+  ],
+  "ai_cover_openai_wiring_attempts": {
+    "ai-cover-openai-wiring-001": {
+      "result": "NEEDS_RECONCILIATION",
+      "failure_code": "http_error",
+      "cause": "Runner OpenAI key expired (HTTP 401 expired_secret_key); request rejected, nothing billed"
+    },
+    "ai-cover-openai-wiring-002": {
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.09485600",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#46",
+        "merged": true,
+        "merge_commit": "fadde30d1a17b4426c76467ea816cfc2e7cd8570"
+      }
+    }
+  },
+  "bonus_library_release_2026_11_11": {
+    "authorization": "Owner: 'Budget updated. Release fadde30 to production'",
+    "deployment": "dpl_8tUaEEbtidXCoqMULBLVmULaWNTh (fresh production build of fadde30)",
+    "previous_production": "dpl_FYYg6sJaTRSiC5SadueATYBtXgV5 (8fdc5b8)",
+    "activation": "Owner added BONUS_AI_COVER_OPENAI_KEY (website key) in Vercel and moved the budget record app_commit to fadde30; assistant set BONUS_AI_COVER_ACTIVATION_SHA",
+    "live_check": "Owner generated an eBook mockup with gpt-image-2: correct spelling; title came from the file-name title and the preview was stretched to 1200x630 (follow-up task bonus-library-ai-cover-preview)"
+  }
 }

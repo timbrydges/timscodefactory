@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-ai-cover-preview",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Show the title the AI cover will use and keep cover previews in their real shape.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Change src/app/dashboard/ai-cover-generator.tsx, src/app/dashboard/draft-review.tsx and src/app/globals.css exactly as specified in the acceptance test header. All three files are shown.",
+    "ai-cover-generator.tsx: add title: string to Props; render a small line before the status message such as: Uses the saved title: <strong>{title.trim() || \"(no title)\"}</strong>. Edit and save the title first if needed; each style gets one image per item. Give the preview Image width={1024} and height={saved.style === \"ebook\" ? 1536 : 1024}.",
+    "draft-review.tsx: pass title={savedTitle} to AiCoverGenerator (one small edit).",
+    "globals.css: append one line overriding .cover-frame (aspect-ratio:auto; min-height:8rem; max-height:28rem), .cover-frame img (width:100%; height:auto; max-height:28rem; object-fit:contain), and adding .ai-cover-preview (display:grid; gap:.5rem; justify-items:start) and .ai-cover-preview img (display:block; width:auto; max-width:100%; height:auto; max-height:28rem; object-fit:contain; border-radius:.5rem). Do not rewrite existing rules.",
+    "No server, API, budget or prompt changes. Use small anchored edits."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/ai-cover-preview.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-ai-cover-preview. The builder must make\n// these pass and cannot edit them. The owner saw the first live gpt-image-2 cover squashed\n// into a 1200x630 box and generated from a file-name title.\n//   src/app/dashboard/ai-cover-generator.tsx: Props gain title: string; before generating,\n//     the component shows \"Uses the saved title:\" followed by the trimmed title (or\n//     \"(no title)\") and says to edit and save the title first if needed. The preview\n//     image keeps the real shape: width 1024 and height 1536 for ebook or 1024 for\n//     software_box (never 1200 by 630).\n//   src/app/dashboard/draft-review.tsx passes title={savedTitle} to AiCoverGenerator.\n//   src/app/globals.css: .cover-frame no longer forces a 1200/630 box (aspect-ratio: auto)\n//     and its image uses height: auto with object-fit: contain; .ai-cover-preview img uses\n//     height: auto, max-width: 100% and object-fit: contain.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst ui = read('src/app/dashboard/ai-cover-generator.tsx');\nconst review = read('src/app/dashboard/draft-review.tsx');\nconst css = read('src/app/globals.css').replace(/\\s+/g, '');\n\ntest('generator shows the title it will use and keeps the image shape', () => {\n  assert.match(ui, /title:\\s*string/);\n  assert.ok(ui.includes('Uses the saved title:'));\n  assert.ok(ui.includes('(no title)'));\n  assert.match(ui, /title\\.trim\\(\\)/);\n  assert.match(ui, /1536/);\n  assert.match(ui, /width=\\{1024\\}|width:\\s*1024/);\n  assert.doesNotMatch(ui, /width=\\{1200\\}|height=\\{630\\}/);\n  assert.match(review, /<AiCoverGenerator[^>]*title=\\{savedTitle\\}/s);\n});\n\ntest('cover frame and preview never stretch the image', () => {\n  const rule = (selector) => {\n    const all = [...css.matchAll(new RegExp(selector.replace(/[.*]/g, '\\\\$&') + '\\\\{([^}]*)\\\\}', 'g'))];\n    return all.map((m) => m[1]).join(';');\n  };\n  assert.match(rule('.cover-frame'), /aspect-ratio:auto/);\n  assert.match(rule('.cover-frameimg'), /height:auto/);\n  assert.match(rule('.cover-frameimg'), /object-fit:contain/);\n  const preview = rule('.ai-cover-previewimg');\n  for (const part of ['height:auto', 'max-width:100%', 'object-fit:contain']) assert.ok(preview.includes(part), part);\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "fadde30d1a17b4426c76467ea816cfc2e7cd8570",
+  "source_manifest_digest": "sha256:f69d4dbce69a68a0c2983b46f135f377d4c4145281eae8384a507f35fb2c95a5",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (123 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/ai-cover-generator.tsx",
+    "src/app/dashboard/draft-review.tsx",
+    "src/app/globals.css"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/ai-cover-generator.tsx": 5226,
+    "src/app/dashboard/draft-review.tsx": 9102,
+    "src/app/globals.css": 5022
+  },
+  "input_class": "large"
+}
