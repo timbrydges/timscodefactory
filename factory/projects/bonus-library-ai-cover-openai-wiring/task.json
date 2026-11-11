@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-ai-cover-openai-wiring",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Call OpenAI gpt-image-2 from the AI cover backend with the website key, using the owner-approved mockup prompts.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Change src/lib/ai-cover-aws.ts, src/app/api/cover/route.ts and the prompt text in src/lib/ai-cover.ts exactly as specified in the header of tests/factory-acceptance/ai-cover-wiring-openai.acceptance.test.mjs. All three files are shown.",
+    "ai-cover-aws.ts: keep the DynamoDB client, role and configuration checks; remove the Bedrock client entirely; add the BONUS_AI_COVER_OPENAI_KEY check to the Not configured guard; invokeModel({ body }) makes one fetch to AI_COVER_PROVIDER_URL (exported by ./ai-cover) with method POST, headers Authorization: Bearer <key> and Content-Type: application/json, the given body, signal: AbortSignal.timeout(240000) and no retry, throws a fixed error when response.ok is false, and returns new Uint8Array(await response.arrayBuffer()).",
+    "route.ts: only change maxDuration to 300. ai-cover.ts: only replace the two prompt strings with the exact owner-approved wording; keep everything else.",
+    "The Bedrock-era ai-cover-wiring acceptance test is retired by this contract (superseded_acceptance_tests) and replaced by the acceptance test below. Never put the key's value anywhere; read it only from process.env at request time.",
+    "Keep the change small: use several small anchored edits per file."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/ai-cover-wiring-openai.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-ai-cover-openai-wiring (replaces the\n// Bedrock-era ai-cover-wiring acceptance tests). The builder must make these pass and\n// cannot edit them. These files need real AWS, OpenAI, Supabase and Next.js, so tsc,\n// eslint and the independent reviewer check behaviour; these tests pin the\n// security-relevant choices in the source.\n//   src/lib/ai-cover-aws.ts: imports \"server-only\"; exports AI_COVER_ROLE_ARN (unchanged)\n//     and aiCoverBackend(upload) returning createCoverBackend(...). Throws \"Not configured\"\n//     unless VERCEL_ENV is \"production\", VERCEL_GIT_COMMIT_SHA is 40 lowercase hex,\n//     BONUS_AI_COVER_ROLE_ARN equals AI_COVER_ROLE_ARN and BONUS_AI_COVER_OPENAI_KEY is set.\n//     DynamoDB stays in \"ca-central-1\" with credentials only from\n//     awsCredentialsProvider({ roleArn: AI_COVER_ROLE_ARN }) and maxAttempts: 1. Bedrock is\n//     no longer used. invokeModel makes exactly one fetch to AI_COVER_PROVIDER_URL (from\n//     ./ai-cover) with method POST, an \"Authorization: Bearer <key>\" header, the given\n//     body, AbortSignal.timeout(...) and no retry; a non-OK response throws a fixed error\n//     that never includes the response text; it returns the response bytes.\n//   src/lib/ai-cover.ts: buildCoverRequest uses exactly the owner-approved prompts from the\n//     owner's gpt-image-2 test (with T the trimmed title, double quotes replaced by single):\n//     ebook: Professional 3D product mockup photo of a hardcover book standing upright at a\n//       slight angle on a clean light surface, soft studio lighting, realistic shadow. The\n//       front cover shows the title \"T\" in large bold modern typography, spelled exactly,\n//       with an elegant abstract design. No people, no other words.\n//     software_box: Professional 3D product mockup photo of a retail software box at a\n//       three-quarter angle on a clean light background, soft studio lighting, realistic\n//       shadow. The front and spine show the product name \"T\" in bold modern typography,\n//       spelled exactly, with a sleek abstract tech design. No people, no other words.\n//     (single spaces between sentences; nothing else in ai-cover.ts changes).\n//   src/app/api/cover/route.ts: unchanged authorization and upload rules (owner, draft,\n//     bonus-generated, upsert: false, the user's own Supabase session) and\n//     maxDuration = 300 so an image can finish.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nimport { buildCoverRequest } from '../../src/lib/ai-cover.ts';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');\nconst aws = read('src/lib/ai-cover-aws.ts');\nconst route = read('src/app/api/cover/route.ts').replaceAll(\"'\", '\"');\n\ntest('backend keeps the AWS budget role and calls OpenAI once with the website key', () => {\n  assert.match(aws, /^import [\"']server-only[\"'];?/m);\n  assert.ok(aws.includes('arn:aws:iam::666730517561:role/tims-software-factory-bonus-ai-cover-web'));\n  assert.match(aws, /export function aiCoverBackend\\b/);\n  assert.match(aws, /awsCredentialsProvider\\(\\s*\\{\\s*roleArn:\\s*AI_COVER_ROLE_ARN\\s*\\}\\s*\\)/);\n  assert.match(aws, /BONUS_AI_COVER_ROLE_ARN\\s*!==\\s*AI_COVER_ROLE_ARN/);\n  assert.ok(aws.includes('BONUS_AI_COVER_OPENAI_KEY'));\n  // The configuration check that throws \"Not configured\" must test the website key.\n  const named = aws.match(/const (\\w+)\\s*=\\s*process\\.env\\.BONUS_AI_COVER_OPENAI_KEY/);\n  const key = named ? named[1] : 'process.env.BONUS_AI_COVER_OPENAI_KEY';\n  const end = aws.indexOf('Not configured');\n  const guard = aws.slice(aws.lastIndexOf('if (', end), end);\n  assert.ok(guard.includes(key), 'the Not configured guard checks the OpenAI key');\n  assert.match(aws, /VERCEL_ENV\\s*!==\\s*[\"']production[\"']/);\n  assert.ok(aws.includes('Not configured'));\n  assert.ok(aws.includes('\"ca-central-1\"') || aws.includes(\"'ca-central-1'\"));\n  assert.match(aws, /maxAttempts:\\s*1\\b/);\n  assert.doesNotMatch(aws, /maxAttempts:\\s*[2-9]/);\n  assert.doesNotMatch(aws, /BedrockRuntimeClient|InvokeModelCommand|client-bedrock/);\n  assert.equal((aws.match(/\\bfetch\\(/g) ?? []).length, 1);\n  assert.match(aws, /fetch\\(\\s*AI_COVER_PROVIDER_URL/);\n  assert.match(aws, /method:\\s*[\"']POST[\"']/);\n  assert.match(aws, /Authorization:\\s*`Bearer \\$\\{/);\n  assert.match(aws, /AbortSignal\\.timeout\\(/);\n  assert.match(aws, /response\\.ok/);\n  assert.doesNotMatch(aws, /response\\.text\\(\\)|await response\\.json\\(\\)|accessKeyId|secretAccessKey|SERVICE_ROLE/i);\n  assert.match(aws, /createCoverBackend\\(/);\n});\n\ntest('route keeps owner, draft and private-upload rules and allows five minutes', () => {\n  assert.match(route, /export const runtime\\s*=\\s*\"nodejs\"/);\n  assert.match(route, /export const maxDuration\\s*=\\s*300\\b/);\n  assert.match(route, /export async function GET\\b/);\n  assert.match(route, /export async function POST\\b/);\n  assert.match(route, /\\.eq\\(\\s*\"status\"\\s*,\\s*\"draft\"\\s*\\)/);\n  assert.match(route, /\\.eq\\(\\s*\"owner_id\"\\s*,/);\n  for (const term of ['bonus_library_owners', 'library_items', 'auth.getUser()', '\"bonus-generated\"',\n    'upsert: false', '@/lib/supabase/server', 'BONUS_AI_COVER_ACTIVATION_SHA']) {\n    assert.ok(route.includes(term), term);\n  }\n  assert.doesNotMatch(route, /SERVICE_ROLE|service_role|OPENAI/i);\n});\n\ntest('prompts are exactly the owner-approved wording', () => {\n  assert.equal(buildCoverRequest('  Streaming \"Profits\" Authority ', 'ebook').prompt,\n    'Professional 3D product mockup photo of a hardcover book standing upright at a slight angle on a clean light surface, ' +\n    \"soft studio lighting, realistic shadow. The front cover shows the title \\\"Streaming 'Profits' Authority\\\" in large bold \" +\n    'modern typography, spelled exactly, with an elegant abstract design. No people, no other words.');\n  assert.equal(buildCoverRequest('Pixel Studio Pro', 'software_box').prompt,\n    'Professional 3D product mockup photo of a retail software box at a three-quarter angle on a clean light background, ' +\n    'soft studio lighting, realistic shadow. The front and spine show the product name \"Pixel Studio Pro\" in bold modern ' +\n    'typography, spelled exactly, with a sleek abstract tech design. No people, no other words.');\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "21594e0f8cd83ba12f4aaff0d8a26850327520eb",
+  "source_manifest_digest": "sha256:66d3d5b84c67d4cfa1d94baf364006bee8a6220b862278b3d50bdfababd641bf",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (123 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/lib/ai-cover.ts",
+    "src/lib/ai-cover-aws.ts",
+    "src/app/api/cover/route.ts"
+  ],
+  "source_file_bytes": {
+    "src/lib/ai-cover.ts": 4864,
+    "src/lib/ai-cover-aws.ts": 2205,
+    "src/app/api/cover/route.ts": 1982
+  },
+  "superseded_acceptance_tests": [
+    "tests/factory-acceptance/ai-cover-wiring.acceptance.test.mjs"
+  ],
+  "pricing_evidence": "Owner OpenAI usage 2026-11-03: gpt-image-2 medium about US$0.06 per image"
+}
