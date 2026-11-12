@@ -4,8 +4,14 @@ Reads the key-free summaries in <runner-root>/dev-results, groups attempts by
 task, totals known and uncertain spend, and diagnoses every non-approved
 attempt with a known failure signature: what happened, the remedy and the
 lesson that prevents it. Unknown signatures are listed as lesson candidates;
-lessons change only through owner-approved pull requests. Makes no network
-request, reads no credential and calls no model.
+lessons change only through owner-approved pull requests.
+
+Self-repair drafts: for every attempt that was not approved, a Markdown draft
+in dev-results/repair-drafts/ states the diagnosis, the evidence from the
+attempt, the proposed contract or Factory change and a ready-to-use request
+for the coding assistant. Drafts are proposals only: they change no file,
+open no pull request and authorize nothing. Makes no network request, reads
+no credential and calls no model.
 """
 import argparse
 from decimal import Decimal
@@ -78,7 +84,113 @@ def signature(summary):
     return 'unknown'
 
 
-def build_report(results_dir):
+# Proposed change per signature: what to edit before the next attempt.
+PROPOSALS = {
+    'output_token_limit': [
+        'Split the task: new files in one task, wiring into existing files in a follow-up task (lesson A006).',
+        'Show fewer or smaller existing files; prefer anchored edits over full-file rewrites.'],
+    'request_byte_limit': [
+        'Lower source_file_bytes by quoting signatures instead of showing whole files (lesson A001).',
+        'Run tests/test_task_fit.py; use input_class "large" only if the owner accepts the higher cap.'],
+    'input_too_large': [
+        'Lower source_file_bytes by quoting signatures instead of showing whole files (lesson A001).',
+        'Run tests/test_task_fit.py; use input_class "large" only if the owner accepts the higher cap.'],
+    'escalate': [
+        'Quote the exact exported names and signatures the builder asked about in the requirements (lesson A002).',
+        'Or add the imported module to the shown files if it fits the size limits.'],
+    'rejected': [
+        'Compare each reviewer finding with the contract: add a requirement where the contract was silent (lesson L006).',
+        'If a finding asks for behaviour the owner does not want, state that explicitly in the requirements.'],
+    'tests_failed': [
+        'Reproduce the failing check locally against the pinned commit and a reference solution (lesson A003).',
+        'Mutation-check the acceptance test: the reference passes and the current code fails.'],
+    'provider_uncertain': [
+        'Check OpenAI usage for this attempt before anything else; never replay automatically.',
+        'Only after reconciliation, approve a new attempt with a new id.'],
+    'binding': [
+        'Fix the task or runner configuration named in the reason (pins, manifest, image, paths).',
+        'Re-run the Factory checks (validate_registry, test_task_fit) before a new attempt.'],
+    'unknown': [
+        'Inspect the attempt summary and add a signature to scripts/factory_report.py.',
+        'Propose a lesson in factory/lessons.json through an owner-approved pull request.'],
+}
+DRAFT_LIMIT = 20
+
+
+def _line(value, limit=400):
+    text = ' '.join(str(value).split())
+    return text if len(text) <= limit else text[:limit-1] + '…'
+
+
+def evidence_lines(summary):
+    lines = []
+    outcome = summary.get('outcome') or {}
+    result = outcome.get('result') or {}
+    lines.append(f"Outcome: {_line(outcome.get('status'))}")
+    for key in ('phase', 'reason', 'failure_code'):
+        if result.get(key):
+            lines.append(f'Result {key}: {_line(result[key])}')
+    if outcome.get('error_type'):
+        lines.append(f"Error: {_line(outcome['error_type'])} {_line(outcome.get('reason') or '')}".rstrip())
+    for name, stage in (summary.get('stages') or {}).items():
+        parts = [stage.get(k) for k in ('state', 'decision_type', 'verdict', 'failure_code') if stage.get(k)]
+        lines.append(f"Stage {_line(name, 60)}: {_line(' '.join(map(str, parts)), 120)}")
+        if stage.get('summary'):
+            lines.append(f"  {_line(name, 60)} said: {_line(stage['summary'])}")
+        for finding in (stage.get('findings') or [])[:DRAFT_LIMIT]:
+            lines.append(f'  finding: {_line(finding)}')
+    for name in ('tests', 'repair-tests', 'repair2-tests'):
+        if summary.get(name):
+            lines.append(f'Checks {name}: {_line(summary[name], 60)}')
+    return lines
+
+
+def repair_draft(summary, sig, task):
+    what, remedy, lesson = DIAGNOSES[sig]
+    attempt = summary['attempt_id']
+    evidence = '\n'.join(f'- {line}' for line in evidence_lines(summary))
+    proposals = '\n'.join(f'{n}. {text}' for n, text in enumerate(PROPOSALS.get(sig, PROPOSALS['unknown']), 1))
+    return f"""# Repair draft: {attempt}
+
+Proposal only. It changes nothing; any fix lands through an owner-approved pull request.
+
+- Task: `{task}`
+- Cause: `{sig}`{f' (lesson {lesson})' if lesson else ''}
+- What happened: {what}
+- Remedy: {remedy}
+- Cost: US${summary.get('total_cost_usd') or '0'} (+ up to US${summary.get('uncertain_max_usd') or '0'} for failed calls)
+
+## Evidence
+
+{evidence}
+
+## Proposed change
+
+{proposals}
+
+## Request for the coding assistant
+
+Attempt `{attempt}` of task `{task}` stopped with cause `{sig}`. Using the evidence above and
+dev-results/{attempt}.json, prepare the smallest Factory or task-contract change that addresses it,
+verify it offline, and open a pull request for the owner. Do not start a new paid attempt.
+"""
+
+
+def write_drafts(results, attempts, summaries):
+    folder = results/'repair-drafts'
+    written = {}
+    for item in attempts:
+        if item['signature'] == 'approved' or not ATTEMPT.fullmatch(item['attempt_id']):
+            continue
+        folder.mkdir(exist_ok=True)
+        path = folder/f"{item['attempt_id']}.md"
+        path.write_text(repair_draft(summaries[item['attempt_id']], item['signature'], item['task']),
+                        encoding='utf-8')
+        written[item['attempt_id']] = path
+    return written
+
+
+def build_report(results_dir, summaries=None):
     tasks, attempts = {}, []
     spent, uncertain = Decimal(0), Decimal(0)
     for path in sorted(Path(results_dir).glob('*.json')):
@@ -90,6 +202,8 @@ def build_report(results_dir):
             continue
         if type(summary) is not dict or 'attempt_id' not in summary:
             continue
+        if summaries is not None:
+            summaries[summary['attempt_id']] = summary
         cost = Decimal(str(summary.get('total_cost_usd') or '0'))
         risk = Decimal(str(summary.get('uncertain_max_usd') or '0'))
         sig = signature(summary)
@@ -142,14 +256,19 @@ table{{border-collapse:collapse;width:100%;margin:12px 0}}td,th{{border:1px soli
 <p>Lessons change only through owner-approved pull requests (factory/lessons.json).</p></body></html>"""
 
 
-def write_report(runner_root, out=print):
+def write_report(runner_root, out=print, highlight=()):
     results = Path(runner_root)/'dev-results'
-    report = build_report(results)
+    summaries = {}
+    report = build_report(results, summaries)
+    drafts = write_drafts(results, report['diagnoses'], summaries)
     (results/'factory-report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     (results/'factory-report.html').write_text(render_html(report), encoding='utf-8')
     out(f"Factory report: {report['attempts']} attempts, {report['approved']} approved, "
         f"spent US${report['spent_usd']} (+ up to US${report['uncertain_usd']} uncertain). "
         f"Open {results/'factory-report.html'}")
+    for attempt in highlight:
+        if attempt in drafts:
+            out(f'Repair draft for {attempt}: {drafts[attempt]}')
     return report
 
 
