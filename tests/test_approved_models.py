@@ -26,6 +26,9 @@ class ApprovedModelTests(unittest.TestCase):
         default, approved = approved_models.load()
         self.assertEqual(default, 'gpt-5.6-sol')
         self.assertIn('gpt-5.6-sol', approved)
+        self.assertEqual({k: str(v) for k, v in approved['gpt-6.1-terra'].items()},
+                         {'input': '1.00', 'output': '5.00'})
+        self.assertEqual(approved_models.resolve({'model': 'gpt-6.1-terra'})[0], 'gpt-6.1-terra')
 
     def test_every_task_resolves_to_an_approved_model(self):
         for task_id in BONUS_TASKS:
@@ -65,6 +68,25 @@ class ApprovedModelTests(unittest.TestCase):
                 now=datetime.now(timezone.utc), hours=1, source_commit='c'*40,
                 task=ROOT/'factory/projects/bonus-library-library-page/task.json')
         self.assertFalse((Path(tmp.name)/'a').exists())
+
+    def test_prepare_pins_a_terra_task_to_its_model_and_price(self):
+        from datetime import datetime, timezone
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        spec = json.loads((ROOT/'factory/projects/bonus-library-library-page/task.json').read_bytes())
+        spec['model'] = 'gpt-6.1-terra'
+        task = Path(tmp.name)/'task.json'; task.write_text(json.dumps(spec))
+        common = dict(image_ref='img@sha256:' + 'a'*64, source_config_sha256='sha256:' + 'b'*64,
+                      pricing_source='test', now=datetime.now(timezone.utc), hours=1,
+                      source_commit='c'*40, task=task)
+        with self.assertRaisesRegex(ValueError, 'approved maximum'):
+            prep.prepare(output=Path(tmp.name)/'a', attempt_id='terra-001',
+                         input_price='4.00', output_price='20.00', **common)
+        prep.prepare(output=Path(tmp.name)/'b', attempt_id='terra-002',
+                     input_price='1.00', output_price='5.00', **common)
+        pins = json.loads((Path(tmp.name)/'b'/'pins.json').read_text())
+        pricing = json.loads((Path(tmp.name)/'b'/'pricing.json').read_text())
+        self.assertEqual((pins['model_id'], pricing['model_id']), ('gpt-6.1-terra', 'gpt-6.1-terra'))
+        self.assertEqual(pins['builder_cap'], '0.50')
 
 
 if __name__ == '__main__':

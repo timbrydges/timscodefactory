@@ -7,6 +7,11 @@
       "max_input_usd_per_million_tokens": "4.00",
       "max_output_usd_per_million_tokens": "20.00",
       "approved": "Owner-checked OpenAI pricing page 2026-11-01"
+    },
+    "gpt-6.1-terra": {
+      "max_input_usd_per_million_tokens": "1.00",
+      "max_output_usd_per_million_tokens": "5.00",
+      "approved": "Owner: 'Use model gpt-6.1 terra' with OpenAI pricing page screenshot 2026-11-12 (US$1.00 input / US$5.00 output per million tokens); for tasks that set \"model\": \"gpt-6.1-terra\" (builder and reviewer)"
     }
   }
 }
