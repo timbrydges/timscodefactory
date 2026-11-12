@@ -750,5 +750,24 @@
         "merge_commit": "c72a505249158606521d071660f9b04ccae36fdd"
       }
     }
+  },
+  "library_layout_attempts": {
+    "library-layout-001": {
+      "result": "NEEDS_RECONCILIATION",
+      "failure_code": "output_token_limit",
+      "phase": "BUILDER",
+      "input_class": "large",
+      "counted_at_cap_usd": "0.75",
+      "batch": "BUDGET_REACHED (US$4.00 left too little for another US$3.75 attempt)",
+      "follow_up": "Split into bonus-library-library-browser (two new files, no anchored edits of large existing files) and a later bonus-library-library-page wiring task."
+    }
+  },
+  "ai_cover_live_success_2026_11_12": {
+    "release": "c72a505 (dpl_8qpT73A4HM5FCjaDxte7uR3Hu6rC)",
+    "result": "Owner generated a gpt-image-2 eBook mockup for 'Streaming Profits Authority' with the title spelled correctly and the preview in portrait shape",
+    "budget": {
+      "dispatches": 4,
+      "reserved_micro_usd": 350000
+    }
   }
 }

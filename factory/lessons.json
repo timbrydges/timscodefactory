@@ -107,6 +107,14 @@
       ],
       "evidence": "bonus_library_release_2026_11_12",
       "text": "Any manual reset or retry path must account for every side effect of the first attempt (records, stored files, reservations); prefer unique per-attempt names over deterministic ones."
+    },
+    {
+      "id": "A006",
+      "audience": [
+        "author"
+      ],
+      "evidence": "library-layout-001 output_token_limit",
+      "text": "Keep each task's output small: prefer new files over anchored edits of large or minified files, and split a component from its wiring into separate tasks."
     }
   ]
 }
