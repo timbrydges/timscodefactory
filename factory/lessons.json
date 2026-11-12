@@ -69,6 +69,14 @@
       "text": "Change an existing file with several small anchored edits (each old_text occurs exactly once at that point; edits to one file apply in order) instead of one large replacement."
     },
     {
+      "id": "L009",
+      "audience": [
+        "reviewer"
+      ],
+      "evidence": "library-helpers-001 (gpt-6.1-terra) rejected twice for missing check output",
+      "text": "You are asked to review only after the fixed sandbox command (typegen, tsc --noEmit, eslint and every repository and acceptance test) exited successfully; the stdout/stderr digests are its receipt. Do not reject for lack of check output. Judge the change against the contract and the code shown."
+    },
+    {
       "id": "A001",
       "audience": [
         "author"

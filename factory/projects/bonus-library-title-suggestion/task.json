@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-title-suggestion",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Offer a \"Use suggested title\" button in the draft review that fills the title field with a readable suggestion.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Change only src/app/dashboard/draft-review.tsx, exactly as specified in the acceptance test header, using anchored edits. Do not change src/lib/library-title.ts.",
+    "Helper to use exactly as quoted: from \"@/lib/library-title\", suggestLibraryTitle(raw: string): string.",
+    "The button only calls setTitle; saving still happens through the existing \"Save review\" button. Keep every other part of the component unchanged."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-title-button.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-title-suggestion. The builder must make\n// these pass and cannot edit them. Owner-chosen feature: readable title suggestions the\n// owner can accept, using the merged src/lib/library-title.ts (do not change it).\n//   src/app/dashboard/draft-review.tsx: import { suggestLibraryTitle } from\n//     \"@/lib/library-title\"; compute const suggestedTitle = suggestLibraryTitle(title)\n//     from the title being edited; directly after the \"Reviewed title\" input, while the\n//     draft is editable and suggestedTitle !== title, render\n//     <button className=\"secondary\" type=\"button\" disabled={isPending}\n//       onClick={() => setTitle(suggestedTitle)}>Use suggested title: {suggestedTitle}</button>.\n//     It only fills the field; the owner still saves with \"Save review\". Nothing else\n//     changes.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst review = readFileSync(new URL('../../src/app/dashboard/draft-review.tsx', import.meta.url), 'utf8').replaceAll(\"'\", '\"');\n\ntest('review offers the suggested title without saving it', () => {\n  assert.match(review, /import \\{ suggestLibraryTitle \\} from \"@\\/lib\\/library-title\"/);\n  assert.match(review, /const suggestedTitle = suggestLibraryTitle\\(title\\)/);\n  assert.match(review, /editable && suggestedTitle !== title \\?/);\n  assert.match(review, /onClick=\\{\\(\\) => setTitle\\(suggestedTitle\\)\\}/);\n  assert.match(review, /Use suggested title: \\{suggestedTitle\\}/);\n  const input = review.indexOf('id={`title-${props.id}`}');\n  const button = review.indexOf('Use suggested title');\n  const description = review.indexOf('Reviewed description');\n  assert.ok(input > 0 && input < button && button < description, 'button sits between the title and description');\n  assert.ok(review.includes('Save review'));\n  assert.ok(review.includes('Approve exact version'));\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "3720f11dccb266354162fa0bf02df026f5a305b4",
+  "source_manifest_digest": "sha256:23582297cbeb17e14a08df41dfa93713336049fef63f379351ce9969b0713ddf",
+  "source_manifest_note": "Pinned to the approved helpers commit (factory/library-helpers-002, bonus-library#51); computed by the coding assistant with both the Factory reader and the owner's standalone script (132 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/draft-review.tsx"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/draft-review.tsx": 9121
+  },
+  "model": "gpt-6.1-terra"
+}
