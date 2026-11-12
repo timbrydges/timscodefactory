@@ -16,6 +16,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from factory_runtime.worker import digest
+from factory_runtime import approved_models
 
 PROJECTS = ROOT/'factory'/'projects'
 LESSONS = ROOT/'factory'/'lessons.json'
@@ -63,7 +64,9 @@ def limits_for(spec):
     size = spec.get('input_class', 'standard')
     if size not in ('standard', 'large'):
         raise ValueError('input_class must be standard or large')
-    return dict(FIXED, **(LARGE if size == 'large' else {}))
+    # Caps stay sized for the price ceiling; a cheaper approved model only lowers real spend.
+    model_id, _ = approved_models.resolve(spec)
+    return dict(FIXED, **(LARGE if size == 'large' else {}), model_id=model_id)
 
 
 def attempt_cap(spec, repair_rounds):
@@ -119,7 +122,10 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
                 image_ref=image_ref, attempt_id=attempt_id,
                 source_config_digest=source_config_sha256, source_manifest_digest=manifest,
                 **({'repair_rounds': repair_rounds} if repair_rounds else {}))
-    pricing = dict(model_id=FIXED['model_id'], input_usd_per_million_tokens=_price(input_price),
+    _, ceiling = approved_models.resolve(spec)
+    if Decimal(_price(input_price)) > ceiling['input'] or Decimal(_price(output_price)) > ceiling['output']:
+        raise ValueError('price exceeds the approved maximum for this model')
+    pricing = dict(model_id=limits['model_id'], input_usd_per_million_tokens=_price(input_price),
                    output_usd_per_million_tokens=_price(output_price),
                    effective_at=now.isoformat(), expires_at=(now+timedelta(hours=24)).isoformat(),
                    source_id=pricing_source)

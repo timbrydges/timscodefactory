@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "note": "Owner-approved OpenAI models for development attempts. A task may name one in its \"model\" field; tasks without it use the default. Stage caps assume at most US$4.00 input and US$20.00 output per million tokens, so every model listed here must cost no more than that. Models are added only through owner-approved pull requests.",
+  "default": "gpt-5.6-sol",
+  "models": {
+    "gpt-5.6-sol": {
+      "max_input_usd_per_million_tokens": "4.00",
+      "max_output_usd_per_million_tokens": "20.00",
+      "approved": "Owner-checked OpenAI pricing page 2026-11-01"
+    }
+  }
+}

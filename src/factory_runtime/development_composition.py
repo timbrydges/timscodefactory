@@ -8,6 +8,7 @@ import json
 from .development_profile import TaskExecutionProfile
 from factory_state.model import StateError
 from .development_approval import compose_approved_host
+from . import approved_models
 from .diagnostics import RedactedDiagnosticCapture
 from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderPolicy
@@ -131,6 +132,13 @@ BONUS_TASKS = {
 }
 
 
+def _approved_model_ids():
+    try:
+        return set(approved_models.load()[1])
+    except (OSError, ValueError):
+        return set()  # Fail closed: no model is approved without a valid list.
+
+
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
                        task, contract_bytes, snapshot, pricing_source, clock,
                        owner_authorized=False):
@@ -138,7 +146,7 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
         raise StateError('explicit human authorization required')
     pins = expected_pins
     if (pins['credential_source'] != 'env:FACTORY_OPENAI_API_KEY'
-            or pins['model_id'] != 'gpt-5.6-sol'
+            or pins['model_id'] not in _approved_model_ids()
             or pins['repository'] != 'timbrydges/bonus-library'
             or task.task_id not in BONUS_TASKS):
         raise StateError('unsupported acceptance composition')
@@ -161,7 +169,7 @@ def compose_task_host(directory, *, profile, approval, expected_pins, receipt_pa
     # Profile must be supplied by the trusted operator, never generated task text.
     if owner_authorized is not True or type(profile) is not TaskExecutionProfile:
         raise StateError('explicit human authorization and trusted profile required')
-    if expected_pins.get('model_id') != 'gpt-5.6-sol':
+    if expected_pins.get('model_id') not in _approved_model_ids():
         raise StateError('unsupported provider composition')
     credential = None
     if credential_binding is None:
