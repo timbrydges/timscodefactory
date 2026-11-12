@@ -821,6 +821,6 @@
     "activation_sha": "BONUS_AI_COVER_ACTIVATION_SHA upserted to 350562c303cc961a9bc42f80133302f0c949af52 (production)",
     "deployment": "dpl_dR6sbnzZVVyg9Lrrd5qty8amzkzG",
     "state": "READY, aliased to bonus-library.vercel.app",
-    "live_check": "Pending owner visual check of the dashboard"
+    "live_check": "Owner confirmed 'looks good' with a screenshot of the production dashboard: summary cards in a responsive grid with cover thumbnails or first-letter placeholders, title and one-line summary."
   }
 }
