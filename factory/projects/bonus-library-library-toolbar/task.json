@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-library-toolbar",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Add status filter tabs with counts and a sort menu to the dashboard, and fix the invisible unselected Grid / List button.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Change src/lib/library-search.ts, src/app/dashboard/page.tsx and src/app/dashboard/library-browser.css exactly as specified in the acceptance test header, using anchored edits. Do not change the helper modules.",
+    "Helper exports to use exactly as quoted. From \"@/lib/library-status\": LIBRARY_STAGES (readonly [\"uninspected\",\"prepared\",\"approved\"]); type LibraryStageFilter = \"all\" | stage; normalizeLibraryStage(raw: string | string[] | undefined): LibraryStageFilter | null; filterLibraryItemsByStage<T>(rows: readonly T[], filter: LibraryStageFilter): T[]; countLibraryItemsByStage(rows): Record<LibraryStageFilter, number>; libraryStageLabel(filter: LibraryStageFilter): string. From \"@/lib/library-sort\": LIBRARY_SORTS (readonly [\"newest\",\"oldest\",\"name\",\"size\"]); type LibrarySort; normalizeLibrarySort(raw: string | string[] | undefined): LibrarySort | null; librarySortLabel(sort: LibrarySort): string; sortLibraryItems<T>(rows: readonly T[], sort: LibrarySort): T[]; pageLibraryItems<T>(rows: readonly T[], rawPage: string | string[] | undefined): { items: T[]; page: number; pageCount: number } | null.",
+    "page.tsx: keep the search results in a variable, compute counts from them, filter by stage, then for sort \"newest\" call the existing paginateLibraryItems on the filtered rows; for other sorts use pageLibraryItems(sortLibraryItems(filteredRows, sort), params.page). Treat an invalid status or sort like invalid pagination input (the existing load-failure alert). Build const view = { q, status, sort } and pass ...view to every libraryPageHref call (with cursor/direction/page as needed). Add hidden status/sort inputs to the search form when not default; add the tabs nav and a GET sort form (label \"Sort by\", select id=\"library-sort\" name=\"sort\", submit button \"Sort\", hidden q and status inputs) right after the search form; add Previous / Next page links inside the existing Library pages nav for numbered pages. The empty state for a search or status view links to libraryPageHref({ q: \"\", cursor: null, direction: null }).",
+    "library-search.ts: extend LibraryPageHrefInput with optional status?: string, sort?: string, page?: number (defaults \"all\", \"newest\", 1) and set them in the order q, status, sort, page, cursor, direction only when not default.",
+    "library-browser.css: append .view-toggle button[aria-pressed=\"false\"] { color: var(--ink); }, .status-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }, .status-tabs a (pill: padding, 1px var(--line) border, 999px radius, no underline, small text), .status-tabs a[aria-current=\"page\"] { background: var(--accent); border-color: var(--accent); color: #fff; } and .sort-form { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-toolbar.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-library-toolbar. The builder must make\n// these pass and cannot edit them. Owner-chosen features: status filter tabs with counts\n// and a sort menu, using the merged helpers in src/lib/library-status.ts and\n// src/lib/library-sort.ts (do not change them).\n//   src/lib/library-search.ts: libraryPageHref also accepts optional status (default\n//     \"all\"), sort (default \"newest\") and page (default 1) and adds each only when it\n//     differs from its default, in the order q, status, sort, page, cursor, direction.\n//   src/app/dashboard/page.tsx: reads status and sort with normalizeLibraryStage and\n//     normalizeLibrarySort (invalid values show the existing load-failure alert); counts\n//     the search results per stage, filters them by stage, then for \"newest\" keeps the\n//     existing cursor pagination (Newer / Older) and for other sorts uses\n//     pageLibraryItems(sortLibraryItems(rows, sort), params.page) with Previous / Next\n//     links. Renders <nav className=\"status-tabs\" aria-label=\"Status filter\"> with one\n//     Link per tab (All, Uninspected, Prepared, Approved) labelled \"<Label> (<count>)\" and\n//     aria-current=\"page\" on the active tab, and a GET form with a <select name=\"sort\">\n//     of the four sort labels. The search form and both new controls keep the other view\n//     settings (hidden inputs / libraryPageHref).\n//   src/app/dashboard/library-browser.css: .status-tabs (wrapping row of pill links, the\n//     aria-current=\"page\" tab in var(--accent) with white text) and .sort-form styles, and\n//     fix the unselected Grid / List button, which inherits the global white button text:\n//     .view-toggle button[aria-pressed=\"false\"] { color: var(--ink); }\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport { libraryPageHref } from '../../src/lib/library-search.ts';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst page = read('src/app/dashboard/page.tsx');\nconst css = read('src/app/dashboard/library-browser.css').replace(/\\s+/g, '');\n\ntest('links carry only non-default view settings', () => {\n  assert.equal(libraryPageHref({ q: '', cursor: null, direction: null }), '/dashboard');\n  assert.equal(libraryPageHref({ q: '', cursor: null, direction: null, status: 'all', sort: 'newest', page: 1 }), '/dashboard');\n  assert.equal(libraryPageHref({ q: 'atlas', cursor: null, direction: null, status: 'approved', sort: 'name', page: 2 }),\n    '/dashboard?q=atlas&status=approved&sort=name&page=2');\n  assert.equal(libraryPageHref({ q: '', cursor: 'abc', direction: 'older', status: 'prepared' }),\n    '/dashboard?status=prepared&cursor=abc&direction=older');\n});\n\ntest('dashboard renders status tabs and a sort menu', () => {\n  assert.match(page, /from \"@\\/lib\\/library-status\"/);\n  assert.match(page, /from \"@\\/lib\\/library-sort\"/);\n  for (const name of ['normalizeLibraryStage', 'filterLibraryItemsByStage', 'countLibraryItemsByStage',\n    'libraryStageLabel', 'normalizeLibrarySort', 'sortLibraryItems', 'pageLibraryItems', 'librarySortLabel']) {\n    assert.match(page, new RegExp(`\\\\b${name}\\\\(`), name);\n  }\n  assert.match(page, /params\\.status/);\n  assert.match(page, /params\\.sort/);\n  assert.match(page, /params\\.page/);\n  assert.ok(page.includes('aria-label=\"Status filter\"'));\n  assert.ok(page.includes('className=\"status-tabs\"'));\n  assert.match(page, /aria-current=\\{[^}]*\"page\"/);\n  assert.match(page, /<select[^>]*name=\"sort\"/s);\n  assert.ok(page.includes('>Previous<') || /\\n\\s*Previous\\n/.test(page));\n  assert.ok(page.includes('>Next<') || /\\n\\s*Next\\n/.test(page));\n  assert.ok(page.includes('aria-label=\"Library pages\"'));\n  assert.ok(page.includes('role=\"search\"'));\n  assert.ok(page.includes('.from(\"library_items\")'));\n  assert.match(page, /name=\"status\"/);\n});\n\ntest('toolbar styles', () => {\n  assert.match(css, /\\.status-tabs\\{[^}]*display:flex/);\n  assert.match(css, /\\.status-tabsa\\[aria-current=\"page\"\\]\\{[^}]*background:var\\(--accent\\)/);\n  assert.ok(css.includes('.sort-form{'));\n  assert.ok(css.includes('.view-toggle button[aria-pressed=\"false\"]{color:var(--ink)'.replace(/\\s+/g, '')));\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "3720f11dccb266354162fa0bf02df026f5a305b4",
+  "source_manifest_digest": "sha256:23582297cbeb17e14a08df41dfa93713336049fef63f379351ce9969b0713ddf",
+  "source_manifest_note": "Pinned to the approved helpers commit (factory/library-helpers-002, bonus-library#51); computed by the coding assistant with both the Factory reader and the owner's standalone script (132 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/page.tsx",
+    "src/lib/library-search.ts",
+    "src/app/dashboard/library-browser.css"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/page.tsx": 8222,
+    "src/lib/library-search.ts": 1247,
+    "src/app/dashboard/library-browser.css": 1862
+  },
+  "model": "gpt-6.1-terra",
+  "input_class": "large"
+}

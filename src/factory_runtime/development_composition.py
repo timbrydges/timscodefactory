@@ -129,6 +129,14 @@ BONUS_TASKS = {
             ('tests/factory-acceptance/library-helpers.acceptance.test.mjs',
              'tests/factory-acceptance/library-page.acceptance.test.mjs',
              'tests/factory-acceptance/library-browser.acceptance.test.mjs'))),
+    'bonus-library-library-toolbar': (
+        ('src/app/dashboard/page.tsx', 'src/lib/library-search.ts', 'src/app/dashboard/library-browser.css'),
+        bonus_repository_checks('tests/library-search.test.mjs',
+            ('tests/factory-acceptance/library-toolbar.acceptance.test.mjs',
+             'tests/factory-acceptance/library-helpers.acceptance.test.mjs',
+             'tests/factory-acceptance/library-page.acceptance.test.mjs',
+             'tests/factory-acceptance/library-browser.acceptance.test.mjs',
+             'tests/factory-acceptance/library-search.acceptance.test.mjs'))),
     'bonus-library-ai-cover-ui': (
         ('src/app/dashboard/ai-cover-generator.tsx', 'src/app/dashboard/draft-review.tsx'),
         bonus_repository_checks('tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs',
