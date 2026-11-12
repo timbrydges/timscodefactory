@@ -68,6 +68,46 @@ class FactoryReportTests(unittest.TestCase):
         report.write_report(self.root, out=lambda line: None)
         self.assertNotIn('<script>', (self.results/'factory-report.html').read_text())
 
+    def test_repair_drafts_for_each_unapproved_attempt(self):
+        self.write(summary('ai-cover-budget-003', 'REJECTED', '0.34',
+            stages={'reviewer': {'state': 'COMPLETED', 'verdict': 'REJECT',
+                                 'findings': ['Reservation is not\nreleased on failure']},
+                    'repair2_reviewer': {'state': 'COMPLETED', 'verdict': 'REJECT', 'findings': []}}))
+        self.write(summary('library-layout-001', 'NEEDS_RECONCILIATION', '0', '0.75',
+            stages={'builder': {'state': 'FAILED', 'failure_code': 'output_token_limit'}}))
+        self.write(summary('library-page-001', 'TICK_COMPLETED', '0.06'))
+        lines = []
+        report.write_report(self.root, out=lines.append, highlight=['library-layout-001', 'library-page-001'])
+        drafts = self.results/'repair-drafts'
+        self.assertEqual(sorted(p.name for p in drafts.iterdir()),
+                         ['ai-cover-budget-003.md', 'library-layout-001.md'])
+        rejected = (drafts/'ai-cover-budget-003.md').read_text()
+        self.assertIn('Cause: `rejected` (lesson L006)', rejected)
+        self.assertIn('finding: Reservation is not released on failure', rejected)
+        self.assertIn('Do not start a new paid attempt', rejected)
+        layout = (drafts/'library-layout-001.md').read_text()
+        self.assertIn('Task: `bonus-library-library-layout`', layout)
+        self.assertIn('lesson A006', layout)
+        self.assertIn('Stage builder: FAILED output_token_limit', layout)
+        self.assertEqual([line for line in lines if line.startswith('Repair draft')],
+                         [f"Repair draft for library-layout-001: {drafts/'library-layout-001.md'}"])
+
+    def test_every_signature_has_a_proposal(self):
+        self.assertEqual(set(report.PROPOSALS), set(report.DIAGNOSES) - {'approved'})
+
+    def test_draft_text_is_bounded_and_single_line(self):
+        long = 'x' * 5000
+        data = summary('pagination-009', 'REJECTED', stages={'reviewer': {
+            'state': 'COMPLETED', 'verdict': 'REJECT', 'findings': [long] * 50}})
+        text = report.repair_draft(data, 'rejected', 'bonus-library-pagination')
+        self.assertEqual(text.count('finding:'), report.DRAFT_LIMIT)
+        self.assertLess(len(text), 20 * 450 + 3000)
+
+    def test_unsafe_attempt_ids_get_no_draft_file(self):
+        self.write(summary('../escape-001', 'REJECTED'), 'escape.json')
+        report.write_report(self.root, out=lambda line: None)
+        self.assertFalse((self.results/'repair-drafts').exists())
+
 
 if __name__ == '__main__':
     unittest.main()
