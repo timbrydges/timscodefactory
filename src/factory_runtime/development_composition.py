@@ -110,6 +110,14 @@ BONUS_TASKS = {
             ('tests/factory-acceptance/ai-cover-backend-unique.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-service-openai.acceptance.test.mjs',
              'tests/factory-acceptance/ai-cover-openai.acceptance.test.mjs'))),
+    'bonus-library-library-layout': (
+        ('src/app/dashboard/library-browser.tsx', 'src/app/dashboard/page.tsx', 'src/app/globals.css'),
+        bonus_repository_checks('tests/library-search.test.mjs',
+            ('tests/factory-acceptance/library-layout.acceptance.test.mjs',
+             'tests/factory-acceptance/library-pagination.acceptance.test.mjs',
+             'tests/factory-acceptance/library-search.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-preview.acceptance.test.mjs',
+             'tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs'))),
     'bonus-library-ai-cover-ui': (
         ('src/app/dashboard/ai-cover-generator.tsx', 'src/app/dashboard/draft-review.tsx'),
         bonus_repository_checks('tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs',
