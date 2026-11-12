@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-library-page",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Show the dashboard drafts with the LibraryBrowser component: summary cards whose details open in a dialog.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Change only src/app/dashboard/page.tsx, exactly as specified in the acceptance test header. Use two anchored edits: add the import line and replace the <ul className=\"draft-list\">...</ul> block.",
+    "LibraryBrowser already exists in src/app/dashboard/library-browser.tsx: export function LibraryBrowser({ items }: { items: LibraryBrowserItem[] }) with export type LibraryBrowserItem = { id: string; title: string; line: string; coverObjectPath: string | null; details: ReactNode }. Do not change it.",
+    "Add import { LibraryBrowser } from \"@/app/dashboard/library-browser\"; after the other component imports. Replace the whole <ul className=\"draft-list\">...</ul> block with <LibraryBrowser items={drafts.map((draft) => ({ id: draft.id, title: draft.title || \"Untitled bonus\", line: `${(draft.source_size_bytes / 1024 / 1024).toFixed(2)} MB \u00b7 ${new Date(draft.created_at).toLocaleDateString(\"en-CA\")} \u00b7 ${draft.status === \"approved\" ? \"Approved\" : draft.metadata_sha256 ? \"Prepared\" : \"Uninspected\"}`, coverObjectPath: draft.cover_object_path, details: (<>...</>) }))} /> where the fragment contains the existing DraftInspector and DraftReview conditional elements moved unchanged (same props, key and conditions).",
+    "Keep everything else (data query, search form, pagination, empty states). Presentation only."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-page.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-library-page. The builder must make\n// these pass and cannot edit them.\n//   src/app/dashboard/page.tsx renders LibraryBrowser (from\n//     \"@/app/dashboard/library-browser\") instead of the always-expanded draft list; each\n//     item is { id, title, line: \"<size MB> \u00b7 <date en-CA> \u00b7 <Approved|Prepared|Uninspected>\",\n//     coverObjectPath, details } and details are the existing DraftInspector and DraftReview\n//     elements with the same props and conditions. The data query, search form and\n//     Newer / Older navigation remain unchanged.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst page = read('src/app/dashboard/page.tsx');\n\ntest('page keeps its data, search and paging but hides details until clicked', () => {\n  assert.match(page, /import \\{ LibraryBrowser \\} from \"@\\/app\\/dashboard\\/library-browser\"/);\n  assert.match(page, /<LibraryBrowser\\b/);\n  assert.doesNotMatch(page, /className=\"draft-list\"/);\n  assert.match(page, /draft\\.status === \"draft\" \\? \\(\\s*<DraftInspector\\b/);\n  assert.match(page, /draft\\.cover_object_path && draft\\.metadata_sha256 \\? \\(\\s*<DraftReview\\b/);\n  assert.match(page, /<DraftReview\\b/);\n  assert.ok(page.includes('role=\"search\"'));\n  assert.ok(page.includes('aria-label=\"Library pages\"'));\n  assert.ok(page.includes('.from(\"library_items\")'));\n});\n\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "5a17e0dd22fb4951b7c7bbadec97fb88c387dd10",
+  "source_manifest_digest": "sha256:13641e33cb4bef274f9a0c3fa310098a2aa776529de81997d93a55bcc561c10b",
+  "source_manifest_note": "Computed by the coding assistant from a separate read-only clone with both the Factory reader and the owner's standalone script (127 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/page.tsx"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/page.tsx": 8156
+  }
+}
