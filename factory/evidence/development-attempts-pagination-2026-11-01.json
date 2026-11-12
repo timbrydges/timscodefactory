@@ -739,5 +739,16 @@
       "dispatches": 3,
       "reserved_micro_usd": 250000
     }
+  },
+  "ai_cover_unique_path_attempts": {
+    "ai-cover-unique-path-001": {
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.04874800",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#48",
+        "merged": true,
+        "merge_commit": "c72a505249158606521d071660f9b04ccae36fdd"
+      }
+    }
   }
 }
