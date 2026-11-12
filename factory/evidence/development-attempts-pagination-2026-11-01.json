@@ -718,5 +718,26 @@
     "previous_production": "dpl_FYYg6sJaTRSiC5SadueATYBtXgV5 (8fdc5b8)",
     "activation": "Owner added BONUS_AI_COVER_OPENAI_KEY (website key) in Vercel and moved the budget record app_commit to fadde30; assistant set BONUS_AI_COVER_ACTIVATION_SHA",
     "live_check": "Owner generated an eBook mockup with gpt-image-2: correct spelling; title came from the file-name title and the preview was stretched to 1200x630 (follow-up task bonus-library-ai-cover-preview)"
+  },
+  "ai_cover_preview_attempts": {
+    "ai-cover-preview-001": {
+      "result": "TICK_COMPLETED",
+      "input_class": "large",
+      "total_cost_usd": "0.10240800",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#47",
+        "merged": true,
+        "merge_commit": "e6a5ef4dbbfe41e7d3c2896a9a688217478dbbc4"
+      }
+    }
+  },
+  "bonus_library_release_2026_11_12": {
+    "authorization": "Owner: 'Done. Release e6a5ef4 to production'",
+    "deployment": "dpl_BaWQkTJLJi7PfKJ2ehJgMaCaQu6E",
+    "live_check": "Title shown before generation worked. Regeneration after clearing the attempt record failed: the image was generated (paid) but storage refused to overwrite the earlier file at the same deterministic path; the attempt stays 'reserved'. Root cause: the assistant's clearing step removed the record but not the stored object. Follow-up: bonus-library-ai-cover-unique-path.",
+    "budget_after": {
+      "dispatches": 3,
+      "reserved_micro_usd": 250000
+    }
   }
 }
