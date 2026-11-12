@@ -760,6 +760,51 @@
       "counted_at_cap_usd": "0.75",
       "batch": "BUDGET_REACHED (US$4.00 left too little for another US$3.75 attempt)",
       "follow_up": "Split into bonus-library-library-browser (two new files, no anchored edits of large existing files) and a later bonus-library-library-page wiring task."
+    },
+    "library-browser-001": {
+      "result": "TICK_COMPLETED",
+      "batch": "APPROVED_AND_PUBLISHED",
+      "stages": {
+        "builder": {
+          "cost_usd": "0.05900000"
+        },
+        "repair_builder": {
+          "cost_usd": "0.06036400"
+        },
+        "repair_reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.02201200"
+        }
+      },
+      "total_cost_usd": "0.14137600",
+      "assistant_verification": "tsc and eslint pass; 100 tests pass, 0 failed; next build passes",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#49",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "5a17e0dd22fb4951b7c7bbadec97fb88c387dd10"
+      }
+    },
+    "library-page-001": {
+      "result": "TICK_COMPLETED",
+      "batch": "APPROVED_AND_PUBLISHED",
+      "stages": {
+        "builder": {
+          "cost_usd": "0.03570000"
+        },
+        "reviewer": {
+          "verdict": "APPROVE",
+          "cost_usd": "0.02538000"
+        }
+      },
+      "total_cost_usd": "0.06108000",
+      "assistant_verification": "Identical to the owner-approved reference apart from a line wrap; tsc and eslint pass; 135 tests pass, 0 failed; next build passes",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#50",
+        "merged": true,
+        "merged_by": "owner",
+        "merge_commit": "350562c303cc961a9bc42f80133302f0c949af52"
+      }
     }
   },
   "ai_cover_live_success_2026_11_12": {
@@ -769,5 +814,13 @@
       "dispatches": 4,
       "reserved_micro_usd": 350000
     }
+  },
+  "bonus_library_release_2026_11_12_layout": {
+    "authorization": "Owner: 'Done. Release 350562c to production'",
+    "budget_app_commit": "Owner updated the DynamoDB budget app_commit to 350562c via CloudShell",
+    "activation_sha": "BONUS_AI_COVER_ACTIVATION_SHA upserted to 350562c303cc961a9bc42f80133302f0c949af52 (production)",
+    "deployment": "dpl_dR6sbnzZVVyg9Lrrd5qty8amzkzG",
+    "state": "READY, aliased to bonus-library.vercel.app",
+    "live_check": "Owner confirmed 'looks good' with a screenshot of the production dashboard: summary cards in a responsive grid with cover thumbnails or first-letter placeholders, title and one-line summary."
   }
 }
