@@ -866,5 +866,44 @@
         "pull_request": "timbrydges/bonus-library#51"
       }
     }
+  },
+  "dashboard_feature_attempts": {
+    "library-toolbar-001": {
+      "model": "gpt-6.1-terra",
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.02652700",
+      "note": "First publish stopped: pinned commit 3720f11 was reachable only from a pull request ref after the squash merge; fixed in timscodefactory#607 and published without a new attempt",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#52",
+        "merged": true
+      }
+    },
+    "title-suggestion-001": {
+      "model": "gpt-6.1-terra",
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.01340600",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#53",
+        "merged": true
+      }
+    },
+    "library-archive-001": {
+      "model": "gpt-6.1-terra",
+      "result": "STOPPED",
+      "total_cost_usd": "0.06701600",
+      "cause": "repair builder escalated: wanted a regression test outside the allowed paths"
+    },
+    "library-archive-002": {
+      "model": "gpt-6.1-terra",
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.02785600",
+      "batch_total_usd": "0.09487200",
+      "assistant_verification": "migration identical to the statements verified on local Postgres 16; tsc, eslint, 148 tests and next build pass",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#54",
+        "merged": true,
+        "merge_commit": "198464acf8eaea7f2a20be472e0e42faefd74be7"
+      }
+    }
   }
 }
