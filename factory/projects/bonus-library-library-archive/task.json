@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-library-archive",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Let the owner archive and restore draft items so they are hidden from the dashboard without being deleted.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Create supabase/migrations/20261113000000_owner_archive.sql and src/app/dashboard/archive-control.tsx, and change src/lib/library-search.ts, src/app/dashboard/page.tsx and src/app/dashboard/library-browser.css, exactly as specified in the acceptance test header. Use anchored edits for existing files.",
+    "The migration is owner-approved for this task and contains exactly the two statements in the header plus comments; the owner applies it in Supabase before deploying. No other schema change.",
+    "archive-control.tsx: \"use client\"; import { useState, useTransition } from \"react\"; import { useRouter } from \"next/navigation\"; import { createClient } from \"@/lib/supabase/client\" (browser client: createClient().from(table).update(values).eq(column, value) resolves to { error }). Show \"Archiving\u2026\"/\"Restoring\u2026\" while working, the error message on failure, and a short success message.",
+    "page.tsx already has const view = { q, status, sort }, libraryPageHref calls with ...view, a search form with hidden status/sort inputs, a status-tabs nav and a sort form. Add archived: showArchived to view; filter rows to active or archived before filterLibraryItemsByTitle; place <p className=\"archive-toggle\"> with the link right after the status-tabs nav; add hidden archived inputs to both forms; add <ArchiveControl id={draft.id} ownerId={ownerId} archived={draft.archived_at !== null} /> for drafts at the end of each item's details fragment.",
+    "library-browser.css: append .archive-toggle (small text, bottom margin) and .archive-control (top border in var(--line), spacing)."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-archive.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-library-archive. The builder must make\n// these pass and cannot edit them. Owner-chosen feature: archive test or unwanted draft\n// items so they are hidden from the dashboard, restorable and never deleted.\n//   supabase/migrations/20261113000000_owner_archive.sql (new; the owner applies it in\n//     Supabase before deploying): exactly\n//       alter table public.library_items add column if not exists archived_at timestamptz;\n//       grant update (archived_at) on public.library_items to authenticated;\n//     plus comments. No other statement (the existing RLS policy and lifecycle trigger\n//     already limit updates to the owner's draft items; approved items stay immutable).\n//   src/app/dashboard/archive-control.tsx (new, \"use client\"): export function\n//     ArchiveControl({ id, ownerId, archived }) with one <button type=\"button\"> labelled\n//     \"Archive item\" or \"Restore item\" that updates library_items.archived_at (an ISO\n//     timestamp, or null to restore) with .eq(\"id\", id).eq(\"owner_id\", ownerId)\n//     .eq(\"status\", \"draft\") through the browser Supabase client, shows the result in an\n//     aria-live message and refreshes the page (router.refresh in a transition).\n//   src/lib/library-search.ts: libraryPageHref also accepts archived (default false) and\n//     adds archived=1 after page when true.\n//   src/app/dashboard/page.tsx: selects archived_at; params.archived === \"1\" shows only\n//     archived rows, otherwise only active rows (before search, stage and sort); a link\n//     \"Show archived items (<count>)\" when any exist, or \"Back to active items\" while\n//     viewing them; every view link and both GET forms keep archived; each draft's\n//     details end with <ArchiveControl id ownerId archived />.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport { libraryPageHref } from '../../src/lib/library-search.ts';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst migration = read('supabase/migrations/20261113000000_owner_archive.sql');\nconst control = read('src/app/dashboard/archive-control.tsx');\nconst page = read('src/app/dashboard/page.tsx');\n\ntest('migration only adds the column and its update grant', () => {\n  const statements = migration.replace(/--[^\\n]*/g, '').split(';').map((s) => s.replace(/\\s+/g, ' ').trim()).filter(Boolean);\n  assert.deepEqual(statements, [\n    'alter table public.library_items add column if not exists archived_at timestamptz',\n    'grant update (archived_at) on public.library_items to authenticated',\n  ]);\n});\n\ntest('archive control updates only the owner draft and refreshes', () => {\n  assert.match(control, /^\"use client\";?/);\n  assert.match(control, /export function ArchiveControl\\b/);\n  assert.match(control, /\\.from\\(\"library_items\"\\)/);\n  assert.match(control, /archived_at:/);\n  assert.match(control, /\\.eq\\(\"id\", id\\)/);\n  assert.match(control, /\\.eq\\(\"owner_id\", ownerId\\)/);\n  assert.match(control, /\\.eq\\(\"status\", \"draft\"\\)/);\n  assert.ok(control.includes('Archive item') && control.includes('Restore item'));\n  assert.match(control, /type=\"button\"/);\n  assert.match(control, /aria-live=\"polite\"/);\n  assert.match(control, /router\\.refresh\\(\\)/);\n  assert.doesNotMatch(control, /\\.delete\\(/);\n});\n\ntest('links keep the archived view', () => {\n  assert.equal(libraryPageHref({ q: '', cursor: null, direction: null, archived: false }), '/dashboard');\n  assert.equal(libraryPageHref({ q: 'x', cursor: null, direction: null, sort: 'size', page: 2, archived: true }),\n    '/dashboard?q=x&sort=size&page=2&archived=1');\n});\n\ntest('dashboard hides archived items by default and offers the control', () => {\n  assert.match(page, /archived_at\"\\)/);\n  assert.match(page, /params\\.archived === \"1\"/);\n  assert.ok(page.includes('Show archived items ('));\n  assert.ok(page.includes('Back to active items'));\n  assert.match(page, /name=\"archived\" value=\"1\"/);\n  assert.match(page, /<ArchiveControl\\b[^>]*archived=\\{draft\\.archived_at !== null\\}/s);\n  assert.match(page, /import \\{ ArchiveControl \\} from \"@\\/app\\/dashboard\\/archive-control\"/);\n  assert.ok(page.includes('aria-label=\"Status filter\"'));\n  assert.ok(page.includes('aria-label=\"Library pages\"'));\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "Only the specified owner-approved migration",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "3cfa471fda1b7eed427473d4450ee74f6880da40",
+  "source_manifest_digest": "sha256:46e4bac1ee635f32761a28db2a2e2d82d16592203d09f18c8fe6a504d0a6f346",
+  "source_manifest_note": "Pinned to the merge of bonus-library#52 (status tabs and sort menu); computed by the coding assistant with both the Factory reader and the owner's standalone script (133 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "supabase/migrations/20261113000000_owner_archive.sql",
+    "src/app/dashboard/archive-control.tsx",
+    "src/lib/library-search.ts",
+    "src/app/dashboard/page.tsx",
+    "src/app/dashboard/library-browser.css"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/page.tsx": 11044,
+    "src/lib/library-search.ts": 1506,
+    "src/app/dashboard/library-browser.css": 2290
+  },
+  "model": "gpt-6.1-terra",
+  "input_class": "large"
+}
