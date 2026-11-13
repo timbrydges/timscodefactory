@@ -97,6 +97,12 @@ def publish(*, attempt_dir, attempt_id, results_file=None, workdir, git_factory=
     git = git_factory(clone)
     if git('ls-remote', '--heads', 'origin', branch, capture=True).strip():
         raise ValueError(f'branch {branch} already exists; nothing was pushed')
+    try:
+        git('cat-file', '-e', packet['target_commit'] + '^{commit}')
+    except subprocess.CalledProcessError:
+        # A squash-merged or deleted source branch leaves the pinned commit reachable
+        # only through a pull request ref; fetch exactly that commit.
+        git('fetch', '--quiet', 'origin', packet['target_commit'])
     git('checkout', '--quiet', '-b', branch, packet['target_commit'])
     if git('rev-parse', 'HEAD', capture=True).strip() != packet['target_commit']:
         raise ValueError('clone is not at the approved target commit')

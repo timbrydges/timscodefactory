@@ -39,7 +39,7 @@ class PublishTests(unittest.TestCase):
         outer = self
         class LocalGit(pub.Git):
             def __call__(self, *args, capture=False):
-                args = [str(outer.origin) if a.startswith('https://github.com/') else a for a in args]
+                args = ['file://' + str(outer.origin) if a.startswith('https://github.com/') else a for a in args]
                 return subprocess.run(['git', '-C', str(self.directory), '-c', 'user.name=Owner',
                     '-c', 'user.email=owner@example.invalid', '-c', 'commit.gpgsign=false',
                     '-c', 'core.autocrlf=false', *args], check=True, text=True,
@@ -76,6 +76,21 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(run(self.origin, 'show', 'factory/pagination-005:tests/page.test.mjs'), 'test\n')
         self.assertEqual(run(self.origin, 'rev-parse', 'main').strip(), self.commit)
         self.assertIn('reviewer verdict APPROVE', run(self.origin, 'log', '-1', '--format=%B', 'factory/pagination-005'))
+
+    def test_fetches_a_pinned_commit_only_reachable_from_a_pull_request_ref(self):
+        seed = self.base/'seed'
+        run(seed, 'checkout', '-q', '-b', 'factory/helpers')
+        (seed/'src'/'page.tsx').write_text('const size = 10;\n// helpers\n')
+        run(seed, 'commit', '-qam', 'helpers')
+        pinned = run(seed, 'rev-parse', 'HEAD').strip()
+        run(seed, 'push', '-q', str(self.origin), f'{pinned}:refs/pull/51/head')
+        self.changes = [{'path': 'src/page.tsx', 'before': 'const size = 10;\n// helpers\n',
+                         'after': 'const size = 30;\n'}]
+        self.write(packet={'target_commit': pinned})
+        result = self.publish()
+        self.assertEqual(run(self.origin, 'show', 'factory/pagination-005:src/page.tsx'), 'const size = 30;\n')
+        self.assertEqual(run(self.origin, 'rev-parse', 'factory/pagination-005^').strip(), pinned)
+        self.assertEqual(result['branch'], 'factory/pagination-005')
 
     def test_contract_acceptance_tests_are_published_unchanged(self):
         content = "import test from 'node:test';\n"
