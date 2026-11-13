@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "task_id": "bonus-library-bulk-covers",
+  "repository": "timbrydges/bonus-library",
+  "objective": "Generate AI covers for several prepared drafts in one confirmed, bounded run; the owner still chooses each image.",
+  "status": "OFFLINE_PREPARATION",
+  "provider_strategy": "single_provider_separate_builder_and_reviewer",
+  "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+  "requirements": [
+    "Create src/app/dashboard/bulk-cover-generator.tsx and change src/app/dashboard/page.tsx and src/app/dashboard/library-browser.css exactly as specified in the acceptance test header. Use anchored edits for existing files.",
+    "Imports to use exactly as quoted: from \"@/lib/ai-cover\": AI_COVER_STYLES (readonly [\"ebook\", \"software_box\"]), AI_COVER_STYLE_LABELS (Readonly<Record<AiCoverStyle, string>>) and type AiCoverStyle. The existing endpoint: GET /api/cover?item=<id>&style=<style> returns JSON { enabled: boolean; reason: string; saved: object | null; error?: string }; POST /api/cover with JSON { item_id, style } returns { saved?: object; error?: string }. Each generation reserves up to US$0.10 of the existing AI cover budget.",
+    "bulk-cover-generator.tsx: \"use client\"; style <select id=\"bulk-cover-style\">; the confirmation text states the maximum spend; the log lists one line per item (skipped, generating, ready, or stopped); disable controls while working; render null when items is empty.",
+    "page.tsx: compute the eligible items from the loaded rows (archived_at === null, status \"draft\", truthy metadata_sha256, non-empty title, cover_object_path not containing \"-ai-cover-\") and render <BulkCoverGenerator items={...} /> after the Drive import control in the \"New draft\" section.",
+    "library-browser.css: append .bulk-covers (grid with gap and top margin), .bulk-confirm (wrapping flex row) and .bulk-log (small muted list)."
+  ],
+  "acceptance_tests": [
+    {
+      "path": "tests/factory-acceptance/library-bulk-covers.acceptance.test.mjs",
+      "content": "// Factory-owned acceptance tests for bonus-library-bulk-covers. The builder must make these\n// pass and cannot edit them. Owner-chosen feature: generate AI covers for several prepared\n// drafts in one run, within the existing AI cover budget; the owner still chooses\n// \"Use this image\" on each item.\n//   src/app/dashboard/bulk-cover-generator.tsx (new, \"use client\"): exports\n//     BULK_COVER_LIMIT = 10, BULK_COVER_RESERVE_USD = 0.1 and\n//     BulkCoverGenerator({ items }: { items: { id: string; title: string }[] }). Renders\n//     nothing for no items; otherwise a <section aria-label=\"Bulk AI covers\"> with a style\n//     <select> of AI_COVER_STYLES / AI_COVER_STYLE_LABELS, a \"Generate N covers\" button that\n//     first asks for confirmation showing the maximum spend (batch size x US$0.10) with\n//     \"Confirm and generate\" and \"Cancel\", and an aria-live log. On confirmation it handles\n//     at most the first 10 items one at a time: GET /api/cover?item=&style= (cache\n//     \"no-store\"); skip an item with a saved cover; stop when generation is not enabled;\n//     otherwise POST /api/cover { item_id, style } and stop at the first failure (never\n//     retried automatically). It never calls \"Use this image\" or changes library_items.\n//   src/app/dashboard/page.tsx: passes the active draft rows with status \"draft\", a\n//     metadata_sha256, a non-empty title and a cover_object_path that does not contain\n//     \"-ai-cover-\" to <BulkCoverGenerator items=... /> in the \"New draft\" section.\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').replaceAll(\"'\", '\"');\nconst bulk = read('src/app/dashboard/bulk-cover-generator.tsx');\nconst page = read('src/app/dashboard/page.tsx');\n\ntest('bulk generator is bounded, confirmed and sequential', () => {\n  assert.match(bulk, /^\"use client\";?/);\n  assert.match(bulk, /export const BULK_COVER_LIMIT = 10\\b/);\n  assert.match(bulk, /export const BULK_COVER_RESERVE_USD = 0\\.1\\b/);\n  assert.match(bulk, /export function BulkCoverGenerator\\b/);\n  assert.match(bulk, /\\.slice\\(0, BULK_COVER_LIMIT\\)/);\n  assert.match(bulk, /aria-label=\"Bulk AI covers\"/);\n  assert.ok(bulk.includes('Confirm and generate') && bulk.includes('Cancel'));\n  assert.match(bulk, /for \\(const item of /);\n  assert.match(bulk, /await fetch\\(`\\/api\\/cover\\?/);\n  assert.match(bulk, /cache: \"no-store\"/);\n  assert.match(bulk, /method: \"POST\"/);\n  assert.match(bulk, /item_id: item\\.id/);\n  assert.match(bulk, /AI_COVER_STYLES/);\n  assert.match(bulk, /aria-live=\"polite\"/);\n  assert.doesNotMatch(bulk, /library_items|\\.update\\(|createClient/);\n  assert.ok(bulk.indexOf('status.saved') < bulk.indexOf('method: \"POST\"'), 'checks for a saved cover first');\n  assert.ok(bulk.indexOf('!status.enabled') < bulk.indexOf('method: \"POST\"'), 'stops when not enabled');\n});\n\ntest('dashboard offers only eligible prepared drafts', () => {\n  assert.match(page, /import \\{ BulkCoverGenerator \\} from \"@\\/app\\/dashboard\\/bulk-cover-generator\"/);\n  assert.match(page, /<BulkCoverGenerator items=\\{/);\n  assert.ok(page.includes('\"-ai-cover-\"'));\n  assert.match(page, /status === \"draft\"/);\n  assert.match(page, /metadata_sha256/);\n});\n"
+    }
+  ],
+  "acceptance_tests_note": "Factory-owned tests run unchanged in the sandbox after the repository checks, together with the existing ai-cover acceptance tests; the builder cannot edit them and must make them pass.",
+  "constraints": [
+    "No schema migrations",
+    "No new services",
+    "No credential changes",
+    "No production writes",
+    "No network calls"
+  ],
+  "execution_authorized": false,
+  "spending_authorized": false,
+  "signing_authorized": false,
+  "release_authorized": false,
+  "target_commit": "198464acf8eaea7f2a20be472e0e42faefd74be7",
+  "source_manifest_digest": "sha256:6f5acbdb22d8b2a89250e788bd596c0452b9d82f3b848d6c6c7f68f94442ec12",
+  "source_manifest_note": "Pinned to the merge of bonus-library#54 (archive); computed by the coding assistant with both the Factory reader and the owner's standalone script (137 files); the Factory fetch verifies it independently before use.",
+  "allowed_paths": [
+    "src/app/dashboard/bulk-cover-generator.tsx",
+    "src/app/dashboard/page.tsx",
+    "src/app/dashboard/library-browser.css"
+  ],
+  "source_file_bytes": {
+    "src/app/dashboard/page.tsx": 12177,
+    "src/app/dashboard/library-browser.css": 2470
+  },
+  "model": "gpt-6.1-terra",
+  "input_class": "large"
+}
