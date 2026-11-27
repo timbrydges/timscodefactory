@@ -1,0 +1,98 @@
+{
+  "idea_id": "reading-time",
+  "repository": "timbrydges/bonus-library",
+  "target_commit": "ebea53ae59ade5ee146c242f876628f1f6348f35",
+  "source_manifest_digest": "sha256:a5c2a874402da4463a93273e89dc7b042b0e822054cfe51ba4ffac50e23abaeb",
+  "objective": "Add a reading-time helper so library items can later show an estimated reading time.",
+  "requirements": [
+    "Create src/lib/reading-time.ts with no imports. Export const WORDS_PER_MINUTE = 200.",
+    "Export function readingMinutes(text: string): number. Count words as the non-empty pieces of text.trim() split on whitespace, then return Math.max(1, Math.ceil(words / WORDS_PER_MINUTE)). Empty or whitespace-only text returns 1.",
+    "Export function formatReadingTime(minutes: number): string returning `${minutes} min read` for a whole number of minutes of at least 1; for anything else (zero, negative, fractional, NaN) return '1 min read'.",
+    "Plain TypeScript only (it runs under node --experimental-strip-types): no JSX, no path aliases, no enums or namespaces."
+  ],
+  "allowed_paths": [
+    "src/lib/reading-time.ts",
+    "tests/reading-time.test.mjs"
+  ],
+  "builder_test": "tests/reading-time.test.mjs",
+  "model": "gpt-6.1-terra",
+  "acceptance": [
+    {
+      "type": "exports",
+      "module": "src/lib/reading-time.ts",
+      "names": [
+        "WORDS_PER_MINUTE",
+        "readingMinutes",
+        "formatReadingTime"
+      ]
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "readingMinutes",
+      "args": [
+        ""
+      ],
+      "expect": 1
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "readingMinutes",
+      "args": [
+        "   \n\t "
+      ],
+      "expect": 1
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "readingMinutes",
+      "args": [
+        "one two three"
+      ],
+      "expect": 1
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "readingMinutes",
+      "args": [
+        "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word"
+      ],
+      "expect": 2
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "formatReadingTime",
+      "args": [
+        3
+      ],
+      "expect": "3 min read"
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "formatReadingTime",
+      "args": [
+        0
+      ],
+      "expect": "1 min read"
+    },
+    {
+      "type": "returns",
+      "module": "src/lib/reading-time.ts",
+      "function": "formatReadingTime",
+      "args": [
+        2.5
+      ],
+      "expect": "1 min read"
+    },
+    {
+      "type": "source_excludes",
+      "path": "src/lib/reading-time.ts",
+      "text": "import "
+    }
+  ]
+}

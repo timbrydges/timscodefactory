@@ -1,0 +1,150 @@
+{
+  "approved_by": "tim_brydges",
+  "contract_digest": "sha256:915adf59e6b7ca29a7646fbf1debfb6e114c84d624b4e685ed135f982b7ebe65",
+  "idea": {
+    "acceptance": [
+      {
+        "module": "src/lib/reading-time.ts",
+        "names": [
+          "WORDS_PER_MINUTE",
+          "readingMinutes",
+          "formatReadingTime"
+        ],
+        "type": "exports"
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expect": 1,
+        "function": "readingMinutes",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "   \n\t "
+        ],
+        "expect": 1,
+        "function": "readingMinutes",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "one two three"
+        ],
+        "expect": 1,
+        "function": "readingMinutes",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word"
+        ],
+        "expect": 2,
+        "function": "readingMinutes",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          3
+        ],
+        "expect": "3 min read",
+        "function": "formatReadingTime",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          0
+        ],
+        "expect": "1 min read",
+        "function": "formatReadingTime",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          2.5
+        ],
+        "expect": "1 min read",
+        "function": "formatReadingTime",
+        "module": "src/lib/reading-time.ts",
+        "type": "returns"
+      },
+      {
+        "path": "src/lib/reading-time.ts",
+        "text": "import ",
+        "type": "source_excludes"
+      }
+    ],
+    "allowed_paths": [
+      "src/lib/reading-time.ts",
+      "tests/reading-time.test.mjs"
+    ],
+    "builder_test": "tests/reading-time.test.mjs",
+    "idea_id": "reading-time",
+    "model": "gpt-6.1-terra",
+    "objective": "Add a reading-time helper so library items can later show an estimated reading time.",
+    "repository": "timbrydges/bonus-library",
+    "requirements": [
+      "Create src/lib/reading-time.ts with no imports. Export const WORDS_PER_MINUTE = 200.",
+      "Export function readingMinutes(text: string): number. Count words as the non-empty pieces of text.trim() split on whitespace, then return Math.max(1, Math.ceil(words / WORDS_PER_MINUTE)). Empty or whitespace-only text returns 1.",
+      "Export function formatReadingTime(minutes: number): string returning `${minutes} min read` for a whole number of minutes of at least 1; for anything else (zero, negative, fractional, NaN) return '1 min read'.",
+      "Plain TypeScript only (it runs under node --experimental-strip-types): no JSX, no path aliases, no enums or namespaces."
+    ],
+    "source_manifest_digest": "sha256:a5c2a874402da4463a93273e89dc7b042b0e822054cfe51ba4ffac50e23abaeb",
+    "target_commit": "ebea53ae59ade5ee146c242f876628f1f6348f35"
+  },
+  "kind": "factory_task_intake_v1",
+  "status": "APPROVED",
+  "task": {
+    "acceptance_tests": [
+      {
+        "content": "// Factory-owned acceptance tests for bonus-library-reading-time, generated from its approved idea.\n// The builder must make these pass and cannot edit them.\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport test from 'node:test';\nimport * as m0 from \"../../src/lib/reading-time.ts\";\n\nconst source = (path) => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');\n\ntest(\"1. src/lib/reading-time.ts exports WORDS_PER_MINUTE, readingMinutes, formatReadingTime\", async () => {\n  assert.notEqual(m0[\"WORDS_PER_MINUTE\"], undefined, \"WORDS_PER_MINUTE\");\n  assert.notEqual(m0[\"readingMinutes\"], undefined, \"readingMinutes\");\n  assert.notEqual(m0[\"formatReadingTime\"], undefined, \"formatReadingTime\");\n});\n\ntest(\"2. readingMinutes(\\\"\\\") returns 1\", async () => {\n  assert.equal(typeof m0.readingMinutes, 'function');\n  assert.deepEqual(await m0.readingMinutes(...[\"\"]), 1);\n});\n\ntest(\"3. readingMinutes(\\\"   \\\\n\\\\t \\\") returns 1\", async () => {\n  assert.equal(typeof m0.readingMinutes, 'function');\n  assert.deepEqual(await m0.readingMinutes(...[\"   \\n\\t \"]), 1);\n});\n\ntest(\"4. readingMinutes(\\\"one two three\\\") returns 1\", async () => {\n  assert.equal(typeof m0.readingMinutes, 'function');\n  assert.deepEqual(await m0.readingMinutes(...[\"one two three\"]), 1);\n});\n\ntest(\"5. readingMinutes(\\\"word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word w\", async () => {\n  assert.equal(typeof m0.readingMinutes, 'function');\n  assert.deepEqual(await m0.readingMinutes(...[\"word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\"]), 2);\n});\n\ntest(\"6. formatReadingTime(3) returns \\\"3 min read\\\"\", async () => {\n  assert.equal(typeof m0.formatReadingTime, 'function');\n  assert.deepEqual(await m0.formatReadingTime(...[3]), \"3 min read\");\n});\n\ntest(\"7. formatReadingTime(0) returns \\\"1 min read\\\"\", async () => {\n  assert.equal(typeof m0.formatReadingTime, 'function');\n  assert.deepEqual(await m0.formatReadingTime(...[0]), \"1 min read\");\n});\n\ntest(\"8. formatReadingTime(2.5) returns \\\"1 min read\\\"\", async () => {\n  assert.equal(typeof m0.formatReadingTime, 'function');\n  assert.deepEqual(await m0.formatReadingTime(...[2.5]), \"1 min read\");\n});\n\ntest(\"9. src/lib/reading-time.ts does not contain \\\"import \\\"\", async () => {\n  assert.equal(source(\"src/lib/reading-time.ts\").includes(\"import \"), false);\n});\n",
+        "path": "tests/factory-acceptance/reading-time.acceptance.test.mjs"
+      }
+    ],
+    "acceptance_tests_note": "Generated from the approved idea; run unchanged in the sandbox after the repository checks.",
+    "allowed_paths": [
+      "src/lib/reading-time.ts",
+      "tests/reading-time.test.mjs"
+    ],
+    "builder_test_path": "tests/reading-time.test.mjs",
+    "constraints": [
+      "No schema migrations",
+      "No new services",
+      "No credential changes",
+      "No production writes",
+      "No network calls"
+    ],
+    "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+    "execution_authorized": false,
+    "intake_id": "reading-time",
+    "model": "gpt-6.1-terra",
+    "objective": "Add a reading-time helper so library items can later show an estimated reading time.",
+    "provider_strategy": "openai_builder_independent_anthropic_reviewer",
+    "regression_acceptance_tests": [],
+    "release_authorized": false,
+    "repository": "timbrydges/bonus-library",
+    "requirements": [
+      "Create src/lib/reading-time.ts with no imports. Export const WORDS_PER_MINUTE = 200.",
+      "Export function readingMinutes(text: string): number. Count words as the non-empty pieces of text.trim() split on whitespace, then return Math.max(1, Math.ceil(words / WORDS_PER_MINUTE)). Empty or whitespace-only text returns 1.",
+      "Export function formatReadingTime(minutes: number): string returning `${minutes} min read` for a whole number of minutes of at least 1; for anything else (zero, negative, fractional, NaN) return '1 min read'.",
+      "Plain TypeScript only (it runs under node --experimental-strip-types): no JSX, no path aliases, no enums or namespaces.",
+      "Write regression tests in tests/reading-time.test.mjs; the Factory-owned tests in tests/factory-acceptance/reading-time.acceptance.test.mjs must pass unchanged."
+    ],
+    "reviewer_model": "claude-opus-5-5",
+    "schema_version": 1,
+    "signing_authorized": false,
+    "source_file_bytes": {},
+    "source_manifest_digest": "sha256:a5c2a874402da4463a93273e89dc7b042b0e822054cfe51ba4ffac50e23abaeb",
+    "spending_authorized": false,
+    "status": "OFFLINE_PREPARATION",
+    "target_commit": "ebea53ae59ade5ee146c242f876628f1f6348f35",
+    "task_id": "bonus-library-reading-time"
+  }
+}
