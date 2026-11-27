@@ -1,0 +1,162 @@
+{
+  "approved_by": null,
+  "contract_digest": "sha256:dcb1af2c13a5bc7885b188c24b0b7d4c26005d63b711c58ececd9844e21dd7a2",
+  "idea": {
+    "acceptance": [
+      {
+        "module": "src/lib/description-meter.ts",
+        "names": [
+          "DESCRIPTION_MIN_WORDS",
+          "describeDescription"
+        ],
+        "type": "exports"
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expect": "0 words \u00b7 1 min read \u00b7 Short: aim for at least 30 words",
+        "function": "describeDescription",
+        "module": "src/lib/description-meter.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "One"
+        ],
+        "expect": "1 word \u00b7 1 min read \u00b7 Short: aim for at least 30 words",
+        "function": "describeDescription",
+        "module": "src/lib/description-meter.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word"
+        ],
+        "expect": "30 words \u00b7 1 min read",
+        "function": "describeDescription",
+        "module": "src/lib/description-meter.ts",
+        "type": "returns"
+      },
+      {
+        "args": [
+          "  word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\n"
+        ],
+        "expect": "201 words \u00b7 2 min read",
+        "function": "describeDescription",
+        "module": "src/lib/description-meter.ts",
+        "type": "returns"
+      },
+      {
+        "path": "src/lib/description-meter.ts",
+        "text": "from \"./reading-time.ts\"",
+        "type": "source_contains"
+      },
+      {
+        "path": "src/app/dashboard/draft-review.tsx",
+        "text": "import { describeDescription } from \"@/lib/description-meter\"",
+        "type": "source_contains"
+      },
+      {
+        "path": "src/app/dashboard/draft-review.tsx",
+        "text": "<p className=\"description-meter\" aria-live=\"polite\">{describeDescription(description)}</p>",
+        "type": "source_contains"
+      },
+      {
+        "path": "src/app/dashboard/draft-review.tsx",
+        "text": "Save review",
+        "type": "source_contains"
+      },
+      {
+        "path": "src/app/dashboard/draft-review.tsx",
+        "text": "Approve exact version",
+        "type": "source_contains"
+      }
+    ],
+    "allowed_paths": [
+      "src/lib/description-meter.ts",
+      "src/app/dashboard/draft-review.tsx",
+      "tests/description-meter.test.mjs"
+    ],
+    "builder_test": "tests/description-meter.test.mjs",
+    "idea_id": "description-meter",
+    "input_class": "large",
+    "model": "gpt-6.1-terra",
+    "objective": "Show a live word count, reading time and a short-description hint under the description box in the draft review.",
+    "regression_acceptance_tests": [
+      "tests/factory-acceptance/reading-time.acceptance.test.mjs",
+      "tests/factory-acceptance/library-title-button.acceptance.test.mjs",
+      "tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs",
+      "tests/factory-acceptance/ai-cover-preview.acceptance.test.mjs"
+    ],
+    "repository": "timbrydges/bonus-library",
+    "requirements": [
+      "Create src/lib/description-meter.ts. Import { readingMinutes, formatReadingTime } from \"./reading-time.ts\" (the merged helper; do not change it). Export const DESCRIPTION_MIN_WORDS = 30.",
+      "Export function describeDescription(text: string): string. Count words as the non-empty pieces of text.trim() split on whitespace. Return `${words} word` + (words === 1 ? '' : 's') + ' \u00b7 ' + formatReadingTime(readingMinutes(text)), and when words < DESCRIPTION_MIN_WORDS append ' \u00b7 Short: aim for at least 30 words'.",
+      "In src/app/dashboard/draft-review.tsx add import { describeDescription } from \"@/lib/description-meter\"; and directly after the \"Reviewed description\" textarea (before the review-actions div) render <p className=\"description-meter\" aria-live=\"polite\">{describeDescription(description)}</p>. It reads the description being edited and saves nothing; change nothing else.",
+      "Use anchored edits for draft-review.tsx. Plain TypeScript in the lib file (it runs under node --experimental-strip-types): no JSX, no path aliases."
+    ],
+    "source_file_bytes": {
+      "src/app/dashboard/draft-review.tsx": 9500
+    },
+    "source_manifest_digest": "sha256:66d05b4a259b0ed8de7e7f6863e655bf2d30a49e2f25cca8ec78554737c5b0e3",
+    "target_commit": "8db51f9a06e8f9f8296669c3dfe885a3e9a8b8cb"
+  },
+  "kind": "factory_task_intake_v1",
+  "status": "PENDING_APPROVAL",
+  "task": {
+    "acceptance_tests": [
+      {
+        "content": "// Factory-owned acceptance tests for bonus-library-description-meter, generated from its approved idea.\n// The builder must make these pass and cannot edit them.\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport test from 'node:test';\nimport * as m0 from \"../../src/lib/description-meter.ts\";\n\nconst source = (path) => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');\n\ntest(\"1. src/lib/description-meter.ts exports DESCRIPTION_MIN_WORDS, describeDescription\", async () => {\n  assert.notEqual(m0[\"DESCRIPTION_MIN_WORDS\"], undefined, \"DESCRIPTION_MIN_WORDS\");\n  assert.notEqual(m0[\"describeDescription\"], undefined, \"describeDescription\");\n});\n\ntest(\"2. describeDescription(\\\"\\\") returns \\\"0 words \\\\u00b7 1 min read \\\\u00b7 Short: aim for at least 30 words\\\"\", async () => {\n  assert.equal(typeof m0.describeDescription, 'function');\n  assert.deepEqual(await m0.describeDescription(...[\"\"]), \"0 words \\u00b7 1 min read \\u00b7 Short: aim for at least 30 words\");\n});\n\ntest(\"3. describeDescription(\\\"One\\\") returns \\\"1 word \\\\u00b7 1 min read \\\\u00b7 Short: aim for at least 30 words\\\"\", async () => {\n  assert.equal(typeof m0.describeDescription, 'function');\n  assert.deepEqual(await m0.describeDescription(...[\"One\"]), \"1 word \\u00b7 1 min read \\u00b7 Short: aim for at least 30 words\");\n});\n\ntest(\"4. describeDescription(\\\"word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\\\") returns \\\"30 words \\\\u00b7 1 min read\\\"\", async () => {\n  assert.equal(typeof m0.describeDescription, 'function');\n  assert.deepEqual(await m0.describeDescription(...[\"word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\"]), \"30 words \\u00b7 1 min read\");\n});\n\ntest(\"5. describeDescription(\\\"  word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\", async () => {\n  assert.equal(typeof m0.describeDescription, 'function');\n  assert.deepEqual(await m0.describeDescription(...[\"  word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\\n\"]), \"201 words \\u00b7 2 min read\");\n});\n\ntest(\"6. src/lib/description-meter.ts contains \\\"from \\\\\\\"./reading-time.ts\\\\\\\"\\\"\", async () => {\n  assert.ok(source(\"src/lib/description-meter.ts\").includes(\"from \\\"./reading-time.ts\\\"\"));\n});\n\ntest(\"7. src/app/dashboard/draft-review.tsx contains \\\"import { describeDescription } from \\\\\\\"@/lib/description-meter\\\\\\\"\\\"\", async () => {\n  assert.ok(source(\"src/app/dashboard/draft-review.tsx\").includes(\"import { describeDescription } from \\\"@/lib/description-meter\\\"\"));\n});\n\ntest(\"8. src/app/dashboard/draft-review.tsx contains \\\"<p className=\\\\\\\"description-meter\\\\\\\" aria-live=\\\\\\\"polite\\\\\\\">{describeDescription(description)}</p>\\\"\", async () => {\n  assert.ok(source(\"src/app/dashboard/draft-review.tsx\").includes(\"<p className=\\\"description-meter\\\" aria-live=\\\"polite\\\">{describeDescription(description)}</p>\"));\n});\n\ntest(\"9. src/app/dashboard/draft-review.tsx contains \\\"Save review\\\"\", async () => {\n  assert.ok(source(\"src/app/dashboard/draft-review.tsx\").includes(\"Save review\"));\n});\n\ntest(\"10. src/app/dashboard/draft-review.tsx contains \\\"Approve exact version\\\"\", async () => {\n  assert.ok(source(\"src/app/dashboard/draft-review.tsx\").includes(\"Approve exact version\"));\n});\n",
+        "path": "tests/factory-acceptance/description-meter.acceptance.test.mjs"
+      }
+    ],
+    "acceptance_tests_note": "Generated from the approved idea; run unchanged in the sandbox after the repository checks.",
+    "allowed_paths": [
+      "src/lib/description-meter.ts",
+      "src/app/dashboard/draft-review.tsx",
+      "tests/description-meter.test.mjs"
+    ],
+    "builder_test_path": "tests/description-meter.test.mjs",
+    "constraints": [
+      "No schema migrations",
+      "No new services",
+      "No credential changes",
+      "No production writes",
+      "No network calls"
+    ],
+    "deliverable": "Reviewable pull request with passing tests; no merge or deployment.",
+    "execution_authorized": false,
+    "input_class": "large",
+    "intake_id": "description-meter",
+    "model": "gpt-6.1-terra",
+    "objective": "Show a live word count, reading time and a short-description hint under the description box in the draft review.",
+    "provider_strategy": "openai_builder_independent_anthropic_reviewer",
+    "regression_acceptance_tests": [
+      "tests/factory-acceptance/reading-time.acceptance.test.mjs",
+      "tests/factory-acceptance/library-title-button.acceptance.test.mjs",
+      "tests/factory-acceptance/ai-cover-ui.acceptance.test.mjs",
+      "tests/factory-acceptance/ai-cover-preview.acceptance.test.mjs"
+    ],
+    "release_authorized": false,
+    "repository": "timbrydges/bonus-library",
+    "requirements": [
+      "Create src/lib/description-meter.ts. Import { readingMinutes, formatReadingTime } from \"./reading-time.ts\" (the merged helper; do not change it). Export const DESCRIPTION_MIN_WORDS = 30.",
+      "Export function describeDescription(text: string): string. Count words as the non-empty pieces of text.trim() split on whitespace. Return `${words} word` + (words === 1 ? '' : 's') + ' \u00b7 ' + formatReadingTime(readingMinutes(text)), and when words < DESCRIPTION_MIN_WORDS append ' \u00b7 Short: aim for at least 30 words'.",
+      "In src/app/dashboard/draft-review.tsx add import { describeDescription } from \"@/lib/description-meter\"; and directly after the \"Reviewed description\" textarea (before the review-actions div) render <p className=\"description-meter\" aria-live=\"polite\">{describeDescription(description)}</p>. It reads the description being edited and saves nothing; change nothing else.",
+      "Use anchored edits for draft-review.tsx. Plain TypeScript in the lib file (it runs under node --experimental-strip-types): no JSX, no path aliases.",
+      "Write regression tests in tests/description-meter.test.mjs; the Factory-owned tests in tests/factory-acceptance/description-meter.acceptance.test.mjs must pass unchanged."
+    ],
+    "reviewer_model": "claude-opus-5-5",
+    "schema_version": 1,
+    "signing_authorized": false,
+    "source_file_bytes": {
+      "src/app/dashboard/draft-review.tsx": 9500
+    },
+    "source_manifest_digest": "sha256:66d05b4a259b0ed8de7e7f6863e655bf2d30a49e2f25cca8ec78554737c5b0e3",
+    "spending_authorized": false,
+    "status": "OFFLINE_PREPARATION",
+    "target_commit": "8db51f9a06e8f9f8296669c3dfe885a3e9a8b8cb",
+    "task_id": "bonus-library-description-meter"
+  }
+}
