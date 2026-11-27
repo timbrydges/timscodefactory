@@ -66,7 +66,13 @@ def limits_for(spec):
         raise ValueError('input_class must be standard or large')
     # Caps stay sized for the price ceiling; a cheaper approved model only lowers real spend.
     model_id, _ = approved_models.resolve(spec)
-    return dict(FIXED, **(LARGE if size == 'large' else {}), model_id=model_id)
+    limits = dict(FIXED, **(LARGE if size == 'large' else {}), model_id=model_id)
+    reviewer = approved_models.resolve_reviewer(spec)
+    if reviewer is not None:
+        # Independent reviewer: a different provider, with its own credential.
+        limits.update(reviewer_model_id=reviewer[0],
+                      reviewer_credential_source='env:FACTORY_ANTHROPIC_API_KEY')
+    return limits
 
 
 def attempt_cap(spec, repair_rounds):
@@ -91,10 +97,18 @@ def _price(value):
 
 def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=None,
             input_price, output_price, pricing_source, now, hours, source_commit,
-            repair_rounds=2, task=TASK):
+            repair_rounds=2, task=TASK, reviewer_input_price=None, reviewer_output_price=None):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
-    contract = contract_with_lessons(Path(task).read_bytes())
+    raw_task = Path(task).read_bytes()
+    if 'intake_id' in json.loads(raw_task):
+        # A generated task enters the build loop only after the owner approved this exact form.
+        from factory_runtime.task_intake import verify_approved
+        intake = Path(task).with_name('intake.json')
+        if not intake.is_file():
+            raise ValueError('generated task has no intake record; it is not approved')
+        verify_approved(json.loads(intake.read_bytes()), json.loads(raw_task))
+    contract = contract_with_lessons(raw_task)
     spec = json.loads(contract)
     # The task contract pins its expected source content; a caller may only restate it.
     pinned = spec.get('source_manifest_digest')
@@ -129,6 +143,20 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
                    output_usd_per_million_tokens=_price(output_price),
                    effective_at=now.isoformat(), expires_at=(now+timedelta(hours=24)).isoformat(),
                    source_id=pricing_source)
+    reviewer = approved_models.resolve_reviewer(spec)
+    if reviewer is None and (reviewer_input_price, reviewer_output_price) != (None, None):
+        raise ValueError('reviewer prices given but the task has no independent reviewer')
+    if reviewer is not None:
+        if reviewer_input_price is None or reviewer_output_price is None:
+            raise ValueError('the owner-checked reviewer input and output prices are required')
+        if (Decimal(_price(reviewer_input_price)) > reviewer[2]['input']
+                or Decimal(_price(reviewer_output_price)) > reviewer[2]['output']):
+            raise ValueError('reviewer price exceeds the approved maximum for this model')
+        pricing['reviewer'] = dict(model_id=reviewer[0],
+            input_usd_per_million_tokens=_price(reviewer_input_price),
+            output_usd_per_million_tokens=_price(reviewer_output_price),
+            effective_at=pricing['effective_at'], expires_at=pricing['expires_at'],
+            source_id=pricing_source)
     approval = dict(pins=pins, expires_at=(now+timedelta(hours=hours)).isoformat())
     output.mkdir(exist_ok=False)
     files = dict(pins=pins, approval=approval, pricing=pricing)
@@ -149,6 +177,8 @@ def main(argv=None):
                  'input-price', 'output-price', 'pricing-source'):
         parser.add_argument('--'+name, required=True)
     parser.add_argument('--manifest')
+    parser.add_argument('--reviewer-input-price')
+    parser.add_argument('--reviewer-output-price')
     parser.add_argument('--task', default='bonus-library-pagination')
     parser.add_argument('--hours', type=int, default=12)
     parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
@@ -163,7 +193,8 @@ def main(argv=None):
         manifest=args.manifest, input_price=args.input_price, output_price=args.output_price,
         pricing_source=args.pricing_source, now=datetime.now(timezone.utc),
         hours=args.hours, source_commit=head, repair_rounds=args.repair_rounds,
-        task=task_path(args.task))))
+        task=task_path(args.task), reviewer_input_price=args.reviewer_input_price,
+        reviewer_output_price=args.reviewer_output_price)))
     return 0
 
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Owner-approved OpenAI models for development attempts. A task may name one in its \"model\" field; tasks without it use the default. Stage caps assume at most US$4.00 input and US$20.00 output per million tokens, so every model listed here must cost no more than that. Models are added only through owner-approved pull requests.",
+  "note": "Owner-approved OpenAI models for development attempts. A task may name one in its \"model\" field; tasks without it use the default. Stage caps assume at most US$4.00 input and US$20.00 output per million tokens, so every model listed here must cost no more than that. Models are added only through owner-approved pull requests. A task may also name an approved independent reviewer in its \"reviewer_model\" field; that reviewer must come from a different provider than the builder.",
   "default": "gpt-5.6-sol",
   "models": {
     "gpt-5.6-sol": {
@@ -12,6 +12,14 @@
       "max_input_usd_per_million_tokens": "1.00",
       "max_output_usd_per_million_tokens": "5.00",
       "approved": "Owner: 'Use model gpt-6.1 terra' with OpenAI pricing page screenshot 2026-11-12 (US$1.00 input / US$5.00 output per million tokens); for tasks that set \"model\": \"gpt-6.1-terra\" (builder and reviewer)"
+    }
+  },
+  "reviewers": {
+    "claude-opus-5-5": {
+      "provider": "anthropic",
+      "max_input_usd_per_million_tokens": "4.00",
+      "max_output_usd_per_million_tokens": "20.00",
+      "approved": "Proposed for the independent reviewer at Anthropic list price US$4.00 input / US$20.00 output per million tokens; takes effect only when the owner merges this list"
     }
   }
 }

@@ -25,6 +25,9 @@ def approval_pins_match(approval, expected_pins, *, execution_profile=None):
     if type(expected_pins) is dict and 'source_config_digest' in expected_pins:
         # Private-source attempts bind the acquisition config and expected content as a pair.
         keys |= {'source_config_digest', 'source_manifest_digest'}
+    if type(expected_pins) is dict and 'reviewer_model_id' in expected_pins:
+        # Independent reviewer: its model and credential are pinned with the attempt.
+        keys |= {'reviewer_model_id', 'reviewer_credential_source'}
     if type(expected_pins) is dict and 'repair_rounds' in expected_pins:
         # Owner-approved bounded repair; the total cap must cover every round.
         keys.add('repair_rounds')
@@ -68,6 +71,9 @@ def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
             or digest(options['contract_bytes']) != pins['contract_digest']
             or snapshot.repository != pins['repository'] or snapshot.commit != pins['target_commit']
             or options['target'].model_id != pins['model_id']
+            or (options.get('reviewer_target') is None) != ('reviewer_model_id' not in pins)
+            or (options.get('reviewer_target') is not None
+                and options['reviewer_target'].model_id != pins['reviewer_model_id'])
             or 'enabled' in options):
         raise StateError('runtime differs from approved attempt')
     if 'source_manifest_digest' in pins:

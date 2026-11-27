@@ -74,8 +74,11 @@ class EnvironmentProviderCredentialLeaseSource:
             raise ValueError("lease_ttl_seconds must be an integer")
         if not 30 <= self.lease_ttl_seconds <= 900:
             raise ValueError("lease_ttl_seconds must be between 30 and 900")
-        if self.provider_family != "openai" or self.audience != "api.openai.com":
-            raise ValueError("credential lease source is bound to OpenAI api.openai.com")
+        # Exactly two bindings: the OpenAI builder key and the independent Anthropic reviewer key.
+        anthropic = self.environment_variable == "FACTORY_ANTHROPIC_API_KEY"
+        binding = (self.provider_family, self.audience)
+        if binding != (("anthropic", "api.anthropic.com") if anthropic else ("openai", "api.openai.com")):
+            raise ValueError("credential lease source is bound to one provider family and audience")
 
     async def issue(self, *, target: ResolvedProviderTarget) -> ProviderCredentialLease:
         if not isinstance(target, ResolvedProviderTarget):
