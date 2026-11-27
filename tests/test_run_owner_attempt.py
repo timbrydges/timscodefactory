@@ -82,6 +82,17 @@ class OwnerAttemptTests(unittest.TestCase):
         self.assertFalse(any(KEY in line for line in self.lines))
         self.assertIn('Type not inferred', '\n'.join(self.lines))
 
+    def test_detached_disk_and_stopped_docker_name_the_fix(self):
+        def missing(path): raise FileNotFoundError(3, 'The system cannot find the path specified')
+        self.ops.volume_total = missing
+        with self.assertRaisesRegex(ValueError, 'Mount-DiskImage'):
+            self.run_owner()
+        self.ops = FakeOps(self.root)
+        def stopped(image): raise owner.subprocess.CalledProcessError(1, ['docker'])
+        self.ops.docker_image_digest = stopped
+        with self.assertRaisesRegex(ValueError, 'Docker Desktop'):
+            self.run_owner()
+
     def test_next_attempt_id_skips_used_names(self):
         for name in ('pagination-001', 'pagination-004', 'pagination-002.consumed.json'):
             folder = self.root/'dev-attempts'; folder.mkdir(exist_ok=True)
@@ -153,6 +164,16 @@ class BatchTests(OwnerAttemptTests):
         self.assertEqual(self.ops.events.count('prompt'), 1)
         self.assertEqual(batch['spent_usd'], '0.93')
         self.assertFalse(any(KEY in line for line in self.lines))
+
+    def test_a_stop_before_any_model_call_ends_the_batch(self):
+        from unittest.mock import patch
+        stopped = {'attempt_id': 'pagination-001', 'outcome': {'status': 'STOPPED'}, 'stages': {},
+                   'total_cost_usd': '0', 'uncertain_max_usd': '0'}
+        (self.root / 'dev-results').mkdir(exist_ok=True)
+        with patch.object(owner, 'run', return_value=stopped) as run:
+            batch = self.batch()
+        self.assertEqual(batch['status'], 'STOPPED_BEFORE_ANY_MODEL_CALL')
+        self.assertEqual(run.call_count, 1)
 
     def test_without_publish_flag_nothing_is_pushed(self):
         self.assertEqual(self.batch(publish_approved=False)['status'], 'APPROVED')
@@ -236,6 +257,18 @@ class SelfUpdateTests(unittest.TestCase):
         self.ops.update_state = 'updated'
         self.assertEqual(owner.main(self.argv(), ops=self.ops), 7)
         self.assertEqual(self.ops.events, ['update', ('restart', tuple(self.argv()))])
+
+    def test_flags_newer_than_the_checkout_update_first_then_restart(self):
+        self.ops.update_state = 'updated'
+        argv = self.argv('--reviewer-input-price', '4.00', '--flag-from-a-later-version')
+        self.assertEqual(owner.main(argv, ops=self.ops), 7)
+        self.assertEqual(self.ops.events, ['update', ('restart', tuple(argv))])
+        self.ops.events.clear(); self.ops.update_state = 'current'
+        with self.assertRaises(SystemExit):  # Already current: unknown flags are still refused.
+            import contextlib, io
+            with contextlib.redirect_stderr(io.StringIO()):
+                owner.main(self.argv('--flag-from-a-later-version'), ops=self.ops)
+        self.assertEqual(self.ops.events, ['update'])
 
     def test_diverged_checkout_stops_before_anything(self):
         self.ops.update_state = 'diverged'

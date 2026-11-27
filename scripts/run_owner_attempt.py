@@ -234,10 +234,20 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
         raise ValueError('Factory checkout has local changes; run git status in factory-src')
     if not ops.verify_integrity():
         raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run')
-    total = ops.volume_total(config.attempt_parent)
+    try:
+        total = ops.volume_total(config.attempt_parent)
+    except OSError:
+        total = 0
+    if not total:
+        raise ValueError('attempt disk is not attached; in an administrator PowerShell run: '
+                         'Mount-DiskImage -ImagePath C:\\FactoryRunner\\volumes\\source-attempts.vhdx')
     if not 0 < total <= ATTEMPT_VOLUME_MAX_BYTES:
         raise ValueError('source volume is not attached; reattach source-attempts.vhdx')
-    image_ref = ops.docker_image_digest(image)
+    try:
+        image_ref = ops.docker_image_digest(image)
+    except (OSError, subprocess.SubprocessError):
+        raise ValueError(f'Docker is not running or the check image {image} is missing; '
+                         'start Docker Desktop and wait for "Engine running"') from None
     inputs, attempts, results = root/'dev-inputs', root/'dev-attempts', root/'dev-results'
     for folder in (inputs, attempts, results):
         folder.mkdir(exist_ok=True)
@@ -345,6 +355,10 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                     record['publication'] = ops.publish(summary['attempt_id'])
                     status = 'APPROVED_AND_PUBLISHED'
                 break
+            if not summary['stages']:
+                # Stopped before any model call (source, disk, Docker): retrying cannot help.
+                status = 'STOPPED_BEFORE_ANY_MODEL_CALL'
+                break
             if (outcome not in CONTINUE_AFTER and not definite) or uncertain:
                 status = 'STOPPED_FOR_RECONCILIATION'
                 break
@@ -386,7 +400,8 @@ def main(argv=None, ops=None):
     parser.add_argument('--max-total-usd')
     parser.add_argument('--publish-approved', action='store_true')
     parser.add_argument('--no-self-update', action='store_true')
-    args = parser.parse_args(argv)
+    # An older checkout may not know flags added since; update first, then parse strictly.
+    args, unknown = parser.parse_known_args(argv)
     if not args.owner_authorized:
         parser.error('explicit owner authorization required')
     source = args.pricing_source or f"openai-pricing-{datetime.now(timezone.utc):%Y-%m-%d}-owner-checked"
@@ -410,6 +425,8 @@ def main(argv=None, ops=None):
             raise ValueError('Factory checkout differs from the owner-merged main; nothing was run')
         if state == 'offline':
             print('Could not check for Factory updates; continuing with the verified local version.')
+    if unknown:
+        parser.error('unrecognized arguments: ' + ' '.join(unknown))
     if batch_mode:
         batch = run_batch(max_attempts=args.max_attempts, max_total_usd=args.max_total_usd,
                           publish_approved=args.publish_approved, ops=ops, **options)

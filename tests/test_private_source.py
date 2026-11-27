@@ -130,9 +130,16 @@ class PrivateSourceTests(unittest.TestCase):
         self.fetch.assert_not_called()
 
     def test_expired_short_and_excessive_lifetime_rejected(self):
-        for seconds in (-1,60,3601):
+        for seconds in (-1,60,3901):
             response = dict(self.response,expires_at=(self.now+timedelta(seconds=seconds)).isoformat())
             with self.assertRaises(StateError): validate_installation_response(response,self.binding,self.now)
+
+    def test_one_hour_token_from_a_slightly_slow_local_clock_is_accepted(self):
+        # The owner's PC was 1-5 minutes behind GitHub: a fresh one-hour token reads as >3600 s.
+        for seconds in (3601, 3700, 3900):
+            response = dict(self.response,expires_at=(self.now+timedelta(seconds=seconds)).isoformat())
+            self.assertEqual(validate_installation_response(response,self.binding,self.now).expires_at,
+                             self.now+timedelta(seconds=seconds))
 
     def test_no_fixed_token_length_and_no_secret_repr(self):
         response = dict(self.response,token='ghs_'+('x'*2000))
