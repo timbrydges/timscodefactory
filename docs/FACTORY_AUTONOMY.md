@@ -1,5 +1,111 @@
 # Completing Tim's Software Factory
 
+## Current state — 2026-11-27
+
+This section supersedes the continuation boundaries below, which are kept as
+history. Bonus Library remains the acceptance project.
+
+### The build loop (owner-run, live)
+
+`scripts/run_owner_attempt.py` runs one bounded attempt, or a batch, for one
+task contract in `factory/projects/<task>/task.json`:
+
+1. **Prepare** (`prepare_development_attempt.py`): pins the Factory commit, the
+   contract digest (with reviewed lessons from `factory/lessons.json`), the
+   private source manifest, the check image, the models and the stage caps into
+   a single-use approval valid for at most 24 hours. No call is made.
+2. **Build**: the OpenAI builder (`factory/models.json`; default `gpt-5.6-sol`,
+   cheaper `gpt-6.1-terra` per task) returns one complete proposal of anchored
+   edits within the task's allowed paths.
+3. **Check**: the proposal runs in a network-disabled Docker sandbox against the
+   repository's own gates (Next typegen, `tsc --noEmit`, ESLint) and the node
+   tests, including the Factory-owned acceptance tests the builder cannot edit.
+4. **Review**: only a proposal that passed its checks is reviewed against the
+   specification. With `"reviewer_model"` in the contract, the reviewer is the
+   independent Anthropic `claude-opus-5-5` (see below); older contracts use a
+   separate OpenAI reviewer adapter.
+5. **Repair**: a rejection or failed check allows up to two bounded repair
+   rounds, each a new builder proposal plus review, bound to the rejected result.
+6. **Publish** (`publish_approved_attempt.py`, `--publish-approved`): an approved
+   attempt is pushed to a new `factory/<attempt>` branch only. The owner opens,
+   reviews and merges the pull request; nothing merges or deploys automatically.
+
+Every stage is journalled before any provider call and is never retried; an
+uncertain outcome stops the batch for reconciliation and counts at its cap.
+Repair drafts (`dev-results/repair-drafts/`) propose contract or lesson fixes for
+unapproved attempts. Through 2026-11-13: 45 attempts, 20 approved, US$4.95.
+
+### Budget caps
+
+| Input class | Request cap | Builder / reviewer cap per round | Per attempt (3 rounds) |
+| --- | --- | --- | --- |
+| standard | 42,020 B | US$0.50 / US$0.25 | US$2.25 |
+| large (`"input_class": "large"`) | 96,000 B | US$0.75 / US$0.50 | US$3.75 |
+
+Caps are sized for the US$4.00 / US$20.00 per-million-token ceiling that every
+approved model must stay under, so a cheaper model only lowers real spend. The
+owner states the checked prices on each run; a price above the approved maximum
+is refused. A batch has its own `--max-total-usd` limit.
+
+### Independent reviewer
+
+`anthropic_provider.py` reviews through one bounded Anthropic Messages request
+(fixed route `api.anthropic.com/v1/messages`, structured output, no tools, no
+cache writes, no SDK retry). `DevelopmentProviderSession` refuses a reviewer
+from the builder's provider family, and the approval pins the reviewer model and
+its separate key (`FACTORY_ANTHROPIC_API_KEY`). Reviewer prices are given with
+`--reviewer-input-price` and `--reviewer-output-price`. Generated tasks always
+use it. Live use needs the owner's Anthropic key; no live review has run yet.
+
+### From idea to ordered tasks
+
+- `task_intake.py` / `scripts/task_intake.py draft` compiles a short idea
+  (objective, requirements, allowed paths, criteria) into a task contract and a
+  generated node:test acceptance file, recorded as `PENDING_APPROVAL`.
+  `approve` accepts only the owner's exact phrase binding the contract digest,
+  then writes the task. Prepare refuses generated tasks not approved in that
+  exact form. Criteria are `exports`, `returns`, `source_contains` and
+  `source_excludes`; turning free text into an idea is still done by the
+  assistant or the owner.
+- `task_plan.py` estimates each idea's largest request with the task-fit
+  calibration, chooses the input class, splits an idea that fits neither
+  (library modules first, wiring last) and orders tasks topologically; tasks
+  sharing a file are sequenced. `next_ready` releases a task only after its
+  dependencies have merged, pinned to the new main commit and manifest.
+
+### Unattended runs (prepared, switched off)
+
+`scripts/unattended_runner.py check` reports readiness and the owner action for
+each gap without reading secrets. `run`, invoked by a timer, does nothing unless
+the owner's `unattended-activation.json` exists, is unexpired (at most 31 days)
+and names the tasks and a daily budget. Keys come from the environment or exact
+AWS Secrets Manager secrets, never a prompt (`run_owner_attempt.py
+--non-interactive`). A lock stops overlapping runs and a ledger enforces the
+daily cap. The older AWS controller and EventBridge schedule remain DISABLED;
+they cannot run the Docker check sandbox, so the unattended host is a machine
+or container with Docker.
+
+### Audited release
+
+`scripts/release_bonus_library.py` replaces the CloudShell budget update, the
+Vercel activation setting and the deploy with one idempotent run. It requires
+`Release <sha> to production`, the SHA at the tip of main, and confirmation of
+every migration added since the last release (the owner applies SQL). Every
+run, `--dry-run` included, writes a write-once audit record (time, branch, SHA,
+previous release, reviewer verdicts, budget record, step outcomes) chained to
+the previous one by digest.
+
+### Owner actions still required
+
+1. Anthropic API key for the reviewer, stored as `FACTORY_ANTHROPIC_API_KEY` or
+   the secret `tims-software-factory/provider/anthropic/review`, and its checked
+   price confirmed before the first live review.
+2. An unattended host with Docker and the runner root, then the activation
+   record; until then runs stay owner-started.
+3. `VERCEL_TOKEN` and AWS credentials where the release script runs, then a
+   `--dry-run` before the first real release.
+
+
 ## Current continuation boundary — 2026-10-06
 
 Handoff 004 completed the bounded OpenAI Builder, Anthropic Inspector and
