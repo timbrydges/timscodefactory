@@ -72,6 +72,7 @@ def committed_manifest_matches(root):
 class HostOps:
     """Real host effects; tests replace these with offline fakes."""
     runner_root = r'C:\FactoryRunner'
+    interactive = True
     def docker_image_digest(self, image):
         # Registry images have a repo digest; locally built check images use their image ID.
         out = subprocess.run(['docker', 'image', 'inspect', image, '--format',
@@ -116,6 +117,9 @@ class HostOps:
         return subprocess.call([sys.executable, str(Path(__file__).resolve()), *argv], env=env)
 
     def wait_for_key_copy(self, provider='OpenAI'):
+        if not self.interactive:
+            # Unattended runs take keys only from the environment, never a prompt.
+            raise ValueError(f'{provider} key is not in the environment; a non-interactive run never prompts')
         # Hidden input: even an accidental paste here is never echoed.
         getpass.getpass(f'Copy the {provider} key now, then press Enter (input is hidden): ')
 
@@ -362,7 +366,9 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
 def main(argv=None, ops=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner-authorized', action='store_true')
-    parser.add_argument('--runner-root', default=r'C:\FactoryRunner')
+    parser.add_argument('--runner-root', default=os.environ.get('FACTORY_RUNNER_ROOT', r'C:\FactoryRunner'))
+    parser.add_argument('--non-interactive', action='store_true',
+                        help='never prompt; keys must already be in the environment')
     parser.add_argument('--attempt-id')
     parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
     parser.add_argument('--input-price', required=True)
@@ -394,6 +400,7 @@ def main(argv=None, ops=None):
     if ops is None:
         ops = HostOps()
         ops.runner_root = args.runner_root
+        ops.interactive = not args.non_interactive
     if not args.no_self_update and os.environ.get('FACTORY_SELF_UPDATED') != '1':
         state = ops.self_update()
         if state == 'updated':
