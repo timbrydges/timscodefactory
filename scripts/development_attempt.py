@@ -27,16 +27,28 @@ from factory_runtime.workload_identity_response import RenewableCredentialBindin
 from factory_runtime.github_identity_bootstrap import binding_from_configuration
 
 
+def _quote(data):
+    return ProviderPricingQuote(model_id=data['model_id'],
+        input_usd_per_million_tokens=Decimal(data['input_usd_per_million_tokens']),
+        output_usd_per_million_tokens=Decimal(data['output_usd_per_million_tokens']),
+        effective_at=datetime.fromisoformat(data['effective_at']),
+        expires_at=datetime.fromisoformat(data['expires_at']), source_id=data['source_id'])
+
+
 class PinnedPricing:
+    """The builder quote, plus the independent reviewer's quote when one is pinned."""
     def __init__(self, data):
-        self.value = ProviderPricingQuote(model_id=data['model_id'],
-            input_usd_per_million_tokens=Decimal(data['input_usd_per_million_tokens']),
-            output_usd_per_million_tokens=Decimal(data['output_usd_per_million_tokens']),
-            effective_at=datetime.fromisoformat(data['effective_at']),
-            expires_at=datetime.fromisoformat(data['expires_at']), source_id=data['source_id'])
+        self.value = _quote(data)
+        self.quotes = {self.value.model_id: self.value}
+        if 'reviewer' in data:
+            reviewer = _quote(data['reviewer'])
+            if reviewer.model_id in self.quotes:
+                raise ValueError('reviewer pricing must name a different model')
+            self.quotes[reviewer.model_id] = reviewer
 
     async def quote(self, *, target):
-        return self.value  # Adapter enforces model, age, expiry and worst-case cost.
+        # Adapter enforces model, age, expiry and worst-case cost.
+        return self.quotes.get(target.model_id, self.value)
 
 
 def report_result(result):

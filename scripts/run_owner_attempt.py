@@ -31,7 +31,8 @@ prepare_module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(prepare_module)
 
 PINNED_MANIFEST = 'sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3'
-KEY = re.compile(r'sk-[A-Za-z0-9_\-]{16,512}')
+KEY = re.compile(r'sk-(?!ant-)[A-Za-z0-9_\-]{16,512}')
+ANTHROPIC_KEY = re.compile(r'sk-ant-[A-Za-z0-9_\-]{16,512}')
 STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
           'repair2_builder', 'repair2_reviewer')
 
@@ -114,9 +115,9 @@ class HostOps:
         env = {**os.environ, 'FACTORY_SELF_UPDATED': '1'}
         return subprocess.call([sys.executable, str(Path(__file__).resolve()), *argv], env=env)
 
-    def wait_for_key_copy(self):
+    def wait_for_key_copy(self, provider='OpenAI'):
         # Hidden input: even an accidental paste here is never echoed.
-        getpass.getpass('Copy the OpenAI key now, then press Enter (input is hidden): ')
+        getpass.getpass(f'Copy the {provider} key now, then press Enter (input is hidden): ')
 
     def read_clipboard(self):
         return subprocess.run(['powershell', '-NoProfile', '-Command', 'Get-Clipboard'],
@@ -200,8 +201,25 @@ def load_key(ops):
     return key
 
 
+def load_reviewer_key(ops):
+    """The independent reviewer's Anthropic key, loaded the same hidden way."""
+    key = os.environ.get('FACTORY_ANTHROPIC_API_KEY', '').strip()
+    if not key:
+        ops.wait_for_key_copy('Anthropic')
+        key = ops.read_clipboard().strip()
+        ops.clear_clipboard()
+    if not ANTHROPIC_KEY.fullmatch(key):
+        raise ValueError('clipboard did not hold an Anthropic key (expected sk-ant-...); nothing was run')
+    return key
+
+
+def needs_reviewer_key(task):
+    return 'reviewer_model' in json.loads(prepare_module.task_path(task).read_bytes())
+
+
 def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pricing_source,
-        image, manifest, hours, ops, out=print, now=None, key=None, task='bonus-library-pagination'):
+        image, manifest, hours, ops, out=print, now=None, key=None, task='bonus-library-pagination',
+        reviewer_key=None, reviewer_input_price=None, reviewer_output_price=None):
     root = Path(runner_root)
     config_path = root/'bonus-source-fetch.json'
     raw = config_path.read_bytes()
@@ -225,12 +243,16 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
         image_ref=image_ref, source_config_sha256=config_digest, manifest=manifest,
         input_price=input_price, output_price=output_price, pricing_source=pricing_source,
         now=now or datetime.now(timezone.utc), hours=hours, source_commit=head,
-        repair_rounds=repair_rounds, task=task_file)
+        repair_rounds=repair_rounds, task=task_file,
+        reviewer_input_price=reviewer_input_price, reviewer_output_price=reviewer_output_price)
     out(f"Prepared {attempt_id} ({task}): cap US${prepared['total_cap_usd']}, "
         f"repair rounds {repair_rounds}, approval valid until {prepared['approval_expires_at']}")
     if key is None:
         key = load_key(ops)
         out('Key loaded (not shown).')
+    if reviewer_key is None and needs_reviewer_key(task):
+        reviewer_key = load_reviewer_key(ops)
+        out('Independent reviewer key loaded (not shown).')
     out('Running; this can take several minutes...')
     folder = inputs/attempt_id
     args = ['--execute-approved-once', '--owner-authorized',
@@ -238,12 +260,13 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
             '--pricing', str(folder/'pricing.json'), '--contract', str(folder/'contract.json'),
             '--attempt-directory', str(attempts/attempt_id),
             '--source-config', str(config_path), '--source-config-sha256', config_digest]
-    env = {**os.environ, 'FACTORY_OPENAI_API_KEY': key}
+    env = {**os.environ, 'FACTORY_OPENAI_API_KEY': key,
+           **({'FACTORY_ANTHROPIC_API_KEY': reviewer_key} if reviewer_key else {})}
     try:
         stdout = ops.run_attempt(args, env)
     finally:
         env.clear()
-        key = None
+        key = reviewer_key = None
     try:
         outcome = json.loads(stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
@@ -293,6 +316,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
     if not ops.verify_integrity():
         raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run')
     key = load_key(ops)
+    reviewer_key = load_reviewer_key(ops) if needs_reviewer_key(options.get('task', 'bonus-library-pagination')) else None
     out(f'Key loaded (not shown). Batch: up to {max_attempts} attempt(s), US${budget} total, '
         f'publish approved: {"yes" if publish_approved else "no"}.')
     spent, records, status = Decimal(0), [], 'LIMIT_REACHED'
@@ -302,7 +326,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                 status = 'BUDGET_REACHED'
                 break
             out(f'--- Attempt {number} of {max_attempts} (spent so far US${spent}) ---')
-            summary = run(ops=ops, out=out, key=key, attempt_id=None, **options)
+            summary = run(ops=ops, out=out, key=key, reviewer_key=reviewer_key, attempt_id=None, **options)
             # Failed calls count at their cap so the batch limit stays a hard ceiling.
             spent += Decimal(summary['total_cost_usd']) + Decimal(summary['uncertain_max_usd'])
             outcome = summary['outcome'].get('status')
@@ -321,7 +345,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                 status = 'STOPPED_FOR_RECONCILIATION'
                 break
     finally:
-        key = None
+        key = reviewer_key = None
     batch = {'status': status, 'attempts': records, 'spent_usd': str(spent),
              'max_attempts': max_attempts, 'max_total_usd': str(budget)}
     results = Path(options['runner_root'])/'dev-results'
@@ -344,6 +368,9 @@ def main(argv=None, ops=None):
     parser.add_argument('--input-price', required=True)
     parser.add_argument('--output-price', required=True)
     parser.add_argument('--pricing-source')
+    # Owner-checked prices for a task's independent (Anthropic) reviewer.
+    parser.add_argument('--reviewer-input-price')
+    parser.add_argument('--reviewer-output-price')
     # Built by scripts/build_bonus_check_image.py: Node plus the pinned npm dependencies.
     parser.add_argument('--image', default='factory-bonus-checks:ef88df95bc3f')
     parser.add_argument('--manifest')  # Default: the task contract's pinned manifest.
@@ -359,7 +386,8 @@ def main(argv=None, ops=None):
     source = args.pricing_source or f"openai-pricing-{datetime.now(timezone.utc):%Y-%m-%d}-owner-checked"
     options = dict(runner_root=args.runner_root, repair_rounds=args.repair_rounds,
         input_price=args.input_price, output_price=args.output_price, pricing_source=source,
-        image=args.image, manifest=args.manifest, hours=args.hours, task=args.task)
+        image=args.image, manifest=args.manifest, hours=args.hours, task=args.task,
+        reviewer_input_price=args.reviewer_input_price, reviewer_output_price=args.reviewer_output_price)
     batch_mode = args.max_attempts > 1 or args.max_total_usd is not None or args.publish_approved
     if batch_mode and (args.attempt_id is not None or args.max_total_usd is None):
         parser.error('a batch needs --max-total-usd and picks attempt ids itself')

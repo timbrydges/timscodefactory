@@ -51,3 +51,35 @@ def resolve(spec, path=MODELS):
     if model_id not in approved:
         raise ValueError('task model is not in the approved model list')
     return model_id, approved[model_id]
+
+
+PROVIDERS = {'anthropic'}
+
+
+def load_reviewers(path=MODELS):
+    """Approved independent reviewers: model id -> (provider, maximum prices)."""
+    data = json.loads(Path(path).read_bytes())
+    reviewers = data.get('reviewers', {}) if type(data) is dict else None
+    if type(reviewers) is not dict or len(reviewers) > 10:
+        raise ValueError('invalid approved reviewer list')
+    approved = {}
+    for model_id, entry in reviewers.items():
+        if not MODEL_ID.fullmatch(model_id) or type(entry) is not dict or entry.get('provider') not in PROVIDERS:
+            raise ValueError('invalid approved reviewer')
+        prices = {kind: _price(entry.get(f'max_{kind}_usd_per_million_tokens')) for kind in CEILING}
+        if any(prices[kind] > CEILING[kind] for kind in CEILING):
+            raise ValueError('approved reviewer costs more than the stage caps allow')
+        approved[model_id] = (entry['provider'], prices)
+    return approved
+
+
+def resolve_reviewer(spec, path=MODELS):
+    """The task's independent reviewer, or None when it keeps the builder's provider."""
+    model_id = spec.get('reviewer_model')
+    if model_id is None:
+        return None
+    approved = load_reviewers(path)
+    if model_id not in approved:
+        raise ValueError('task reviewer is not in the approved reviewer list')
+    provider, prices = approved[model_id]
+    return model_id, provider, prices

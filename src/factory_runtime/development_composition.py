@@ -14,7 +14,8 @@ from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderPolicy
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import EnvironmentProviderCredentialLeaseSource
-from .provider_http_transport import DirectOpenAITransport
+from .provider_http_transport import DirectAnthropicTransport, DirectOpenAITransport
+from .anthropic_provider import AnthropicMessagesReviewInvoker, AnthropicReviewPolicy
 from .workload_identity_response import RenewableCredentialBinding
 
 
@@ -178,6 +179,33 @@ def _approved_model_ids():
         return set()  # Fail closed: no model is approved without a valid list.
 
 
+ANTHROPIC_CREDENTIAL_SOURCE = 'env:FACTORY_ANTHROPIC_API_KEY'
+
+
+def _independent_reviewer(pins, pricing_source):
+    """The pinned Anthropic reviewer; any other pin fails closed."""
+    try:
+        approved = approved_models.load_reviewers()
+    except (OSError, ValueError):
+        approved = {}
+    model_id = pins['reviewer_model_id']
+    if (approved.get(model_id, (None,))[0] != 'anthropic'
+            or pins.get('reviewer_credential_source') != ANTHROPIC_CREDENTIAL_SOURCE):
+        raise StateError('unsupported independent reviewer composition')
+    credential = EnvironmentProviderCredentialLeaseSource(environment_variable='FACTORY_ANTHROPIC_API_KEY',
+        provider_family='anthropic', audience='api.anthropic.com')
+    transport = DirectAnthropicTransport(enabled=True,
+        max_request_bytes=pins['max_request_bytes'], max_response_bytes=RESPONSE_LIMIT)
+    reviewer = AnthropicMessagesReviewInvoker(credential, pricing_source, transport,
+        policy=AnthropicReviewPolicy(live_enabled=True, max_request_bytes=pins['max_request_bytes'],
+            max_response_bytes=RESPONSE_LIMIT, timeout_seconds=180,
+            # Same 4096-token review allowance as the OpenAI reviewer, so the
+            # approved reviewer cap still covers the worst case.
+            max_output_tokens=min(pins['max_output_tokens'], 4096), effort='low'))
+    return reviewer, ResolvedProviderTarget(provider_family='anthropic', model_id=model_id,
+                                            selector_version='development-pinned-v1')
+
+
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
                        task, contract_bytes, snapshot, pricing_source, clock,
                        owner_authorized=False):
@@ -252,6 +280,9 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
                 # Its smaller output allowance leaves room for before/after input.
                 max_output_tokens=(min(pins['max_output_tokens'], 4096)
                     if workload == 'task_review' else pins['max_output_tokens'])))
+    reviewer, reviewer_target = adapter('task_review'), None
+    if 'reviewer_model_id' in pins:
+        reviewer, reviewer_target = _independent_reviewer(pins, pricing_source)
     command = profile.test_command
     delivery = profile.delivery
     def request(candidate):
@@ -263,7 +294,7 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
     return compose_approved_host(directory, approval=approval, expected_pins=pins,
         receipt_path=receipt_path, now=clock(), owner_authorized=True,
         task=task, contract_bytes=contract_bytes, snapshot=snapshot,
-        builder=adapter('task_implementation'), reviewer=adapter('task_review'),
+        builder=adapter('task_implementation'), reviewer=reviewer, reviewer_target=reviewer_target,
         target=ResolvedProviderTarget(provider_family='openai', model_id=pins['model_id'],
                                       selector_version='development-pinned-v1'),
         builder_cap=Decimal(pins['builder_cap']), reviewer_cap=Decimal(pins['reviewer_cap']),

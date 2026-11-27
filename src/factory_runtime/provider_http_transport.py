@@ -40,7 +40,7 @@ class DirectOpenAITransport:
         return await self._run_request(headers, body, timeout_seconds, kind='responses')
 
     async def _run_request(self, headers, body, timeout_seconds, *, kind):
-        if kind not in ('responses', 'token-exchange', 'github-subject'):
+        if kind not in ('responses', 'messages', 'token-exchange', 'github-subject'):
             raise OpenAIProviderProtocolError('unsupported transport operation')
         payload = json.dumps({'headers': dict(headers), 'body': body.decode('utf-8'),
             'timeout': timeout_seconds, 'limit': self.max_response_bytes, 'kind': kind}).encode()
@@ -93,6 +93,7 @@ class DirectOpenAITransport:
         connection = None
         try:
             routes = {'responses': ('api.openai.com', '/v1/responses'),
+                      'messages': ('api.anthropic.com', '/v1/messages'),
                       'token-exchange': ('auth.openai.com', '/oauth/token')}
             method = 'POST'
             if kind == 'github-subject':
@@ -128,6 +129,25 @@ class DirectOpenAITransport:
             headers.clear()
             if connection is not None:
                 connection.close()
+
+
+class DirectAnthropicTransport(DirectOpenAITransport):
+    """The same isolated one-shot child, bound to the fixed Anthropic Messages route."""
+
+    async def post_json(self, *, endpoint, headers, body, timeout_seconds):
+        if not self.enabled:
+            raise OpenAIProviderDisabledError('HTTP transport disabled')
+        if (endpoint != 'https://api.anthropic.com/v1/messages'
+                or type(body) is not bytes or len(body) > self.max_request_bytes
+                or type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 180
+                or type(headers) is not dict
+                or set(headers) != {'x-api-key', 'anthropic-version', 'content-type', 'accept'}
+                or headers.get('content-type') != 'application/json'
+                or headers.get('accept') != 'application/json'
+                or any(not isinstance(v, str) or any(ord(c) < 32 or ord(c) > 126 for c in v)
+                       for v in headers.values())):
+            raise OpenAIProviderProtocolError('invalid bounded transport request')
+        return await self._run_request(headers, body, timeout_seconds, kind='messages')
 
 
 def _worker():

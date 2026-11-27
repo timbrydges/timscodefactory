@@ -10,6 +10,7 @@ from pathlib import Path
 
 from factory_state.model import StateError
 from factory_state.scope import canonical
+from .anthropic_provider import AnthropicMessagesReviewInvoker
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 from .worker import digest
 
@@ -38,7 +39,7 @@ class ExclusiveDevelopmentJournal:
 
 class DevelopmentProviderSession:
     def __init__(self, *, builder, reviewer, target, builder_cap, reviewer_cap,
-                 total_cap, journal, enabled=False, repair_rounds=0):
+                 total_cap, journal, enabled=False, repair_rounds=0, reviewer_target=None):
         caps = (builder_cap, reviewer_cap, total_cap)
         if type(repair_rounds) is not int or repair_rounds not in (0, 1, 2):
             raise StateError('at most two bounded repair rounds')
@@ -47,12 +48,22 @@ class DevelopmentProviderSession:
         # Each round may spend both stage caps; the total covers every round.
         if (builder_cap + reviewer_cap) * (1 + repair_rounds) > total_cap or type(enabled) is not bool:
             raise StateError('stage caps exceed total or activation is invalid')
-        for adapter, workload in ((builder, 'task_implementation'), (reviewer, 'task_review')):
-            if (not isinstance(adapter, OpenAIResponsesProviderInvoker)
-                    or adapter.policy.workload != workload):
-                raise StateError('separate workload-specific OpenAI adapters required')
-        if builder is reviewer or target.provider_family != 'openai':
-            raise StateError('one provider with separate builder and reviewer required')
+        if (not isinstance(builder, OpenAIResponsesProviderInvoker)
+                or builder.policy.workload != 'task_implementation' or target.provider_family != 'openai'):
+            raise StateError('workload-specific OpenAI builder required')
+        if reviewer_target is None:
+            # Legacy single-provider review: separate adapter, same family.
+            if (not isinstance(reviewer, OpenAIResponsesProviderInvoker)
+                    or reviewer.policy.workload != 'task_review' or builder is reviewer):
+                raise StateError('one provider with separate builder and reviewer required')
+            reviewer_target = target
+        elif (reviewer_target.provider_family == target.provider_family
+                or reviewer_target.model_id == target.model_id
+                or reviewer_target.provider_family != 'anthropic'
+                or not isinstance(reviewer, AnthropicMessagesReviewInvoker)):
+            # Hard rule: an independent reviewer never shares the builder's provider family.
+            raise StateError('independent reviewer must come from a different provider family')
+        self.targets = {stage: target if stage.endswith('builder') else reviewer_target for stage in STAGES}
         self.repair_rounds = repair_rounds
         self.adapters = {stage: builder if stage.endswith('builder') else reviewer for stage in STAGES}
         self.caps = {stage: builder_cap if stage.endswith('builder') else reviewer_cap for stage in STAGES}
@@ -110,10 +121,11 @@ class DevelopmentProviderSession:
         # Set before any await; durable exclusive journal must succeed before IO.
         self.started.add(stage)
         binding = {'stage': stage, 'input_digest': digest(frozen),
-                   'model_id': self.target.model_id, 'max_cost_usd': str(self.caps[stage])}
+                   'provider_family': self.targets[stage].provider_family,
+                   'model_id': self.targets[stage].model_id, 'max_cost_usd': str(self.caps[stage])}
         self.journal(stage + '.started', binding)
         try:
-            result = await self.adapters[stage].invoke(target=self.target,
+            result = await self.adapters[stage].invoke(target=self.targets[stage],
                 turn=json.loads(frozen), max_cost_usd=self.caps[stage], decision_schema_version='1')
         except Exception as exc:
             code = exc.failure_code if isinstance(exc, OpenAIProviderProtocolError) else 'protocol_failure'
