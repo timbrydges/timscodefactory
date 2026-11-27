@@ -904,6 +904,26 @@
         "merged": true,
         "merge_commit": "198464acf8eaea7f2a20be472e0e42faefd74be7"
       }
+    },
+    "bulk-covers-001": {
+      "model": "gpt-6.1-terra",
+      "result": "TICK_COMPLETED",
+      "total_cost_usd": "0.02662000",
+      "assistant_verification": "typegen, tsc, eslint, 150 tests and next build pass",
+      "delivery": {
+        "pull_request": "timbrydges/bonus-library#55",
+        "merged": true,
+        "merge_commit": "ebea53ae59ade5ee146c242f876628f1f6348f35"
+      }
     }
+  },
+  "bonus_library_release_2026_11_13_dashboard": {
+    "authorization": "Owner: 'Done. Release ebea53ae59ade5ee146c242f876628f1f6348f35 to production'",
+    "migration": "Owner applied supabase/migrations/20261113000000_owner_archive.sql in the Supabase SQL editor before release",
+    "budget_app_commit": "Owner updated the DynamoDB budget app_commit to ebea53a via CloudShell",
+    "activation_sha": "BONUS_AI_COVER_ACTIVATION_SHA upserted to ebea53ae59ade5ee146c242f876628f1f6348f35 (production)",
+    "deployment": "dpl_3P3xv2t1whJ96kGVeF7oSLcboYqz",
+    "state": "READY, aliased to bonus-library.vercel.app",
+    "live_check": "Owner confirmed 'works': status tabs with counts, sort menu, suggested-title button, archive and restore, and bulk AI covers on the production dashboard."
   }
 }
