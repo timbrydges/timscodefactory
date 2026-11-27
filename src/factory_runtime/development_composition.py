@@ -206,6 +206,21 @@ def _independent_reviewer(pins, pricing_source):
                                             selector_version='development-pinned-v1')
 
 
+def _intake_profile(spec, pins):
+    """Profile for an owner-approved generated task: the fixed check template, its own tests.
+
+    Generated tasks always require the independent reviewer named in the contract.
+    """
+    from .task_intake import check_paths
+    if spec.get('reviewer_model') is None or pins.get('reviewer_model_id') != spec['reviewer_model']:
+        raise StateError('generated tasks require their independent reviewer')
+    try:
+        builder_test, acceptance = check_paths(spec)
+    except (KeyError, TypeError, ValueError):
+        raise StateError('generated task profile is invalid') from None
+    return tuple(spec['allowed_paths']), bonus_repository_checks(builder_test, acceptance)
+
+
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
                        task, contract_bytes, snapshot, pricing_source, clock,
                        owner_authorized=False):
@@ -215,10 +230,10 @@ def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
     if (pins['credential_source'] != 'env:FACTORY_OPENAI_API_KEY'
             or pins['model_id'] not in _approved_model_ids()
             or pins['repository'] != 'timbrydges/bonus-library'
-            or task.task_id not in BONUS_TASKS):
+            or (task.task_id not in BONUS_TASKS and 'intake_id' not in json.loads(contract_bytes))):
         raise StateError('unsupported acceptance composition')
-    required, command = BONUS_TASKS[task.task_id]
     spec = json.loads(contract_bytes)
+    required, command = BONUS_TASKS.get(task.task_id) or _intake_profile(spec, pins)
     # The fixed command must run exactly the contract's acceptance tests.
     if any(item['path'] not in command[2] for item in spec.get('acceptance_tests', [])):
         raise StateError('contract acceptance tests differ from the trusted profile')

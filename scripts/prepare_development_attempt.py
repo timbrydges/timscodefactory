@@ -100,7 +100,15 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
             repair_rounds=2, task=TASK, reviewer_input_price=None, reviewer_output_price=None):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
-    contract = contract_with_lessons(Path(task).read_bytes())
+    raw_task = Path(task).read_bytes()
+    if 'intake_id' in json.loads(raw_task):
+        # A generated task enters the build loop only after the owner approved this exact form.
+        from factory_runtime.task_intake import verify_approved
+        intake = Path(task).with_name('intake.json')
+        if not intake.is_file():
+            raise ValueError('generated task has no intake record; it is not approved')
+        verify_approved(json.loads(intake.read_bytes()), json.loads(raw_task))
+    contract = contract_with_lessons(raw_task)
     spec = json.loads(contract)
     # The task contract pins its expected source content; a caller may only restate it.
     pinned = spec.get('source_manifest_digest')
