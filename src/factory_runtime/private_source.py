@@ -42,6 +42,9 @@ class InstallationLease:
     expires_at: datetime
 
 
+CLOCK_SKEW_SECONDS = 300
+
+
 def validate_installation_response(response, binding, now):
     """Require positive scope evidence; never infer scope from a token string."""
     binding.validate()
@@ -50,7 +53,9 @@ def validate_installation_response(response, binding, now):
         repos = response['repositories']
         token = response['token']
         valid = (now.tzinfo is not None and expires.tzinfo is not None
-            and 60 < (expires - now).total_seconds() <= 3600
+            # GitHub issues one-hour tokens by its own clock; allow five minutes of
+            # local clock difference rather than rejecting a token from a slow clock.
+            and 60 < (expires - now).total_seconds() <= 3600 + CLOCK_SKEW_SECONDS
             and response['permissions'] == {'contents': 'read', 'metadata': 'read'}
             and type(repos) is list and len(repos) == 1
             and type(repos[0]['id']) is int and repos[0]['id'] == binding.repository_id
