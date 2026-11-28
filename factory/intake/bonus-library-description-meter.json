@@ -1,5 +1,5 @@
 {
-  "approved_by": null,
+  "approved_by": "tim_brydges",
   "contract_digest": "sha256:dcb1af2c13a5bc7885b188c24b0b7d4c26005d63b711c58ececd9844e21dd7a2",
   "idea": {
     "acceptance": [
@@ -103,7 +103,7 @@
     "target_commit": "8db51f9a06e8f9f8296669c3dfe885a3e9a8b8cb"
   },
   "kind": "factory_task_intake_v1",
-  "status": "PENDING_APPROVAL",
+  "status": "APPROVED",
   "task": {
     "acceptance_tests": [
       {
