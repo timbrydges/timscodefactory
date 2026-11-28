@@ -54,17 +54,19 @@ def resolve(spec, path=MODELS):
 
 
 PROVIDERS = {'anthropic'}
+QA_PROVIDERS = {'google'}
 
 
-def load_reviewers(path=MODELS):
+def load_reviewers(path=MODELS, section='reviewers', providers=None):
     """Approved independent reviewers: model id -> (provider, maximum prices)."""
+    providers = PROVIDERS if providers is None else providers
     data = json.loads(Path(path).read_bytes())
-    reviewers = data.get('reviewers', {}) if type(data) is dict else None
+    reviewers = data.get(section, {}) if type(data) is dict else None
     if type(reviewers) is not dict or len(reviewers) > 10:
         raise ValueError('invalid approved reviewer list')
     approved = {}
     for model_id, entry in reviewers.items():
-        if not MODEL_ID.fullmatch(model_id) or type(entry) is not dict or entry.get('provider') not in PROVIDERS:
+        if not MODEL_ID.fullmatch(model_id) or type(entry) is not dict or entry.get('provider') not in providers:
             raise ValueError('invalid approved reviewer')
         prices = {kind: _price(entry.get(f'max_{kind}_usd_per_million_tokens')) for kind in CEILING}
         if any(prices[kind] > CEILING[kind] for kind in CEILING):
@@ -81,5 +83,17 @@ def resolve_reviewer(spec, path=MODELS):
     approved = load_reviewers(path)
     if model_id not in approved:
         raise ValueError('task reviewer is not in the approved reviewer list')
+    provider, prices = approved[model_id]
+    return model_id, provider, prices
+
+
+def resolve_qa(spec, path=MODELS):
+    """The task's Google QA reviewer, or None when the task has none."""
+    model_id = spec.get('qa_model')
+    if model_id is None:
+        return None
+    approved = load_reviewers(path, section='qa_reviewers', providers=QA_PROVIDERS)
+    if model_id not in approved:
+        raise ValueError('task QA reviewer is not in the approved QA list')
     provider, prices = approved[model_id]
     return model_id, provider, prices

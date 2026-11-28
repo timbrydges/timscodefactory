@@ -47,6 +47,7 @@ class DraftTests(unittest.TestCase):
         self.assertEqual(record['status'], 'PENDING_APPROVAL')
         self.assertEqual(task['task_id'], 'bonus-library-reading-time')
         self.assertEqual(task['reviewer_model'], 'claude-opus-5-5')
+        self.assertEqual(task['qa_model'], 'gemini-3.8-flash')
         self.assertEqual(task['acceptance_tests'][0]['path'],
                          'tests/factory-acceptance/reading-time.acceptance.test.mjs')
         for flag in ('execution_authorized', 'spending_authorized', 'signing_authorized', 'release_authorized'):
@@ -140,7 +141,8 @@ class ApprovalTests(unittest.TestCase):
                   input_price='4.00', output_price='20.00', pricing_source='owner-checked',
                   now=__import__('datetime').datetime.now(__import__('datetime').timezone.utc), hours=12,
                   source_commit='d' * 40, task=folder / 'task.json',
-                  reviewer_input_price='4.00', reviewer_output_price='20.00')
+                  reviewer_input_price='4.00', reviewer_output_price='20.00',
+                  qa_input_price='4.00', qa_output_price='20.00')
         with self.assertRaises(ValueError):  # No intake record at all.
             prep.prepare(**kw)
         (folder / 'intake.json').write_text(json.dumps(record))
@@ -152,6 +154,8 @@ class ApprovalTests(unittest.TestCase):
         self.assertEqual(result['status'], 'PREPARED')
         pins = json.loads((self.tmp / 'out' / 'pins.json').read_text())
         self.assertEqual(pins['reviewer_model_id'], 'claude-opus-5-5')
+        self.assertEqual(pins['qa_model_id'], 'gemini-3.8-flash')
+        self.assertEqual(pins['total_cap'], '3.00')  # (0.50 + 0.25 + 0.25) x 3 rounds
 
 
 class IntakeCompositionTests(unittest.TestCase):
@@ -164,8 +168,9 @@ class IntakeCompositionTests(unittest.TestCase):
         pins = dict(credential_source='env:FACTORY_OPENAI_API_KEY', model_id='gpt-5.6-sol',
             repository='timbrydges/bonus-library', image_ref='sha256:' + 'b' * 64,
             max_request_bytes=42020, max_output_tokens=16384, builder_cap='0.50', reviewer_cap='0.25',
-            total_cap='0.75', reviewer_model_id='claude-opus-5-5',
-            reviewer_credential_source='env:FACTORY_ANTHROPIC_API_KEY')
+            total_cap='1.00', reviewer_model_id='claude-opus-5-5',
+            reviewer_credential_source='env:FACTORY_ANTHROPIC_API_KEY', qa_model_id='gemini-3.8-flash',
+            qa_credential_source='env:FACTORY_GOOGLE_API_KEY', qa_cap='0.25')
         options = dict(approval={}, expected_pins=pins, receipt_path='unused',
             task=SimpleNamespace(task_id=task['task_id'], activation_id='t'),
             contract_bytes=json.dumps(task).encode(), snapshot=None, pricing_source=Mock(),
@@ -177,7 +182,7 @@ class IntakeCompositionTests(unittest.TestCase):
         self.assertIn('--test tests/reading-time.test.mjs tests/factory-acceptance/reading-time.acceptance.test.mjs',
                       command)
         self.assertEqual(args['delivery']['required_changed_paths'], sorted(IDEA['allowed_paths']))
-        no_reviewer = {k: v for k, v in pins.items() if not k.startswith('reviewer_m') and k != 'reviewer_credential_source'}
+        no_reviewer = {k: v for k, v in pins.items() if not k.startswith(('reviewer_m', 'reviewer_c', 'qa_'))}
         with self.assertRaises(StateError):
             compose_bonus_host('unused', **{**options, 'expected_pins': no_reviewer})
 

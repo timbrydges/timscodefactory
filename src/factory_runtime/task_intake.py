@@ -32,6 +32,7 @@ IDEA_FIELDS = {'idea_id', 'repository', 'target_commit', 'source_manifest_digest
                'requirements', 'allowed_paths', 'builder_test', 'acceptance'}
 OPTIONAL = {'regression_acceptance_tests', 'source_file_bytes', 'model', 'input_class', 'depends_on'}
 REVIEWER = 'claude-opus-5-5'
+QA = 'gemini-3.8-flash'
 CONSTRAINTS = ['No schema migrations', 'No new services', 'No credential changes',
                'No production writes', 'No network calls']
 
@@ -161,7 +162,7 @@ def draft(idea):
     task = {
         'schema_version': 1, 'task_id': task_id, 'repository': idea['repository'],
         'objective': idea['objective'], 'status': 'OFFLINE_PREPARATION',
-        'provider_strategy': 'openai_builder_independent_anthropic_reviewer',
+        'provider_strategy': 'openai_builder_anthropic_inspector_google_qa',
         'deliverable': 'Reviewable pull request with passing tests; no merge or deployment.',
         'requirements': [*idea['requirements'],
             f"Write regression tests in {idea['builder_test']}; the Factory-owned tests in {path} must pass unchanged."],
@@ -176,6 +177,7 @@ def draft(idea):
         'allowed_paths': list(idea['allowed_paths']),
         'source_file_bytes': dict(idea.get('source_file_bytes', {})),
         'reviewer_model': REVIEWER,
+        'qa_model': QA,
         'intake_id': idea['idea_id'],
     }
     for key in ('model', 'input_class'):

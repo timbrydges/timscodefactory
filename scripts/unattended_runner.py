@@ -46,10 +46,11 @@ LOCK = 'unattended.lock'
 OWNER = 'tim_brydges'
 FIELDS = {'kind', 'approved_by', 'expires_at', 'tasks', 'max_usd_per_day', 'max_attempts_per_run',
           'publish_approved', 'input_price', 'output_price', 'key_source'}
-OPTIONAL = {'reviewer_input_price', 'reviewer_output_price'}
+OPTIONAL = {'reviewer_input_price', 'reviewer_output_price', 'qa_input_price', 'qa_output_price'}
 KEY_SOURCES = {'environment', 'aws-secrets-manager'}
 SECRETS = {'FACTORY_OPENAI_API_KEY': 'tims-software-factory/provider/openai/acceptance',
-           'FACTORY_ANTHROPIC_API_KEY': 'tims-software-factory/provider/anthropic/review'}
+           'FACTORY_ANTHROPIC_API_KEY': 'tims-software-factory/provider/anthropic/review',
+           'FACTORY_GOOGLE_API_KEY': 'tims-software-factory/provider/google/qa'}
 TASK = re.compile(r'bonus-library-[a-z0-9-]{1,60}')
 
 
@@ -85,7 +86,8 @@ def read_activation(root, now):
         raise ValueError('one to five attempts per run')
     if type(record['publish_approved']) is not bool or record['key_source'] not in KEY_SOURCES:
         raise ValueError('publish flag and a known key source required')
-    for key in ('input_price', 'output_price', 'reviewer_input_price', 'reviewer_output_price'):
+    for key in ('input_price', 'output_price', 'reviewer_input_price', 'reviewer_output_price',
+                'qa_input_price', 'qa_output_price'):
         if key in record:
             _money(record[key], Decimal(0), Decimal(1000))
     return record
@@ -120,13 +122,20 @@ def keys_from_secrets_manager(names, client=None):
     return keys
 
 
-def needs_reviewer(task):
+def _spec(task):
     path = ROOT / 'factory' / 'projects' / task / 'task.json'
-    return path.is_file() and 'reviewer_model' in json.loads(path.read_bytes())
+    return json.loads(path.read_bytes()) if path.is_file() else {}
+
+
+def needs_reviewer(task):
+    return 'reviewer_model' in _spec(task)
 
 
 def required_keys(tasks):
-    return ['FACTORY_OPENAI_API_KEY', *(['FACTORY_ANTHROPIC_API_KEY'] if any(map(needs_reviewer, tasks)) else [])]
+    specs = [_spec(t) for t in tasks]
+    return ['FACTORY_OPENAI_API_KEY',
+            *(['FACTORY_ANTHROPIC_API_KEY'] if any('reviewer_model' in s for s in specs) else []),
+            *(['FACTORY_GOOGLE_API_KEY'] if any('qa_model' in s for s in specs) else [])]
 
 
 def check(root, *, env=None, now=None, which=shutil.which, run=subprocess.run):
@@ -207,6 +216,9 @@ def run_once(root, *, env=None, now=None, invoke=None, client=None, out=print):
             if 'reviewer_model' in spec:
                 args += ['--reviewer-input-price', activation['reviewer_input_price'],
                          '--reviewer-output-price', activation['reviewer_output_price']]
+            if 'qa_model' in spec:
+                args += ['--qa-input-price', activation['qa_input_price'],
+                         '--qa-output-price', activation['qa_output_price']]
             if activation['publish_approved']:
                 args.append('--publish-approved')
             batch = (invoke or _invoke)(args, env)

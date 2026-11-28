@@ -14,7 +14,8 @@ from .docker_sandbox import DockerSandboxAdapter, DockerSandboxPolicy
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderPolicy
 from .provider_broker_service import ResolvedProviderTarget
 from .provider_credentials import EnvironmentProviderCredentialLeaseSource
-from .provider_http_transport import DirectAnthropicTransport, DirectOpenAITransport
+from .provider_http_transport import DirectAnthropicTransport, DirectGoogleTransport, DirectOpenAITransport
+from .google_review_provider import GoogleQAReviewInvoker, GoogleQAPolicy
 from .anthropic_provider import AnthropicMessagesReviewInvoker, AnthropicReviewPolicy
 from .workload_identity_response import RenewableCredentialBinding
 
@@ -214,11 +215,38 @@ def _intake_profile(spec, pins):
     from .task_intake import check_paths
     if spec.get('reviewer_model') is None or pins.get('reviewer_model_id') != spec['reviewer_model']:
         raise StateError('generated tasks require their independent reviewer')
+    if pins.get('qa_model_id') != spec.get('qa_model'):
+        raise StateError('generated task QA reviewer differs from its pins')
     try:
         builder_test, acceptance = check_paths(spec)
     except (KeyError, TypeError, ValueError):
         raise StateError('generated task profile is invalid') from None
     return tuple(spec['allowed_paths']), bonus_repository_checks(builder_test, acceptance)
+
+
+GOOGLE_CREDENTIAL_SOURCE = 'env:FACTORY_GOOGLE_API_KEY'
+
+
+def _google_qa(pins, pricing_source):
+    """The pinned Google QA reviewer; any other pin fails closed."""
+    try:
+        approved = approved_models.load_reviewers(section='qa_reviewers', providers=approved_models.QA_PROVIDERS)
+    except (OSError, ValueError):
+        approved = {}
+    model_id = pins['qa_model_id']
+    if (approved.get(model_id, (None,))[0] != 'google' or 'reviewer_model_id' not in pins
+            or pins.get('qa_credential_source') != GOOGLE_CREDENTIAL_SOURCE):
+        raise StateError('unsupported Google QA composition')
+    credential = EnvironmentProviderCredentialLeaseSource(environment_variable='FACTORY_GOOGLE_API_KEY',
+        provider_family='google', audience='generativelanguage.googleapis.com')
+    transport = DirectGoogleTransport(enabled=True,
+        max_request_bytes=pins['max_request_bytes'], max_response_bytes=RESPONSE_LIMIT)
+    qa = GoogleQAReviewInvoker(credential, pricing_source, transport,
+        policy=GoogleQAPolicy(live_enabled=True, max_request_bytes=pins['max_request_bytes'],
+            max_response_bytes=RESPONSE_LIMIT, timeout_seconds=180,
+            max_output_tokens=min(pins['max_output_tokens'], 4096)))
+    return qa, ResolvedProviderTarget(provider_family='google', model_id=model_id,
+                                      selector_version='development-pinned-v1')
 
 
 def compose_bonus_host(directory, *, approval, expected_pins, receipt_path,
@@ -298,6 +326,10 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
     reviewer, reviewer_target = adapter('task_review'), None
     if 'reviewer_model_id' in pins:
         reviewer, reviewer_target = _independent_reviewer(pins, pricing_source)
+    qa_options = {}
+    if 'qa_model_id' in pins:
+        qa, qa_target = _google_qa(pins, pricing_source)
+        qa_options = dict(qa=qa, qa_target=qa_target, qa_cap=Decimal(pins['qa_cap']))
     command = profile.test_command
     delivery = profile.delivery
     def request(candidate):
@@ -310,6 +342,7 @@ def _compose_host(directory, *, approval, expected_pins, receipt_path, task,
         receipt_path=receipt_path, now=clock(), owner_authorized=True,
         task=task, contract_bytes=contract_bytes, snapshot=snapshot,
         builder=adapter('task_implementation'), reviewer=reviewer, reviewer_target=reviewer_target,
+        **qa_options,
         target=ResolvedProviderTarget(provider_family='openai', model_id=pins['model_id'],
                                       selector_version='development-pinned-v1'),
         builder_cap=Decimal(pins['builder_cap']), reviewer_cap=Decimal(pins['reviewer_cap']),

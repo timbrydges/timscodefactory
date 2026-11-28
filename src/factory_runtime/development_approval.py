@@ -28,6 +28,9 @@ def approval_pins_match(approval, expected_pins, *, execution_profile=None):
     if type(expected_pins) is dict and 'reviewer_model_id' in expected_pins:
         # Independent reviewer: its model and credential are pinned with the attempt.
         keys |= {'reviewer_model_id', 'reviewer_credential_source'}
+    if type(expected_pins) is dict and 'qa_model_id' in expected_pins:
+        # Google QA after the Inspector: its own model, key and stage cap.
+        keys |= {'qa_model_id', 'qa_credential_source', 'qa_cap'}
     if type(expected_pins) is dict and 'repair_rounds' in expected_pins:
         # Owner-approved bounded repair; the total cap must cover every round.
         keys.add('repair_rounds')
@@ -51,8 +54,10 @@ def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
             raise ValueError()
         pins = expected_pins
         caps = [Decimal(pins[k]) for k in ('builder_cap', 'reviewer_cap', 'total_cap')]
+        qa_cap = Decimal(pins['qa_cap']) if 'qa_cap' in pins else Decimal(0)
         rounds = 1 + pins.get('repair_rounds', 0)
-        if any(not c.is_finite() or c <= 0 for c in caps) or (caps[0]+caps[1])*rounds > caps[2]:
+        if (any(not c.is_finite() or c <= 0 for c in caps) or not qa_cap.is_finite() or qa_cap < 0
+                or ('qa_cap' in pins and qa_cap == 0) or (caps[0]+caps[1]+qa_cap)*rounds > caps[2]):
             raise ValueError()
         if any(type(pins[k]) is not int or pins[k] <= 0 for k in ('max_request_bytes', 'max_output_tokens')):
             raise ValueError()
@@ -74,13 +79,17 @@ def compose_approved_host(directory, *, approval, expected_pins, receipt_path,
             or (options.get('reviewer_target') is None) != ('reviewer_model_id' not in pins)
             or (options.get('reviewer_target') is not None
                 and options['reviewer_target'].model_id != pins['reviewer_model_id'])
+            or (options.get('qa_target') is None) != ('qa_model_id' not in pins)
+            or (options.get('qa_target') is not None
+                and (options['qa_target'].model_id != pins['qa_model_id']
+                     or options.get('qa_cap') != Decimal(pins['qa_cap'])))
             or 'enabled' in options):
         raise StateError('runtime differs from approved attempt')
     if 'source_manifest_digest' in pins:
         from .private_source import snapshot_manifest_digest
         if snapshot_manifest_digest(snapshot) != pins['source_manifest_digest']:
             raise StateError('source content differs from approved manifest')
-    for adapter in (options['builder'], options['reviewer']):
+    for adapter in (options['builder'], options['reviewer'], *filter(None, [options.get('qa')])):
         if (adapter.policy.max_request_bytes > pins['max_request_bytes']
                 or adapter.policy.max_output_tokens > pins['max_output_tokens']):
             raise StateError('adapter exceeds approved request bounds')

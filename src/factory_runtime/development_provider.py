@@ -11,12 +11,13 @@ from pathlib import Path
 from factory_state.model import StateError
 from factory_state.scope import canonical
 from .anthropic_provider import AnthropicMessagesReviewInvoker
+from .google_review_provider import GoogleQAReviewInvoker
 from .openai_provider import OpenAIResponsesProviderInvoker, OpenAIProviderProtocolError, PROVIDER_FAILURE_CODES
 from .worker import digest
 
 
-STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
-          'repair2_builder', 'repair2_reviewer')
+STAGES = ('builder', 'reviewer', 'qa', 'repair_builder', 'repair_reviewer', 'repair_qa',
+          'repair2_builder', 'repair2_reviewer', 'repair2_qa')
 
 
 class ExclusiveDevelopmentJournal:
@@ -39,14 +40,16 @@ class ExclusiveDevelopmentJournal:
 
 class DevelopmentProviderSession:
     def __init__(self, *, builder, reviewer, target, builder_cap, reviewer_cap,
-                 total_cap, journal, enabled=False, repair_rounds=0, reviewer_target=None):
-        caps = (builder_cap, reviewer_cap, total_cap)
+                 total_cap, journal, enabled=False, repair_rounds=0, reviewer_target=None,
+                 qa=None, qa_target=None, qa_cap=None):
+        caps = (builder_cap, reviewer_cap, total_cap, *((qa_cap,) if qa is not None else ()))
         if type(repair_rounds) is not int or repair_rounds not in (0, 1, 2):
             raise StateError('at most two bounded repair rounds')
         if any(type(v) is not Decimal or not v.is_finite() or v <= 0 for v in caps):
             raise StateError('finite positive stage and total caps required')
         # Each round may spend both stage caps; the total covers every round.
-        if (builder_cap + reviewer_cap) * (1 + repair_rounds) > total_cap or type(enabled) is not bool:
+        round_cap = builder_cap + reviewer_cap + (qa_cap if qa is not None else 0)
+        if round_cap * (1 + repair_rounds) > total_cap or type(enabled) is not bool:
             raise StateError('stage caps exceed total or activation is invalid')
         if (not isinstance(builder, OpenAIResponsesProviderInvoker)
                 or builder.policy.workload != 'task_implementation' or target.provider_family != 'openai'):
@@ -63,10 +66,20 @@ class DevelopmentProviderSession:
                 or not isinstance(reviewer, AnthropicMessagesReviewInvoker)):
             # Hard rule: an independent reviewer never shares the builder's provider family.
             raise StateError('independent reviewer must come from a different provider family')
-        self.targets = {stage: target if stage.endswith('builder') else reviewer_target for stage in STAGES}
+        if qa is not None and (qa_target is None or reviewer_target is target
+                or qa_target.provider_family != 'google'
+                or qa_target.provider_family in (target.provider_family, reviewer_target.provider_family)
+                or not isinstance(qa, GoogleQAReviewInvoker)):
+            # QA is a third provider family, after an independent Inspector.
+            raise StateError('QA reviewer must be Google, after an independent Inspector')
+        if qa is None and qa_target is not None:
+            raise StateError('QA target without a QA adapter')
+        self.qa = qa
+        pick = lambda stage, b, r, q: b if stage.endswith('builder') else q if stage.endswith('qa') else r
+        self.targets = {stage: pick(stage, target, reviewer_target, qa_target) for stage in STAGES}
         self.repair_rounds = repair_rounds
-        self.adapters = {stage: builder if stage.endswith('builder') else reviewer for stage in STAGES}
-        self.caps = {stage: builder_cap if stage.endswith('builder') else reviewer_cap for stage in STAGES}
+        self.adapters = {stage: pick(stage, builder, reviewer, qa) for stage in STAGES}
+        self.caps = {stage: pick(stage, builder_cap, reviewer_cap, qa_cap) for stage in STAGES}
         self.target, self.journal, self.enabled = target, journal, enabled
         self.started, self.completed = set(), set()
         self.builder_input_digest = self.builder_decision_digest = None
@@ -77,7 +90,19 @@ class DevelopmentProviderSession:
         return await self._call('builder', 'factory_task_implementation_v1', turn)
 
     async def review(self, turn):
-        return await self._call('reviewer', 'factory_task_review_v1', turn)
+        return await self._reviewed('reviewer', 'qa', turn)
+
+    async def _reviewed(self, inspector, qa, turn):
+        """Inspector first; QA only after an approval. Both must approve."""
+        decision = await self._call(inspector, 'factory_task_review_v1', turn)
+        if self.qa is None or decision.get('verdict') != 'APPROVE':
+            return decision
+        verdict = await self._call(qa, 'factory_task_review_v1', turn)
+        if verdict.get('verdict') == 'APPROVE':
+            return decision
+        findings = [f'QA: {f}' for f in verdict.get('findings', []) if isinstance(f, str)]
+        return {'review_input_digest': decision['review_input_digest'], 'verdict': 'REJECT',
+                'findings': findings or ['QA: rejected without findings']}
 
     async def repair_build(self, turn):
         repair = turn.get('repair') if type(turn) is dict else None
@@ -90,8 +115,8 @@ class DevelopmentProviderSession:
     async def repair_review(self, turn, round=1):
         if round not in (1, 2):
             raise StateError('repair round required')
-        return await self._call('repair_reviewer' if round == 1 else 'repair2_reviewer',
-                                'factory_task_review_v1', turn)
+        prefix = 'repair_' if round == 1 else 'repair2_'
+        return await self._reviewed(prefix + 'reviewer', prefix + 'qa', turn)
 
     async def _call(self, stage, kind, turn):
         if not self.enabled:
@@ -99,16 +124,19 @@ class DevelopmentProviderSession:
         # A repair may follow a review rejection or failed checks; it still binds the builder result.
         prerequisite = {'builder': None, 'reviewer': 'builder', 'repair_builder': 'builder',
                         'repair_reviewer': 'repair_builder', 'repair2_builder': 'repair_builder',
-                        'repair2_reviewer': 'repair2_builder'}[stage]
+                        'repair2_reviewer': 'repair2_builder', 'qa': 'reviewer',
+                        'repair_qa': 'repair_reviewer', 'repair2_qa': 'repair2_reviewer'}[stage]
         needed = 2 if stage.startswith('repair2') else 1 if stage.startswith('repair') else 0
         if (stage in self.started or (prerequisite and prerequisite not in self.completed)
                 or self.repair_rounds < needed):
             raise StateError('stage consumed, prerequisite incomplete or repair not approved')
         if type(turn) is not dict or turn.get('kind') != kind:
             raise StateError('provider turn kind differs')
-        bound = {'reviewer': self.builder_decision_digest,
+        bound = {'reviewer': self.builder_decision_digest, 'qa': self.builder_decision_digest,
                  'repair_reviewer': self.repair_decision_digests.get(1),
-                 'repair2_reviewer': self.repair_decision_digests.get(2)}
+                 'repair_qa': self.repair_decision_digests.get(1),
+                 'repair2_reviewer': self.repair_decision_digests.get(2),
+                 'repair2_qa': self.repair_decision_digests.get(2)}
         if stage in bound and (turn.get('candidate_input_digest') != self.builder_input_digest
                 or turn.get('candidate_decision_digest') != bound[stage]):
             raise StateError('review must bind this session builder result')
