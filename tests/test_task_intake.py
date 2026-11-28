@@ -142,7 +142,7 @@ class ApprovalTests(unittest.TestCase):
                   now=__import__('datetime').datetime.now(__import__('datetime').timezone.utc), hours=12,
                   source_commit='d' * 40, task=folder / 'task.json',
                   reviewer_input_price='4.00', reviewer_output_price='20.00',
-                  qa_input_price='4.00', qa_output_price='20.00')
+                  qa_input_price='1.50', qa_output_price='7.50')
         with self.assertRaises(ValueError):  # No intake record at all.
             prep.prepare(**kw)
         (folder / 'intake.json').write_text(json.dumps(record))
