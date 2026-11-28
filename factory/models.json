@@ -25,9 +25,9 @@
   "qa_reviewers": {
     "gemini-3.8-flash": {
       "provider": "google",
-      "max_input_usd_per_million_tokens": "4.00",
-      "max_output_usd_per_million_tokens": "20.00",
-      "approved": "Proposed as the Google QA reviewer; maxima are the stage-cap ceiling, and the owner states the checked list price on every run. Takes effect only when the owner merges this list"
+      "max_input_usd_per_million_tokens": "1.50",
+      "max_output_usd_per_million_tokens": "7.50",
+      "approved": "Owner-checked Google AI pricing page 2026-11-28: US$0.75 input / US$3.75 output per million tokens through 2026-12-31, US$1.50 / US$7.50 from 2027-01-01 (standard paid tier, thinking billed as output); the 2027 price is the approved maximum"
     }
   }
 }
