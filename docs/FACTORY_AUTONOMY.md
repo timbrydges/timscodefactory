@@ -54,8 +54,20 @@ is refused. A batch has its own `--max-total-usd` limit.
 cache writes, no SDK retry). `DevelopmentProviderSession` refuses a reviewer
 from the builder's provider family, and the approval pins the reviewer model and
 its separate key (`FACTORY_ANTHROPIC_API_KEY`). Reviewer prices are given with
-`--reviewer-input-price` and `--reviewer-output-price`. Generated tasks always
-use it. Live use needs the owner's Anthropic key; no live review has run yet.
+`--reviewer-input-price` and `--reviewer-output-price`. First live use:
+reading-time-004 (2026-11-27), approved and merged as bonus-library#56.
+
+**Google QA after the Inspector.** With `"qa_model"` (approved list
+`qa_reviewers` in `factory/models.json`; `gemini-3.8-flash`), a Google reviewer
+(`google_review_provider.py`, fixed `generativelanguage.googleapis.com` route,
+structured JSON, no tools or cached content, no retry) assesses the same review
+turn only after the Inspector approves. Both must approve; a QA rejection
+returns its findings to the repair round. The session requires three distinct
+provider families (OpenAI builder, Anthropic Inspector, Google QA). QA has its
+own pinned cap (equal to the reviewer cap), key `FACTORY_GOOGLE_API_KEY` and
+prices (`--qa-input-price`, `--qa-output-price`); a standard attempt's total
+becomes US$3.00 and a large one US$5.25. Generated tasks use both reviewers.
+Live use needs the owner's Google AI Studio key; no live QA has run yet.
 
 ### From idea to ordered tasks
 
@@ -97,9 +109,9 @@ the previous one by digest.
 
 ### Owner actions still required
 
-1. Anthropic API key for the reviewer, stored as `FACTORY_ANTHROPIC_API_KEY` or
-   the secret `tims-software-factory/provider/anthropic/review`, and its checked
-   price confirmed before the first live review.
+1. Google AI Studio API key for QA (`FACTORY_GOOGLE_API_KEY` or the secret
+   `tims-software-factory/provider/google/qa`) and the checked
+   `gemini-3.8-flash` price. The Anthropic key is in use since 2026-11-27.
 2. An unattended host with Docker and the runner root, then the activation
    record; until then runs stay owner-started.
 3. `VERCEL_TOKEN` and AWS credentials where the release script runs, then a

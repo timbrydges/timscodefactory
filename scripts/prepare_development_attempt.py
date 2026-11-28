@@ -72,12 +72,20 @@ def limits_for(spec):
         # Independent reviewer: a different provider, with its own credential.
         limits.update(reviewer_model_id=reviewer[0],
                       reviewer_credential_source='env:FACTORY_ANTHROPIC_API_KEY')
+    qa = approved_models.resolve_qa(spec)
+    if qa is not None:
+        if reviewer is None:
+            raise ValueError('Google QA reviews only after an independent Inspector')
+        # Same allowance as the Inspector; the per-round total grows by one review.
+        limits.update(qa_model_id=qa[0], qa_credential_source='env:FACTORY_GOOGLE_API_KEY',
+                      qa_cap=limits['reviewer_cap'])
     return limits
 
 
 def attempt_cap(spec, repair_rounds):
     limits = limits_for(spec)
-    return (Decimal(limits['builder_cap']) + Decimal(limits['reviewer_cap'])) * (1 + repair_rounds)
+    stages = Decimal(limits['builder_cap']) + Decimal(limits['reviewer_cap']) + Decimal(limits.get('qa_cap', '0'))
+    return stages * (1 + repair_rounds)
 
 
 IMAGE = re.compile(r'[^\s@]+@sha256:[0-9a-f]{64}')
@@ -97,7 +105,8 @@ def _price(value):
 
 def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=None,
             input_price, output_price, pricing_source, now, hours, source_commit,
-            repair_rounds=2, task=TASK, reviewer_input_price=None, reviewer_output_price=None):
+            repair_rounds=2, task=TASK, reviewer_input_price=None, reviewer_output_price=None,
+            qa_input_price=None, qa_output_price=None):
     if not ATTEMPT.fullmatch(attempt_id) or not IMAGE.fullmatch(image_ref):
         raise ValueError('exact attempt id and digest-pinned image required')
     raw_task = Path(task).read_bytes()
@@ -157,6 +166,17 @@ def prepare(*, output, attempt_id, image_ref, source_config_sha256, manifest=Non
             output_usd_per_million_tokens=_price(reviewer_output_price),
             effective_at=pricing['effective_at'], expires_at=pricing['expires_at'],
             source_id=pricing_source)
+    qa = approved_models.resolve_qa(spec)
+    if qa is None and (qa_input_price, qa_output_price) != (None, None):
+        raise ValueError('QA prices given but the task has no Google QA reviewer')
+    if qa is not None:
+        if qa_input_price is None or qa_output_price is None:
+            raise ValueError('the owner-checked QA input and output prices are required')
+        if Decimal(_price(qa_input_price)) > qa[2]['input'] or Decimal(_price(qa_output_price)) > qa[2]['output']:
+            raise ValueError('QA price exceeds the approved maximum for this model')
+        pricing['qa'] = dict(model_id=qa[0], input_usd_per_million_tokens=_price(qa_input_price),
+            output_usd_per_million_tokens=_price(qa_output_price),
+            effective_at=pricing['effective_at'], expires_at=pricing['expires_at'], source_id=pricing_source)
     approval = dict(pins=pins, expires_at=(now+timedelta(hours=hours)).isoformat())
     output.mkdir(exist_ok=False)
     files = dict(pins=pins, approval=approval, pricing=pricing)
@@ -179,6 +199,8 @@ def main(argv=None):
     parser.add_argument('--manifest')
     parser.add_argument('--reviewer-input-price')
     parser.add_argument('--reviewer-output-price')
+    parser.add_argument('--qa-input-price')
+    parser.add_argument('--qa-output-price')
     parser.add_argument('--task', default='bonus-library-pagination')
     parser.add_argument('--hours', type=int, default=12)
     parser.add_argument('--repair-rounds', type=int, choices=(0, 1, 2), default=2)
@@ -194,7 +216,8 @@ def main(argv=None):
         pricing_source=args.pricing_source, now=datetime.now(timezone.utc),
         hours=args.hours, source_commit=head, repair_rounds=args.repair_rounds,
         task=task_path(args.task), reviewer_input_price=args.reviewer_input_price,
-        reviewer_output_price=args.reviewer_output_price)))
+        reviewer_output_price=args.reviewer_output_price,
+        qa_input_price=args.qa_input_price, qa_output_price=args.qa_output_price)))
     return 0
 
 

@@ -40,11 +40,12 @@ class PinnedPricing:
     def __init__(self, data):
         self.value = _quote(data)
         self.quotes = {self.value.model_id: self.value}
-        if 'reviewer' in data:
-            reviewer = _quote(data['reviewer'])
-            if reviewer.model_id in self.quotes:
-                raise ValueError('reviewer pricing must name a different model')
-            self.quotes[reviewer.model_id] = reviewer
+        for role in ('reviewer', 'qa'):
+            if role in data:
+                quote = _quote(data[role])
+                if quote.model_id in self.quotes:
+                    raise ValueError(f'{role} pricing must name a different model')
+                self.quotes[quote.model_id] = quote
 
     async def quote(self, *, target):
         # Adapter enforces model, age, expiry and worst-case cost.

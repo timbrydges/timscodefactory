@@ -40,7 +40,7 @@ class DirectOpenAITransport:
         return await self._run_request(headers, body, timeout_seconds, kind='responses')
 
     async def _run_request(self, headers, body, timeout_seconds, *, kind):
-        if kind not in ('responses', 'messages', 'token-exchange', 'github-subject'):
+        if kind not in ('responses', 'messages', 'token-exchange', 'github-subject') and not _generate_kind(kind):
             raise OpenAIProviderProtocolError('unsupported transport operation')
         payload = json.dumps({'headers': dict(headers), 'body': body.decode('utf-8'),
             'timeout': timeout_seconds, 'limit': self.max_response_bytes, 'kind': kind}).encode()
@@ -101,6 +101,8 @@ class DirectOpenAITransport:
                 request = json.loads(body)
                 host, path = request_target(request['url'], request['origin'], request['audience'])
                 method, body = 'GET', None
+            elif _generate_kind(kind):
+                host, path = 'generativelanguage.googleapis.com', f'/v1beta/models/{kind[9:]}:generateContent'
             elif kind not in routes:
                 raise OpenAIProviderProtocolError('unsupported transport operation')
             else:
@@ -148,6 +150,32 @@ class DirectAnthropicTransport(DirectOpenAITransport):
                        for v in headers.values())):
             raise OpenAIProviderProtocolError('invalid bounded transport request')
         return await self._run_request(headers, body, timeout_seconds, kind='messages')
+
+
+def _generate_kind(kind):
+    import re
+    return type(kind) is str and re.fullmatch(r'generate:gemini-[a-z0-9.-]{1,40}', kind) is not None
+
+
+class DirectGoogleTransport(DirectOpenAITransport):
+    """The same isolated one-shot child, bound to the fixed Gemini generateContent route."""
+
+    async def post_json(self, *, endpoint, headers, body, timeout_seconds):
+        import re
+        if not self.enabled:
+            raise OpenAIProviderDisabledError('HTTP transport disabled')
+        match = re.fullmatch(r'https://generativelanguage\.googleapis\.com/v1beta/models/'
+                             r'(gemini-[a-z0-9.-]{1,40}):generateContent', endpoint or '')
+        if (match is None or type(body) is not bytes or len(body) > self.max_request_bytes
+                or type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 180
+                or type(headers) is not dict
+                or set(headers) != {'x-goog-api-key', 'content-type', 'accept'}
+                or headers.get('content-type') != 'application/json'
+                or headers.get('accept') != 'application/json'
+                or any(not isinstance(v, str) or any(ord(c) < 32 or ord(c) > 126 for c in v)
+                       for v in headers.values())):
+            raise OpenAIProviderProtocolError('invalid bounded transport request')
+        return await self._run_request(headers, body, timeout_seconds, kind='generate:' + match.group(1))
 
 
 def _worker():

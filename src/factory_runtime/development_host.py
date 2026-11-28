@@ -18,7 +18,8 @@ class DevelopmentHost:
     def __init__(self, directory, *, task, contract_bytes, snapshot, builder,
                  reviewer, target, builder_cap, reviewer_cap, total_cap,
                  request_for, sandbox_for, clock, enabled=False, delivery=None,
-                 repair_rounds=0, diagnostics=None, reviewer_target=None):
+                 repair_rounds=0, diagnostics=None, reviewer_target=None,
+                 qa=None, qa_target=None, qa_cap=None):
         if type(enabled) is not bool:
             raise StateError('explicit boolean activation required')
         task.validate()
@@ -36,7 +37,7 @@ class DevelopmentHost:
         session = DevelopmentProviderSession(builder=builder, reviewer=reviewer,
             target=target, builder_cap=builder_cap, reviewer_cap=reviewer_cap,
             total_cap=total_cap, journal=None, enabled=enabled, repair_rounds=repair_rounds,
-            reviewer_target=reviewer_target)
+            reviewer_target=reviewer_target, qa=qa, qa_target=qa_target, qa_cap=qa_cap)
         self.directory = Path(directory)
         if not self.directory.parent.is_dir() or self.directory.parent.is_symlink():
             raise StateError('existing regular attempt parent required')

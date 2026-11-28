@@ -33,8 +33,9 @@ _spec.loader.exec_module(prepare_module)
 PINNED_MANIFEST = 'sha256:72afb0498ff1d0a248324ef1d13686ab052363f28377bfcdbd42426d703e6db3'
 KEY = re.compile(r'sk-(?!ant-)[A-Za-z0-9_\-]{16,512}')
 ANTHROPIC_KEY = re.compile(r'sk-ant-[A-Za-z0-9_\-]{16,512}')
-STAGES = ('builder', 'reviewer', 'repair_builder', 'repair_reviewer',
-          'repair2_builder', 'repair2_reviewer')
+GOOGLE_KEY = re.compile(r'AIza[0-9A-Za-z_\-]{30,60}')
+STAGES = ('builder', 'reviewer', 'qa', 'repair_builder', 'repair_reviewer', 'repair_qa',
+          'repair2_builder', 'repair2_reviewer', 'repair2_qa')
 
 
 def committed_manifest_matches(root):
@@ -172,7 +173,7 @@ def summarize(directory):
                 entry['cost_usd'] = data.get('cost_usd')
                 total += Decimal(data.get('cost_usd') or '0')
                 proposal = data.get('proposal') or {}
-                if stage.endswith('reviewer'):
+                if stage.endswith(('reviewer', 'qa')):
                     entry['verdict'] = proposal.get('verdict')
                     entry['findings'] = proposal.get('findings', [])[:20]
                 else:
@@ -221,9 +222,26 @@ def needs_reviewer_key(task):
     return 'reviewer_model' in json.loads(prepare_module.task_path(task).read_bytes())
 
 
+def load_qa_key(ops):
+    """The Google QA reviewer's key, loaded the same hidden way."""
+    key = os.environ.get('FACTORY_GOOGLE_API_KEY', '').strip()
+    if not key:
+        ops.wait_for_key_copy('Google')
+        key = ops.read_clipboard().strip()
+        ops.clear_clipboard()
+    if not GOOGLE_KEY.fullmatch(key):
+        raise ValueError('clipboard did not hold a Google API key (expected AIza...); nothing was run')
+    return key
+
+
+def needs_qa_key(task):
+    return 'qa_model' in json.loads(prepare_module.task_path(task).read_bytes())
+
+
 def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pricing_source,
         image, manifest, hours, ops, out=print, now=None, key=None, task='bonus-library-pagination',
-        reviewer_key=None, reviewer_input_price=None, reviewer_output_price=None):
+        reviewer_key=None, reviewer_input_price=None, reviewer_output_price=None,
+        qa_key=None, qa_input_price=None, qa_output_price=None):
     root = Path(runner_root)
     config_path = root/'bonus-source-fetch.json'
     raw = config_path.read_bytes()
@@ -258,7 +276,8 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
         input_price=input_price, output_price=output_price, pricing_source=pricing_source,
         now=now or datetime.now(timezone.utc), hours=hours, source_commit=head,
         repair_rounds=repair_rounds, task=task_file,
-        reviewer_input_price=reviewer_input_price, reviewer_output_price=reviewer_output_price)
+        reviewer_input_price=reviewer_input_price, reviewer_output_price=reviewer_output_price,
+        qa_input_price=qa_input_price, qa_output_price=qa_output_price)
     out(f"Prepared {attempt_id} ({task}): cap US${prepared['total_cap_usd']}, "
         f"repair rounds {repair_rounds}, approval valid until {prepared['approval_expires_at']}")
     if key is None:
@@ -267,6 +286,9 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
     if reviewer_key is None and needs_reviewer_key(task):
         reviewer_key = load_reviewer_key(ops)
         out('Independent reviewer key loaded (not shown).')
+    if qa_key is None and needs_qa_key(task):
+        qa_key = load_qa_key(ops)
+        out('QA reviewer key loaded (not shown).')
     out('Running; this can take several minutes...')
     folder = inputs/attempt_id
     args = ['--execute-approved-once', '--owner-authorized',
@@ -275,12 +297,13 @@ def run(*, runner_root, attempt_id, repair_rounds, input_price, output_price, pr
             '--attempt-directory', str(attempts/attempt_id),
             '--source-config', str(config_path), '--source-config-sha256', config_digest]
     env = {**os.environ, 'FACTORY_OPENAI_API_KEY': key,
-           **({'FACTORY_ANTHROPIC_API_KEY': reviewer_key} if reviewer_key else {})}
+           **({'FACTORY_ANTHROPIC_API_KEY': reviewer_key} if reviewer_key else {}),
+           **({'FACTORY_GOOGLE_API_KEY': qa_key} if qa_key else {})}
     try:
         stdout = ops.run_attempt(args, env)
     finally:
         env.clear()
-        key = reviewer_key = None
+        key = reviewer_key = qa_key = None
     try:
         outcome = json.loads(stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
@@ -331,6 +354,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
         raise ValueError('Factory files do not match MANIFEST.sha256; nothing was run')
     key = load_key(ops)
     reviewer_key = load_reviewer_key(ops) if needs_reviewer_key(options.get('task', 'bonus-library-pagination')) else None
+    qa_key = load_qa_key(ops) if needs_qa_key(options.get('task', 'bonus-library-pagination')) else None
     out(f'Key loaded (not shown). Batch: up to {max_attempts} attempt(s), US${budget} total, '
         f'publish approved: {"yes" if publish_approved else "no"}.')
     spent, records, status = Decimal(0), [], 'LIMIT_REACHED'
@@ -340,7 +364,8 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                 status = 'BUDGET_REACHED'
                 break
             out(f'--- Attempt {number} of {max_attempts} (spent so far US${spent}) ---')
-            summary = run(ops=ops, out=out, key=key, reviewer_key=reviewer_key, attempt_id=None, **options)
+            summary = run(ops=ops, out=out, key=key, reviewer_key=reviewer_key, qa_key=qa_key,
+                          attempt_id=None, **options)
             # Failed calls count at their cap so the batch limit stays a hard ceiling.
             spent += Decimal(summary['total_cost_usd']) + Decimal(summary['uncertain_max_usd'])
             outcome = summary['outcome'].get('status')
@@ -363,7 +388,7 @@ def run_batch(*, max_attempts, max_total_usd, publish_approved, ops, out=print, 
                 status = 'STOPPED_FOR_RECONCILIATION'
                 break
     finally:
-        key = reviewer_key = None
+        key = reviewer_key = qa_key = None
     batch = {'status': status, 'attempts': records, 'spent_usd': str(spent),
              'max_attempts': max_attempts, 'max_total_usd': str(budget)}
     results = Path(options['runner_root'])/'dev-results'
@@ -391,6 +416,9 @@ def main(argv=None, ops=None):
     # Owner-checked prices for a task's independent (Anthropic) reviewer.
     parser.add_argument('--reviewer-input-price')
     parser.add_argument('--reviewer-output-price')
+    # Owner-checked prices for a task's Google QA reviewer.
+    parser.add_argument('--qa-input-price')
+    parser.add_argument('--qa-output-price')
     # Built by scripts/build_bonus_check_image.py: Node plus the pinned npm dependencies.
     parser.add_argument('--image', default='factory-bonus-checks:ef88df95bc3f')
     parser.add_argument('--manifest')  # Default: the task contract's pinned manifest.
@@ -408,7 +436,8 @@ def main(argv=None, ops=None):
     options = dict(runner_root=args.runner_root, repair_rounds=args.repair_rounds,
         input_price=args.input_price, output_price=args.output_price, pricing_source=source,
         image=args.image, manifest=args.manifest, hours=args.hours, task=args.task,
-        reviewer_input_price=args.reviewer_input_price, reviewer_output_price=args.reviewer_output_price)
+        reviewer_input_price=args.reviewer_input_price, reviewer_output_price=args.reviewer_output_price,
+        qa_input_price=args.qa_input_price, qa_output_price=args.qa_output_price)
     batch_mode = args.max_attempts > 1 or args.max_total_usd is not None or args.publish_approved
     if batch_mode and (args.attempt_id is not None or args.max_total_usd is None):
         parser.error('a batch needs --max-total-usd and picks attempt ids itself')

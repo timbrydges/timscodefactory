@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Owner-approved OpenAI models for development attempts. A task may name one in its \"model\" field; tasks without it use the default. Stage caps assume at most US$4.00 input and US$20.00 output per million tokens, so every model listed here must cost no more than that. Models are added only through owner-approved pull requests. A task may also name an approved independent reviewer in its \"reviewer_model\" field; that reviewer must come from a different provider than the builder.",
+  "note": "Owner-approved OpenAI models for development attempts. A task may name one in its \"model\" field; tasks without it use the default. Stage caps assume at most US$4.00 input and US$20.00 output per million tokens, so every model listed here must cost no more than that. Models are added only through owner-approved pull requests. A task may also name an approved independent reviewer in its \"reviewer_model\" field; that reviewer must come from a different provider than the builder. A task may also name an approved Google QA reviewer in its \"qa_model\" field, which reviews after the Inspector approves.",
   "default": "gpt-5.6-sol",
   "models": {
     "gpt-5.6-sol": {
@@ -20,6 +20,14 @@
       "max_input_usd_per_million_tokens": "4.00",
       "max_output_usd_per_million_tokens": "20.00",
       "approved": "Proposed for the independent reviewer at Anthropic list price US$4.00 input / US$20.00 output per million tokens; takes effect only when the owner merges this list"
+    }
+  },
+  "qa_reviewers": {
+    "gemini-3.8-flash": {
+      "provider": "google",
+      "max_input_usd_per_million_tokens": "4.00",
+      "max_output_usd_per_million_tokens": "20.00",
+      "approved": "Proposed as the Google QA reviewer; maxima are the stage-cap ceiling, and the owner states the checked list price on every run. Takes effect only when the owner merges this list"
     }
   }
 }
